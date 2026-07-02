@@ -130,7 +130,7 @@
   <script src="js/themeEngine.js"></script>
   <script src="js/unlockEngine.js"></script>
   <script src="js/avatarEngine.js"></script>
-  <script src="js/workspaceEngine.js"></script>
+  <script src="js/workspaceEngine.js"></script>   <!-- 注意：这是 Phase 15 的 workspaceEngine，后面会覆盖为 Phase 27 版，但保留文件 -->
   <script src="js/collectionEngine.js"></script>
   <script src="js/companionEngine.js"></script>
 
@@ -187,7 +187,7 @@
   <script src="js/fallbackManager.js"></script>
   <script src="js/aiLayer.js"></script>
 
-  <!-- ========== Phase 20 Second Brain Engine (升级版) ========== -->
+  <!-- ========== Phase 20 Second Brain Engine ========== -->
   <script src="js/knowledgeCard.js"></script>
   <script src="js/knowledgeConfidence.js"></script>
   <script src="js/knowledgeLinker.js"></script>
@@ -222,10 +222,39 @@
   <script src="js/memoryHeatmap.js"></script>
   <script src="js/memoryEngine.js"></script>
 
+  <!-- ========== Phase 25 Learning Path Engine ========== -->
+  <script src="js/milestoneEngine.js"></script>
+  <script src="js/pathPlanner.js"></script>
+  <script src="js/careerPathGenerator.js"></script>
+  <script src="js/journeyTracker.js"></script>
+  <script src="js/learningPathEngine.js"></script>
+
+  <!-- ========== Phase 26 Knowledge Resource Engine ========== -->
+  <script src="js/resourceRegistry.js"></script>
+  <script src="js/resourceRanker.js"></script>
+  <script src="js/resourceHealth.js"></script>
+  <script src="js/resourceSearch.js"></script>
+  <script src="js/resourceEngine.js"></script>
+
+  <!-- ========== Phase 27 Knowledge Workspace Engine ========== -->
+  <script src="js/workspaceState.js"></script>
+  <script src="js/workspaceLayout.js"></script>
+  <script src="js/workspaceWidgets.js"></script>
+  <script src="js/workspaceSearch.js"></script>
+  <!-- workspaceEngine.js 已在 Phase 15 加载，但 Phase 27 版本会覆盖并扩展，保留此引用确保加载 -->
+  <script src="js/workspaceEngine.js"></script>   <!-- 如果文件已替换为 Phase 27 版，此标签将加载新版本 -->
+
+  <!-- ========== Phase 28 Knowledge Graph Engine ========== -->
+  <script src="js/nodeRegistry.js"></script>
+  <script src="js/relationshipEngine.js"></script>
+  <script src="js/graphNavigator.js"></script>
+  <script src="js/graphRenderer.js"></script>
+  <script src="js/knowledgeGraph.js"></script>
+
   <!-- ========== 应用主入口 ========== -->
   <script src="js/app.js"></script>
 
-  <!-- ========== Phase 8.5 学习包自动安装 ========== -->
+  <!-- ========== Phase 8.5 初始化：自动加载或安装 AI 学习包 ========== -->
   <script>
     (async function() {
       window.LawAIApp = window.LawAIApp || {};
@@ -248,7 +277,7 @@
     })();
   </script>
 
-  <!-- ========== Phase 15 启动解锁 / 主题 ========== -->
+  <!-- ========== Phase 15 启动：检查解锁、应用主题 ========== -->
   <script>
     (function() {
       if (LawAIApp.UnlockEngine && LawAIApp.ThemeEngine) {
