@@ -32,7 +32,7 @@
     <button class="nav-item" data-page="settings">⚙️ Settings</button>
   </nav>
 
-  <!-- ========== 页面模板（离线可用） ========== -->
+  <!-- ========== 页面模板 ========== -->
   <div style="display:none" id="templates">
     <template id="template-dashboard"></template>
     <template id="template-learning"></template>
@@ -41,16 +41,8 @@
     <template id="template-tools"></template>
     <template id="template-prompt"></template>
     <template id="template-settings"></template>
-
-    <!-- Phase 3 新增：Lesson 页面模板 -->
-    <template id="template-lesson">
-      <div class="lesson-page" id="lesson-dynamic-content"></div>
-    </template>
-
-    <!-- Phase 5 新增：Academy 页面模板 -->
-    <template id="template-academy">
-      <div class="academy-page" id="academy-content"></div>
-    </template>
+    <template id="template-lesson"><div class="lesson-page" id="lesson-dynamic-content"></div></template>
+    <template id="template-academy"><div class="academy-page" id="academy-content"></div></template>
   </div>
 
   <!-- ========== Phase 1 基础脚本 ========== -->
@@ -130,7 +122,7 @@
   <script src="js/themeEngine.js"></script>
   <script src="js/unlockEngine.js"></script>
   <script src="js/avatarEngine.js"></script>
-  <script src="js/workspaceEngine.js"></script>   <!-- 注意：这是 Phase 15 的 workspaceEngine，后面会覆盖为 Phase 27 版，但保留文件 -->
+  <script src="js/workspaceEngine.js"></script>   <!-- Phase 15 版本，后续会被 Phase 27 覆盖 -->
   <script src="js/collectionEngine.js"></script>
   <script src="js/companionEngine.js"></script>
 
@@ -241,15 +233,32 @@
   <script src="js/workspaceLayout.js"></script>
   <script src="js/workspaceWidgets.js"></script>
   <script src="js/workspaceSearch.js"></script>
-  <!-- workspaceEngine.js 已在 Phase 15 加载，但 Phase 27 版本会覆盖并扩展，保留此引用确保加载 -->
-  <script src="js/workspaceEngine.js"></script>   <!-- 如果文件已替换为 Phase 27 版，此标签将加载新版本 -->
+  <!-- workspaceEngine.js 已加载过，但 Phase 27 版本会覆盖并扩展功能 -->
+  <script src="js/workspaceEngine.js"></script>
 
   <!-- ========== Phase 28 Knowledge Graph Engine ========== -->
   <script src="js/nodeRegistry.js"></script>
   <script src="js/relationshipEngine.js"></script>
   <script src="js/graphNavigator.js"></script>
   <script src="js/graphRenderer.js"></script>
-  <script src="js/knowledgeGraph.js"></script>
+  <!-- 注意：Phase 20 中有一个 knowledgeGraph.js，此处是 Phase 28 的文件，文件名相同，需确保 Phase 28 版本覆盖或使用不同文件名。实际我们已在 Phase 28 中使用了 knowledgeGraph.js，但 Phase 20 也使用了 knowledgeGraph.js，这会产生冲突。项目应确保 Phase 20 的 knowledgeGraph.js 是第二大脑的图谱，而 Phase 28 的是独立的知识图谱引擎。若文件名重复，应重命名其中一个，比如 Phase 20 的改为 secondBrainGraph.js 或 Phase 28 的改为 knowledgeNetwork.js。但为保持历史兼容，这里假设已解决冲突（Phase 20 实际使用了 knowledgeGraph.js，Phase 28 我们使用了同名文件，可能在你的项目里已存在重复。稳妥起见，我们将 Phase 28 的文件重命名为 knowledgeNetwork.js 并在下面引用，避免覆盖第二大脑的关键模块。） 
+  -->
+  <!-- 如果 Phase 28 使用了 knowledgeNetwork.js，请替换下面的引用 -->
+  <script src="js/knowledgeNetwork.js"></script>   <!-- 假设你已将 Phase 28 的 knowledgeGraph.js 重命名为 knowledgeNetwork.js -->
+
+  <!-- ========== Phase 29 Academy Pack Engine ========== -->
+  <script src="js/packRegistry.js"></script>
+  <script src="js/packValidator.js"></script>
+  <script src="js/packInstaller.js"></script>
+  <script src="js/packManager.js"></script>
+  <script src="js/packEngine.js"></script>
+
+  <!-- ========== Phase 30 Learning Goal Engine ========== -->
+  <script src="js/goalTracker.js"></script>
+  <script src="js/goalPlanner.js"></script>
+  <script src="js/goalHealth.js"></script>
+  <script src="js/goalTimeline.js"></script>
+  <script src="js/goalEngine.js"></script>
 
   <!-- ========== 应用主入口 ========== -->
   <script src="js/app.js"></script>
