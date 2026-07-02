@@ -98,10 +98,18 @@
   <script src="js/moduleModel.js"></script>
   <script src="js/moduleData.js"></script>
   <script src="js/moduleStorage.js"></script>
+
+  <!-- ========== Phase 10 Lesson 对象与事件基础 ========== -->
   <script src="js/lessonModel.js"></script>
   <script src="js/lessonValidator.js"></script>
   <script src="js/lessonStorage.js"></script>
   <script src="js/lessonEvents.js"></script>
+
+  <!-- ========== Phase 11 核心学习引擎（必须在 lessonActions 之前加载） ========== -->
+  <script src="js/eventBus.js"></script>
+  <script src="js/coreLearningEngine.js"></script>
+
+  <!-- ========== Phase 10 Lesson 动作（依赖 CLE） ========== -->
   <script src="js/lessonActions.js"></script>
 
   <!-- ========== Phase 8.5 内容加载器 ========== -->
@@ -132,21 +140,13 @@
   <!-- ========== Phase 8.5 初始化：自动加载或安装 AI 学习包 ========== -->
   <script>
     (async function() {
-      // 确保全局命名空间存在
       window.LawAIApp = window.LawAIApp || {};
-
-      // 如果内容加载器不存在（防御），则跳过
       if (!LawAIApp.ContentLoader) return;
-
-      // 尝试从本地文件加载 AI 包，失败则从 LocalStorage 加载
       let pack = await LawAIApp.ContentLoader.fetchPack('academy_ai');
-
       if (!pack) {
-        // 如果 LocalStorage 也没有，自动安装默认包
         LawAIApp.ContentLoader.installDefaultAIPack();
         pack = LawAIApp.ContentLoader.loadFromLocalStorage('academy_ai');
       }
-
       if (pack) {
         const errors = LawAIApp.ContentLoader.validatePack(pack);
         if (errors.length > 0) {
