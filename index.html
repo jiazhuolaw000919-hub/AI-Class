@@ -64,7 +64,7 @@
   <script src="js/lessonEngine.js"></script>
   <script src="js/streakEngine.js"></script>
   <script src="js/levelEngine.js"></script>
-  <script src="js/progressEngine.js"></script>
+  <!-- 旧 progressEngine.js 已移除，由 Phase 13 模块替代 -->
   <script src="js/achievementEngine.js"></script>
   <script src="js/searchEngine.js"></script>
 
@@ -79,7 +79,6 @@
   <script src="js/calendarEngine.js"></script>
 
   <!-- ========== Phase 6 Academy Object 引擎 ========== -->
-  <!-- 顺序重要：Model → Data → Storage -->
   <script src="js/academyModel.js"></script>
   <script src="js/academyData.js"></script>
   <script src="js/academyStorage.js"></script>
@@ -105,9 +104,21 @@
   <script src="js/lessonStorage.js"></script>
   <script src="js/lessonEvents.js"></script>
 
-  <!-- ========== Phase 11 核心学习引擎（必须在 lessonActions 之前加载） ========== -->
+  <!-- ========== Phase 12 事件总线引擎（必须在所有依赖事件的文件之前） ========== -->
+  <script src="js/eventLogger.js"></script>
+  <script src="js/eventRegistry.js"></script>
+  <script src="js/eventQueue.js"></script>
+  <script src="js/eventDispatcher.js"></script>
   <script src="js/eventBus.js"></script>
+
+  <!-- ========== Phase 11 核心学习引擎 ========== -->
   <script src="js/coreLearningEngine.js"></script>
+
+  <!-- ========== Phase 13 Progress Engine ========== -->
+  <script src="js/progressStorage.js"></script>
+  <script src="js/progressValidator.js"></script>
+  <script src="js/progressEvents.js"></script>
+  <script src="js/progressEngine.js"></script>
 
   <!-- ========== Phase 10 Lesson 动作（依赖 CLE） ========== -->
   <script src="js/lessonActions.js"></script>
