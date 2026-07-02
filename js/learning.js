@@ -1,33 +1,29 @@
-// learning.js - 学习页面（Phase 2 完整升级版）
-// ✅ 保留 Phase 1 全部旧功能：365节课自动生成、点击完成标记、LocalStorage 持久化
-// ✅ 新增 Phase 2 功能：搜索、筛选、收藏、Streak更新、成就联动、进度引擎联动
+// learning.js - 学习页面（Phase 3 适配版）
+// ✅ 保留 Phase 1 + 2 全部功能：365节课生成、搜索、筛选、收藏、LocalStorage 持久化
+// ✅ Phase 3 改动：点击课程卡片 → 打开 Lesson 详细页面，不再直接完成课程
 
 LawAIApp.Learning = {
-  // ========== Phase 1 原有属性（保留） ==========
+  // ========== Phase 1 原有属性 ==========
   lessons: LawAIApp.Data.generateLessons(),
   completed: LawAIApp.Storage.get('completedLessons', []),
   
-  // ========== Phase 2 新增属性 ==========
+  // ========== Phase 2 属性 ==========
   searchQuery: '',
   currentFilters: {
     category: '',
     difficulty: '',
-    status: '',     // 'completed' | 'incomplete' | ''
+    status: '',
     favorite: false
   },
 
-  // ========== Phase 2 新增：获取收藏列表 ==========
   getFavorites() {
     return LawAIApp.Storage.get('favorites', []);
   },
 
-  // ========== Phase 2 新增：检查是否收藏 ==========
   isFavorite(lessonId) {
-    const favorites = this.getFavorites();
-    return favorites.includes(lessonId);
+    return this.getFavorites().includes(lessonId);
   },
 
-  // ========== Phase 2 新增：切换收藏状态 ==========
   toggleFavorite(lessonId) {
     const favorites = this.getFavorites();
     const index = favorites.indexOf(lessonId);
@@ -40,11 +36,9 @@ LawAIApp.Learning = {
     return favorites;
   },
 
-  // ========== Phase 2 新增：搜索+筛选+收藏过滤 ==========
   getFilteredLessons() {
     let filtered = this.lessons;
 
-    // 文本搜索（标题、类别、标签、天数）
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
       filtered = filtered.filter(lesson => {
@@ -57,24 +51,20 @@ LawAIApp.Learning = {
       });
     }
 
-    // 类别筛选
     if (this.currentFilters.category) {
       filtered = filtered.filter(lesson => lesson.category === this.currentFilters.category);
     }
 
-    // 难度筛选
     if (this.currentFilters.difficulty) {
       filtered = filtered.filter(lesson => lesson.difficulty === this.currentFilters.difficulty);
     }
 
-    // 状态筛选（完成/未完成）
     if (this.currentFilters.status === 'completed') {
       filtered = filtered.filter(lesson => this.completed.includes(lesson.id));
     } else if (this.currentFilters.status === 'incomplete') {
       filtered = filtered.filter(lesson => !this.completed.includes(lesson.id));
     }
 
-    // 收藏筛选
     if (this.currentFilters.favorite) {
       const favs = this.getFavorites();
       filtered = filtered.filter(lesson => favs.includes(lesson.id));
@@ -83,13 +73,11 @@ LawAIApp.Learning = {
     return filtered;
   },
 
-  // ========== Phase 1 原有方法（完全保留逻辑，升级联动引擎） ==========
   render() {
     const html = `
       <div class="page">
         <h2>📚 365 AI Lessons</h2>
         
-        <!-- Phase 2 新增：搜索框 -->
         <input 
           class="search-box" 
           id="lesson-search" 
@@ -98,7 +86,6 @@ LawAIApp.Learning = {
           value="${this.searchQuery}"
         />
         
-        <!-- Phase 2 新增：过滤器栏 -->
         <div class="filter-bar" style="display:flex; gap:0.5rem; margin:0.5rem 0 1rem; flex-wrap:wrap;">
           <select id="filter-category" class="quick-btn" style="font-size:0.8rem;">
             <option value="">📂 全部类别</option>
@@ -125,41 +112,28 @@ LawAIApp.Learning = {
           </button>
         </div>
 
-        <!-- Phase 2 新增：结果计数 -->
         <p style="color:var(--text-secondary); font-size:0.8rem; margin-bottom:0.5rem;" id="result-count"></p>
-        
-        <!-- Phase 1 原有：课程列表容器 -->
         <div class="lesson-list" id="lesson-list"></div>
       </div>
     `;
 
     document.getElementById('app').innerHTML = html;
-
-    // Phase 1 原有：渲染课程列表
     this.renderLessonList();
-
-    // Phase 2 新增：绑定事件
     this.attachEvents();
   },
 
-  // ========== Phase 1 原有方法（升级版：支持筛选后的列表） ==========
   renderLessonList() {
     const list = document.getElementById('lesson-list');
     if (!list) return;
 
-    // Phase 2 升级：使用筛选后的课程
     const filteredLessons = this.getFilteredLessons();
-    
-    // Phase 2 新增：更新结果计数
     const countEl = document.getElementById('result-count');
     if (countEl) {
       countEl.textContent = `显示 ${filteredLessons.length} / ${this.lessons.length} 节课`;
     }
 
-    // 清空列表
     list.innerHTML = '';
 
-    // 无结果提示
     if (filteredLessons.length === 0) {
       list.innerHTML = `
         <div style="text-align:center; padding:2rem; color:var(--text-secondary);">
@@ -170,29 +144,23 @@ LawAIApp.Learning = {
       `;
       const clearBtn = document.getElementById('clear-filters');
       if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-          this.clearAllFilters();
-        });
+        clearBtn.addEventListener('click', () => this.clearAllFilters());
       }
       return;
     }
 
-    // Phase 1 原有逻辑：逐个渲染课程卡片（Phase 2 升级：添加收藏按钮和更多信息）
     filteredLessons.forEach(lesson => {
       const completed = this.completed.includes(lesson.id);
       const isFav = this.isFavorite(lesson.id);
-      
-      // 使用 Phase 1 原有组件方法创建基础卡片
-      const item = LawAIApp.Components.lessonItem(lesson, completed);
-      
-      // Phase 2 升级：增强卡片样式，添加收藏按钮和额外信息
+
+      const item = document.createElement('div');
+      item.className = `lesson-item ${completed ? 'completed' : ''}`;
       item.style.display = 'flex';
       item.style.justifyContent = 'space-between';
       item.style.alignItems = 'center';
       item.style.padding = '1rem';
       item.style.position = 'relative';
-      
-      // 重写卡片内容
+
       item.innerHTML = `
         <div style="flex:1;">
           <div style="display:flex; align-items:center; gap:0.5rem;">
@@ -219,71 +187,24 @@ LawAIApp.Learning = {
         </div>
       `;
 
-      // Phase 1 原有：点击卡片完成/取消完成课程
+      // 🔥 Phase 3 核心改动：主点击跳转到 Lesson 页面
       item.addEventListener('click', (e) => {
-        // 如果点击的是收藏图标，不触发完成逻辑
+        // 如果点击的是收藏图标，不跳转
         if (e.target.closest('.favorite-icon')) return;
-        
-        if (!completed) {
-          // Phase 1 原有：添加到已完成列表
-          this.completed.push(lesson.id);
-          LawAIApp.Storage.set('completedLessons', this.completed);
-          
-          // Phase 2 新增：联动进度引擎
-          if (LawAIApp.ProgressEngine) {
-            LawAIApp.ProgressEngine.completeLesson(lesson.lessonId || `day-${lesson.id}`);
-          }
-          
-          // Phase 2 新增：更新连续签到
-          if (LawAIApp.StreakEngine) {
-            LawAIApp.StreakEngine.updateStreak();
-          }
-          
-          // Phase 2 新增：检查成就
-          if (LawAIApp.AchievementEngine) {
-            LawAIApp.AchievementEngine.checkAll();
-          }
-          
-          // 重新渲染
-          this.render();
-        } else {
-          // Phase 2 新增：允许取消完成（按住Alt点击）
-          if (e.altKey) {
-            const index = this.completed.indexOf(lesson.id);
-            if (index > -1) {
-              this.completed.splice(index, 1);
-              LawAIApp.Storage.set('completedLessons', this.completed);
-              
-              // 同步更新所有课程数据
-              if (LawAIApp.LessonEngine) {
-                const allLessons = LawAIApp.LessonEngine.getAllLessons();
-                const targetLesson = allLessons.find(l => l.lessonId === `day-${lesson.id}`);
-                if (targetLesson) {
-                  targetLesson.completed = false;
-                  targetLesson.completedDate = null;
-                  LawAIApp.Storage.set('allLessons', allLessons);
-                }
-              }
-              
-              this.render();
-            }
-          }
-        }
+        LawAIApp.Router.navigate('lesson', { day: lesson.id });
       });
 
-      // Phase 2 新增：收藏按钮独立事件
+      // 收藏按钮独立事件（保持不变）
       const favIcon = item.querySelector('.favorite-icon');
       if (favIcon) {
         favIcon.addEventListener('click', (e) => {
-          e.stopPropagation(); // 阻止冒泡到卡片点击
+          e.stopPropagation();
           this.toggleFavorite(lesson.id);
-          // 局部更新收藏图标
           const newFav = this.isFavorite(lesson.id);
           favIcon.textContent = newFav ? '⭐' : '☆';
           favIcon.style.opacity = newFav ? '1' : '0.4';
           favIcon.title = newFav ? '取消收藏' : '添加收藏';
           
-          // 如果正在收藏筛选模式下，重新渲染列表
           if (this.currentFilters.favorite && !newFav) {
             this.renderLessonList();
           }
@@ -294,7 +215,6 @@ LawAIApp.Learning = {
     });
   },
 
-  // ========== Phase 2 新增：获取所有唯一类别 ==========
   getUniqueCategories() {
     const categories = new Set();
     this.lessons.forEach(lesson => {
@@ -303,9 +223,7 @@ LawAIApp.Learning = {
     return Array.from(categories).sort();
   },
 
-  // ========== Phase 2 新增：绑定搜索和筛选事件 ==========
   attachEvents() {
-    // 搜索框事件
     const searchInput = document.getElementById('lesson-search');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
@@ -314,7 +232,6 @@ LawAIApp.Learning = {
       });
     }
 
-    // 类别筛选
     const categorySelect = document.getElementById('filter-category');
     if (categorySelect) {
       categorySelect.addEventListener('change', (e) => {
@@ -323,7 +240,6 @@ LawAIApp.Learning = {
       });
     }
 
-    // 难度筛选
     const difficultySelect = document.getElementById('filter-difficulty');
     if (difficultySelect) {
       difficultySelect.addEventListener('change', (e) => {
@@ -332,7 +248,6 @@ LawAIApp.Learning = {
       });
     }
 
-    // 状态筛选
     const statusSelect = document.getElementById('filter-status');
     if (statusSelect) {
       statusSelect.addEventListener('change', (e) => {
@@ -341,25 +256,17 @@ LawAIApp.Learning = {
       });
     }
 
-    // 收藏筛选按钮
     const favToggle = document.getElementById('toggle-favorites');
     if (favToggle) {
       favToggle.addEventListener('click', () => {
         this.currentFilters.favorite = !this.currentFilters.favorite;
-        // 更新按钮样式
-        if (this.currentFilters.favorite) {
-          favToggle.style.background = 'var(--warning)';
-          favToggle.style.color = '#000';
-        } else {
-          favToggle.style.background = '';
-          favToggle.style.color = '';
-        }
+        favToggle.style.background = this.currentFilters.favorite ? 'var(--warning)' : '';
+        favToggle.style.color = this.currentFilters.favorite ? '#000' : '';
         this.renderLessonList();
       });
     }
   },
 
-  // ========== Phase 2 新增：清除所有筛选 ==========
   clearAllFilters() {
     this.searchQuery = '';
     this.currentFilters = {
