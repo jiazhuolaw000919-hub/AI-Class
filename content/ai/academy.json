@@ -1,0 +1,15 @@
+{
+  "id": "academy_ai",
+  "name": "AI Academy",
+  "shortName": "AI",
+  "description": "Master Artificial Intelligence from fundamentals to advanced.",
+  "icon": "🤖",
+  "themeColor": "#3b82f6",
+  "difficulty": "Beginner",
+  "category": "Technology",
+  "status": "active",
+  "enabled": true,
+  "order": 1,
+  "estimatedHours": 48,
+  "estimatedLessons": 12
+}
