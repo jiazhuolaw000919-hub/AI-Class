@@ -1,19 +1,25 @@
 // lessonActions.js
 LawAIApp.LessonActions = {
   openLesson(lessonId) {
-    LawAIApp.LessonEvents.onLessonOpened(lessonId);
-    // 导航到 lesson 页面（使用现有 Router）
+    // 通过核心引擎开始学习（加载课程、创建会话、触发事件）
+    LawAIApp.CoreLearningEngine.startLearning(lessonId);
+    // 导航到 lesson 页面（保留原有路由跳转）
     const day = parseInt(lessonId.split('-')[1]);
     if (!isNaN(day)) LawAIApp.Router.navigate('lesson', { day });
   },
 
   completeLesson(lessonId) {
-    // 先保存笔记（若需要，由 completion module 处理）
-    LawAIApp.LessonEvents.onLessonCompleted(lessonId);
+    // 先保存笔记（如果有）—— 保留原有笔记保存逻辑
+    const noteArea = document.querySelector('.note-field');
+    if (noteArea && noteArea.value.trim()) {
+      this.addPersonalNote(lessonId, noteArea.value.trim());
+    }
+    // 通过核心引擎完成课程（会触发事件总线，进而触发 LessonEvents.onLessonCompleted）
+    LawAIApp.CoreLearningEngine.completeLesson(lessonId);
   },
 
   restartLesson(lessonId) {
-    // 重置进度（从已完成中移除），这里留简单实现：清除该课程完成状态
+    // 重置进度（从已完成中移除）
     const prog = LawAIApp.ProgressEngine.getProgress();
     const idx = prog.completedLessons.indexOf(lessonId);
     if (idx !== -1) {
