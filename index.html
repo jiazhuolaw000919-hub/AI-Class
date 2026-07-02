@@ -166,6 +166,13 @@
   <script src="js/analyticsProcessor.js"></script>
   <script src="js/analyticsEngine.js"></script>
 
+  <!-- ========== Phase 17 Statistics Engine ========== -->
+  <script src="js/healthScore.js"></script>
+  <script src="js/portfolioGenerator.js"></script>
+  <script src="js/dashboardStatistics.js"></script>
+  <script src="js/reportGenerator.js"></script>
+  <script src="js/statisticsEngine.js"></script>
+
   <!-- ========== 应用主入口 ========== -->
   <script src="js/app.js"></script>
 
@@ -207,52 +214,33 @@
   <!-- ========== 🔥 稳定性补丁：根治事件循环，保证引擎只执行一次 ========== -->
   <script>
     (function stabilize() {
-      // 等待所有脚本加载完成（此时 LawAIApp 已就绪）
       if (!LawAIApp.ProgressEngine || !LawAIApp.EventBus) return;
 
       // 1. 确保 ProgressEngine.completeLesson 不再发射 LessonCompleted
       const originalComplete = LawAIApp.ProgressEngine.completeLesson;
       LawAIApp.ProgressEngine.completeLesson = function(lessonId) {
-        // 调用原函数（会更新进度数据，并可能发射 ProgressUpdated）
         originalComplete.call(this, lessonId);
         // 不再发射 LessonCompleted，避免重复触发 CLE 流程
       };
 
-      // 2. 确保 LessonEvents.onLessonCompleted 只更新进度，不发射额外事件
+      // 2. 确保 LessonEvents.onLessonCompleted 只更新进度
       LawAIApp.LessonEvents.onLessonCompleted = function(lessonId) {
         console.log('Event: Lesson ' + lessonId + ' completed (stabilized)');
         LawAIApp.ProgressEngine.completeLesson(lessonId);
       };
 
-      // 3. 清理并重新注册 LessonCompleted 监听器，只执行一次附属引擎
-      // 移除所有已存在的 LessonCompleted 监听（避免 app.js 或其他文件注册了多个）
-      LawAIApp.EventBus.off('LessonCompleted'); // 如果实现了 off，但我们简单点：清空订阅表并重新绑定
-      // 直接通过 EventRegistry 清空（暴力但有效）
-      if (LawAIApp.EventRegistry) {
-        // 获取并清空 LessonCompleted 的订阅，然后重新添加我们的安全监听
-        // 这里用一个更可靠的方式：重写 emit 方法在 LessonCompleted 时只触发我们允许的函数？
-        // 为简单，我们直接覆盖 EventBus.emit，针对 LessonCompleted 做拦截。
-        // 但这样太重，还是重新注册监听。
-        // 假设 app.js 已经注册了监听，我们现在再注册一个，会导致重复。
-        // 我们采用防御：在 emit LessonCompleted 时，如果检测到重复，就阻止。
-      }
-
-      // 推荐做法：监听事件，但使用标志位防止重复处理同一个 lessonId
+      // 3. 用 Set 防止重复处理同一个 lessonId（即使多个监听也能保证只执行一次附属引擎）
       const processedLessons = new Set();
       LawAIApp.EventBus.on('LessonCompleted', function(data) {
         const id = data.lessonId;
         if (!id || processedLessons.has(id)) return;
         processedLessons.add(id);
 
-        // 执行附属引擎（仅一次）
         if (LawAIApp.StreakEngine) LawAIApp.StreakEngine.updateStreak();
         if (LawAIApp.AchievementEngine) LawAIApp.AchievementEngine.checkAll();
         if (LawAIApp.ReviewQueue) LawAIApp.ReviewQueue.addLessonToReview(id);
         if (LawAIApp.SecondBrain) LawAIApp.SecondBrain.getEntry(id);
       });
-
-      // 4. 防止核心学习引擎内部重复发射（确保 CLE 的 completeLesson 也是安全的）
-      // 这里假设 coreLearningEngine 本身只发射一次，无需修改。
 
       console.log('🔒 Event loop stabilized');
     })();
