@@ -1,4 +1,4 @@
-// progressEngine.js
+// progressEngine.js (Phase 13 升级版)
 LawAIApp.ProgressEngine = {
   defaultProgress() {
     return {
@@ -20,7 +20,7 @@ LawAIApp.ProgressEngine = {
     LawAIApp.StorageEngine.set('progress', progress);
   },
 
-  // 完成一节课
+  // 完成一节课（核心逻辑不变 + 新增进度记录 & 事件发布）
   completeLesson(lessonId) {
     const allLessons = LawAIApp.LessonEngine.getAllLessons();
     const lesson = allLessons.find(l => l.lessonId === lessonId);
@@ -29,7 +29,7 @@ LawAIApp.ProgressEngine = {
     const prog = this.getProgress();
     if (prog.completedLessons.includes(lessonId)) return; // 已完成
 
-    // 更新进度
+    // 更新旧格式进度
     prog.completedLessons.push(lessonId);
     prog.xp += lesson.xpReward;
     prog.completionPercent = (prog.completedLessons.length / prog.totalLessons) * 100;
@@ -37,7 +37,7 @@ LawAIApp.ProgressEngine = {
     // 标记课程为已完成
     lesson.completed = true;
     lesson.completedDate = new Date().toISOString();
-    LawAIApp.LessonEngine.getAllLessons()[lesson.day - 1] = lesson;
+    allLessons[lesson.day - 1] = lesson;
     LawAIApp.StorageEngine.set('allLessons', allLessons);
 
     // 更新当前课程为下一个未完成的
@@ -56,9 +56,28 @@ LawAIApp.ProgressEngine = {
 
     this.saveProgress(prog);
 
-    // 同时更新成就和等级
-    LawAIApp.AchievementEngine.checkAll();
-    LawAIApp.LevelEngine.calculateLevel();
+    // 新增：记录详细进度（新模型）
+    LawAIApp.ProgressStorage.upsertLessonRecord({
+      lessonId: lessonId,
+      academyId: 'academy_ai',
+      courseId: null,
+      moduleId: null,
+      status: 'completed',
+      completionPercentage: 100,
+      startedAt: lesson.completedDate,
+      lastOpened: lesson.completedDate,
+      completedAt: lesson.completedDate,
+      elapsedTime: 0,
+      attempts: 1,
+      resumePosition: null,
+      lastReview: null,
+      favorite: false,
+      bookmark: false
+    });
+
+    // 新增：发布事件（由事件总线通知其他引擎）
+    LawAIApp.ProgressEvents.emitLessonCompleted(lessonId);
+    LawAIApp.ProgressEvents.emitProgressUpdated({ lessonId, overall: prog });
 
     return prog;
   },
