@@ -189,12 +189,11 @@ LawAIApp.Learning = {
 
       // 🔥 Phase 3 核心改动：主点击跳转到 Lesson 页面
       item.addEventListener('click', (e) => {
-        // 如果点击的是收藏图标，不跳转
         if (e.target.closest('.favorite-icon')) return;
         LawAIApp.Router.navigate('lesson', { day: lesson.id });
       });
 
-      // 收藏按钮独立事件（保持不变）
+      // 收藏按钮独立事件
       const favIcon = item.querySelector('.favorite-icon');
       if (favIcon) {
         favIcon.addEventListener('click', (e) => {
