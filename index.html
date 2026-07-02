@@ -126,6 +126,15 @@
   <script src="js/xpEngine.js"></script>
   <script src="js/levelEngine.js"></script>   <!-- 保留旧版 levelEngine.js，但位置移到这里 -->
 
+  <!-- ========== Phase 15 Identity & Universe Engine ========== -->
+  <script src="js/identityEngine.js"></script>
+  <script src="js/themeEngine.js"></script>
+  <script src="js/unlockEngine.js"></script>
+  <script src="js/avatarEngine.js"></script>
+  <script src="js/workspaceEngine.js"></script>
+  <script src="js/collectionEngine.js"></script>
+  <script src="js/companionEngine.js"></script>
+
   <!-- ========== Phase 10 Lesson 动作（依赖 CLE） ========== -->
   <script src="js/lessonActions.js"></script>
 
@@ -173,6 +182,21 @@
         }
       } else {
         console.warn('⚠️ Could not load AI Learning Pack.');
+      }
+    })();
+  </script>
+
+  <!-- ========== Phase 15 启动：检查解锁、应用主题 ========== -->
+  <script>
+    (function() {
+      // 确保所有 IUE 引擎已经加载
+      if (LawAIApp.UnlockEngine && LawAIApp.ThemeEngine) {
+        // 启动时重新检查所有解锁条件（以防用户之前已完成但未触发事件）
+        LawAIApp.UnlockEngine.checkAll();
+        // 应用已保存的主题（ThemeEngine 初始化时已经做了，这里只是兜底）
+        const currentTheme = LawAIApp.StorageEngine.get('current_theme');
+        if (currentTheme) LawAIApp.ThemeEngine.applyTheme(currentTheme);
+        console.log('🎨 Phase 15 Identity & Universe Engine activated');
       }
     })();
   </script>
