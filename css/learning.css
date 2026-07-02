@@ -1,0 +1,25 @@
+.lesson-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.lesson-item {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.lesson-item.completed {
+  opacity: 0.6;
+}
+
+.lesson-item:hover {
+  background: rgba(59,130,246,0.1);
+}
