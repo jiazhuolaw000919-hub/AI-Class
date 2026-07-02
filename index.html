@@ -208,6 +208,20 @@
   <script src="js/goalAdjuster.js"></script>
   <script src="js/habitEngine.js"></script>
 
+  <!-- ========== Phase 23 Practice Engine ========== -->
+  <script src="js/practiceHistory.js"></script>
+  <script src="js/difficultyManager.js"></script>
+  <script src="js/practiceEvaluator.js"></script>
+  <script src="js/masteryEngine.js"></script>
+  <script src="js/practiceEngine.js"></script>
+
+  <!-- ========== Phase 24 Memory Engine ========== -->
+  <script src="js/memoryTracker.js"></script>
+  <script src="js/forgettingCurve.js"></script>
+  <script src="js/recallEngine.js"></script>
+  <script src="js/memoryHeatmap.js"></script>
+  <script src="js/memoryEngine.js"></script>
+
   <!-- ========== 应用主入口 ========== -->
   <script src="js/app.js"></script>
 
@@ -251,20 +265,16 @@
     (function stabilize() {
       if (!LawAIApp.ProgressEngine || !LawAIApp.EventBus) return;
 
-      // 1. 确保 ProgressEngine.completeLesson 不再发射 LessonCompleted
       const originalComplete = LawAIApp.ProgressEngine.completeLesson;
       LawAIApp.ProgressEngine.completeLesson = function(lessonId) {
         originalComplete.call(this, lessonId);
-        // 不再发射 LessonCompleted，避免重复触发 CLE 流程
       };
 
-      // 2. 确保 LessonEvents.onLessonCompleted 只更新进度
       LawAIApp.LessonEvents.onLessonCompleted = function(lessonId) {
         console.log('Event: Lesson ' + lessonId + ' completed (stabilized)');
         LawAIApp.ProgressEngine.completeLesson(lessonId);
       };
 
-      // 3. 用 Set 防止重复处理同一个 lessonId（即使多个监听也能保证只执行一次附属引擎）
       const processedLessons = new Set();
       LawAIApp.EventBus.on('LessonCompleted', function(data) {
         const id = data.lessonId;
