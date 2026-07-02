@@ -1,0 +1,52 @@
+{
+  "metadata": {
+    "lessonId": "lesson_001",
+    "courseId": "course_ai_foundation",
+    "moduleId": "module_ai_basics",
+    "academyId": "academy_ai",
+    "title": "Introduction to AI",
+    "difficulty": "Beginner",
+    "version": "1.0",
+    "author": "Law Academy",
+    "createdDate": "2026-06-01",
+    "updatedDate": "2026-06-01",
+    "status": "published",
+    "estimatedMinutes": 8,
+    "xpReward": 20
+  },
+  "content": {
+    "summary": "Learn what AI is and its real-world applications.",
+    "objectives": ["Define AI", "Identify use cases"],
+    "explanation": "AI stands for Artificial Intelligence...",
+    "examples": ["ChatGPT", "Self-driving cars"],
+    "keyPoints": ["AI mimics human intelligence", "Used in many industries"]
+  },
+  "resources": {
+    "officialDocs": "https://example.com/ai-docs",
+    "articles": [],
+    "videos": [],
+    "referenceLinks": []
+  },
+  "practice": {
+    "exercises": ["List 3 AI tools you use daily"],
+    "miniProjects": [],
+    "handsOnTasks": []
+  },
+  "quiz": [
+    {
+      "question": "What does AI stand for?",
+      "choices": ["Artificial Intelligence", "Automatic Integration", "Advanced Interface"],
+      "answer": 0,
+      "explanation": "AI is the simulation of human intelligence.",
+      "difficulty": "Easy"
+    }
+  ],
+  "review": {
+    "tomorrow": true,
+    "day3": false,
+    "day7": false,
+    "day30": false
+  },
+  "extensions": {},
+  "custom": {}
+}
