@@ -1,8 +1,8 @@
-// progressEngine.js (Phase 13 升级版)
+// progressEngine.js (Phase 14 修正版)
 LawAIApp.ProgressEngine = {
   defaultProgress() {
     return {
-      completedLessons: [],     // lessonId 数组
+      completedLessons: [],
       currentLesson: 1,
       completionPercent: 0,
       currentStage: 'Foundation',
@@ -20,27 +20,34 @@ LawAIApp.ProgressEngine = {
     LawAIApp.StorageEngine.set('progress', progress);
   },
 
-  // 完成一节课（核心逻辑不变 + 新增进度记录 & 事件发布）
+  // 新增：供 XPEngine 更新总 XP
+  setXP(totalXP) {
+    const prog = this.getProgress();
+    prog.xp = totalXP;
+    this.saveProgress(prog);
+  },
+
+  // 完成一节课（移除 XP 累加，保留其他逻辑）
   completeLesson(lessonId) {
     const allLessons = LawAIApp.LessonEngine.getAllLessons();
     const lesson = allLessons.find(l => l.lessonId === lessonId);
     if (!lesson) return;
 
     const prog = this.getProgress();
-    if (prog.completedLessons.includes(lessonId)) return; // 已完成
+    if (prog.completedLessons.includes(lessonId)) return;
 
-    // 更新旧格式进度
+    // 更新完成列表
     prog.completedLessons.push(lessonId);
-    prog.xp += lesson.xpReward;
+    // 不再累加 XP：prog.xp += lesson.xpReward;
     prog.completionPercent = (prog.completedLessons.length / prog.totalLessons) * 100;
 
-    // 标记课程为已完成
+    // 标记课程已完成
     lesson.completed = true;
     lesson.completedDate = new Date().toISOString();
     allLessons[lesson.day - 1] = lesson;
     LawAIApp.StorageEngine.set('allLessons', allLessons);
 
-    // 更新当前课程为下一个未完成的
+    // 更新当前课程
     const allIds = allLessons.map(l => l.lessonId);
     const nextIdx = allIds.findIndex(id => !prog.completedLessons.includes(id));
     prog.currentLesson = nextIdx !== -1 ? allLessons[nextIdx].day : 365;
@@ -56,7 +63,7 @@ LawAIApp.ProgressEngine = {
 
     this.saveProgress(prog);
 
-    // 新增：记录详细进度（新模型）
+    // 新增进度记录（新模型）
     LawAIApp.ProgressStorage.upsertLessonRecord({
       lessonId: lessonId,
       academyId: 'academy_ai',
@@ -75,14 +82,13 @@ LawAIApp.ProgressEngine = {
       bookmark: false
     });
 
-    // 新增：发布事件（由事件总线通知其他引擎）
+    // 发布事件（XP 引擎监听 LessonCompleted 处理 XP）
     LawAIApp.ProgressEvents.emitLessonCompleted(lessonId);
     LawAIApp.ProgressEvents.emitProgressUpdated({ lessonId, overall: prog });
 
     return prog;
   },
 
-  // 获取未完成课程数量
   getRemainingLessons() {
     const prog = this.getProgress();
     return prog.totalLessons - prog.completedLessons.length;
