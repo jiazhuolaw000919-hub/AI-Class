@@ -1,0 +1,29 @@
+.search-box {
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  width: 100%;
+  color: var(--text);
+  margin-bottom: 1rem;
+  outline: none;
+}
+
+.note-card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 0.5rem 0;
+  border-left: 4px solid var(--primary);
+  transition: var(--transition);
+}
+
+.tag {
+  display: inline-block;
+  background: rgba(59,130,246,0.2);
+  color: var(--primary);
+  border-radius: 20px;
+  padding: 0.2rem 0.8rem;
+  font-size: 0.75rem;
+  margin-right: 0.3rem;
+}
