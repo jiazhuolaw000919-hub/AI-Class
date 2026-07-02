@@ -1,0 +1,73 @@
+.greeting {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.widget-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.widget-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+}
+
+.widget-card:hover {
+  transform: translateY(-2px);
+}
+
+.xp-bar, .streak-bar {
+  height: 8px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+  margin: 0.5rem 0;
+  overflow: hidden;
+}
+
+.xp-fill {
+  background: var(--primary);
+  height: 100%;
+  border-radius: 4px;
+}
+
+.lesson-card {
+  background: linear-gradient(135deg, var(--primary), #6366f1);
+  border-radius: var(--radius);
+  padding: 1.2rem;
+  margin: 0.5rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.lesson-card:hover { box-shadow: 0 0 20px rgba(59,130,246,0.4); }
+
+.quick-access {
+  display: flex;
+  gap: 0.8rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.quick-btn {
+  background: var(--glass);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 0.6rem 1rem;
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.quick-btn:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+}
