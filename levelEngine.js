@@ -1,4 +1,4 @@
-// levelEngine.js
+// levelEngine.js（原版，保持不动）
 LawAIApp.LevelEngine = {
   // 经验曲线：0-100 为 Lv1，之后每级所需经验递增
   getXPForLevel(level) {
