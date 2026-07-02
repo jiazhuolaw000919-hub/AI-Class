@@ -1,0 +1,16 @@
+{
+  "packName": "AI Academy",
+  "packId": "academy_ai",
+  "version": "1.0",
+  "author": "Law Academy",
+  "language": "English",
+  "academyId": "academy_ai",
+  "minimumEngineVersion": "1.0",
+  "totalCourses": 3,
+  "totalModules": 6,
+  "totalLessons": 12,
+  "createdDate": "2026-06-01",
+  "updatedDate": "2026-06-01",
+  "status": "published",
+  "description": "Complete AI learning path from beginner to advanced."
+}
