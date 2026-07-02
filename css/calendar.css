@@ -1,0 +1,40 @@
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.4rem;
+  margin-top: 1rem;
+}
+
+.day-cell {
+  background: var(--card);
+  border-radius: 10px;
+  padding: 0.6rem;
+  text-align: center;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.day-cell:hover {
+  background: var(--primary);
+}
+
+.modal {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
+.modal-content {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 2rem;
+  min-width: 280px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
