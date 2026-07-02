@@ -1,6 +1,7 @@
-// app.js - 应用主入口（Phase 11 升级版）
+// app.js - 应用主入口（Phase 13 升级版）
 // ✅ 保留 Phase 1 + Phase 2 全部功能
 // ✅ 新增：注册 Core Learning Engine 事件监听器
+// ✅ 新增：监听 LessonCompleted 事件，触发连续签到、成就、复习、第二大脑
 
 (function() {
   // ========== Phase 1 原有：主题初始化 ==========
@@ -139,7 +140,7 @@
   LawAIApp.Router.init();
 
   // ========== Phase 2 新增：应用启动日志 ==========
-  console.log('🚀 Law AI Academy - Phase 11 已启动');
+  console.log('🚀 Law AI Academy - Phase 13 已启动');
   console.log('📚 课程数据:', LawAIApp.LessonEngine ? '已加载引擎' : '使用假数据');
   console.log('💾 存储系统:', LawAIApp.StorageEngine ? 'StorageEngine' : 'Legacy Storage');
   
@@ -150,18 +151,32 @@
     console.log(`📊 进度: ${progress.completedLessons.length}/365 课 | ⭐ ${progress.xp} XP | 🎯 ${progress.currentStage}`);
   }
 
-  // ========== Phase 11 新增：注册 Core Learning Engine 事件监听 ==========
+  // ========== Phase 11 + Phase 13 新增：注册事件监听 ==========
   (function registerCLEListeners() {
     if (!LawAIApp.EventBus) {
       console.warn('EventBus 未加载，跳过 CLE 事件注册');
       return;
     }
-    // 课程完成事件 → 触发完整的事件流（进度、成就、复习等）
+
+    // ---- Phase 11 原有：小写 lessonCompleted（由 CoreLearningEngine 发出）----
     LawAIApp.EventBus.on('lessonCompleted', function(data) {
       if (LawAIApp.LessonEvents && LawAIApp.LessonEvents.onLessonCompleted) {
         LawAIApp.LessonEvents.onLessonCompleted(data.lessonId);
       }
     });
+
+    // ---- Phase 13 新增：大写 LessonCompleted（由 ProgressEngine 发出）----
+    LawAIApp.EventBus.on('LessonCompleted', function(data) {
+      // 更新连续签到
+      if (LawAIApp.StreakEngine) LawAIApp.StreakEngine.updateStreak();
+      // 检查成就
+      if (LawAIApp.AchievementEngine) LawAIApp.AchievementEngine.checkAll();
+      // 添加到复习队列
+      if (LawAIApp.ReviewQueue) LawAIApp.ReviewQueue.addLessonToReview(data.lessonId);
+      // 创建第二大脑条目
+      if (LawAIApp.SecondBrain) LawAIApp.SecondBrain.getEntry(data.lessonId);
+    });
+
     // 状态变化日志（可用于调试）
     LawAIApp.EventBus.on('stateChanged', function(data) {
       console.log('CLE state:', data.state);
