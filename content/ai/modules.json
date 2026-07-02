@@ -1,0 +1,30 @@
+[
+  {
+    "id": "module_ai_basics",
+    "courseId": "course_ai_foundation",
+    "name": "AI Basics",
+    "order": 1,
+    "estimatedLessons": 2
+  },
+  {
+    "id": "module_ml_intro",
+    "courseId": "course_ai_foundation",
+    "name": "Intro to ML",
+    "order": 2,
+    "estimatedLessons": 2
+  },
+  {
+    "id": "module_prompt_basics",
+    "courseId": "course_prompt_engineering",
+    "name": "Prompt Basics",
+    "order": 1,
+    "estimatedLessons": 2
+  },
+  {
+    "id": "module_advanced_prompt",
+    "courseId": "course_prompt_engineering",
+    "name": "Advanced Prompts",
+    "order": 2,
+    "estimatedLessons": 2
+  }
+]
