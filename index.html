@@ -16,6 +16,9 @@
 
   <!-- ========== Phase 3 样式 ========== -->
   <link rel="stylesheet" href="css/lesson.css">
+
+  <!-- ========== Phase 5 样式 ========== -->
+  <link rel="stylesheet" href="css/academy.css">
 </head>
 <body>
   <div id="app" class="app-container"></div>
@@ -43,6 +46,11 @@
     <template id="template-lesson">
       <div class="lesson-page" id="lesson-dynamic-content"></div>
     </template>
+
+    <!-- Phase 5 新增：Academy 页面模板 -->
+    <template id="template-academy">
+      <div class="academy-page" id="academy-content"></div>
+    </template>
   </div>
 
   <!-- ========== Phase 1 基础脚本 ========== -->
@@ -60,7 +68,7 @@
   <script src="js/achievementEngine.js"></script>
   <script src="js/searchEngine.js"></script>
 
-  <!-- ========== Phase 4 新增引擎（必须在 calendar.js 前加载） ========== -->
+  <!-- ========== Phase 4 新增引擎 ========== -->
   <script src="js/bookmark.js"></script>
   <script src="js/reviewQueue.js"></script>
   <script src="js/secondBrain.js"></script>
@@ -69,6 +77,11 @@
   <script src="js/history.js"></script>
   <script src="js/timeline.js"></script>
   <script src="js/calendarEngine.js"></script>
+
+  <!-- ========== Phase 5 Academy 引擎 ========== -->
+  <script src="js/academyData.js"></script>
+  <script src="js/academyStorage.js"></script>
+  <script src="js/academy.js"></script>
 
   <!-- ========== 路由与页面脚本 ========== -->
   <script src="js/router.js"></script>
