@@ -94,6 +94,9 @@
   <script src="js/courseData.js"></script>
   <script src="js/courseStorage.js"></script>
 
+  <!-- ========== Phase 8.5 内容加载器 ========== -->
+  <script src="js/contentLoader.js"></script>
+
   <!-- ========== Phase 5 Academy 页面逻辑 ========== -->
   <script src="js/academy.js"></script>
 
@@ -115,5 +118,36 @@
 
   <!-- ========== 应用主入口 ========== -->
   <script src="js/app.js"></script>
+
+  <!-- ========== Phase 8.5 初始化：自动加载或安装 AI 学习包 ========== -->
+  <script>
+    (async function() {
+      // 确保全局命名空间存在
+      window.LawAIApp = window.LawAIApp || {};
+
+      // 如果内容加载器不存在（防御），则跳过
+      if (!LawAIApp.ContentLoader) return;
+
+      // 尝试从本地文件加载 AI 包，失败则从 LocalStorage 加载
+      let pack = await LawAIApp.ContentLoader.fetchPack('academy_ai');
+
+      if (!pack) {
+        // 如果 LocalStorage 也没有，自动安装默认包
+        LawAIApp.ContentLoader.installDefaultAIPack();
+        pack = LawAIApp.ContentLoader.loadFromLocalStorage('academy_ai');
+      }
+
+      if (pack) {
+        const errors = LawAIApp.ContentLoader.validatePack(pack);
+        if (errors.length > 0) {
+          console.warn('Pack validation errors:', errors);
+        } else {
+          console.log('✅ AI Learning Pack loaded successfully.');
+        }
+      } else {
+        console.warn('⚠️ Could not load AI Learning Pack.');
+      }
+    })();
+  </script>
 </body>
 </html>
