@@ -1,4 +1,4 @@
-// router.js – Phase 5 升级版（注册 academy 路由）
+// router.js – Phase 5 升级版（已注册 academy 路由）
 LawAIApp.Router = {
   currentPage: 'dashboard',
   currentParams: {},           // 用于传递参数，如 { day: 5 }
@@ -61,7 +61,7 @@ LawAIApp.Router = {
       LawAIApp.LessonPage?.render(this.currentParams);
     }
     else if (page === 'academy') {
-      // Academy Home 页面
+      // Academy Home 页面 (Phase 5)
       LawAIApp.AcademyPage?.render();
     }
   },
