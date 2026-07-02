@@ -1,6 +1,7 @@
-// dashboard.js - 仪表盘页面（Phase 2 完整升级版）
+// dashboard.js - 仪表盘页面（Phase 2 完整升级版 + Phase 5 入口）
 // ✅ 保留 Phase 1 全部旧功能：问候语、小部件、今日课程、周挑战、最近笔记、快捷入口
 // ✅ 新增 Phase 2 功能：真实进度数据、动态等级系统、Streak追踪、成就展示、学习统计
+// ✅ Phase 5 新增：Academy Home 快捷入口（可选）
 
 LawAIApp.Dashboard = {
   render() {
@@ -207,18 +208,19 @@ LawAIApp.Dashboard = {
           </div>
         `).join('')}
 
-        <!-- Phase 1 原有：快捷入口（保留） -->
+        <!-- Phase 1 原有：快捷入口（保留） + Phase 5 Academy 入口 -->
         <h3 style="margin-top:1rem;">Quick Access</h3>
         <div class="quick-access">
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('tools')">🛠️ Tools</button>
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('prompt')">📋 Prompts</button>
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('learning')">📚 All Lessons</button>
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('notes')">📝 Notes</button>
+          <button class="quick-btn" onclick="LawAIApp.Router.navigate('academy')">🏫 Academies</button>
         </div>
 
         <!-- Phase 2 新增：页脚统计 -->
         <div style="text-align:center; margin-top:2rem; padding:1rem; color:var(--text-secondary); font-size:0.75rem;">
-          <p>Law AI Academy • Phase 2</p>
+          <p>Law AI Academy • Phase 5</p>
           <p>Level ${levelInfo.level} • ${completionRate}% Complete • 🔥 ${streakData.currentStreak} Day Streak</p>
         </div>
       </div>
