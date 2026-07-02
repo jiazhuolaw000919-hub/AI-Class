@@ -1,0 +1,146 @@
+/* lesson.css - 每日学习页面 */
+.lesson-page {
+  padding: 1rem 1rem 2rem;
+  max-width: 700px;
+  margin: 0 auto;
+  animation: fadeIn 0.3s ease;
+}
+
+.lesson-header {
+  background: linear-gradient(135deg, var(--primary), #6366f1);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  color: white;
+  margin-bottom: 1.5rem;
+}
+
+.lesson-header .day {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.lesson-header h2 {
+  margin: 0.3rem 0 0.8rem;
+}
+
+.lesson-header .badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  background: rgba(255,255,255,0.2);
+  padding: 0.2rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+}
+
+.section-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 1.2rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+}
+
+.section-card h3 {
+  margin-bottom: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.official-links {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.official-btn {
+  background: var(--glass);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: var(--transition);
+}
+
+.official-btn:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.summary-point, .key-point {
+  margin: 0.4rem 0;
+  font-size: 0.9rem;
+}
+
+.practice-box {
+  background: rgba(245,158,11,0.1);
+  border-left: 4px solid var(--warning);
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.quiz-question {
+  margin-bottom: 1rem;
+}
+
+.quiz-options label {
+  display: block;
+  padding: 0.4rem 0;
+  cursor: pointer;
+}
+
+.note-field {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 0.7rem;
+  color: var(--text);
+  margin: 0.5rem 0;
+  resize: vertical;
+}
+
+.complete-btn {
+  background: var(--success);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin: 1.5rem 0;
+}
+
+.complete-btn:active {
+  transform: scale(0.97);
+}
+
+.lesson-nav {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.lesson-nav button {
+  background: var(--card);
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 12px;
+  color: var(--text);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.lesson-nav button:hover {
+  background: var(--primary);
+}
