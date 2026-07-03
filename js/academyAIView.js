@@ -46,6 +46,7 @@ LawAIApp.AcademyAIView = {
           <button class="quick-btn" onclick="alert('Coming soon')">🏆 Achievements</button>
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('learning-hub')">📚 Learning Hub</button>
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('knowledge-capture')">📓 My Notes</button>
+          <button class="quick-btn" onclick="LawAIApp.Router.navigate('adaptive-memory')">🧠 Adaptive Memory</button>   <!-- 🆕 新增 -->
           <button class="quick-btn" onclick="alert('Coming soon')">⚙️ Settings</button>
         </div>
 
