@@ -16,7 +16,7 @@ LawAIApp.RelationshipEngine = {
         const sourceDay = parseInt(source.lessonId.split('-')[1]);
         const targetDay = parseInt(target.lessonId.split('-')[1]);
 
-        // 1. 前置关系：如果目标课程的prerequisites包含源课程（这里简化：按阶段，前一阶段的课程作为后一阶段的prerequisite）
+        // 1. 前置关系：按阶段
         const sourceStage = LawAIApp.LessonEngine.stages.find(s => sourceDay >= s.range[0] && sourceDay <= s.range[1]);
         const targetStage = LawAIApp.LessonEngine.stages.find(s => targetDay >= s.range[0] && targetDay <= s.range[1]);
         if (sourceStage && targetStage && sourceStage.name !== targetStage.name && targetDay > sourceDay) {
@@ -55,14 +55,14 @@ LawAIApp.RelationshipEngine = {
     });
 
     this._save(relationships);
-    // 更新节点内的连接列表（可选）
+
+    // 更新节点内的连接列表
     const nodesMap = {};
     nodes.forEach(n => { nodesMap[n.lessonId] = []; });
     relationships.forEach(r => {
       if (nodesMap[r.sourceId]) nodesMap[r.sourceId].push(r.targetId);
-      if (nodesMap[r.targetId]) nodesMap[r.targetId].push(r.sourceId); // 双向显示
+      if (nodesMap[r.targetId]) nodesMap[r.targetId].push(r.sourceId);
     });
-    // 保存到节点数据中
     const updatedNodes = LawAIApp.NodeRegistry._getStore();
     updatedNodes.forEach(n => {
       n.connections = [...new Set(nodesMap[n.lessonId] || [])];
@@ -76,5 +76,87 @@ LawAIApp.RelationshipEngine = {
   getRelationships(lessonId) {
     const all = this._getStore();
     return all.filter(r => r.sourceId === lessonId || r.targetId === lessonId);
+  },
+
+  // ========== Phase 38 新增方法（照旧追加） ==========
+
+  // 添加单条关系
+  addRelationship(sourceId, targetId, type, weight = 1) {
+    const id = `rel_${sourceId}_${targetId}_${type}`;
+    const all = this._getStore();
+    if (all.find(r => r.id === id)) return false; // 已存在
+    all.push({ id, sourceId, targetId, type, weight });
+    this._save(all);
+    LawAIApp.EventBus.emit('RelationshipCreated', { id, sourceId, targetId, type });
+    return true;
+  },
+
+  // 验证关系是否合法（检查节点存在、无循环依赖等）
+  validateRelationship(sourceId, targetId, type) {
+    const errors = [];
+    if (!sourceId || !targetId) errors.push('Source and target must be provided');
+    const validTypes = ['prerequisite','related','recommended_next','alternative','extension'];
+    if (!validTypes.includes(type)) errors.push(`Invalid relationship type: ${type}`);
+    // 检查节点是否存在
+    if (!LawAIApp.NodeRegistry.getNode(sourceId)) errors.push(`Source node ${sourceId} not found`);
+    if (!LawAIApp.NodeRegistry.getNode(targetId)) errors.push(`Target node ${targetId} not found`);
+    return errors;
+  },
+
+  // 扩展探索：从某节点沿关系类型探索 n 步
+  explore(nodeId, type = null, depth = 2) {
+    const visited = new Set();
+    const result = [];
+    const queue = [{ id: nodeId, d: 0 }];
+    visited.add(nodeId);
+    while (queue.length) {
+      const cur = queue.shift();
+      if (cur.d > depth) continue;
+      result.push(cur.id);
+      const rels = this.getRelationships(cur.id).filter(r => !type || r.type === type);
+      rels.forEach(r => {
+        const neighbor = r.sourceId === cur.id ? r.targetId : r.sourceId;
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          queue.push({ id: neighbor, d: cur.d + 1 });
+        }
+      });
+    }
+    return result;
+  },
+
+  // 获取两个节点间的最短路径（简单 BFS）
+  findPath(startId, endId) {
+    if (startId === endId) return [startId];
+    const visited = new Set();
+    const queue = [{ id: startId, path: [startId] }];
+    visited.add(startId);
+    while (queue.length) {
+      const cur = queue.shift();
+      const rels = this.getRelationships(cur.id);
+      for (const r of rels) {
+        const next = r.sourceId === cur.id ? r.targetId : r.sourceId;
+        if (!visited.has(next)) {
+          const newPath = [...cur.path, next];
+          if (next === endId) return newPath;
+          visited.add(next);
+          queue.push({ id: next, path: newPath });
+        }
+      }
+    }
+    return null;
+  },
+
+  // 获取某节点最相关的其他节点（按权重排序）
+  getTopRelated(nodeId, limit = 5) {
+    return this.getRelationships(nodeId)
+      .filter(r => r.type === 'related' || r.type === 'recommended_next')
+      .sort((a,b) => b.weight - a.weight)
+      .slice(0, limit)
+      .map(r => ({
+        nodeId: r.sourceId === nodeId ? r.targetId : r.sourceId,
+        type: r.type,
+        weight: r.weight
+      }));
   }
 };
