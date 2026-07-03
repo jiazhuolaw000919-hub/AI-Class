@@ -1,9 +1,36 @@
-// app.js - 应用主入口（Phase 13 升级版）
+// app.js - 应用主入口（Phase 13 升级版 → Season 1.5 稳定版）
 // ✅ 保留 Phase 1 + Phase 2 全部功能
 // ✅ 新增：注册 Core Learning Engine 事件监听器
 // ✅ 新增：监听 LessonCompleted 事件，触发连续签到、成就、复习、第二大脑
+// ✅ Season 1.5：不再生成假进度，所有数据初始为 0
+// ✅ Season 1.5：添加全局错误捕获
 
 (function() {
+  // ========== Season 1.5 新增：全局错误监听 ==========
+  window.addEventListener('error', function(e) {
+    const errorLog = LawAIApp.StorageEngine 
+      ? LawAIApp.StorageEngine.get('error_log', []) 
+      : [];
+    errorLog.push({
+      message: e.message,
+      source: e.filename,
+      lineno: e.lineno,
+      colno: e.colno,
+      timestamp: new Date().toISOString()
+    });
+    // 只保留最近 20 条错误
+    if (errorLog.length > 20) errorLog.shift();
+    if (LawAIApp.StorageEngine) {
+      LawAIApp.StorageEngine.set('error_log', errorLog);
+    }
+    console.error('🚨 Global error caught:', e.message, '@', e.filename, ':', e.lineno);
+  });
+
+  // 捕获未处理的 Promise 拒绝
+  window.addEventListener('unhandledrejection', function(e) {
+    console.error('🚨 Unhandled Promise rejection:', e.reason);
+  });
+
   // ========== Phase 1 原有：主题初始化 ==========
   LawAIApp.Theme.init();
 
@@ -24,7 +51,7 @@
     LawAIApp.LessonEngine.generateAllLessons();
   }
 
-  // ========== Phase 2 新增：初始化进度数据 ==========
+  // ========== Season 1.5 修改：初始化进度数据（只创建空结构，不生成假进度） ==========
   if (LawAIApp.StorageEngine) {
     if (!LawAIApp.StorageEngine.get('progress')) {
       LawAIApp.StorageEngine.set('progress', {
@@ -60,7 +87,7 @@
     }
   }
 
-  // ========== Phase 2 新增：初始化连续签到数据 ==========
+  // ========== Season 1.5 修改：初始化连续签到数据（保持为 0） ==========
   if (LawAIApp.StorageEngine) {
     if (!LawAIApp.StorageEngine.get('streakData')) {
       LawAIApp.StorageEngine.set('streakData', {
@@ -90,7 +117,18 @@
     }
   }
 
-  // ========== Phase 2 新增：同步旧版已完成课程数据 ==========
+  // ========== Season 1.5 修改：初始化 XP 数据（保持为 0） ==========
+  if (LawAIApp.StorageEngine) {
+    if (!LawAIApp.StorageEngine.get('xp_data')) {
+      LawAIApp.StorageEngine.set('xp_data', {
+        totalXP: 0,
+        lifetimeXP: 0,
+        currentLevel: 1
+      });
+    }
+  }
+
+  // ========== Phase 2 原有：同步旧版已完成课程数据（保留，但仅在有旧数据时执行） ==========
   const oldCompleted = LawAIApp.Storage.get('completedLessons');
   if (oldCompleted && oldCompleted.length > 0) {
     if (LawAIApp.StorageEngine) {
@@ -139,14 +177,14 @@
   // ========== Phase 1 原有：路由初始化 ==========
   LawAIApp.Router.init();
 
-  // ========== Phase 2 新增：应用启动日志 ==========
-  console.log('🚀 Law AI Academy - Phase 13 已启动');
-  console.log('📚 课程数据:', LawAIApp.LessonEngine ? '已加载引擎' : '使用假数据');
+  // ========== Season 1.5 修改：应用启动日志（显示真实数据） ==========
+  console.log('🚀 Law AI Academy - Season 1.5 Alpha 已启动');
+  console.log('📚 课程数据:', LawAIApp.LessonEngine ? '已加载引擎（365 节课）' : '使用假数据');
   console.log('💾 存储系统:', LawAIApp.StorageEngine ? 'StorageEngine' : 'Legacy Storage');
   
   const progress = LawAIApp.ProgressEngine 
     ? LawAIApp.ProgressEngine.getProgress() 
-    : LawAIApp.Storage.get('progress');
+    : (LawAIApp.StorageEngine ? LawAIApp.StorageEngine.get('progress') : LawAIApp.Storage.get('progress'));
   if (progress) {
     console.log(`📊 进度: ${progress.completedLessons.length}/365 课 | ⭐ ${progress.xp} XP | 🎯 ${progress.currentStage}`);
   }
@@ -186,7 +224,7 @@
   // ========== Phase 1 原有：初始加载 Dashboard ==========
   LawAIApp.Router.loadPage('dashboard');
 
-  // ========== Phase 2 新增：首次访问欢迎提示 ==========
+  // ========== Season 1.5 修改：首次访问欢迎提示（数据初始为 0 的提示） ==========
   const hasVisited = LawAIApp.StorageEngine 
     ? LawAIApp.StorageEngine.get('hasVisited', false)
     : LawAIApp.Storage.get('hasVisited', false);
@@ -195,6 +233,7 @@
     setTimeout(() => {
       console.log('👋 欢迎首次使用 Law AI Academy！');
       console.log('📖 前往 Learning 页面开始你的第一节课吧');
+      console.log('💡 所有进度从零开始，真实记录你的学习旅程');
     }, 500);
     
     if (LawAIApp.StorageEngine) {
@@ -202,6 +241,14 @@
     } else {
       LawAIApp.Storage.set('hasVisited', true);
     }
+  }
+
+  // ========== Season 1.5 新增：输出错误日志数量（如果有） ==========
+  const errorLog = LawAIApp.StorageEngine 
+    ? LawAIApp.StorageEngine.get('error_log', []) 
+    : [];
+  if (errorLog.length > 0) {
+    console.warn(`⚠️ 检测到 ${errorLog.length} 条历史错误记录，可调用 LawAIApp.StorageEngine.get('error_log') 查看`);
   }
 
 })();
