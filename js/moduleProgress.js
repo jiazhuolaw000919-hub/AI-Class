@@ -10,6 +10,7 @@ LawAIApp.ModuleProgress = {
         moduleId: moduleId,
         started: false,
         completedLessons: [],
+        completedPractices: [],   // ← 新增：支持记录已完成的实践 ID
         practiceCompleted: false,
         quizCompleted: false,
         reflectionCompleted: false,
