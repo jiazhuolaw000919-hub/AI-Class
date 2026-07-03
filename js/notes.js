@@ -3,6 +3,9 @@ LawAIApp.Notes = {
   render() {
     const html = `
       <div class="page">
+        <button class="back-btn" onclick="LawAIApp.Router.navigate('dashboard')" style="background:var(--card); border:none; color:var(--text); padding:0.5rem 1rem; border-radius:8px; cursor:pointer; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.3rem; font-size:0.85rem;">
+          ← Back
+        </button>
         <h2>📝 Notebook</h2>
         <input class="search-box" placeholder="Search notes..." id="notes-search">
         <div id="notes-container"></div>
