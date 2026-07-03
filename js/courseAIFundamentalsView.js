@@ -78,9 +78,9 @@ LawAIApp.CourseAIFundamentalsView = {
         <div class="section-card">
           <h3>📚 Course Outline</h3>
           ${course.modules.map((mod, idx) => `
-            <div class="lesson-item" style="justify-content:space-between; padding:0.8rem;">
+            <div class="lesson-item" style="justify-content:space-between; padding:0.8rem; cursor:pointer;" onclick="LawAIApp.Router.navigate('module', { moduleId: '${mod.id}' })">
               <span>${idx+1}. ${mod.name}</span>
-              <span style="color:var(--text-secondary);">🔒</span>
+              <span>▶️</span>
             </div>
           `).join('')}
         </div>
