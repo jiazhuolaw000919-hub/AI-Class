@@ -6,6 +6,9 @@ LawAIApp.AcademyPage = {
 
     const html = `
       <div class="academy-page">
+        <button class="back-btn" onclick="LawAIApp.Router.navigate('dashboard')" style="background:var(--card); border:none; color:var(--text); padding:0.5rem 1rem; border-radius:8px; cursor:pointer; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.3rem; font-size:0.85rem;">
+          ← Back
+        </button>
         <!-- Continue Learning Card -->
         ${current ? `
           <div class="continue-card" id="continue-learning-card">
