@@ -14,3 +14,32 @@
     transition: transform 0.1s;
   }
 }
+
+/* ========== Phase 46 仪表盘响应式优化 ========== */
+@media (max-width: 600px) {
+  .hero-card h1 {
+    font-size: 1.5rem;
+  }
+  .hero-card p {
+    font-size: 0.9rem;
+  }
+
+  .confidence-grid {
+    flex-direction: column;
+  }
+
+  .heat-cell {
+    width: 28px;
+    height: 28px;
+    font-size: 0.6rem;
+  }
+
+  .mentor-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .recommendation-group {
+    justify-content: center;
+  }
+}
