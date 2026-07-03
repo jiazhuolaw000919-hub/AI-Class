@@ -1,4 +1,4 @@
-// router.js – Phase 50 升级版（注册所有新模块路由）
+// router.js – Phase 53 升级版（注册所有新模块路由）
 // Season 1.5 升级：增加页面缓存 + 面包屑导航
 // Phase 42 升级：注册 course-ai-fundamentals 路由
 // Phase 43 升级：注册 module 路由
@@ -9,6 +9,10 @@
 // Phase 48 升级：注册 learning-hub 路由
 // Phase 49 升级：注册 knowledge-capture / knowledge-editor / knowledge-favorites / knowledge-export 路由
 // Phase 50 升级：注册 adaptive-memory 路由
+// Phase 51 升级：注册 intelligence 路由
+// Phase 52 升级：注册 mentor-brain 路由
+// Phase 53 升级：注册 conversations 路由
+
 LawAIApp.Router = {
   currentPage: 'dashboard',
   currentParams: {},
@@ -17,7 +21,7 @@ LawAIApp.Router = {
     'lesson','academy','academy-dashboard','course-ai-fundamentals','module',
     'lesson-detail','practice','quiz-dashboard','smart-project','learning-hub',
     'knowledge-capture','knowledge-editor','knowledge-favorites','knowledge-export',
-    'adaptive-memory'
+    'adaptive-memory','intelligence','mentor-brain','conversations'
   ],
 
   _pageCache: {},
@@ -159,6 +163,33 @@ LawAIApp.Router = {
       return;
     }
 
+    // ========== Phase 51 新增：学习智能引擎仪表盘 ==========
+    if (page === 'intelligence') {
+      const app = document.getElementById('app');
+      app.innerHTML = '';
+      LawAIApp.IntelligenceEngine.renderDashboard();
+      this.currentPage = page;
+      return;
+    }
+
+    // ========== Phase 52 新增：AI Mentor 大脑仪表盘 ==========
+    if (page === 'mentor-brain') {
+      const app = document.getElementById('app');
+      app.innerHTML = '';
+      LawAIApp.MentorBrain.renderDashboard();
+      this.currentPage = page;
+      return;
+    }
+
+    // ========== Phase 53 新增：学习对话界面 ==========
+    if (page === 'conversations') {
+      const app = document.getElementById('app');
+      app.innerHTML = '';
+      LawAIApp.ConversationUI.render();
+      this.currentPage = page;
+      return;
+    }
+
     // ---------- 原有模板页面加载逻辑 ----------
     const cacheKey = this._getCacheKey(page, this.currentParams);
     if (this._pageCache[cacheKey]) {
@@ -211,6 +242,8 @@ LawAIApp.Router = {
     if (page === 'quiz-dashboard' && params.moduleId) return `${page}_${params.moduleId}`;
     if (page === 'smart-project' && params.projectId) return `${page}_${params.projectId}`;
     if (page === 'knowledge-editor' && params.noteId) return `${page}_${params.noteId}`;
+    // 新页面无需额外缓存 key（无动态参数），直接返回页面名
+    if (page === 'intelligence' || page === 'mentor-brain' || page === 'conversations') return page;
     return page;
   },
 
@@ -237,7 +270,10 @@ LawAIApp.Router = {
       'knowledge-editor': '✏️ Editor',
       'knowledge-favorites': '⭐ Favorites',
       'knowledge-export': '📤 Export',
-      'adaptive-memory': '🧠 Adaptive Memory'
+      'adaptive-memory': '🧠 Adaptive Memory',
+      'intelligence': '🧠 Intelligence',
+      'mentor-brain': '🤖 Mentor Brain',
+      'conversations': '💬 Chat'
     };
     const title = titles[page] || page;
 
