@@ -1,0 +1,16 @@
+/* responsive.css - 响应式与触控优化 */
+@media (max-width: 600px) {
+  .widget-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+
+@media (hover: none) {
+  .quick-btn:active,
+  .nav-item:active,
+  .lesson-item:active,
+  .academy-card:active {
+    transform: scale(0.97);
+    transition: transform 0.1s;
+  }
+}
