@@ -41,3 +41,98 @@ button:active {
 .back-btn:hover {
   opacity: 0.8;
 }
+
+/* ========== Phase 46 仪表盘样式 ========== */
+.hero-card {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border-radius: 24px;
+  padding: 2rem 1.5rem;
+  color: white;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 16px 32px rgba(59,130,246,0.3);
+}
+
+.gauge-container {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.dashboard-card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 1.2rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow);
+  animation: cardSlideUp 0.4s ease forwards;
+  opacity: 0;
+}
+
+.heat-cell {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.75rem;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.heat-cell:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.heat-cell.correct { background: #22c55e; }
+.heat-cell.guessed { background: #f59e0b; }
+.heat-cell.incorrect { background: #ef4444; }
+
+.confidence-grid {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+  text-align: center;
+}
+.confidence-item {
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 1rem;
+  flex: 1;
+}
+
+.strength-card, .weakness-card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 1rem;
+  border-left: 4px solid;
+}
+.strength-card { border-color: var(--success); }
+.weakness-card { border-color: var(--warning); }
+
+.mentor-card {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(59,130,246,0.2));
+  border: 1px solid rgba(139,92,246,0.3);
+}
+
+.recommendation-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pulse-btn {
+  animation: pulse 2s infinite;
+}
+
+.share-section {
+  text-align: center;
+  padding: 1.5rem;
+  background: var(--glass);
+  border-radius: 16px;
+}
