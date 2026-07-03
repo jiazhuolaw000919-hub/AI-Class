@@ -28,8 +28,9 @@ LawAIApp.AcademyPage = {
 
         <!-- Academy Grid -->
         <h3>Explore Academies</h3>
-        <div style="margin-bottom:0.5rem;">
+        <div style="margin-bottom:0.5rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('mentor-brain')">🤖 Mentor Brain</button>
+          <button class="quick-btn" onclick="LawAIApp.Router.navigate('conversations')">💬 Chat</button>
         </div>
         <div class="academy-grid" id="academy-grid"></div>
       </div>
@@ -65,7 +66,6 @@ LawAIApp.AcademyPage = {
       `;
 
       card.addEventListener('click', (e) => {
-        // 不要触发内部按钮的二次事件
         if (e.target.tagName === 'BUTTON') return;
         this.handleAcademyClick(academy);
       });
@@ -85,7 +85,7 @@ LawAIApp.AcademyPage = {
     const continueCard = document.getElementById('continue-learning-card');
     if (continueCard) {
       continueCard.addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON') return; // 按钮有自己的事件
+        if (e.target.tagName === 'BUTTON') return;
         if (current && current.status === 'active') {
           LawAIApp.Router.navigate('learning');
         }
