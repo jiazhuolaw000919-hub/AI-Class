@@ -6,6 +6,7 @@
 // ✅ Phase 51：新增 Learning Intelligence 入口
 // ✅ Phase 51.5：嵌入 Daily Briefing 紧凑卡片 + 可重新打开全屏体验
 // ✅ Phase 52：新增 AI Mentor Brain 入口
+// ✅ Phase 53：新增 Learning Conversations 入口
 
 LawAIApp.Dashboard = {
   render() {
@@ -237,6 +238,8 @@ LawAIApp.Dashboard = {
           <button class="quick-btn" onclick="LawAIApp.DailyBriefing.showFullExperience()">☀️ Daily Briefing</button>
           <!-- 🔥 Phase 52：AI Mentor Brain 入口 -->
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('mentor-brain')">🤖 Mentor Brain</button>
+          <!-- 🔥 Phase 53：Learning Conversations 入口 -->
+          <button class="quick-btn" onclick="LawAIApp.Router.navigate('conversations')">💬 Chat</button>
         </div>
 
         <!-- 页脚统计 -->
