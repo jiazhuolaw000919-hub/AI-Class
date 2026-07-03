@@ -44,7 +44,7 @@ LawAIApp.AcademyAIView = {
           <button class="quick-btn" onclick="alert('Coming soon')">📅 Timeline</button>
           <button class="quick-btn" onclick="alert('Coming soon')">📊 Statistics</button>
           <button class="quick-btn" onclick="alert('Coming soon')">🏆 Achievements</button>
-          <button class="quick-btn" onclick="alert('Coming soon')">📚 Resources</button>
+          <button class="quick-btn" onclick="LawAIApp.Router.navigate('learning-hub')">📚 Learning Hub</button>
           <button class="quick-btn" onclick="alert('Coming soon')">⚙️ Settings</button>
         </div>
 
