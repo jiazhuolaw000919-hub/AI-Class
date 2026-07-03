@@ -1,9 +1,10 @@
-// dashboard.js - 仪表盘页面（Season 1.5 稳定版 + Phase 51 入口）
+// dashboard.js - 仪表盘页面（Season 1.5 稳定版 + Phase 51 入口 + Daily Briefing 卡片）
 // ✅ 保留 Phase 1 全部旧功能：问候语、小部件、今日课程、周挑战、最近笔记、快捷入口
 // ✅ 保留 Phase 2 功能：真实进度数据、动态等级系统、Streak追踪、成就展示、学习统计
 // ✅ 保留 Phase 5 功能：Academy Home 快捷入口
 // ✅ Season 1.5：彻底移除假数据，所有数据从引擎动态获取
 // ✅ Phase 51：新增 Learning Intelligence 入口
+// ✅ Phase 51.5：嵌入 Daily Briefing 紧凑卡片
 
 LawAIApp.Dashboard = {
   render() {
@@ -66,6 +67,11 @@ LawAIApp.Dashboard = {
       ? LawAIApp.Data.weeklyChallenge()
       : { title: 'Build a mini chatbot', xp: 500, progress: 0 };
 
+    // ========== Phase 51.5：每日简报紧凑卡片 ==========
+    const dailyBriefingCardHTML = LawAIApp.DailyBriefing
+      ? LawAIApp.DailyBriefing.getCompactCardHTML()
+      : '';
+
     // ========== 构建 UI ==========
     const html = `
       <div class="page">
@@ -87,6 +93,9 @@ LawAIApp.Dashboard = {
             🏆 ${achievements.length} 成就
           </span>
         </div>
+
+        <!-- 🔥 Phase 51.5：每日简报紧凑卡片（自动显示） -->
+        ${dailyBriefingCardHTML}
 
         <!-- 小部件网格 -->
         <div class="widget-grid">
@@ -235,5 +244,4 @@ LawAIApp.Dashboard = {
 
     document.getElementById('app').innerHTML = html;
   }
-};
 };
