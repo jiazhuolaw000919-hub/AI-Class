@@ -1,9 +1,10 @@
 // router.js – Phase 5 升级版（已注册 academy 路由）
 // Season 1.5 升级：增加页面缓存 + 面包屑导航
+// Phase 42 升级：注册 course-ai-fundamentals 路由
 LawAIApp.Router = {
   currentPage: 'dashboard',
   currentParams: {},
-  pages: ['dashboard','learning','calendar','notes','tools','prompt','settings','lesson','academy','academy-dashboard'],
+  pages: ['dashboard','learning','calendar','notes','tools','prompt','settings','lesson','academy','academy-dashboard','course-ai-fundamentals'],
 
   _pageCache: {},
   _breadcrumbStack: [],
@@ -34,6 +35,15 @@ LawAIApp.Router = {
       const app = document.getElementById('app');
       app.innerHTML = '';
       LawAIApp.AcademyAIView.render();
+      this.currentPage = page;
+      return;
+    }
+
+    // ========== Phase 42 新增：课程视图直接渲染，无需模板 ==========
+    if (page === 'course-ai-fundamentals') {
+      const app = document.getElementById('app');
+      app.innerHTML = '';
+      LawAIApp.CourseAIFundamentalsView.render();
       this.currentPage = page;
       return;
     }
@@ -117,7 +127,8 @@ LawAIApp.Router = {
       settings: '⚙️ Settings',
       lesson: `📖 Day ${params?.day || '?'}`,
       academy: '🏫 Academy',
-      'academy-dashboard': '🤖 AI Foundation'
+      'academy-dashboard': '🤖 AI Foundation',
+      'course-ai-fundamentals': '📖 AI Fundamentals'  // Phase 42 新增
     };
     const title = titles[page] || page;
 
