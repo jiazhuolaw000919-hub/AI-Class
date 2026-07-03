@@ -39,7 +39,7 @@ LawAIApp.AcademyAIView = {
 
         <!-- Sidebar Navigation (simulated) -->
         <div class="quick-access" style="justify-content:center; flex-wrap:wrap;">
-          <button class="quick-btn" onclick="alert('Coming in Phase 42')">📖 Courses</button>
+          <button class="quick-btn" onclick="LawAIApp.CourseAIFundamentals.open()">📖 Courses</button>
           <button class="quick-btn" onclick="alert('Coming soon')">🧠 Second Brain</button>
           <button class="quick-btn" onclick="alert('Coming soon')">📅 Timeline</button>
           <button class="quick-btn" onclick="alert('Coming soon')">📊 Statistics</button>
