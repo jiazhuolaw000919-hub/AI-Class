@@ -1,8 +1,9 @@
-// dashboard.js - 仪表盘页面（Season 1.5 稳定版）
+// dashboard.js - 仪表盘页面（Season 1.5 稳定版 + Phase 51 入口）
 // ✅ 保留 Phase 1 全部旧功能：问候语、小部件、今日课程、周挑战、最近笔记、快捷入口
 // ✅ 保留 Phase 2 功能：真实进度数据、动态等级系统、Streak追踪、成就展示、学习统计
 // ✅ 保留 Phase 5 功能：Academy Home 快捷入口
 // ✅ Season 1.5：彻底移除假数据，所有数据从引擎动态获取
+// ✅ Phase 51：新增 Learning Intelligence 入口
 
 LawAIApp.Dashboard = {
   render() {
@@ -220,6 +221,8 @@ LawAIApp.Dashboard = {
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('learning')">📚 All Lessons</button>
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('notes')">📝 Notes</button>
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('academy')">🏫 Academies</button>
+          <!-- 🔥 Phase 51 新增入口 -->
+          <button class="quick-btn" onclick="LawAIApp.Router.navigate('intelligence')">🧠 Intelligence</button>
         </div>
 
         <!-- 页脚统计 -->
@@ -232,4 +235,5 @@ LawAIApp.Dashboard = {
 
     document.getElementById('app').innerHTML = html;
   }
+};
 };
