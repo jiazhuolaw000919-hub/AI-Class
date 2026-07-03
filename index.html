@@ -326,6 +326,14 @@
   <script src="js/bootManager.js"></script>
   <script src="js/bootstrap.js"></script>
 
+  <!-- ========== Season 1.5 系统稳定与打磨模块 ========== -->
+  <script src="js/factoryReset.js"></script>
+  <script src="js/emptyStates.js"></script>
+  <script src="js/loadingStates.js"></script>
+  <script src="js/toastSystem.js"></script>
+  <script src="js/storageAudit.js"></script>
+  <script src="js/devPanel.js"></script>
+
   <!-- ========== 应用主入口 ========== -->
   <script src="js/app.js"></script>
 
@@ -393,6 +401,14 @@
 
       console.log('🔒 Event loop stabilized');
     })();
+  </script>
+
+  <!-- ========== Season 1.5 开发者面板启动提示 ========== -->
+  <script>
+    console.log('🛠️ Dev Panel: Press Ctrl+Shift+D to toggle');
+    console.log('🧹 Factory Reset: LawAIApp.FactoryReset.execute()');
+    console.log('💾 Backup: LawAIApp.FactoryReset.exportBackup()');
+    console.log('📊 Storage Audit: LawAIApp.StorageAudit.audit()');
   </script>
 </body>
 </html>
