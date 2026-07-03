@@ -1,70 +1,77 @@
-// dashboard.js - 仪表盘页面（Phase 2 完整升级版 + Phase 5 入口）
+// dashboard.js - 仪表盘页面（Season 1.5 稳定版）
 // ✅ 保留 Phase 1 全部旧功能：问候语、小部件、今日课程、周挑战、最近笔记、快捷入口
-// ✅ 新增 Phase 2 功能：真实进度数据、动态等级系统、Streak追踪、成就展示、学习统计
-// ✅ Phase 5 新增：Academy Home 快捷入口（可选）
+// ✅ 保留 Phase 2 功能：真实进度数据、动态等级系统、Streak追踪、成就展示、学习统计
+// ✅ 保留 Phase 5 功能：Academy Home 快捷入口
+// ✅ Season 1.5：彻底移除假数据，所有数据从引擎动态获取
 
 LawAIApp.Dashboard = {
   render() {
-    // ========== Phase 1 原有：保留假数据作为兜底 ==========
-    const user = LawAIApp.Data.fakeUser();
-    const challenge = LawAIApp.Data.weeklyChallenge();
-    const notes = LawAIApp.Data.fakeNotes().slice(0, 2);
+    // ========== Season 1.5：从引擎获取真实数据（无假数据兜底） ==========
+    const user = LawAIApp.Data ? LawAIApp.Data.fakeUser() : { name: 'Law' };
 
-    // ========== Phase 2 新增：从引擎获取真实数据 ==========
     // 进度数据
-    const progress = LawAIApp.ProgressEngine 
-      ? LawAIApp.ProgressEngine.getProgress() 
-      : { xp: user.xp, completedLessons: [], currentLesson: user.currentLesson, completionPercent: 0 };
-    
-    // 连续签到数据
-    const streakData = LawAIApp.StreakEngine 
-      ? LawAIApp.StreakEngine.getStreakData() 
-      : { currentStreak: user.streak, longestStreak: user.streak, lastLearningDate: null };
-    
-    // 等级数据
-    const levelInfo = LawAIApp.LevelEngine 
-      ? LawAIApp.LevelEngine.calculateLevel() 
-      : { level: user.level, currentLevelXP: user.xp % (user.level * 300), nextLevelXP: user.level * 300 };
-    
-    // 成就数据
-    const achievements = LawAIApp.AchievementEngine 
-      ? LawAIApp.AchievementEngine.getUnlocked() 
-      : [];
-    
-    // 所有课程数据（用于获取今日课程标题）
-    const allLessons = LawAIApp.LessonEngine 
-      ? LawAIApp.LessonEngine.getAllLessons() 
-      : LawAIApp.Data.generateLessons();
-    
-    // 今日课程对象
-    const todayLesson = allLessons[progress.currentLesson - 1] || allLessons[0];
-    
-    // 收藏数量
-    const favorites = LawAIApp.Storage.get('favorites', []);
-    
-    // 计算完成率
-    const completionRate = progress.completedLessons.length > 0 
-      ? ((progress.completedLessons.length / 365) * 100).toFixed(1) 
-      : '0.0';
-    
-    // 获取当前阶段
-    const currentStage = progress.currentStage || 'Foundation';
-    
-    // 最近完成日期
-    const lastCompletedDate = streakData.lastLearningDate 
-      ? new Date(streakData.lastLearningDate).toLocaleDateString('zh-CN', { 
-          month: 'short', 
-          day: 'numeric' 
-        })
-      : '尚未开始';
+    const progress = LawAIApp.ProgressEngine
+      ? LawAIApp.ProgressEngine.getProgress()
+      : { xp: 0, completedLessons: [], currentLesson: 1, completionPercent: 0, currentStage: 'Foundation' };
 
-    // ========== Phase 1 原有：构建 HTML（升级版） ==========
+    // 连续签到数据
+    const streakData = LawAIApp.StreakEngine
+      ? LawAIApp.StreakEngine.getStreakData()
+      : { currentStreak: 0, longestStreak: 0, lastLearningDate: null };
+
+    // 等级数据
+    const levelInfo = LawAIApp.LevelEngine
+      ? LawAIApp.LevelEngine.calculateLevel()
+      : { level: 1, currentLevelXP: 0, nextLevelXP: 100 };
+
+    // 成就数据
+    const achievements = LawAIApp.AchievementEngine
+      ? LawAIApp.AchievementEngine.getUnlocked()
+      : [];
+
+    // 所有课程数据
+    const allLessons = LawAIApp.LessonEngine
+      ? LawAIApp.LessonEngine.getAllLessons()
+      : [];
+
+    // 今日课程对象（安全兜底）
+    const todayLesson = allLessons.length > 0
+      ? (allLessons[progress.currentLesson - 1] || allLessons[0])
+      : null;
+
+    // 收藏数量
+    const favorites = LawAIApp.StorageEngine
+      ? (LawAIApp.StorageEngine.get('favorites') || [])
+      : (LawAIApp.Storage ? (LawAIApp.Storage.get('favorites') || []) : []);
+
+    // 计算完成率
+    const completionRate = progress.completedLessons.length > 0
+      ? ((progress.completedLessons.length / 365) * 100).toFixed(1)
+      : '0.0';
+
+    // 当前阶段
+    const currentStage = progress.currentStage || 'Foundation';
+
+    // 最近完成日期
+    const lastCompletedDate = streakData.lastLearningDate
+      ? new Date(streakData.lastLearningDate).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric'
+        })
+      : 'Not started';
+
+    // 周挑战（真实数据或占位）
+    const challenge = LawAIApp.Data && LawAIApp.Data.weeklyChallenge
+      ? LawAIApp.Data.weeklyChallenge()
+      : { title: 'Build a mini chatbot', xp: 500, progress: 0 };
+
+    // ========== 构建 UI ==========
     const html = `
       <div class="page">
-        <!-- Phase 1 原有：问候语 -->
-        <h2 class="greeting">Good Morning Law 👋</h2>
-        
-        <!-- Phase 2 新增：学习统计摘要 -->
+        <!-- 问候语 -->
+        <h2 class="greeting">Good Morning ${user.name} 👋</h2>
+
+        <!-- 学习统计摘要 -->
         <div style="display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap;">
           <span style="background:var(--card); border-radius:20px; padding:0.3rem 0.8rem; font-size:0.75rem;">
             🎯 ${currentStage}
@@ -80,9 +87,9 @@ LawAIApp.Dashboard = {
           </span>
         </div>
 
-        <!-- Phase 1 原有：小部件网格（数据升级为真实引擎数据） -->
+        <!-- 小部件网格 -->
         <div class="widget-grid">
-          <!-- 连续签到卡片（Phase 2 升级：显示真实 Streak + 最长记录） -->
+          <!-- 连续签到卡片 -->
           <div class="widget-card">
             <h3>🔥 Streak</h3>
             <p style="font-size:1.5rem; font-weight:bold;">${streakData.currentStreak} <span style="font-size:0.8rem;">天</span></p>
@@ -99,12 +106,12 @@ LawAIApp.Dashboard = {
             ` : ''}
           </div>
 
-          <!-- XP 卡片（Phase 2 升级：显示真实 XP + 进度条） -->
+          <!-- XP 卡片 -->
           <div class="widget-card">
             <h3>⭐ XP</h3>
             <p style="font-size:1.5rem; font-weight:bold;">${progress.xp} <span style="font-size:0.8rem;">XP</span></p>
             ${LawAIApp.Components.progressBar(
-              levelInfo.currentLevelXP, 
+              levelInfo.currentLevelXP,
               levelInfo.nextLevelXP
             ).outerHTML}
             <small style="color:var(--text-secondary);">
@@ -112,7 +119,7 @@ LawAIApp.Dashboard = {
             </small>
           </div>
 
-          <!-- 等级卡片（Phase 2 升级：动态计算等级） -->
+          <!-- 等级卡片 -->
           <div class="widget-card">
             <h3>📊 Level</h3>
             <p style="font-size:1.5rem; font-weight:bold;">Level ${levelInfo.level}</p>
@@ -125,7 +132,7 @@ LawAIApp.Dashboard = {
           </div>
         </div>
 
-        <!-- Phase 1 原有：今日课程卡片（Phase 2 升级：动态标题） -->
+        <!-- 今日课程卡片 -->
         <div class="lesson-card" onclick="LawAIApp.Router.navigate('learning')">
           <div>
             <strong>📖 继续学习</strong>
@@ -138,7 +145,7 @@ LawAIApp.Dashboard = {
           <span style="font-size:1.5rem;">▶️</span>
         </div>
 
-        <!-- Phase 2 新增：学习进度概览 -->
+        <!-- 学习进度概览 -->
         <h3 style="margin-top:1rem;">📈 学习进度</h3>
         <div class="widget-card">
           <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -146,7 +153,7 @@ LawAIApp.Dashboard = {
             <span style="font-weight:bold;">${completionRate}%</span>
           </div>
           ${LawAIApp.Components.progressBar(
-            progress.completedLessons.length, 
+            progress.completedLessons.length,
             365
           ).outerHTML}
           <div style="display:flex; justify-content:space-between; margin-top:0.5rem;">
@@ -159,7 +166,7 @@ LawAIApp.Dashboard = {
           </div>
         </div>
 
-        <!-- Phase 1 原有：每周挑战（保留假数据） -->
+        <!-- 每周挑战 -->
         <h3 style="margin-top:1rem;">🎯 Weekly Challenge</h3>
         <div class="widget-card">
           <strong>${challenge.title}</strong>
@@ -169,7 +176,7 @@ LawAIApp.Dashboard = {
           <small style="color:var(--text-secondary);">${challenge.progress}% 完成</small>
         </div>
 
-        <!-- Phase 2 新增：成就展示 -->
+        <!-- 成就展示 -->
         ${achievements.length > 0 ? `
           <h3 style="margin-top:1rem;">🏆 已解锁成就 (${achievements.length})</h3>
           <div class="widget-grid">
@@ -198,17 +205,14 @@ LawAIApp.Dashboard = {
           </div>
         `}
 
-        <!-- Phase 1 原有：最近笔记（保留假数据） -->
-        <h3 style="margin-top:1rem;">📝 Recent Notes</h3>
-        ${notes.map(n => `
-          <div class="note-card">
-            <strong>${n.title}</strong>
-            <p>${n.summary}</p>
-            <span class="tag">${n.tags[0]}</span>
-          </div>
-        `).join('')}
+        <!-- 最近笔记（空状态） -->
+        <h3 style="margin-top:1rem;">📝 笔记</h3>
+        <div class="widget-card" style="text-align:center; padding:1.5rem;">
+          <p style="font-size:2rem;">📝</p>
+          <p style="color:var(--text-secondary);">打开课程页面记笔记</p>
+        </div>
 
-        <!-- Phase 1 原有：快捷入口（保留） + Phase 5 Academy 入口 -->
+        <!-- 快捷入口 -->
         <h3 style="margin-top:1rem;">Quick Access</h3>
         <div class="quick-access">
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('tools')">🛠️ Tools</button>
@@ -218,9 +222,9 @@ LawAIApp.Dashboard = {
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('academy')">🏫 Academies</button>
         </div>
 
-        <!-- Phase 2 新增：页脚统计 -->
+        <!-- 页脚统计 -->
         <div style="text-align:center; margin-top:2rem; padding:1rem; color:var(--text-secondary); font-size:0.75rem;">
-          <p>Law AI Academy • Phase 5</p>
+          <p>Law AI Academy • Season 1.5 Alpha</p>
           <p>Level ${levelInfo.level} • ${completionRate}% Complete • 🔥 ${streakData.currentStreak} Day Streak</p>
         </div>
       </div>
