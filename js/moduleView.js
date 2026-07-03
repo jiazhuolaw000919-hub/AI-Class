@@ -1,4 +1,4 @@
-// moduleView.js (升级版：集成实践任务列表 + Quiz 入口 + 项目入口 + Adaptive Memory 入口)
+// moduleView.js (升级版：集成实践任务列表 + Quiz 入口 + 项目入口 + Learning Hub / Notes / Adaptive Memory 入口)
 LawAIApp.ModuleView = {
   render(moduleId) {
     const module = LawAIApp.ModuleData.getById(moduleId);
@@ -60,7 +60,7 @@ LawAIApp.ModuleView = {
             })()}
           </div>
 
-          <!-- Quiz Section (新增) -->
+          <!-- Quiz Section -->
           <div style="margin-top:1rem;">
             <h4>📝 Quiz</h4>
             ${progress.quizCompleted ? 
@@ -70,7 +70,7 @@ LawAIApp.ModuleView = {
             }
           </div>
 
-          <!-- Projects Section (新增) -->
+          <!-- Projects Section -->
           <div style="margin-top:1rem;">
             <h4>🚀 Projects</h4>
             ${(() => {
@@ -118,9 +118,17 @@ LawAIApp.ModuleView = {
           })()}
         </div>
 
-        <!-- 🆕 Adaptive Memory 入口 -->
-        <div style="text-align:center; margin-top:1rem;">
-          <button class="quick-btn" onclick="LawAIApp.Router.navigate('adaptive-memory')">🧠 Adaptive Memory</button>
+        <!-- 🆕 快捷入口：Learning Hub、My Notes、Adaptive Memory -->
+        <div style="margin-top:1rem; display:flex; flex-direction:column; gap:0.5rem;">
+          <div style="text-align:center;">
+            <button class="quick-btn" onclick="LawAIApp.Router.navigate('learning-hub')">📚 Browse Learning Hub</button>
+          </div>
+          <div style="text-align:center;">
+            <button class="quick-btn" onclick="LawAIApp.Router.navigate('knowledge-capture')">📓 My Notes</button>
+          </div>
+          <div style="text-align:center;">
+            <button class="quick-btn" onclick="LawAIApp.Router.navigate('adaptive-memory')">🧠 Adaptive Memory</button>
+          </div>
         </div>
 
         <!-- Navigation -->
@@ -132,7 +140,7 @@ LawAIApp.ModuleView = {
     `;
     document.getElementById('app').innerHTML = html;
 
-    // 绑定 Take Quiz 按钮事件 (如果尚未完成 quiz)
+    // 绑定 Take Quiz 按钮事件
     const takeQuizBtn = document.getElementById('take-quiz-btn');
     if (takeQuizBtn) {
       takeQuizBtn.addEventListener('click', () => {
