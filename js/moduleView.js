@@ -43,7 +43,23 @@ LawAIApp.ModuleView = {
             <span>Quiz: ${progress.quizCompleted ? '✅' : '⬜'}</span> |
             <span>Reflection: ${progress.reflectionCompleted ? '✅' : '⬜'}</span>
           </div>
-          ${moduleCompleted ? '<p>🎉 Module Completed!</p>' : ''}
+          <!-- 实践任务列表 -->
+          <div style="margin-top:0.8rem;">
+            ${(() => {
+              const practices = LawAIApp.PracticeData.getPracticesByModule(moduleId);
+              if (practices.length === 0) return '<p style="color:var(--text-secondary); font-size:0.9rem;">No practice tasks yet.</p>';
+              return practices.map(p => `
+                <div class="lesson-item" style="justify-content:space-between; padding:0.5rem 0.8rem; cursor:pointer;" onclick="LawAIApp.Router.navigate('practice', { practiceId: '${p.practiceId}' })">
+                  <div>
+                    <strong>${p.title}</strong>
+                    <small style="color:var(--text-secondary); display:block;">⏱️ ${p.estimatedMinutes} min · ⭐ ${p.estimatedXP} XP</small>
+                  </div>
+                  <span>${LawAIApp.PracticeProgress.isCompleted(moduleId, p.practiceId) ? '✅' : '▶️'}</span>
+                </div>
+              `).join('');
+            })()}
+          </div>
+          ${moduleCompleted ? '<p style="margin-top:0.5rem;">🎉 Module Completed!</p>' : ''}
         </div>
 
         <!-- Learning Objectives -->
