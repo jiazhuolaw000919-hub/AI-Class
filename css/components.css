@@ -33,3 +33,11 @@ button:active {
   transform: scale(0.96);
   transition: transform 0.1s;
 }
+
+/* 返回按钮 */
+.back-btn {
+  transition: opacity 0.2s;
+}
+.back-btn:hover {
+  opacity: 0.8;
+}
