@@ -1,4 +1,4 @@
-// moduleView.js (升级版：集成实践任务列表 + Quiz 入口 + 项目入口)
+// moduleView.js (升级版：集成实践任务列表 + Quiz 入口 + 项目入口 + Adaptive Memory 入口)
 LawAIApp.ModuleView = {
   render(moduleId) {
     const module = LawAIApp.ModuleData.getById(moduleId);
@@ -118,6 +118,11 @@ LawAIApp.ModuleView = {
           })()}
         </div>
 
+        <!-- 🆕 Adaptive Memory 入口 -->
+        <div style="text-align:center; margin-top:1rem;">
+          <button class="quick-btn" onclick="LawAIApp.Router.navigate('adaptive-memory')">🧠 Adaptive Memory</button>
+        </div>
+
         <!-- Navigation -->
         <div class="lesson-nav" style="display:flex; justify-content:space-between; margin-top:1rem;">
           <button class="quick-btn" onclick="alert('Previous module')">← Previous</button>
@@ -131,9 +136,7 @@ LawAIApp.ModuleView = {
     const takeQuizBtn = document.getElementById('take-quiz-btn');
     if (takeQuizBtn) {
       takeQuizBtn.addEventListener('click', () => {
-        // 模拟完成测验 (例如分数 85)
         LawAIApp.ModuleProgress.completeQuiz(moduleId, 85);
-        // 跳转到 Quiz 洞察仪表盘
         LawAIApp.Router.navigate('quiz-dashboard', { moduleId: moduleId });
       });
     }
