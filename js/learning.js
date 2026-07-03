@@ -1,4 +1,4 @@
-// learning.js - 学习页面（Phase 3 适配版）
+// learning.js - 学习页面（Season 1.5 稳定版）
 // ✅ 保留 Phase 1 + 2 全部功能：365节课生成、搜索、筛选、收藏、LocalStorage 持久化
 // ✅ Phase 3 改动：点击课程卡片 → 打开 Lesson 详细页面，不再直接完成课程
 
@@ -76,6 +76,9 @@ LawAIApp.Learning = {
   render() {
     const html = `
       <div class="page">
+        <button class="back-btn" onclick="LawAIApp.Router.navigate('dashboard')" style="background:var(--card); border:none; color:var(--text); padding:0.5rem 1rem; border-radius:8px; cursor:pointer; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.3rem; font-size:0.85rem;">
+          ← Back
+        </button>
         <h2>📚 365 AI Lessons</h2>
         
         <input 
