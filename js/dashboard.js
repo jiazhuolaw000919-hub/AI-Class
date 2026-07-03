@@ -4,7 +4,7 @@
 // ✅ 保留 Phase 5 功能：Academy Home 快捷入口
 // ✅ Season 1.5：彻底移除假数据，所有数据从引擎动态获取
 // ✅ Phase 51：新增 Learning Intelligence 入口
-// ✅ Phase 51.5：嵌入 Daily Briefing 紧凑卡片
+// ✅ Phase 51.5：嵌入 Daily Briefing 紧凑卡片 + 可重新打开全屏体验
 
 LawAIApp.Dashboard = {
   render() {
@@ -232,6 +232,8 @@ LawAIApp.Dashboard = {
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('academy')">🏫 Academies</button>
           <!-- 🔥 Phase 51 新增入口 -->
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('intelligence')">🧠 Intelligence</button>
+          <!-- 🔥 Phase 51.5：重新打开每日简报 -->
+          <button class="quick-btn" onclick="LawAIApp.DailyBriefing.showFullExperience()">☀️ Daily Briefing</button>
         </div>
 
         <!-- 页脚统计 -->
