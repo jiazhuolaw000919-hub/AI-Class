@@ -100,8 +100,9 @@ LawAIApp.AcademyPage = {
   },
 
   handleAcademyClick(academy) {
-    if (academy.status === 'active') {
-      // 进入该 Academy 的学习页面（目前只有 AI Academy）
+    if (academy.id === 'academy_ai_foundation') {
+      LawAIApp.Router.navigate('academy-dashboard');
+    } else if (academy.status === 'active') {
       LawAIApp.AcademyStorage.setActiveAcademy(academy.id);
       LawAIApp.Router.navigate('learning');
     } else if (academy.status === 'coming_soon') {
