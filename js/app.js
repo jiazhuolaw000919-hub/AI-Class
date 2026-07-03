@@ -1,9 +1,10 @@
-// app.js - 应用主入口（Phase 13 升级版 → Season 1.5 稳定版）
+// app.js - 应用主入口（Phase 13 升级版 → Season 1.5 稳定版 + Daily Briefing 自动弹出）
 // ✅ 保留 Phase 1 + Phase 2 全部功能
 // ✅ 新增：注册 Core Learning Engine 事件监听器
 // ✅ 新增：监听 LessonCompleted 事件，触发连续签到、成就、复习、第二大脑
 // ✅ Season 1.5：不再生成假进度，所有数据初始为 0
 // ✅ Season 1.5：添加全局错误捕获
+// ✅ Phase 51.5：启动时自动展示每日简报（首次每天一次）
 
 (function() {
   // ========== Season 1.5 新增：全局错误监听 ==========
@@ -249,6 +250,13 @@
     : [];
   if (errorLog.length > 0) {
     console.warn(`⚠️ 检测到 ${errorLog.length} 条历史错误记录，可调用 LawAIApp.StorageEngine.get('error_log') 查看`);
+  }
+
+  // ========== Phase 51.5：首次自动展示每日简报 ==========
+  if (LawAIApp.DailyBriefing) {
+    setTimeout(() => {
+      LawAIApp.DailyBriefing.autoShow();
+    }, 1000);
   }
 
 })();
