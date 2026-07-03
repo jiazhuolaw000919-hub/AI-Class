@@ -1,4 +1,4 @@
-// moduleView.js
+// moduleView.js (升级版：集成实践任务列表 + Quiz 入口)
 LawAIApp.ModuleView = {
   render(moduleId) {
     const module = LawAIApp.ModuleData.getById(moduleId);
@@ -59,6 +59,17 @@ LawAIApp.ModuleView = {
               `).join('');
             })()}
           </div>
+
+          <!-- Quiz Section (新增) -->
+          <div style="margin-top:1rem;">
+            <h4>📝 Quiz</h4>
+            ${progress.quizCompleted ? 
+              `<p>✅ Quiz completed (Score: ${progress.quizScore || 'N/A'}%)</p>
+               <button class="quick-btn" onclick="LawAIApp.Router.navigate('quiz-dashboard', { moduleId: '${moduleId}' })">📊 View Insights</button>` :
+              `<button class="quick-btn" id="take-quiz-btn">📝 Take Quiz</button>`
+            }
+          </div>
+
           ${moduleCompleted ? '<p style="margin-top:0.5rem;">🎉 Module Completed!</p>' : ''}
         </div>
 
@@ -97,5 +108,16 @@ LawAIApp.ModuleView = {
       </div>
     `;
     document.getElementById('app').innerHTML = html;
+
+    // 绑定 Take Quiz 按钮事件 (如果尚未完成 quiz)
+    const takeQuizBtn = document.getElementById('take-quiz-btn');
+    if (takeQuizBtn) {
+      takeQuizBtn.addEventListener('click', () => {
+        // 模拟完成测验 (例如分数 85)
+        LawAIApp.ModuleProgress.completeQuiz(moduleId, 85);
+        // 跳转到 Quiz 洞察仪表盘
+        LawAIApp.Router.navigate('quiz-dashboard', { moduleId: moduleId });
+      });
+    }
   }
 };
