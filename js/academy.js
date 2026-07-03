@@ -28,6 +28,9 @@ LawAIApp.AcademyPage = {
 
         <!-- Academy Grid -->
         <h3>Explore Academies</h3>
+        <div style="margin-bottom:0.5rem;">
+          <button class="quick-btn" onclick="LawAIApp.Router.navigate('mentor-brain')">🤖 Mentor Brain</button>
+        </div>
         <div class="academy-grid" id="academy-grid"></div>
       </div>
     `;
