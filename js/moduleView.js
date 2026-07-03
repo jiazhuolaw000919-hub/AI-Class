@@ -16,7 +16,9 @@ LawAIApp.ModuleView = {
 
     const html = `
       <div class="page">
-        <button class="back-btn" onclick="LawAIApp.Router.navigate('course-ai-fundamentals')" style="...">← Back to Course</button>
+        <button class="back-btn" onclick="LawAIApp.Router.navigate('course-ai-fundamentals')" style="background:var(--card); border:none; color:var(--text); padding:0.5rem 1rem; border-radius:8px; cursor:pointer; margin-bottom:1rem; display:flex; align-items:center; gap:0.3rem; font-size:0.85rem;">
+          ← Back to Course
+        </button>
 
         <div class="continue-card" style="background: linear-gradient(135deg, ${module.themeColor || '#3b82f6'}, #6366f1);">
           <h2>${module.icon} ${module.name}</h2>
@@ -50,10 +52,25 @@ LawAIApp.ModuleView = {
           <ul>${module.learningObjectives.map(obj => `<li>${obj}</li>`).join('')}</ul>
         </div>
 
-        <!-- Lessons placeholder -->
+        <!-- Dynamic Lessons list -->
         <div class="section-card">
           <h3>📖 Lessons</h3>
-          <p>Lessons will be available in the next chapter.</p>
+          ${(() => {
+            const lessons = LawAIApp.LessonData.getLessonsByModule(moduleId);
+            if (!lessons || lessons.length === 0) {
+              return '<p style="color:var(--text-secondary);">No lessons yet.</p>';
+            }
+            const prog = LawAIApp.ModuleProgress.get(moduleId);
+            return lessons.map(les => `
+              <div class="lesson-item" style="justify-content:space-between; padding:0.8rem; cursor:pointer;" onclick="LawAIApp.Router.navigate('lesson-detail', { lessonId: '${les.lessonId}' })">
+                <div>
+                  <strong>${les.order}. ${les.title}</strong>
+                  <small style="color:var(--text-secondary); display:block;">⏱️ ${les.estimatedMinutes} min · ⭐ ${les.estimatedXP} XP</small>
+                </div>
+                <span>${prog.completedLessons.includes(les.lessonId) ? '✅' : '▶️'}</span>
+              </div>
+            `).join('');
+          })()}
         </div>
 
         <!-- Navigation -->
