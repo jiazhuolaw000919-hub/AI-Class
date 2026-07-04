@@ -1,17 +1,11 @@
-// router.js – Phase 53 升级版（注册所有新模块路由）
+// router.js – Phase 60 升级版（Season 2 完结）
 // Season 1.5 升级：增加页面缓存 + 面包屑导航
-// Phase 42 升级：注册 course-ai-fundamentals 路由
-// Phase 43 升级：注册 module 路由
-// Phase 44 升级：注册 lesson-detail 路由
-// Phase 45 升级：注册 practice 路由
-// Phase 46 升级：注册 quiz-dashboard 路由
-// Phase 47 升级：注册 smart-project 路由
-// Phase 48 升级：注册 learning-hub 路由
-// Phase 49 升级：注册 knowledge-capture / knowledge-editor / knowledge-favorites / knowledge-export 路由
-// Phase 50 升级：注册 adaptive-memory 路由
-// Phase 51 升级：注册 intelligence 路由
-// Phase 52 升级：注册 mentor-brain 路由
-// Phase 53 升级：注册 conversations 路由
+// Phase 42–53：注册所有 Season 2 路由
+// Phase 54：注册 planner 路由
+// Phase 55：注册 goal-intelligence 路由
+// Phase 56：注册 command-center 路由
+// Phase 58：注册 career-showcase 路由
+// Phase 60：Season 2 正式完结
 
 LawAIApp.Router = {
   currentPage: 'dashboard',
@@ -21,7 +15,8 @@ LawAIApp.Router = {
     'lesson','academy','academy-dashboard','course-ai-fundamentals','module',
     'lesson-detail','practice','quiz-dashboard','smart-project','learning-hub',
     'knowledge-capture','knowledge-editor','knowledge-favorites','knowledge-export',
-    'adaptive-memory','intelligence','mentor-brain','conversations'
+    'adaptive-memory','intelligence','mentor-brain','conversations',
+    'planner','goal-intelligence','command-center','career-showcase'
   ],
 
   _pageCache: {},
@@ -48,7 +43,7 @@ LawAIApp.Router = {
   },
 
   loadPage(page) {
-    // ========== Phase 41 新增：学院仪表盘直接渲染 ==========
+    // ========== Phase 41：学院仪表盘 ==========
     if (page === 'academy-dashboard') {
       const app = document.getElementById('app');
       app.innerHTML = '';
@@ -57,7 +52,7 @@ LawAIApp.Router = {
       return;
     }
 
-    // ========== Phase 42 新增：课程视图直接渲染 ==========
+    // ========== Phase 42：课程视图 ==========
     if (page === 'course-ai-fundamentals') {
       const app = document.getElementById('app');
       app.innerHTML = '';
@@ -66,7 +61,7 @@ LawAIApp.Router = {
       return;
     }
 
-    // ========== Phase 43 新增：模块视图直接渲染 ==========
+    // ========== Phase 43：模块视图 ==========
     if (page === 'module') {
       const app = document.getElementById('app');
       app.innerHTML = '';
@@ -75,7 +70,7 @@ LawAIApp.Router = {
       return;
     }
 
-    // ========== Phase 44 新增：课程详情视图直接渲染 ==========
+    // ========== Phase 44：课程详情 ==========
     if (page === 'lesson-detail') {
       const app = document.getElementById('app');
       app.innerHTML = '';
@@ -84,7 +79,7 @@ LawAIApp.Router = {
       return;
     }
 
-    // ========== Phase 45 新增：实践视图直接渲染 ==========
+    // ========== Phase 45：实践视图 ==========
     if (page === 'practice') {
       const app = document.getElementById('app');
       app.innerHTML = '';
@@ -93,7 +88,7 @@ LawAIApp.Router = {
       return;
     }
 
-    // ========== Phase 46 新增：测验洞察仪表盘 ==========
+    // ========== Phase 46：测验洞察仪表盘 ==========
     if (page === 'quiz-dashboard') {
       const app = document.getElementById('app');
       app.innerHTML = '';
@@ -102,7 +97,7 @@ LawAIApp.Router = {
       return;
     }
 
-    // ========== Phase 47 新增：智能项目视图 ==========
+    // ========== Phase 47：智能项目视图 ==========
     if (page === 'smart-project') {
       const app = document.getElementById('app');
       app.innerHTML = '';
@@ -111,7 +106,7 @@ LawAIApp.Router = {
       return;
     }
 
-    // ========== Phase 48 新增：学习中心 ==========
+    // ========== Phase 48：学习中心 ==========
     if (page === 'learning-hub') {
       const app = document.getElementById('app');
       app.innerHTML = '';
@@ -120,7 +115,7 @@ LawAIApp.Router = {
       return;
     }
 
-    // ========== Phase 49 新增：知识捕获相关路由 ==========
+    // ========== Phase 49：知识捕获相关路由 ==========
     if (page === 'knowledge-capture') {
       const app = document.getElementById('app');
       app.innerHTML = '';
@@ -148,13 +143,12 @@ LawAIApp.Router = {
     }
 
     if (page === 'knowledge-export') {
-      // 直接导出并返回
       LawAIApp.KnowledgeExport.exportAll();
       this.navigate('knowledge-capture');
       return;
     }
 
-    // ========== Phase 50 新增：自适应记忆仪表盘 ==========
+    // ========== Phase 50：自适应记忆仪表盘 ==========
     if (page === 'adaptive-memory') {
       const app = document.getElementById('app');
       app.innerHTML = '';
@@ -163,7 +157,7 @@ LawAIApp.Router = {
       return;
     }
 
-    // ========== Phase 51 新增：学习智能引擎仪表盘 ==========
+    // ========== Phase 51：学习智能引擎 ==========
     if (page === 'intelligence') {
       const app = document.getElementById('app');
       app.innerHTML = '';
@@ -172,7 +166,7 @@ LawAIApp.Router = {
       return;
     }
 
-    // ========== Phase 52 新增：AI Mentor 大脑仪表盘 ==========
+    // ========== Phase 52：AI Mentor 大脑 ==========
     if (page === 'mentor-brain') {
       const app = document.getElementById('app');
       app.innerHTML = '';
@@ -181,11 +175,47 @@ LawAIApp.Router = {
       return;
     }
 
-    // ========== Phase 53 新增：学习对话界面 ==========
+    // ========== Phase 53：学习对话界面 ==========
     if (page === 'conversations') {
       const app = document.getElementById('app');
       app.innerHTML = '';
       LawAIApp.ConversationUI.render();
+      this.currentPage = page;
+      return;
+    }
+
+    // ========== Phase 54：智能学习规划器 ==========
+    if (page === 'planner') {
+      const app = document.getElementById('app');
+      app.innerHTML = '';
+      LawAIApp.PlannerDashboard.render();
+      this.currentPage = page;
+      return;
+    }
+
+    // ========== Phase 55：目标智能仪表盘 ==========
+    if (page === 'goal-intelligence') {
+      const app = document.getElementById('app');
+      app.innerHTML = '';
+      LawAIApp.GoalDashboard.render();
+      this.currentPage = page;
+      return;
+    }
+
+    // ========== Phase 56：指挥中心 ==========
+    if (page === 'command-center') {
+      const app = document.getElementById('app');
+      app.innerHTML = '';
+      LawAIApp.CommandCenter.render();
+      this.currentPage = page;
+      return;
+    }
+
+    // ========== Phase 58：职业生涯展示 ==========
+    if (page === 'career-showcase') {
+      const app = document.getElementById('app');
+      app.innerHTML = '';
+      LawAIApp.ShowcaseDashboard.render();
       this.currentPage = page;
       return;
     }
@@ -242,8 +272,6 @@ LawAIApp.Router = {
     if (page === 'quiz-dashboard' && params.moduleId) return `${page}_${params.moduleId}`;
     if (page === 'smart-project' && params.projectId) return `${page}_${params.projectId}`;
     if (page === 'knowledge-editor' && params.noteId) return `${page}_${params.noteId}`;
-    // 新页面无需额外缓存 key（无动态参数），直接返回页面名
-    if (page === 'intelligence' || page === 'mentor-brain' || page === 'conversations') return page;
     return page;
   },
 
@@ -263,7 +291,7 @@ LawAIApp.Router = {
       module: `📦 ${params?.moduleId || 'Module'}`,
       'lesson-detail': `📖 ${params?.lessonId || 'Lesson'}`,
       practice: `⚡ ${params?.practiceId || 'Practice'}`,
-      'quiz-dashboard': `📊 Quiz Insights`,
+      'quiz-dashboard': '📊 Quiz Insights',
       'smart-project': `🚀 ${params?.projectId || 'Project'}`,
       'learning-hub': '📚 Learning Hub',
       'knowledge-capture': '📓 Notes',
@@ -273,7 +301,11 @@ LawAIApp.Router = {
       'adaptive-memory': '🧠 Adaptive Memory',
       'intelligence': '🧠 Intelligence',
       'mentor-brain': '🤖 Mentor Brain',
-      'conversations': '💬 Chat'
+      'conversations': '💬 Chat',
+      'planner': '📅 Planner',
+      'goal-intelligence': '🎯 Goals',
+      'command-center': '🚀 Command Center',
+      'career-showcase': '🚀 Showcase'
     };
     const title = titles[page] || page;
 
