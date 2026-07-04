@@ -1,57 +1,91 @@
-// workspaceEngine.js
 LawAIApp.WorkspaceEngine = (function() {
-  // 打开工作空间（通常在进入课程页面时调用）
+
+  function safeGet(moduleName) {
+    const mod = LawAIApp[moduleName];
+    if (!mod) {
+      console.warn(`[WorkspaceEngine] Missing module: ${moduleName}`);
+      return null;
+    }
+    return mod;
+  }
+
   function openWorkspace(lessonId) {
-    const ws = LawAIApp.WorkspaceState.get(lessonId);
+    const State = safeGet("WorkspaceState");
+    const Bus = safeGet("EventBus");
+
+    if (!State) return null;
+
+    const ws = State.get(lessonId);
+
     ws.lastOpened = new Date().toISOString();
-    LawAIApp.WorkspaceState.save(lessonId, ws);
-    LawAIApp.EventBus.emit('WorkspaceOpened', { workspace: ws });
+    State.save(lessonId, ws);
+
+    if (Bus) Bus.emit('WorkspaceOpened', { workspace: ws });
+
     return ws;
   }
 
-  // 关闭工作空间并保存状态
   function closeWorkspace(lessonId, sessionState = {}) {
-    const ws = LawAIApp.WorkspaceState.get(lessonId);
+    const State = safeGet("WorkspaceState");
+    const Bus = safeGet("EventBus");
+
+    if (!State) return;
+
+    const ws = State.get(lessonId);
     ws.sessionState = { ...ws.sessionState, ...sessionState };
-    LawAIApp.WorkspaceState.save(lessonId, ws);
-    LawAIApp.EventBus.emit('WorkspaceClosed', { lessonId });
+
+    State.save(lessonId, ws);
+
+    if (Bus) Bus.emit('WorkspaceClosed', { lessonId });
   }
 
-  // 恢复上一次会话（检查是否有未关闭的工作空间，并自动打开）
   function restoreLastSession() {
-    const allKeys = LawAIApp.StorageEngine.getAllKeys().filter(k => k.startsWith('workspace_day-'));
-    if (allKeys.length === 0) return null;
-    const workspaces = allKeys.map(k => LawAIApp.StorageEngine.get(k)).filter(Boolean);
-    workspaces.sort((a,b) => new Date(b.lastOpened) - new Date(a.lastOpened));
+    const Storage = safeGet("StorageEngine");
+    const State = safeGet("WorkspaceState");
+
+    if (!Storage || !State) return null;
+
+    const keys = Storage.getAllKeys?.() || [];
+    const wsKeys = keys.filter(k => k.startsWith('workspace_day-'));
+
+    if (wsKeys.length === 0) return null;
+
+    const workspaces = wsKeys
+      .map(k => Storage.get(k))
+      .filter(Boolean);
+
+    workspaces.sort((a,b) =>
+      new Date(b.lastOpened || 0) - new Date(a.lastOpened || 0)
+    );
+
     return workspaces[0] || null;
   }
 
-  // 设置焦点模式
   function setFocusMode(lessonId, mode) {
-    const validModes = ['focus', 'study', 'practice', 'research', 'review', 'custom'];
+    const State = safeGet("WorkspaceState");
+    const Layout = safeGet("WorkspaceLayout");
+
+    const validModes = ['focus','study','practice','research','review','custom'];
     if (!validModes.includes(mode)) return;
-    const ws = LawAIApp.WorkspaceState.get(lessonId);
+
+    if (!State) return;
+
+    const ws = State.get(lessonId);
     ws.focusMode = mode;
-    LawAIApp.WorkspaceState.save(lessonId, ws);
-    if (mode === 'focus') LawAIApp.WorkspaceLayout.applyLayout(lessonId, 'focus');
-    else if (mode === 'practice') LawAIApp.WorkspaceLayout.applyLayout(lessonId, 'practice');
-    else if (mode === 'review') LawAIApp.WorkspaceLayout.applyLayout(lessonId, 'review');
+
+    State.save(lessonId, ws);
+
+    if (!Layout) return;
+
+    if (mode === 'focus') Layout.applyLayout(lessonId, 'focus');
+    else if (mode === 'practice') Layout.applyLayout(lessonId, 'practice');
+    else if (mode === 'review') Layout.applyLayout(lessonId, 'review');
   }
 
-  // 当用户进入 lesson 页面（CLE 事件）时自动打开 workspace
-  LawAIApp.EventBus.on('lessonStarted', (data) => {
-    openWorkspace(data.lessonId);
-  });
-
-  // 当课程完成或离开，关闭 workspace（可选）
-  LawAIApp.EventBus.on('LessonCompleted', (data) => {
-    closeWorkspace(data.lessonId);
-  });
-
-  // ========== 新增：接入 Phase 26 资源引擎，直接获取当前课程推荐资源 ==========
   function getRecommendedResources(lessonId) {
-    if (!LawAIApp.ResourceEngine) return null;
-    return LawAIApp.ResourceEngine.getRecommendation(lessonId);
+    const Resource = safeGet("ResourceEngine");
+    if (!Resource) return null;
+    return Resource.getRecommendation(lessonId);
   }
 
   return {
@@ -59,13 +93,25 @@ LawAIApp.WorkspaceEngine = (function() {
     close: closeWorkspace,
     restoreLast: restoreLastSession,
     setMode: setFocusMode,
-    get: (lessonId) => LawAIApp.WorkspaceState.get(lessonId),
-    addWidget: LawAIApp.WorkspaceWidgets.addWidget,
-    removeWidget: LawAIApp.WorkspaceWidgets.removeWidget,
-    pinWidget: LawAIApp.WorkspaceWidgets.togglePinWidget,
-    search: LawAIApp.WorkspaceSearch.search,
-    changeLayout: LawAIApp.WorkspaceLayout.applyLayout,
-    // 新增接口
-    getRecommendedResources: getRecommendedResources
+
+    get: (id) => LawAIApp.WorkspaceState?.get?.(id),
+
+    addWidget: (...args) =>
+      LawAIApp.WorkspaceWidgets?.addWidget?.(...args),
+
+    removeWidget: (...args) =>
+      LawAIApp.WorkspaceWidgets?.removeWidget?.(...args),
+
+    pinWidget: (...args) =>
+      LawAIApp.WorkspaceWidgets?.togglePinWidget?.(...args),
+
+    search: (...args) =>
+      LawAIApp.WorkspaceSearch?.search?.(...args),
+
+    changeLayout: (...args) =>
+      LawAIApp.WorkspaceLayout?.applyLayout?.(...args),
+
+    getRecommendedResources
   };
+
 })();
