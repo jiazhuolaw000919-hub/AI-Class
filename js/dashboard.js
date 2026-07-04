@@ -1,14 +1,17 @@
-// dashboard.js - 仪表盘页面（Season 1.5 稳定版 + Phase 51 入口 + Daily Briefing 卡片 + Phase 52 入口 + Phase 54 入口 + Phase 55 入口）
+// dashboard.js - 仪表盘页面（Season 2 完结版 + Phase 51–60 全部入口 + Daily Briefing 卡片）
 // ✅ 保留 Phase 1 全部旧功能：问候语、小部件、今日课程、周挑战、最近笔记、快捷入口
 // ✅ 保留 Phase 2 功能：真实进度数据、动态等级系统、Streak追踪、成就展示、学习统计
 // ✅ 保留 Phase 5 功能：Academy Home 快捷入口
 // ✅ Season 1.5：彻底移除假数据，所有数据从引擎动态获取
-// ✅ Phase 51：新增 Learning Intelligence 入口
+// ✅ Phase 51：Learning Intelligence 入口
 // ✅ Phase 51.5：嵌入 Daily Briefing 紧凑卡片 + 可重新打开全屏体验
-// ✅ Phase 52：新增 AI Mentor Brain 入口
-// ✅ Phase 53：新增 Learning Conversations 入口
-// ✅ Phase 54：新增 Smart Learning Planner 入口
-// ✅ Phase 55：新增 Goal Intelligence 入口
+// ✅ Phase 52：AI Mentor Brain 入口
+// ✅ Phase 53：Learning Conversations 入口
+// ✅ Phase 54：Smart Learning Planner 入口
+// ✅ Phase 55：Goal Intelligence 入口
+// ✅ Phase 56：Command Center 入口
+// ✅ Phase 58：Career Showcase 入口
+// ✅ Phase 60：Season 2 正式完结
 
 LawAIApp.Dashboard = {
   render() {
@@ -234,23 +237,27 @@ LawAIApp.Dashboard = {
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('learning')">📚 All Lessons</button>
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('notes')">📝 Notes</button>
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('academy')">🏫 Academies</button>
-          <!-- 🔥 Phase 51 新增入口 -->
+          <!-- 🔥 Phase 51 -->
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('intelligence')">🧠 Intelligence</button>
-          <!-- 🔥 Phase 51.5：重新打开每日简报 -->
+          <!-- 🔥 Phase 51.5 -->
           <button class="quick-btn" onclick="LawAIApp.DailyBriefing.showFullExperience()">☀️ Daily Briefing</button>
-          <!-- 🔥 Phase 52：AI Mentor Brain 入口 -->
+          <!-- 🔥 Phase 52 -->
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('mentor-brain')">🤖 Mentor Brain</button>
-          <!-- 🔥 Phase 53：Learning Conversations 入口 -->
+          <!-- 🔥 Phase 53 -->
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('conversations')">💬 Chat</button>
-          <!-- 🔥 Phase 54：Smart Learning Planner 入口 -->
+          <!-- 🔥 Phase 54 -->
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('planner')">📅 Planner</button>
-          <!-- 🔥 Phase 55：Goal Intelligence 入口 -->
+          <!-- 🔥 Phase 55 -->
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('goal-intelligence')">🎯 Goals</button>
+          <!-- 🔥 Phase 56 -->
+          <button class="quick-btn" onclick="LawAIApp.Router.navigate('command-center')">🚀 Command Center</button>
+          <!-- 🔥 Phase 58 -->
+          <button class="quick-btn" onclick="LawAIApp.Router.navigate('career-showcase')">🚀 Showcase</button>
         </div>
 
         <!-- 页脚统计 -->
         <div style="text-align:center; margin-top:2rem; padding:1rem; color:var(--text-secondary); font-size:0.75rem;">
-          <p>Law AI Academy • Season 1.5 Alpha</p>
+          <p>Law AI Academy • Season 2 Final</p>
           <p>Level ${levelInfo.level} • ${completionRate}% Complete • 🔥 ${streakData.currentStreak} Day Streak</p>
         </div>
       </div>
