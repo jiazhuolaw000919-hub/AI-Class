@@ -20,4 +20,7 @@ LawAIApp.AgentCore = class {
   on(event, handler) {
     this.eventBus.on(event, handler.bind(this));
   }
+  onGraphChange(data) {
+    // 子类可覆盖以响应图谱变化
+  }
 };
