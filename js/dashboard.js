@@ -1,4 +1,4 @@
-// dashboard.js - 仪表盘页面（Season 1.5 稳定版 + Phase 51 入口 + Daily Briefing 卡片 + Phase 52 入口 + Phase 54 入口）
+// dashboard.js - 仪表盘页面（Season 1.5 稳定版 + Phase 51 入口 + Daily Briefing 卡片 + Phase 52 入口 + Phase 54 入口 + Phase 55 入口）
 // ✅ 保留 Phase 1 全部旧功能：问候语、小部件、今日课程、周挑战、最近笔记、快捷入口
 // ✅ 保留 Phase 2 功能：真实进度数据、动态等级系统、Streak追踪、成就展示、学习统计
 // ✅ 保留 Phase 5 功能：Academy Home 快捷入口
@@ -8,6 +8,7 @@
 // ✅ Phase 52：新增 AI Mentor Brain 入口
 // ✅ Phase 53：新增 Learning Conversations 入口
 // ✅ Phase 54：新增 Smart Learning Planner 入口
+// ✅ Phase 55：新增 Goal Intelligence 入口
 
 LawAIApp.Dashboard = {
   render() {
@@ -243,6 +244,8 @@ LawAIApp.Dashboard = {
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('conversations')">💬 Chat</button>
           <!-- 🔥 Phase 54：Smart Learning Planner 入口 -->
           <button class="quick-btn" onclick="LawAIApp.Router.navigate('planner')">📅 Planner</button>
+          <!-- 🔥 Phase 55：Goal Intelligence 入口 -->
+          <button class="quick-btn" onclick="LawAIApp.Router.navigate('goal-intelligence')">🎯 Goals</button>
         </div>
 
         <!-- 页脚统计 -->
