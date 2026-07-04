@@ -343,6 +343,81 @@
   <script src="js/collectiveLearningProcessor.js"></script>
   <script src="js/civilizationCoreEngine.js"></script>
 
+  <!-- ========== Season 3 新增文件（Phase 71 – Civilization Operating System Core）========== -->
+  <script src="js/liveLearningGraph.js"></script>
+  <script src="js/contentFactoryEngine.js"></script>
+  <script src="js/systemBootstrapper.js"></script>
+  <script src="js/civilizationRuntime.js"></script>
+  <script src="js/executionEngine.js"></script>
+
+  <!-- ========== Season 3 新增文件（Phase 72 – Core Domain Bootstrap Engine）========== -->
+  <script src="js/skillTreeBuilder.js"></script>
+  <script src="js/lessonModuleFactory.js"></script>
+  <script src="js/contentGeneratorCore.js"></script>
+  <script src="js/domainInitializer.js"></script>
+  <script src="js/curriculumContentSeeder.js"></script>
+  <script src="js/domainBootstrapEngine.js"></script>
+
+  <!-- ========== Season 3 新增文件（Phase 73 – AI Curriculum Factory Production Engine）========== -->
+  <script src="js/skillClusterProcessor.js"></script>
+  <script src="js/lessonPipelineEngine.js"></script>
+  <script src="js/assessmentFactory.js"></script>
+  <script src="js/curriculumPackagingSystem.js"></script>
+  <script src="js/massCurriculumGenerator.js"></script>
+  <script src="js/curriculumFactoryEngine.js"></script>
+
+  <!-- ========== Season 3 新增文件（Phase 74 – AI University Deployment Engine）========== -->
+  <script src="js/aiFacultyManager.js"></script>
+  <script src="js/aiProfessorEngine.js"></script>
+  <script src="js/studentTrackingSystem.js"></script>
+  <script src="js/institutionalCurriculumEngine.js"></script>
+  <script src="js/universityOSCore.js"></script>
+  <script src="js/universityDeploymentEngine.js"></script>
+
+  <!-- ========== Season 3 新增文件（Phase 75 – Global AI Education Network Protocol）========== -->
+  <script src="js/universalSkillGraph.js"></script>
+  <script src="js/crossUniversityCreditSystem.js"></script>
+  <script src="js/globalCurriculumSyncEngine.js"></script>
+  <script src="js/educationConsensusEngine.js"></script>
+  <script src="js/universityInterconnectLayer.js"></script>
+  <script src="js/globalEducationNetworkEngine.js"></script>
+
+  <!-- ========== Season 3 新增文件（Phase 76 – AI Education Governance Authority）========== -->
+  <script src="js/globalStandardEngine.js"></script>
+  <script src="js/aiEthicsController.js"></script>
+  <script src="js/curriculumPolicyEngine.js"></script>
+  <script src="js/certificationStandardsEngine.js"></script>
+  <script src="js/conflictResolutionSystem.js"></script>
+  <script src="js/educationGovernanceAuthority.js"></script>
+
+  <!-- ========== Season 3 新增文件（Phase 77 – AI Education Civilization Constitution）========== -->
+  <script src="js/civilizationConstitution.js"></script>
+  <script src="js/learningRightsEngine.js"></script>
+  <script src="js/aiAgentComplianceLayer.js"></script>
+  <script src="js/knowledgeIntegrityValidator.js"></script>
+  <script src="js/constitutionalEvolutionEngine.js"></script>
+
+  <!-- ========== Season 3 新增文件（Phase 78 – Civilization Identity & Consciousness Layer）========== -->
+  <script src="js/civilizationIdentityCore.js"></script>
+  <script src="js/identityAlignmentEngine.js"></script>
+  <script src="js/collectiveMemorySystem.js"></script>
+  <script src="js/civilizationAwarenessMonitor.js"></script>
+  <script src="js/aiConsciousnessLayer.js"></script>
+
+  <!-- ========== Season 3 新增文件（Phase 79 – Civilization Motivation & Drive Core）========== -->
+  <script src="js/civilizationMotivationCore.js"></script>
+  <script src="js/evolutionDriveEngine.js"></script>
+  <script src="js/feedbackLoopStabilizer.js"></script>
+  <script src="js/agentMotivationSync.js"></script>
+  <script src="js/purposeLockSystem.js"></script>
+
+  <!-- ========== Season 3 新增文件（Phase 80 – AI Civilization Singularity Protocol (Final)）========== -->
+  <script src="js/civilizationCoreOS.js"></script>
+  <script src="js/infiniteLearningEngine.js"></script>
+  <script src="js/singularityBootstrap.js"></script>
+  <script src="js/globalEducationRuntime.js"></script>
+  <script src="js/aiCivilizationKernel.js"></script>
+
   <!-- ========== 路由与页面脚本 ========== -->
   <script src="js/router.js"></script>
   <script src="js/dashboard.js"></script>
@@ -585,37 +660,4 @@
     (function stabilize() {
       if (!LawAIApp.ProgressEngine || !LawAIApp.EventBus) return;
 
-      const originalComplete = LawAIApp.ProgressEngine.completeLesson;
-      LawAIApp.ProgressEngine.completeLesson = function(lessonId) {
-        originalComplete.call(this, lessonId);
-      };
-
-      LawAIApp.LessonEvents.onLessonCompleted = function(lessonId) {
-        console.log('Event: Lesson ' + lessonId + ' completed (stabilized)');
-        LawAIApp.ProgressEngine.completeLesson(lessonId);
-      };
-
-      const processedLessons = new Set();
-      LawAIApp.EventBus.on('LessonCompleted', function(data) {
-        const id = data.lessonId;
-        if (!id || processedLessons.has(id)) return;
-        processedLessons.add(id);
-
-        if (LawAIApp.StreakEngine) LawAIApp.StreakEngine.updateStreak();
-        if (LawAIApp.AchievementEngine) LawAIApp.AchievementEngine.checkAll();
-        if (LawAIApp.ReviewQueue) LawAIApp.ReviewQueue.addLessonToReview(id);
-        if (LawAIApp.SecondBrain) LawAIApp.SecondBrain.getEntry(id);
-      });
-
-      console.log('🔒 Event loop stabilized');
-    })();
-  </script>
-
-  <!-- ========== Season 3 进行中提示 ========== -->
-  <script>
-    console.log('🏆 Law AI Academy · Season 3 · Phase 70');
-    console.log('🧠 AI Civilization Core Protocol active');
-    console.log('🚀 Multi-Agent Learning Ecosystem fully operational');
-  </script>
-</body>
-</html>
+      const originalComplete
