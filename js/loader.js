@@ -145,4 +145,11 @@ window.LawAIApp.bootStatus = structuredClone(window.__ENGINE_STATUS__);
   }
 }
 
+const CRITICAL_ENGINES = [
+  "profileEngine.js",
+  "levelEngine.js",
+  "experienceEngine.js",
+  "learningIntelligence.js"
+];
+
 boot();
