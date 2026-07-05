@@ -133,9 +133,9 @@ window.LawAIApp.bootStatus = structuredClone(window.__ENGINE_STATUS__);
    * SAFE START GATE (IMPORTANT FIX)
    * =========================
    */
-  const startApp = () => {
-    window.dispatchEvent(new Event("LAW_APP_READY"));
-  };
+  setTimeout(() => {
+  window.dispatchEvent(new Event("LAW_APP_READY"));
+}, 0);
 
   if (window.LawAIApp?.EventBus) {
     startApp();
