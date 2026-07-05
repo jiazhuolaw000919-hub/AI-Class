@@ -8,7 +8,7 @@ LawAIApp.SystemOrchestrator = {
     if (this.initialized) return;
     this.initialized = true;
 
-    console.log("🧠 SystemOrchestrator V3.9.3 init");
+    console.log("🧠 SystemOrchestrator V3.9.4 init");
 
     const waitForDeps = () => {
       const ok =
@@ -36,7 +36,7 @@ LawAIApp.SystemOrchestrator = {
       }
     };
 
-    const events = [
+    [
       "LessonCompleted",
       "QuizCompleted",
       "PracticeCompleted",
@@ -44,9 +44,7 @@ LawAIApp.SystemOrchestrator = {
       "GoalUpdated",
       "MemoryUpdated",
       "StreakMilestone"
-    ];
-
-    events.forEach(evt => {
+    ].forEach(evt => {
       LawAIApp.EventBus.on(evt, updateState);
     });
 
@@ -54,20 +52,24 @@ LawAIApp.SystemOrchestrator = {
   },
 
   start() {
-    setTimeout(() => {
-      this.updateState?.();
-    }, 300);
+    setTimeout(() => this.updateState?.(), 300);
 
     this.ready = true;
 
-    // 🔥 CRITICAL ADDITION (THIS IS THE FIX)
+    const payload = {
+      boot: LawAIApp.bootStatus,
+      safeMode: LawAIApp.bootStatus?.safeMode,
+      timestamp: Date.now()
+    };
+
+    // 🔥 FIX 1: unified system event (VERY IMPORTANT)
     window.dispatchEvent(
-      new CustomEvent("LEARNING_SYSTEM_READY", {
-        detail: {
-          boot: LawAIApp.bootStatus,
-          safeMode: LawAIApp.bootStatus?.safeMode
-        }
-      })
+      new CustomEvent("SYSTEM_READY", { detail: payload })
+    );
+
+    // 🔥 FIX 2: learning layer event (kept)
+    window.dispatchEvent(
+      new CustomEvent("LEARNING_SYSTEM_READY", { detail: payload })
     );
 
     console.log("🧠 SystemOrchestrator READY + WIRED");
@@ -99,8 +101,20 @@ LawAIApp.SystemOrchestrator = {
   }
 };
 
-window.addEventListener("SYSTEM_READY", () => {
-  LawAIApp.EngineBinder?.init();
-  LawAIApp.LayoutEngineV2?.init();
-  LawAIApp.ExperienceComposer?.init();
+/**
+ * 🔥 FIX 3: real engine wiring (NOT silent anymore)
+ */
+window.addEventListener("SYSTEM_READY", (e) => {
+  console.log("⚙️ SYSTEM_READY wiring engines");
+
+  try {
+    LawAIApp.EngineBinder?.init?.(e.detail);
+    LawAIApp.LayoutEngineV2?.init?.(e.detail);
+    LawAIApp.ExperienceComposer?.init?.(e.detail);
+
+    // optional but important: learning sync trigger
+    LawAIApp.LearningStateManager?.refresh?.();
+  } catch (err) {
+    console.warn("⚠️ engine wiring failed:", err);
+  }
 });
