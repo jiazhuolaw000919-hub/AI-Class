@@ -7,12 +7,16 @@ window.App = {
     if (this.initialized) return;
     this.initialized = true;
 
-    console.log("🚀 App init V3");
+    console.log("🚀 App V3.1 starting...");
+
+    const health = window.LawAIApp.EngineHealth?.report?.();
+
+    console.log("📊 ENGINE HEALTH REPORT:", health);
 
     const Bus = window.LawAIApp.EventBus;
 
     if (Bus) {
-      Bus.emit("app:ready");
+      Bus.emit("app:ready", { health });
     }
   }
 };
