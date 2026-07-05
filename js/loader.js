@@ -122,7 +122,8 @@ async function boot() {
 
   window.__ENGINE_STATUS__.booted = true;
 
-  window.LawAIApp.bootStatus = window.__ENGINE_STATUS__;
+window.LawAIApp = window.LawAIApp || {};
+window.LawAIApp.bootStatus = structuredClone(window.__ENGINE_STATUS__);
 
   console.log("📊 BOOT REPORT");
   console.table(window.__ENGINE_STATUS__);
