@@ -1,5 +1,10 @@
 window.LawAIApp = window.LawAIApp || {};
 
+/**
+ * =========================
+ * ENGINE REGISTRY (UNCHANGED)
+ * =========================
+ */
 const ENGINE_REGISTRY = {
   core: [
     "storageEngine.js",
@@ -31,6 +36,11 @@ const ENGINE_REGISTRY = {
   ]
 };
 
+/**
+ * =========================
+ * SAFE SCRIPT LOADER
+ * =========================
+ */
 function loadScript(src) {
   return new Promise((resolve) => {
     const script = document.createElement("script");
@@ -38,6 +48,22 @@ function loadScript(src) {
 
     script.onload = () => {
       console.log(`✅ loaded: ${src}`);
+
+      // 🔥 V3 ADDITION: auto-register if engine exposes itself
+      try {
+        const engineName = src.replace(".js", "");
+
+        if (window.LawAIApp?.EngineRegistry?.register) {
+          const maybeEngine = window.LawAIApp[engineName];
+
+          if (maybeEngine) {
+            window.LawAIApp.EngineRegistry.register(engineName, maybeEngine);
+          }
+        }
+      } catch (e) {
+        console.warn(`⚠️ registry hook failed: ${src}`, e);
+      }
+
       resolve({ file: src, status: "ok" });
     };
 
@@ -50,6 +76,11 @@ function loadScript(src) {
   });
 }
 
+/**
+ * =========================
+ * LOAD GROUP (UNCHANGED LOGIC)
+ * =========================
+ */
 async function loadGroup(name, list) {
   console.log(`\n📦 Loading group: ${name}`);
 
@@ -63,8 +94,13 @@ async function loadGroup(name, list) {
   return results;
 }
 
+/**
+ * =========================
+ * BOOT SEQUENCE
+ * =========================
+ */
 async function boot() {
-  console.log("🚀 LawAI Loader V2 starting...");
+  console.log("🚀 LawAI Loader V3 starting...");
 
   window.__ENGINE_STATUS__ = {
     loaded: [],
@@ -88,11 +124,20 @@ async function boot() {
   console.log("Missing:", window.__ENGINE_STATUS__.missing.length);
   console.table(window.__ENGINE_STATUS__);
 
+  // 🔥 V3 UPGRADE: safe readiness signal
+  window.LawAIApp.bootStatus = window.__ENGINE_STATUS__;
+
   window.dispatchEvent(new Event("LAW_APP_READY"));
 }
 
 boot();
 
+/**
+ * =========================
+ * LEGACY COMPAT FUNCTION
+ * =========================
+ * (KEEP THIS so old engines won't break)
+ */
 async function loadEngine(file, name) {
   return new Promise((resolve) => {
     const s = document.createElement("script");
