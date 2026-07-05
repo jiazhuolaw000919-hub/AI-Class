@@ -161,4 +161,9 @@ async function boot() {
   }
 }
 
+if (window.LawAIApp?.SelfHealingSystem?.init) {
+  window.LawAIApp.SelfHealingSystem.init();
+}
+
 boot();
+
