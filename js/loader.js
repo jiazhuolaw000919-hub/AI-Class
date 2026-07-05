@@ -27,7 +27,7 @@ const ENGINE_REGISTRY = {
 
 /**
  * =========================
- * BOOT STATE (V3.8 CLEAN)
+ * BOOT STATE
  * =========================
  */
 window.__ENGINE_STATUS__ = {
@@ -38,11 +38,6 @@ window.__ENGINE_STATUS__ = {
   safeMode: false
 };
 
-/**
- * =========================
- * CRITICAL CHECK
- * =========================
- */
 const CRITICAL_ENGINES = [
   "profileEngine.js",
   "levelEngine.js",
@@ -78,8 +73,6 @@ function loadScript(src) {
     script.src = "js/" + src;
 
     script.onload = () => {
-      console.log("✅ loaded:", src);
-
       const name = src.replace(".js", "");
       const engine = window.LawAIApp?.[name];
 
@@ -91,8 +84,8 @@ function loadScript(src) {
     };
 
     script.onerror = () => {
-      console.warn("⚠️ missing:", src);
-      createStub(src.replace(".js", ""));
+      const name = src.replace(".js", "");
+      createStub(name);
       resolve({ file: src, status: "missing" });
     };
 
@@ -112,11 +105,11 @@ async function loadGroup(name, list) {
 
 /**
  * =========================
- * BOOT SEQUENCE V3.8
+ * BOOT SEQUENCE V3.9
  * =========================
  */
 async function boot() {
-  console.log("🚀 Loader V3.8 CLEAN START");
+  console.log("🚀 Loader V3.9 starting");
 
   for (const [group, files] of Object.entries(ENGINE_REGISTRY)) {
     const results = await loadGroup(group, files);
@@ -130,38 +123,39 @@ async function boot() {
     });
   }
 
-  window.__ENGINE_STATUS__.total =
-    window.__ENGINE_STATUS__.loaded.length +
-    window.__ENGINE_STATUS__.missing.length;
+  const boot = window.__ENGINE_STATUS__;
 
-  window.__ENGINE_STATUS__.booted = true;
+  boot.total = boot.loaded.length + boot.missing.length;
+  boot.booted = true;
 
-  // =========================
-  // SAFE MODE LOGIC (FIXED)
-  // =========================
-  window.__ENGINE_STATUS__.safeMode =
-    window.__ENGINE_STATUS__.missing.some(f =>
-      CRITICAL_ENGINES.includes(f)
-    );
-
-  window.LawAIApp.bootStatus = window.__ENGINE_STATUS__;
+  boot.safeMode = boot.missing.some(f =>
+    CRITICAL_ENGINES.includes(f)
+  );
 
   console.log("📊 BOOT REPORT");
-  console.table(window.__ENGINE_STATUS__);
+  console.table(boot);
 
   /**
-   * =========================
-   * ORCHESTRATOR SAFE HOOK (FIXED)
-   * =========================
+   * 🔥 V3.9 FIX: CENTRAL STATE SYNC
    */
-  const start = () => {
-    window.dispatchEvent(new Event("SYSTEM_READY"));
-    window.dispatchEvent(new Event("LAW_APP_READY"));
+  if (window.LawAIApp?.SystemState?.setBoot) {
+    window.LawAIApp.SystemState.setBoot(boot);
+  } else {
+    window.LawAIApp.bootStatus = boot;
+  }
+
+  const payload = {
+    boot,
+    timestamp: Date.now(),
+    safeMode: boot.safeMode
   };
 
-  setTimeout(start, 0);
+  setTimeout(() => {
+    window.dispatchEvent(
+      new CustomEvent("SYSTEM_READY", { detail: payload })
+    );
+  }, 0);
 
-  // IMPORTANT: correct orchestrator hook
   if (window.LawAIApp?.SystemOrchestrator?.init) {
     setTimeout(() => window.LawAIApp.SystemOrchestrator.init(), 50);
   }
