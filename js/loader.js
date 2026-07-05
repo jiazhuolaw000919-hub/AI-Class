@@ -188,5 +188,17 @@ async function boot() {
   }, 50);
 }
 
+// 🔥 V3.9.8 UI ACTIVATION HOOK
+setTimeout(() => {
+  if (window.LawAIApp?.SystemComposer?.init) {
+    window.LawAIApp.SystemComposer.init(window.__ENGINE_STATUS__);
+  }
+}, 50);
+
+// 🔥 V3.9.9 SELF HEALING START
+if (window.LawAIApp?.SelfHealingSystem?.init) {
+  window.LawAIApp.SelfHealingSystem.init();
+}
+
 boot();
 
