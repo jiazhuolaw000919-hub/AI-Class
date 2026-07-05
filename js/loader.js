@@ -200,5 +200,9 @@ if (window.LawAIApp?.SelfHealingSystem?.init) {
   window.LawAIApp.SelfHealingSystem.init();
 }
 
+if (window.LawAIApp?.EngineActivationSystem?.init) {
+  setTimeout(() => window.LawAIApp.EngineActivationSystem.init(), 100);
+}
+
 boot();
 
