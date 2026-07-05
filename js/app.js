@@ -1,7 +1,44 @@
 window.LawAIApp = window.LawAIApp || {};
 
-function render(boot) {
-  const safeBoot = boot?.boot || boot || {};
+/**
+ * =========================
+ * SAFE BOOT NORMALIZER
+ * =========================
+ */
+function normalizeBoot(payload) {
+  const boot = payload?.boot || payload || {};
+
+  return {
+    loaded: boot.loaded || [],
+    missing: boot.missing || [],
+    total: boot.total ?? (boot.loaded?.length || 0),
+    booted: boot.booted ?? true,
+    safeMode: boot.safeMode ?? false
+  };
+}
+
+/**
+ * =========================
+ * FALLBACK UI (IMPORTANT FIX)
+ * =========================
+ */
+function fallbackRender(container, boot) {
+  container.innerHTML = `
+    <div style="padding:12px;background:#111827;border-radius:10px;margin-top:10px">
+      <h3>⚠️ UI Composer Fallback Mode</h3>
+      <p>System is running but UI engine not attached.</p>
+      <pre style="white-space:pre-wrap">${JSON.stringify(boot, null, 2)}</pre>
+    </div>
+  `;
+}
+
+/**
+ * =========================
+ * MAIN RENDER
+ * =========================
+ */
+function render(payload) {
+  const boot = normalizeBoot(payload);
 
   document.body.innerHTML = `
     <div style="
@@ -11,37 +48,53 @@ function render(boot) {
       color:white;
       min-height:100vh;
     ">
-      <h1>🚀 Law AI System (LIVE)</h1>
+      <h1>🚀 Law AI System (LIVE v3.9.11)</h1>
 
       <div id="system-root"></div>
 
       <div style="margin-top:20px;opacity:0.7">
-        ${safeBoot.safeMode ? "⚠️ SAFE MODE ACTIVE" : "✅ FULL SYSTEM ACTIVE"}
+        ${boot.safeMode ? "⚠️ SAFE MODE ACTIVE" : "✅ FULL SYSTEM ACTIVE"}
       </div>
     </div>
   `;
 
-  // 🔥 NEW: TRY TO BOOT REAL SYSTEM UI
+  const root = document.getElementById("system-root");
+
   try {
+    // 🧠 Preferred UI system
     if (window.LawAIApp?.SystemComposer?.render) {
       window.LawAIApp.SystemComposer.render({
-        container: document.getElementById("system-root"),
-        boot: safeBoot
+        container: root,
+        boot
       });
+
+    // 🧠 Secondary UI system
     } else if (window.LawAIApp?.UIRootEngine?.render) {
-      window.LawAIApp.UIRootEngine.render(document.getElementById("system-root"));
+      window.LawAIApp.UIRootEngine.render(root, boot);
+
+    // 🧠 NEW: layout engine fallback (IMPORTANT FIX)
+    } else if (window.LawAIApp?.LayoutEngineV2?.render) {
+      window.LawAIApp.LayoutEngineV2.render(root, boot);
+
+    // 🧠 FINAL FALLBACK (no more white screen)
     } else {
-      document.getElementById("system-root").innerHTML =
-        "<p>⚠️ UI Composer missing (system not fully wired)</p>";
+      fallbackRender(root, boot);
     }
+
   } catch (e) {
-    console.warn("UI render failed:", e);
+    console.warn("UI render crashed → fallback activated", e);
+    fallbackRender(root, boot);
   }
 }
 
+/**
+ * =========================
+ * APP CORE
+ * =========================
+ */
 window.App = {
   init(payload) {
-    console.log("🚀 App V3.9.10 init (UI FIX)");
+    console.log("🚀 App V3.9.11 init (UI COMPOSER FIX)");
 
     if (!payload) {
       payload = { boot: window.LawAIApp.bootStatus };
@@ -51,6 +104,12 @@ window.App = {
   }
 };
 
+/**
+ * =========================
+ * EVENT HOOK
+ * =========================
+ */
 window.addEventListener("SYSTEM_READY", (e) => {
-  window.App.init(e.detail);
+  console.log("⚡ SYSTEM_READY received");
+  window.App.init(e?.detail || {});
 });
