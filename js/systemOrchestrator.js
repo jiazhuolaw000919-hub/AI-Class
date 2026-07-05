@@ -8,7 +8,7 @@ LawAIApp.SystemOrchestrator = {
     if (this.initialized) return;
     this.initialized = true;
 
-    console.log("🧠 SystemOrchestrator V3.9.4 init");
+    console.log("🧠 SystemOrchestrator V3.9.5 init");
 
     const waitForDeps = () => {
       const ok =
@@ -62,17 +62,26 @@ LawAIApp.SystemOrchestrator = {
       timestamp: Date.now()
     };
 
-    // 🔥 FIX 1: unified system event (VERY IMPORTANT)
+    // 🔥 FIX 1: unified system event
     window.dispatchEvent(
       new CustomEvent("SYSTEM_READY", { detail: payload })
     );
 
-    // 🔥 FIX 2: learning layer event (kept)
+    // 🔥 FIX 2: learning layer event
     window.dispatchEvent(
       new CustomEvent("LEARNING_SYSTEM_READY", { detail: payload })
     );
 
-    console.log("🧠 SystemOrchestrator READY + WIRED");
+    // 🧩 FIX 2 (YOU REQUESTED): UI refresh hook
+    window.dispatchEvent(
+      new CustomEvent("LEARNING_UI_REFRESH", {
+        detail: {
+          state: LawAIApp.LearningStateManager?.getState?.()
+        }
+      })
+    );
+
+    console.log("🧠 SystemOrchestrator READY + WIRED + UI HOOK ACTIVE");
   },
 
   triggerLearningLoop(lessonId, result) {
@@ -102,7 +111,9 @@ LawAIApp.SystemOrchestrator = {
 };
 
 /**
- * 🔥 FIX 3: real engine wiring (NOT silent anymore)
+ * =========================
+ * ENGINE WIRING (UNCHANGED)
+ * =========================
  */
 window.addEventListener("SYSTEM_READY", (e) => {
   console.log("⚙️ SYSTEM_READY wiring engines");
@@ -112,7 +123,6 @@ window.addEventListener("SYSTEM_READY", (e) => {
     LawAIApp.LayoutEngineV2?.init?.(e.detail);
     LawAIApp.ExperienceComposer?.init?.(e.detail);
 
-    // optional but important: learning sync trigger
     LawAIApp.LearningStateManager?.refresh?.();
   } catch (err) {
     console.warn("⚠️ engine wiring failed:", err);
