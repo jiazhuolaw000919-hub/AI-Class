@@ -125,3 +125,9 @@ window.addEventListener("ENGINE_BOOTSTRAPPED", () => {
 window.addEventListener("ENGINE_RUNTIME_READY", () => {
   console.log("🔥 ENGINE RUNTIME FULLY ACTIVE");
 });
+
+if (!window.LawAIApp?.SystemComposer) {
+  document.getElementById("system-root").innerHTML =
+    "<p>⚠️ SystemComposer missing</p>";
+  return;
+}
