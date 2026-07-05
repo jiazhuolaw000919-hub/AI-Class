@@ -8,25 +8,39 @@ window.LawAIApp = window.LawAIApp || {};
 const ENGINE_REGISTRY = {
   core: ["storageEngine.js", "eventBus.js", "profileEngine.js"],
   learning: ["levelEngine.js", "experienceEngine.js", "learningIntelligence.js"],
-  workspace: ["workspaceEngine.js", "workspaceState.js", "workspaceLayout.js", "workspaceWidgets.js", "workspaceSearch.js"],
-  optional: ["motionSystem.js", "celebrationEngine.js", "themeExperience.js", "ambientEngine.js", "knowledgeNetwork.js", "kreEngine.js"]
+  workspace: [
+    "workspaceEngine.js",
+    "workspaceState.js",
+    "workspaceLayout.js",
+    "workspaceWidgets.js",
+    "workspaceSearch.js"
+  ],
+  optional: [
+    "motionSystem.js",
+    "celebrationEngine.js",
+    "themeExperience.js",
+    "ambientEngine.js",
+    "knowledgeNetwork.js",
+    "kreEngine.js"
+  ]
 };
 
 /**
  * =========================
- * BOOT STATE
+ * BOOT STATE (V3.8 CLEAN)
  * =========================
  */
 window.__ENGINE_STATUS__ = {
   loaded: [],
   missing: [],
   total: 0,
-  booted: false
+  booted: false,
+  safeMode: false
 };
 
 /**
  * =========================
- * CRITICAL ENGINES (REAL CORE CHECK)
+ * CRITICAL CHECK
  * =========================
  */
 const CRITICAL_ENGINES = [
@@ -38,7 +52,7 @@ const CRITICAL_ENGINES = [
 
 /**
  * =========================
- * STUB ENGINE (SAFE FALLBACK)
+ * STUB ENGINE
  * =========================
  */
 function createStub(name) {
@@ -47,19 +61,15 @@ function createStub(name) {
   const stub = {
     __stub: true,
     name,
-    init() {
-      console.log(`⚠️ stub running: ${name}`);
-    }
+    init() {}
   };
 
-  if (window.LawAIApp?.EngineRegistry?.register) {
-    window.LawAIApp.EngineRegistry.register(name, stub);
-  }
+  window.LawAIApp?.EngineRegistry?.register?.(name, stub);
 }
 
 /**
  * =========================
- * LOAD SCRIPT (SAFE)
+ * LOAD SCRIPT
  * =========================
  */
 function loadScript(src) {
@@ -71,14 +81,10 @@ function loadScript(src) {
       console.log("✅ loaded:", src);
 
       const name = src.replace(".js", "");
+      const engine = window.LawAIApp?.[name];
 
-      try {
-        if (window.LawAIApp?.EngineRegistry?.register &&
-            window.LawAIApp[name]) {
-          window.LawAIApp.EngineRegistry.register(name, window.LawAIApp[name]);
-        }
-      } catch (e) {
-        console.warn("registry error:", name);
+      if (engine) {
+        window.LawAIApp.EngineRegistry?.register?.(name, engine);
       }
 
       resolve({ file: src, status: "ok" });
@@ -86,10 +92,7 @@ function loadScript(src) {
 
     script.onerror = () => {
       console.warn("⚠️ missing:", src);
-
-      const name = src.replace(".js", "");
-      createStub(name);
-
+      createStub(src.replace(".js", ""));
       resolve({ file: src, status: "missing" });
     };
 
@@ -104,21 +107,16 @@ function loadScript(src) {
  */
 async function loadGroup(name, list) {
   console.log(`📦 ${name}`);
-
-  const res = [];
-  for (const f of list) {
-    res.push(await loadScript(f));
-  }
-  return res;
+  return Promise.all(list.map(loadScript));
 }
 
 /**
  * =========================
- * BOOT FUNCTION
+ * BOOT SEQUENCE V3.8
  * =========================
  */
 async function boot() {
-  console.log("🚀 Loader V3.5.1 starting...");
+  console.log("🚀 Loader V3.8 CLEAN START");
 
   for (const [group, files] of Object.entries(ENGINE_REGISTRY)) {
     const results = await loadGroup(group, files);
@@ -138,40 +136,35 @@ async function boot() {
 
   window.__ENGINE_STATUS__.booted = true;
 
-  window.LawAIApp.bootStatus = structuredClone(window.__ENGINE_STATUS__);
+  // =========================
+  // SAFE MODE LOGIC (FIXED)
+  // =========================
+  window.__ENGINE_STATUS__.safeMode =
+    window.__ENGINE_STATUS__.missing.some(f =>
+      CRITICAL_ENGINES.includes(f)
+    );
+
+  window.LawAIApp.bootStatus = window.__ENGINE_STATUS__;
 
   console.log("📊 BOOT REPORT");
   console.table(window.__ENGINE_STATUS__);
 
   /**
    * =========================
-   * SAFE MODE CHECK (NEW FIX)
+   * ORCHESTRATOR SAFE HOOK (FIXED)
    * =========================
    */
-  const isCriticalMissing = window.__ENGINE_STATUS__.missing
-    .some(f => CRITICAL_ENGINES.includes(f));
-
-  window.LawAIApp.safeMode = isCriticalMissing;
-
-  if (isCriticalMissing) {
-    console.warn("🚨 SAFE MODE ACTIVE - Missing core engines");
-  }
-
-  /**
-   * =========================
-   * BOOT GATE (FIXED ORDER)
-   * =========================
-   */
-  const startApp = () => {
+  const start = () => {
+    window.dispatchEvent(new Event("SYSTEM_READY"));
     window.dispatchEvent(new Event("LAW_APP_READY"));
   };
 
-  // ensure DOM + scripts settle
-  setTimeout(startApp, 0);
-}
+  setTimeout(start, 0);
 
-if (window.LawAIApp?.Orchestrator?.init) {
-  window.LawAIApp.Orchestrator.init();
+  // IMPORTANT: correct orchestrator hook
+  if (window.LawAIApp?.SystemOrchestrator?.init) {
+    setTimeout(() => window.LawAIApp.SystemOrchestrator.init(), 50);
+  }
 }
 
 boot();
