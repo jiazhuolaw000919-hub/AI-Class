@@ -38,7 +38,7 @@ const ENGINE_REGISTRY = {
 
 /**
  * =========================
- * BOOT STATE (NEW - V3.1)
+ * ENGINE HEALTH (V3.2 + V3.3)
  * =========================
  */
 window.__ENGINE_STATUS__ = {
@@ -50,7 +50,45 @@ window.__ENGINE_STATUS__ = {
 
 /**
  * =========================
- * SAFE SCRIPT LOADER
+ * AUTO HEAL (V3.3)
+ * =========================
+ */
+function createStub(name) {
+  console.warn(`🧪 Auto-stub created: ${name}`);
+
+  const stub = {
+    __stub: true,
+    name,
+    init() {
+      console.log(`⚠️ Stub running: ${name}`);
+    }
+  };
+
+  if (window.LawAIApp.EngineRegistry) {
+    window.LawAIApp.EngineRegistry.register(name, stub);
+  }
+}
+
+/**
+ * =========================
+ * DASHBOARD (V3.2)
+ * =========================
+ */
+function renderDashboard() {
+  const s = window.__ENGINE_STATUS__;
+  const total = s.loaded.length + s.missing.length;
+  const health = total ? (s.loaded.length / total * 100).toFixed(1) : 0;
+
+  console.log("\n🧠 ENGINE DASHBOARD");
+  console.log("===================");
+  console.log("✔ Loaded:", s.loaded.length);
+  console.log("❌ Missing:", s.missing.length);
+  console.log("📊 Health:", health + "%");
+}
+
+/**
+ * =========================
+ * LOAD SCRIPT
  * =========================
  */
 function loadScript(src) {
@@ -59,30 +97,28 @@ function loadScript(src) {
     script.src = "js/" + src;
 
     script.onload = () => {
-      console.log(`✅ loaded: ${src}`);
+      console.log("✅", src);
 
-      // 🔥 SAFE AUTO REGISTER (FIXED)
       try {
-        const engineName = src.replace(".js", "");
+        const name = src.replace(".js", "");
 
-        if (
-          window.LawAIApp?.EngineRegistry?.register &&
-          window.LawAIApp[engineName]
-        ) {
-          window.LawAIApp.EngineRegistry.register(
-            engineName,
-            window.LawAIApp[engineName]
-          );
+        if (window.LawAIApp?.EngineRegistry?.register &&
+            window.LawAIApp[name]) {
+          window.LawAIApp.EngineRegistry.register(name, window.LawAIApp[name]);
         }
-      } catch (e) {
-        console.warn(`⚠️ registry hook failed: ${src}`, e);
-      }
+
+      } catch (e) {}
 
       resolve({ file: src, status: "ok" });
     };
 
     script.onerror = () => {
-      console.warn(`⚠️ missing: ${src}`);
+      console.warn("⚠️ missing:", src);
+
+      // 🔥 V3.3 AUTO HEAL
+      const name = src.replace(".js", "");
+      createStub(name);
+
       resolve({ file: src, status: "missing" });
     };
 
@@ -96,25 +132,24 @@ function loadScript(src) {
  * =========================
  */
 async function loadGroup(name, list) {
-  console.log(`\n📦 Loading group: ${name}`);
+  console.log(`\n📦 ${name}`);
 
-  const results = [];
+  const res = [];
 
-  for (const file of list) {
-    const res = await loadScript(file);
-    results.push(res);
+  for (const f of list) {
+    res.push(await loadScript(f));
   }
 
-  return results;
+  return res;
 }
 
 /**
  * =========================
- * SAFE BOOT SEQUENCE (FIXED)
+ * BOOT (V3.2 + V3.3 SAFE)
  * =========================
  */
 async function boot() {
-  console.log("🚀 LawAI Loader V3.1 starting...");
+  console.log("🚀 Loader V3.2 + V3.3");
 
   for (const [group, files] of Object.entries(ENGINE_REGISTRY)) {
     const results = await loadGroup(group, files);
@@ -132,24 +167,23 @@ async function boot() {
     window.__ENGINE_STATUS__.loaded.length +
     window.__ENGINE_STATUS__.missing.length;
 
-  console.log("\n📊 BOOT REPORT:");
-  console.table(window.__ENGINE_STATUS__);
-
-  // 🔥 NEW: mark registry ready BEFORE event
   window.__ENGINE_STATUS__.booted = true;
 
   window.LawAIApp.bootStatus = window.__ENGINE_STATUS__;
 
-  // 🧠 SAFETY CHECK BEFORE STARTING APP
-  const BusReady = !!window.LawAIApp?.EventBus;
+  // 🔥 V3.2 DASHBOARD
+  renderDashboard();
 
-  if (!BusReady) {
-    console.warn("⚠️ EventBus not ready yet - delaying app start");
-    setTimeout(() => {
-      window.dispatchEvent(new Event("LAW_APP_READY"));
-    }, 200);
-  } else {
+  // 🧠 SAFE EVENT START
+  const startApp = () => {
     window.dispatchEvent(new Event("LAW_APP_READY"));
+  };
+
+  if (window.LawAIApp?.EventBus) {
+    startApp();
+  } else {
+    console.warn("⚠️ EventBus missing → delayed boot");
+    setTimeout(startApp, 200);
   }
 }
 
@@ -157,16 +191,16 @@ boot();
 
 /**
  * =========================
- * LEGACY COMPAT (UNCHANGED)
+ * LEGACY (KEEP SAFE)
  * =========================
  */
 async function loadEngine(file, name) {
-  return new Promise((resolve) => {
+  return new Promise((r) => {
     const s = document.createElement("script");
     s.src = "js/" + file;
 
-    s.onload = () => resolve(true);
-    s.onerror = () => resolve(false);
+    s.onload = () => r(true);
+    s.onerror = () => r(false);
     document.head.appendChild(s);
   });
 }
