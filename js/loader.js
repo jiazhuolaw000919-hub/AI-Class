@@ -35,7 +35,8 @@ window.__ENGINE_STATUS__ = {
   missing: [],
   total: 0,
   booted: false,
-  safeMode: false
+  safeMode: false,
+  active: []   // 🔥 NEW: runtime active engines
 };
 
 const CRITICAL_ENGINES = [
@@ -47,16 +48,43 @@ const CRITICAL_ENGINES = [
 
 /**
  * =========================
+ * ENGINE ACTIVATION LAYER (🔥 NEW CORE FIX)
+ * =========================
+ */
+function activateEngine(name, engine) {
+  if (!engine) return;
+
+  try {
+    // init lifecycle
+    if (typeof engine.init === "function") {
+      engine.init();
+    }
+
+    // start lifecycle (optional)
+    if (typeof engine.start === "function") {
+      engine.start();
+    }
+
+    window.__ENGINE_STATUS__.active.push(name);
+
+    console.log(`⚡ activated: ${name}`);
+  } catch (e) {
+    console.warn(`⚠️ activation failed: ${name}`, e);
+  }
+}
+
+/**
+ * =========================
  * STUB ENGINE
  * =========================
  */
 function createStub(name) {
-  console.warn(`🧪 Stub engine created: ${name}`);
-
   const stub = {
     __stub: true,
     name,
-    init() {}
+    init() {
+      console.warn(`⚠️ stub running: ${name}`);
+    }
   };
 
   window.LawAIApp?.EngineRegistry?.register?.(name, stub);
@@ -76,8 +104,12 @@ function loadScript(src) {
       const name = src.replace(".js", "");
       const engine = window.LawAIApp?.[name];
 
+      // register
       if (engine) {
         window.LawAIApp.EngineRegistry?.register?.(name, engine);
+
+        // 🔥 NEW: AUTO ACTIVATE
+        activateEngine(name, engine);
       }
 
       resolve({ file: src, status: "ok" });
@@ -105,11 +137,11 @@ async function loadGroup(name, list) {
 
 /**
  * =========================
- * BOOT SEQUENCE V3.9
+ * BOOT SEQUENCE V3.9.7
  * =========================
  */
 async function boot() {
-  console.log("🚀 Loader V3.9 starting");
+  console.log("🚀 Loader V3.9.7 starting");
 
   for (const [group, files] of Object.entries(ENGINE_REGISTRY)) {
     const results = await loadGroup(group, files);
@@ -132,37 +164,28 @@ async function boot() {
     CRITICAL_ENGINES.includes(f)
   );
 
+  // 🔥 CRITICAL FIX: expose full runtime state
+  window.LawAIApp.bootStatus = boot;
+
   console.log("📊 BOOT REPORT");
   console.table(boot);
 
-  /**
-   * 🔥 V3.9 FIX: CENTRAL STATE SYNC
-   */
-  if (window.LawAIApp?.SystemState?.setBoot) {
-    window.LawAIApp.SystemState.setBoot(boot);
-  } else {
-    window.LawAIApp.bootStatus = boot;
-  }
-
-  const payload = {
-    boot,
-    timestamp: Date.now(),
-    safeMode: boot.safeMode
-  };
-
+  // SYSTEM READY
   setTimeout(() => {
     window.dispatchEvent(
-      new CustomEvent("SYSTEM_READY", { detail: payload })
+      new CustomEvent("SYSTEM_READY", {
+        detail: {
+          boot,
+          active: boot.active
+        }
+      })
     );
   }, 0);
 
-  if (window.LawAIApp?.SystemOrchestrator?.init) {
-    setTimeout(() => window.LawAIApp.SystemOrchestrator.init(), 50);
-  }
-}
-
-if (window.LawAIApp?.SelfHealingSystem?.init) {
-  window.LawAIApp.SelfHealingSystem.init();
+  // orchestrator hook
+  setTimeout(() => {
+    window.LawAIApp?.SystemOrchestrator?.init?.();
+  }, 50);
 }
 
 boot();
