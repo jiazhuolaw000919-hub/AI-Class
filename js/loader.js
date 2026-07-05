@@ -92,3 +92,22 @@ async function boot() {
 }
 
 boot();
+
+async function loadEngine(file, name) {
+  return new Promise((resolve) => {
+    const s = document.createElement("script");
+    s.src = "js/" + file;
+
+    s.onload = () => {
+      console.log(`✅ loaded: ${file}`);
+      resolve(true);
+    };
+
+    s.onerror = () => {
+      console.warn(`⚠️ missing: ${file}`);
+      resolve(false);
+    };
+
+    document.head.appendChild(s);
+  });
+}
