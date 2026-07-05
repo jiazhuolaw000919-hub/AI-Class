@@ -2,7 +2,7 @@ window.LawAIApp = window.LawAIApp || {};
 
 /**
  * =========================
- * ENGINE REGISTRY (UNCHANGED)
+ * ENGINE REGISTRY
  * =========================
  */
 const ENGINE_REGISTRY = {
@@ -26,7 +26,19 @@ window.__ENGINE_STATUS__ = {
 
 /**
  * =========================
- * SAFE STUB (V3.4 FIX)
+ * CRITICAL ENGINES (REAL CORE CHECK)
+ * =========================
+ */
+const CRITICAL_ENGINES = [
+  "profileEngine.js",
+  "levelEngine.js",
+  "experienceEngine.js",
+  "learningIntelligence.js"
+];
+
+/**
+ * =========================
+ * STUB ENGINE (SAFE FALLBACK)
  * =========================
  */
 function createStub(name) {
@@ -36,7 +48,7 @@ function createStub(name) {
     __stub: true,
     name,
     init() {
-      console.log(`⚠️ running stub: ${name}`);
+      console.log(`⚠️ stub running: ${name}`);
     }
   };
 
@@ -56,7 +68,7 @@ function loadScript(src) {
     script.src = "js/" + src;
 
     script.onload = () => {
-      console.log("✅", src);
+      console.log("✅ loaded:", src);
 
       const name = src.replace(".js", "");
 
@@ -65,7 +77,9 @@ function loadScript(src) {
             window.LawAIApp[name]) {
           window.LawAIApp.EngineRegistry.register(name, window.LawAIApp[name]);
         }
-      } catch (_) {}
+      } catch (e) {
+        console.warn("registry error:", name);
+      }
 
       resolve({ file: src, status: "ok" });
     };
@@ -92,17 +106,19 @@ async function loadGroup(name, list) {
   console.log(`📦 ${name}`);
 
   const res = [];
-  for (const f of list) res.push(await loadScript(f));
+  for (const f of list) {
+    res.push(await loadScript(f));
+  }
   return res;
 }
 
 /**
  * =========================
- * SAFE BOOT (V3.4 FIXED CORE)
+ * BOOT FUNCTION
  * =========================
  */
 async function boot() {
-  console.log("🚀 Loader V3.4 starting...");
+  console.log("🚀 Loader V3.5.1 starting...");
 
   for (const [group, files] of Object.entries(ENGINE_REGISTRY)) {
     const results = await loadGroup(group, files);
@@ -122,34 +138,36 @@ async function boot() {
 
   window.__ENGINE_STATUS__.booted = true;
 
-window.LawAIApp = window.LawAIApp || {};
-window.LawAIApp.bootStatus = structuredClone(window.__ENGINE_STATUS__);
+  window.LawAIApp.bootStatus = structuredClone(window.__ENGINE_STATUS__);
 
   console.log("📊 BOOT REPORT");
   console.table(window.__ENGINE_STATUS__);
 
   /**
    * =========================
-   * SAFE START GATE (IMPORTANT FIX)
+   * SAFE MODE CHECK (NEW FIX)
    * =========================
    */
-  setTimeout(() => {
-  window.dispatchEvent(new Event("LAW_APP_READY"));
-}, 0);
+  const isCriticalMissing = window.__ENGINE_STATUS__.missing
+    .some(f => CRITICAL_ENGINES.includes(f));
 
-  if (window.LawAIApp?.EventBus) {
-    startApp();
-  } else {
-    console.warn("⚠️ EventBus not ready → delayed boot");
-    setTimeout(startApp, 300);
+  window.LawAIApp.safeMode = isCriticalMissing;
+
+  if (isCriticalMissing) {
+    console.warn("🚨 SAFE MODE ACTIVE - Missing core engines");
   }
-}
 
-const CRITICAL_ENGINES = [
-  "profileEngine.js",
-  "levelEngine.js",
-  "experienceEngine.js",
-  "learningIntelligence.js"
-];
+  /**
+   * =========================
+   * BOOT GATE (FIXED ORDER)
+   * =========================
+   */
+  const startApp = () => {
+    window.dispatchEvent(new Event("LAW_APP_READY"));
+  };
+
+  // ensure DOM + scripts settle
+  setTimeout(startApp, 0);
+}
 
 boot();
