@@ -204,5 +204,11 @@ if (window.LawAIApp?.EngineActivationSystem?.init) {
   setTimeout(() => window.LawAIApp.EngineActivationSystem.init(), 100);
 }
 
+if (window.LawAIApp?.SystemOrchestrator?.init) {
+  setTimeout(() => {
+    window.LawAIApp.SystemOrchestrator.init();
+  }, 50);
+}
+
 boot();
 
