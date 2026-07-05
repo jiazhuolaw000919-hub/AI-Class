@@ -38,6 +38,18 @@ const ENGINE_REGISTRY = {
 
 /**
  * =========================
+ * BOOT STATE (NEW - V3.1)
+ * =========================
+ */
+window.__ENGINE_STATUS__ = {
+  loaded: [],
+  missing: [],
+  total: 0,
+  booted: false
+};
+
+/**
+ * =========================
  * SAFE SCRIPT LOADER
  * =========================
  */
@@ -49,16 +61,18 @@ function loadScript(src) {
     script.onload = () => {
       console.log(`✅ loaded: ${src}`);
 
-      // 🔥 V3 ADDITION: auto-register if engine exposes itself
+      // 🔥 SAFE AUTO REGISTER (FIXED)
       try {
         const engineName = src.replace(".js", "");
 
-        if (window.LawAIApp?.EngineRegistry?.register) {
-          const maybeEngine = window.LawAIApp[engineName];
-
-          if (maybeEngine) {
-            window.LawAIApp.EngineRegistry.register(engineName, maybeEngine);
-          }
+        if (
+          window.LawAIApp?.EngineRegistry?.register &&
+          window.LawAIApp[engineName]
+        ) {
+          window.LawAIApp.EngineRegistry.register(
+            engineName,
+            window.LawAIApp[engineName]
+          );
         }
       } catch (e) {
         console.warn(`⚠️ registry hook failed: ${src}`, e);
@@ -78,7 +92,7 @@ function loadScript(src) {
 
 /**
  * =========================
- * LOAD GROUP (UNCHANGED LOGIC)
+ * LOAD GROUP
  * =========================
  */
 async function loadGroup(name, list) {
@@ -96,16 +110,11 @@ async function loadGroup(name, list) {
 
 /**
  * =========================
- * BOOT SEQUENCE
+ * SAFE BOOT SEQUENCE (FIXED)
  * =========================
  */
 async function boot() {
-  console.log("🚀 LawAI Loader V3 starting...");
-
-  window.__ENGINE_STATUS__ = {
-    loaded: [],
-    missing: []
-  };
+  console.log("🚀 LawAI Loader V3.1 starting...");
 
   for (const [group, files] of Object.entries(ENGINE_REGISTRY)) {
     const results = await loadGroup(group, files);
@@ -119,40 +128,45 @@ async function boot() {
     });
   }
 
+  window.__ENGINE_STATUS__.total =
+    window.__ENGINE_STATUS__.loaded.length +
+    window.__ENGINE_STATUS__.missing.length;
+
   console.log("\n📊 BOOT REPORT:");
-  console.log("Loaded:", window.__ENGINE_STATUS__.loaded.length);
-  console.log("Missing:", window.__ENGINE_STATUS__.missing.length);
   console.table(window.__ENGINE_STATUS__);
 
-  // 🔥 V3 UPGRADE: safe readiness signal
+  // 🔥 NEW: mark registry ready BEFORE event
+  window.__ENGINE_STATUS__.booted = true;
+
   window.LawAIApp.bootStatus = window.__ENGINE_STATUS__;
 
-  window.dispatchEvent(new Event("LAW_APP_READY"));
+  // 🧠 SAFETY CHECK BEFORE STARTING APP
+  const BusReady = !!window.LawAIApp?.EventBus;
+
+  if (!BusReady) {
+    console.warn("⚠️ EventBus not ready yet - delaying app start");
+    setTimeout(() => {
+      window.dispatchEvent(new Event("LAW_APP_READY"));
+    }, 200);
+  } else {
+    window.dispatchEvent(new Event("LAW_APP_READY"));
+  }
 }
 
 boot();
 
 /**
  * =========================
- * LEGACY COMPAT FUNCTION
+ * LEGACY COMPAT (UNCHANGED)
  * =========================
- * (KEEP THIS so old engines won't break)
  */
 async function loadEngine(file, name) {
   return new Promise((resolve) => {
     const s = document.createElement("script");
     s.src = "js/" + file;
 
-    s.onload = () => {
-      console.log(`✅ loaded: ${file}`);
-      resolve(true);
-    };
-
-    s.onerror = () => {
-      console.warn(`⚠️ missing: ${file}`);
-      resolve(false);
-    };
-
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
     document.head.appendChild(s);
   });
 }
