@@ -2,13 +2,12 @@ window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.SystemComposer = {
   init(boot) {
-    console.log("🧩 SystemComposer init");
+    console.log("🧩 SystemComposer v3.9.9 init");
 
-    const root = document.getElementById("app") || document.body;
+    const root = document.getElementById("system-root") || document.body;
 
     root.innerHTML = "";
 
-    // 🧠 MAIN DASHBOARD
     const container = document.createElement("div");
     container.style.padding = "20px";
     container.style.fontFamily = "Arial";
@@ -21,12 +20,16 @@ LawAIApp.SystemComposer = {
 
       <div style="margin-top:20px;">
         <h2>📊 Learning Engine</h2>
-        <div id="learningPanel"></div>
+        <div id="learningPanel">Loading...</div>
       </div>
 
       <div style="margin-top:20px;">
         <h2>🧠 Workspace</h2>
-        <div id="workspacePanel"></div>
+        <div id="workspacePanel">Loading...</div>
+      </div>
+
+      <div style="margin-top:20px;opacity:0.7">
+        ${boot?.safeMode ? "⚠️ SAFE MODE ACTIVE" : "✅ FULL SYSTEM ACTIVE"}
       </div>
     `;
 
@@ -36,29 +39,58 @@ LawAIApp.SystemComposer = {
     this.mountWorkspace(boot);
   },
 
+  /**
+   * =========================
+   * FIXED LEARNING PANEL
+   * =========================
+   */
   mountLearning(boot) {
     const el = document.getElementById("learningPanel");
+    if (!el) return;
 
-    const level = LawAIApp.LevelEngine?.getState?.() || {};
-    const xp = LawAIApp.ExperienceEngine?.getXP?.() || 0;
+    // 🔥 FIX: correct engine names (IMPORTANT)
+    const level =
+      LawAIApp.levelEngine?.getState?.() ||
+      LawAIApp.LevelEngine?.getState?.() ||
+      { level: 1 };
+
+    const xp =
+      LawAIApp.experienceEngine?.getXP?.() ??
+      LawAIApp.ExperienceEngine?.getXP?.() ??
+      0;
+
+    const ai =
+      LawAIApp.learningIntelligence?.getState?.() ||
+      LawAIApp.LearningIntelligence?.getState?.() ||
+      null;
 
     el.innerHTML = `
       <div style="padding:10px;background:#1e293b;border-radius:10px">
-        <p>📈 Level: ${level.level || 1}</p>
+        <p>📈 Level: ${level.level ?? 1}</p>
         <p>⭐ XP: ${xp}</p>
+        <p>🧠 AI Status: ${ai ? "ACTIVE" : "STUB MODE"}</p>
       </div>
     `;
   },
 
+  /**
+   * =========================
+   * FIXED WORKSPACE PANEL
+   * =========================
+   */
   mountWorkspace(boot) {
     const el = document.getElementById("workspacePanel");
+    if (!el) return;
 
-    const ws = LawAIApp.WorkspaceState?.get?.("default") || {};
+    const ws =
+      LawAIApp.workspaceState?.get?.("default") ||
+      LawAIApp.WorkspaceState?.get?.("default") ||
+      {};
 
     el.innerHTML = `
       <div style="padding:10px;background:#1e293b;border-radius:10px">
         <p>🧩 Workspace Active</p>
-        <pre>${JSON.stringify(ws, null, 2)}</pre>
+        <pre style="white-space:pre-wrap">${JSON.stringify(ws, null, 2)}</pre>
       </div>
     `;
   }
