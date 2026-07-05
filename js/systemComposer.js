@@ -2,9 +2,14 @@ window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.SystemComposer = {
   init(boot) {
-    console.log("🧩 SystemComposer v3.9.9 init");
+    console.log("🧩 SystemComposer V3.9.10 init");
 
-    const root = document.getElementById("system-root") || document.body;
+    const root = document.getElementById("app") || document.body;
+
+    if (!boot) {
+      console.warn("⚠️ No boot data received, using fallback");
+      boot = window.LawAIApp.bootStatus || {};
+    }
 
     root.innerHTML = "";
 
@@ -16,81 +21,71 @@ LawAIApp.SystemComposer = {
     container.style.minHeight = "100vh";
 
     container.innerHTML = `
-      <h1>🚀 Law AI System LIVE</h1>
+      <h1>🚀 Law AI System LIVE (V3.9.10)</h1>
 
       <div style="margin-top:20px;">
-        <h2>📊 Learning Engine</h2>
+        <h2>📊 Engine Health</h2>
+        <pre>${JSON.stringify(boot, null, 2)}</pre>
+      </div>
+
+      <div style="margin-top:20px;">
+        <h2>🧠 Learning System</h2>
         <div id="learningPanel">Loading...</div>
       </div>
 
       <div style="margin-top:20px;">
-        <h2>🧠 Workspace</h2>
+        <h2>🧩 Workspace System</h2>
         <div id="workspacePanel">Loading...</div>
       </div>
 
-      <div style="margin-top:20px;opacity:0.7">
-        ${boot?.safeMode ? "⚠️ SAFE MODE ACTIVE" : "✅ FULL SYSTEM ACTIVE"}
+      <div style="margin-top:20px;padding:10px;background:#1e293b;border-radius:10px">
+        ${
+          boot.safeMode
+            ? "⚠️ SAFE MODE ACTIVE"
+            : "✅ FULL SYSTEM ACTIVE"
+        }
       </div>
     `;
 
     root.appendChild(container);
 
-    this.mountLearning(boot);
-    this.mountWorkspace(boot);
+    // async mount (prevents blank UI crash)
+    setTimeout(() => {
+      this.mountLearning();
+      this.mountWorkspace();
+    }, 50);
   },
 
-  /**
-   * =========================
-   * FIXED LEARNING PANEL
-   * =========================
-   */
-  mountLearning(boot) {
+  mountLearning() {
     const el = document.getElementById("learningPanel");
     if (!el) return;
 
-    // 🔥 FIX: correct engine names (IMPORTANT)
-    const level =
-      LawAIApp.levelEngine?.getState?.() ||
-      LawAIApp.LevelEngine?.getState?.() ||
-      { level: 1 };
-
-    const xp =
-      LawAIApp.experienceEngine?.getXP?.() ??
-      LawAIApp.ExperienceEngine?.getXP?.() ??
-      0;
-
-    const ai =
-      LawAIApp.learningIntelligence?.getState?.() ||
-      LawAIApp.LearningIntelligence?.getState?.() ||
-      null;
+    const level = LawAIApp.LevelEngine?.getState?.() || { level: 1 };
+    const xp = LawAIApp.ExperienceEngine?.getXP?.() || 0;
+    const learning = LawAIApp.LearningIntelligence?.getState?.() || null;
 
     el.innerHTML = `
       <div style="padding:10px;background:#1e293b;border-radius:10px">
-        <p>📈 Level: ${level.level ?? 1}</p>
+        <p>📈 Level: ${level.level || 1}</p>
         <p>⭐ XP: ${xp}</p>
-        <p>🧠 AI Status: ${ai ? "ACTIVE" : "STUB MODE"}</p>
+        <p>🧠 AI Status: ${learning ? "ACTIVE" : "STUB/LOADING"}</p>
       </div>
     `;
   },
 
-  /**
-   * =========================
-   * FIXED WORKSPACE PANEL
-   * =========================
-   */
-  mountWorkspace(boot) {
+  mountWorkspace() {
     const el = document.getElementById("workspacePanel");
     if (!el) return;
 
     const ws =
-      LawAIApp.workspaceState?.get?.("default") ||
       LawAIApp.WorkspaceState?.get?.("default") ||
+      LawAIApp.WorkspaceEngine?.getState?.() ||
       {};
 
     el.innerHTML = `
       <div style="padding:10px;background:#1e293b;border-radius:10px">
         <p>🧩 Workspace Active</p>
-        <pre style="white-space:pre-wrap">${JSON.stringify(ws, null, 2)}</pre>
+        <pre>${JSON.stringify(ws, null, 2)}</pre>
       </div>
     `;
   }
