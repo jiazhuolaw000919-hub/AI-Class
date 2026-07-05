@@ -113,3 +113,11 @@ window.addEventListener("SYSTEM_READY", (e) => {
   console.log("⚡ SYSTEM_READY received");
   window.App.init(e?.detail || {});
 });
+
+window.addEventListener("ENGINE_BOOTSTRAPPED", () => {
+  console.log("🔥 Engines ready → refreshing UI");
+
+  if (window.App?.init) {
+    window.App.init(window.LawAIApp.bootStatus);
+  }
+});
