@@ -170,4 +170,8 @@ async function boot() {
   setTimeout(startApp, 0);
 }
 
+if (window.LawAIApp?.Orchestrator?.init) {
+  window.LawAIApp.Orchestrator.init();
+}
+
 boot();
