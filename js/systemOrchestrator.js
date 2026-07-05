@@ -1,41 +1,96 @@
-// systemOrchestrator.js
+window.LawAIApp = window.LawAIApp || {};
+
 LawAIApp.SystemOrchestrator = {
+  initialized: false,
+
   init() {
-    // 定义关键事件对应的处理程序
-    const updateState = () => LawAIApp.LearningStateManager.refresh();
+    if (this.initialized) return;
+    this.initialized = true;
 
-    LawAIApp.EventBus.on('LessonCompleted', updateState);
-    LawAIApp.EventBus.on('QuizCompleted', updateState);
-    LawAIApp.EventBus.on('PracticeCompleted', updateState);
-    LawAIApp.EventBus.on('ProjectFinished', updateState);
-    LawAIApp.EventBus.on('GoalUpdated', updateState);
-    LawAIApp.EventBus.on('MemoryUpdated', updateState);
-    LawAIApp.EventBus.on('StreakMilestone', updateState);
+    console.log("🧠 SystemOrchestrator (Learning Layer) init");
 
-    // 初始刷新
+    // 🧠 SAFETY CHECKS
+    if (!LawAIApp.EventBus) {
+      console.warn("⚠️ EventBus not ready - retrying");
+      setTimeout(() => this.init(), 300);
+      return;
+    }
+
+    if (!LawAIApp.LearningStateManager) {
+      console.warn("⚠️ LearningStateManager missing - delayed init");
+      setTimeout(() => this.init(), 300);
+      return;
+    }
+
+    // =========================
+    // EVENT BINDING (YOUR ORIGINAL LOGIC)
+    // =========================
+    const updateState = () => {
+      try {
+        LawAIApp.LearningStateManager.refresh();
+      } catch (e) {
+        console.warn("⚠️ state refresh failed", e);
+      }
+    };
+
+    const events = [
+      'LessonCompleted',
+      'QuizCompleted',
+      'PracticeCompleted',
+      'ProjectFinished',
+      'GoalUpdated',
+      'MemoryUpdated',
+      'StreakMilestone'
+    ];
+
+    events.forEach(evt => {
+      LawAIApp.EventBus.on(evt, updateState);
+    });
+
+    // initial refresh
     setTimeout(updateState, 500);
+
+    console.log("🧠 Learning Orchestrator ready");
   },
-  // 触发学习循环
+
+  // =========================
+  // LEARNING LOOP (SAFE)
+  // =========================
   triggerLearningLoop(lessonId, result) {
     const loop = LawAIApp.LearningLoopEngine;
-    const state = LawAIApp.LearningStateManager.getState();
+    const state = LawAIApp.LearningStateManager?.getState?.();
+
+    if (!loop || !state) {
+      console.warn("⚠️ LearningLoopEngine not ready");
+      return;
+    }
 
     if (result === 'completed') {
       loop.recordSuccess(lessonId);
-      // 成功后的适应
+
       if (state.riskLevel === 'low') {
-        // 加速：可跳过基础内容（由课程引擎决定）
-        LawAIApp.EventBus.emit('ContentAccelerationSuggested', { lessonId });
+        LawAIApp.EventBus?.emit?.(
+          'ContentAccelerationSuggested',
+          { lessonId }
+        );
       }
+
     } else {
       loop.recordFailure(lessonId);
-      // 失败后的适应
-      LawAIApp.EventBus.emit('ReviewInserted', { lessonId });
-      LawAIApp.EventBus.emit('DifficultyReduced', { lessonId });
+
+      LawAIApp.EventBus?.emit?.('ReviewInserted', { lessonId });
+      LawAIApp.EventBus?.emit?.('DifficultyReduced', { lessonId });
     }
-    loop.adapt();
+
+    loop.adapt?.();
   }
 };
 
-// 自动初始化
-setTimeout(() => LawAIApp.SystemOrchestrator.init(), 800);
+// =========================
+// AUTO INIT (SAFE HOOKED)
+// =========================
+window.addEventListener("SYSTEM_READY", () => {
+  setTimeout(() => {
+    LawAIApp.SystemOrchestrator.init();
+  }, 100);
+});
