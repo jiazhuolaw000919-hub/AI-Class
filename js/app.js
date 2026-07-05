@@ -121,3 +121,7 @@ window.addEventListener("ENGINE_BOOTSTRAPPED", () => {
     window.App.init(window.LawAIApp.bootStatus);
   }
 });
+
+window.addEventListener("ENGINE_RUNTIME_READY", () => {
+  console.log("🔥 ENGINE RUNTIME FULLY ACTIVE");
+});
