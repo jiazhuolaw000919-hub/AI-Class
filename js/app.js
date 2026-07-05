@@ -1,26 +1,32 @@
 window.LawAIApp = window.LawAIApp || {};
 
 window.App = {
-  initialized: false,
-
   init() {
-    if (this.initialized) return;
-    this.initialized = true;
+    console.log("🚀 App init");
 
-    console.log("🚀 App V3.1 starting...");
-
-    const health = window.LawAIApp.EngineHealth?.report?.();
-
-    console.log("📊 ENGINE HEALTH REPORT:", health);
-
-    const Bus = window.LawAIApp.EventBus;
-
-    if (Bus) {
-      Bus.emit("app:ready", { health });
+    if (window.LawAIApp?.EventBus) {
+      window.LawAIApp.EventBus.emit("app:ready");
     }
+
+    // 🔥 CRITICAL FIX: render something so not blank
+    document.body.innerHTML = `
+      <div style="padding:20px;font-family:Arial">
+        <h2>🚀 Law AI System Online</h2>
+        <p>Engine Status:</p>
+        <pre>${JSON.stringify(window.__ENGINE_STATUS__, null, 2)}</pre>
+      </div>
+    `;
   }
 };
 
+window.addEventListener("load", () => {
+  console.log("📦 window load");
+});
+
 window.addEventListener("LAW_APP_READY", () => {
-  window.App.init();
+  console.log("⚡ LAW_APP_READY received");
+
+  if (window.App?.init) {
+    window.App.init();
+  }
 });
