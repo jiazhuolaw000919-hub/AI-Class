@@ -2,36 +2,37 @@ window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.SystemOrchestrator = {
   initialized: false,
-  booted: false,
+  ready: false,
 
   init() {
     if (this.initialized) return;
     this.initialized = true;
 
-    console.log("🧠 SystemOrchestrator (V3.9.3) init");
+    console.log("🧠 SystemOrchestrator V3.9.3 init");
 
-    // =========================
-    // SAFETY CHECK LOOP
-    // =========================
-    const check = () => {
-      if (!LawAIApp.EventBus || !LawAIApp.LearningStateManager) {
-        console.warn("⚠️ System dependencies missing, retry...");
-        setTimeout(check, 200);
-        return false;
+    const waitForDeps = () => {
+      const ok =
+        LawAIApp.EventBus &&
+        LawAIApp.LearningStateManager;
+
+      if (!ok) {
+        console.warn("⚠️ waiting dependencies...");
+        return setTimeout(waitForDeps, 200);
       }
-      return true;
+
+      this.bindEvents();
+      this.start();
     };
 
-    if (!check()) return;
+    waitForDeps();
+  },
 
-    // =========================
-    // STATE UPDATE CORE (UNCHANGED LOGIC)
-    // =========================
+  bindEvents() {
     const updateState = () => {
       try {
         LawAIApp.LearningStateManager.refresh();
       } catch (e) {
-        console.warn("⚠️ state refresh failed", e);
+        console.warn("⚠️ refresh failed", e);
       }
     };
 
@@ -49,40 +50,40 @@ LawAIApp.SystemOrchestrator = {
       LawAIApp.EventBus.on(evt, updateState);
     });
 
-    // initial sync
-    setTimeout(updateState, 300);
+    this.updateState = updateState;
+  },
 
-    // =========================
-    // MARK SYSTEM READY
-    // =========================
-    this.booted = true;
+  start() {
+    setTimeout(() => {
+      this.updateState?.();
+    }, 300);
 
+    this.ready = true;
+
+    // 🔥 CRITICAL ADDITION (THIS IS THE FIX)
     window.dispatchEvent(
-      new CustomEvent("SYSTEM_READY", {
-        detail: LawAIApp.bootStatus || {}
+      new CustomEvent("LEARNING_SYSTEM_READY", {
+        detail: {
+          boot: LawAIApp.bootStatus,
+          safeMode: LawAIApp.bootStatus?.safeMode
+        }
       })
     );
 
-    console.log("🧠 SystemOrchestrator READY");
+    console.log("🧠 SystemOrchestrator READY + WIRED");
   },
 
-  // =========================
-  // LEARNING LOOP (UNCHANGED, SAFER)
-  // =========================
   triggerLearningLoop(lessonId, result) {
     const loop = LawAIApp.LearningLoopEngine;
     const state = LawAIApp.LearningStateManager?.getState?.();
 
-    if (!loop || !state) {
-      console.warn("⚠️ LearningLoopEngine not ready");
-      return;
-    }
+    if (!loop || !state) return;
 
     if (result === "completed") {
       loop.recordSuccess(lessonId);
 
       if (state.riskLevel === "low") {
-        LawAIApp.EventBus?.emit?.(
+        LawAIApp.EventBus?.emit(
           "ContentAccelerationSuggested",
           { lessonId }
         );
@@ -90,23 +91,10 @@ LawAIApp.SystemOrchestrator = {
     } else {
       loop.recordFailure(lessonId);
 
-      LawAIApp.EventBus?.emit?.("ReviewInserted", { lessonId });
-      LawAIApp.EventBus?.emit?.("DifficultyReduced", { lessonId });
+      LawAIApp.EventBus?.emit("ReviewInserted", { lessonId });
+      LawAIApp.EventBus?.emit("DifficultyReduced", { lessonId });
     }
 
     loop.adapt?.();
   }
 };
-
-// =========================
-// AUTO INIT (ROBUST V3 FIX)
-// =========================
-const bootCheck = () => {
-  if (LawAIApp.bootStatus) {
-    LawAIApp.SystemOrchestrator.init();
-  } else {
-    setTimeout(bootCheck, 150);
-  }
-};
-
-bootCheck();
