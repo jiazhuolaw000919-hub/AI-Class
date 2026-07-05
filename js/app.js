@@ -1,66 +1,43 @@
 window.LawAIApp = window.LawAIApp || {};
 
-function renderApp() {
-  console.log("🎯 Rendering UI...");
-
-  const status = window.LawAIApp?.bootStatus;
-
+function render(boot) {
   document.body.innerHTML = `
     <div style="
       padding:20px;
       font-family:Arial;
-      background:#0f172a;
-      color:#fff;
+      background:#0b1220;
+      color:white;
       min-height:100vh;
     ">
-      <h1>🚀 Law AI System Online</h1>
+      <h1>🚀 Law AI System (V3.6)</h1>
 
-      <h3>📊 Engine Status</h3>
-      <pre style="background:#111;padding:10px;border-radius:8px">
-${JSON.stringify(status, null, 2)}
-      </pre>
+      <h3>🧠 System Status</h3>
+      <pre>${JSON.stringify(boot, null, 2)}</pre>
 
-      <h3>🧠 System Ready</h3>
-      <p>${new Date().toISOString()}</p>
+      <div style="margin-top:20px;padding:10px;background:#1e293b;border-radius:10px">
+        ${window.LawAIApp.safeMode ? "⚠️ SAFE MODE ACTIVE" : "✅ FULL SYSTEM ACTIVE"}
+      </div>
+
+      <p style="margin-top:20px">
+        Orchestrated Boot Complete ✔
+      </p>
     </div>
   `;
 }
 
 window.App = {
-  init() {
-    console.log("🚀 App init triggered");
+  init(boot) {
+    console.log("🚀 App init (V3.6)");
 
-    renderApp();
+    render(boot);
   }
 };
 
 /**
- * IMPORTANT FIX:
- * event might fire before listener → so we handle BOTH cases
+ * NEW FLOW (IMPORTANT)
  */
-window.addEventListener("LAW_APP_READY", () => {
-  console.log("⚡ LAW_APP_READY received");
+window.addEventListener("SYSTEM_READY", (e) => {
+  console.log("⚡ SYSTEM_READY received");
 
-  window.App.init();
+  window.App.init(e.detail);
 });
-
-/**
- * SAFETY NET (CRITICAL FIX)
- * if event already fired → still render
- */
-setTimeout(() => {
-  if (window.LawAIApp?.bootStatus && !document.body.innerHTML.includes("Law AI System")) {
-    console.warn("⚠️ fallback render triggered");
-    window.App.init();
-  }
-}, 300);
-
-const safeMode = window.LawAIApp?.safeMode;
-
-if (safeMode) {
-  document.body.innerHTML += `
-    <div style="color:orange;margin-top:20px">
-      ⚠️ Safe Mode Active (Core engines missing)
-    </div>
-  `;
-}
