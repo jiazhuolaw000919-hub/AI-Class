@@ -173,3 +173,12 @@ window.addEventListener("SYSTEM_READY", (e) => {
   console.log("⚡ SYSTEM_READY received");
   window.App.init(e?.detail || {});
 });
+
+window.addEventListener("SYSTEM_READY", (e) => {
+  console.log("⚡ SYSTEM_READY received");
+
+  window.App.init(e.detail);
+
+  // 🔥 ADD THIS
+  LawAIApp.SystemComposer?.init(e.detail.boot);
+});
