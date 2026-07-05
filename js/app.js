@@ -54,3 +54,13 @@ setTimeout(() => {
     window.App.init();
   }
 }, 300);
+
+const safeMode = window.LawAIApp?.safeMode;
+
+if (safeMode) {
+  document.body.innerHTML += `
+    <div style="color:orange;margin-top:20px">
+      ⚠️ Safe Mode Active (Core engines missing)
+    </div>
+  `;
+}
