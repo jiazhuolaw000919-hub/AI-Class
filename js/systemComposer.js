@@ -84,3 +84,20 @@ LawAIApp.SystemComposer = {
     `;
   }
 };
+
+window.addEventListener("LEARNING_UI_REFRESH", (e) => {
+  console.log("🎯 UI refresh received");
+
+  const state = e.detail?.state;
+
+  const el = document.getElementById("learningPanel");
+  if (!el) return;
+
+  el.innerHTML = `
+    <div style="padding:10px;background:#1e293b;border-radius:10px">
+      <p>📈 Level: ${state?.level || 1}</p>
+      <p>⭐ XP: ${state?.xp || 0}</p>
+      <p>🔥 Streak: ${state?.streak || 0}</p>
+    </div>
+  `;
+});
