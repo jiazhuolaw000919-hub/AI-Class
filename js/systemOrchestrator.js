@@ -98,3 +98,9 @@ LawAIApp.SystemOrchestrator = {
     loop.adapt?.();
   }
 };
+
+window.addEventListener("SYSTEM_READY", () => {
+  LawAIApp.EngineBinder?.init();
+  LawAIApp.LayoutEngineV2?.init();
+  LawAIApp.ExperienceComposer?.init();
+});
