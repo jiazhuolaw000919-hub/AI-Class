@@ -2,7 +2,7 @@ window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.SystemComposer = {
 
-    version: "4.0.12",
+    version: "4.0.15",
 
     initialized: false,
 
@@ -87,26 +87,14 @@ LawAIApp.SystemComposer = {
         }
     },
 
-    /**
-     * =========================
-     * 渲染主 UI（Phase 5 完整版）
-     * =========================
-     */
+    // ============================================================
+    // 辅助函数：获取学习状态
+    // ============================================================
 
-    _renderMainUI: function() {
-        if (!this.root) return;
-
-        if (document.getElementById("systemComposerRoot")) {
-            console.log("🔄 systemComposerRoot already exists, skipping render");
-            return;
-        }
-
-        // ===========================================
-        // 1. 获取学习状态
-        // ===========================================
+    _getState: function() {
         var state = {};
-        var hasProgress = false;
         var completedList = [];
+        var hasProgress = false;
 
         try {
             if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.getState === 'function') {
@@ -132,20 +120,159 @@ LawAIApp.SystemComposer = {
             console.warn('⚠️ Failed to get progress state:', err);
         }
 
-        var isDemo = !hasProgress;
-        if (isDemo) {
-            state = {
-                level: 1,
-                xp: 0,
-                streak: 0,
-                day: 1,
-                completionPercent: 0,
-                currentStage: 'Foundation',
-                remainingLessons: 365,
-                completedLessons: []
+        if (!hasProgress) {
+            return {
+                hasProgress: false,
+                isDemo: true,
+                state: { level: 1, xp: 0, streak: 0, day: 1, completionPercent: 0, currentStage: 'Foundation', remainingLessons: 365, completedLessons: [] },
+                completedList: []
             };
-            completedList = [];
         }
+
+        return { hasProgress: true, isDemo: false, state: state, completedList: completedList };
+    },
+
+    // ============================================================
+    // 辅助函数：课程名称
+    // ============================================================
+
+    _getLessonTitle: function(lessonId) {
+        if (!lessonId) return 'Lesson';
+        try {
+            if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
+                var dayNum = parseInt(lessonId.replace('day-', ''));
+                if (!isNaN(dayNum)) {
+                    var lesson = LawAIApp.LessonEngine.getLessonByDay(dayNum);
+                    if (lesson && lesson.title) return lesson.title;
+                }
+            }
+        } catch (e) {}
+        var num = lessonId.replace('day-', '');
+        return 'Day ' + num;
+    },
+
+    _getLessonSummary: function(lessonId) {
+        if (!lessonId) return 'Continue building your AI knowledge.';
+        try {
+            if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
+                var dayNum = parseInt(lessonId.replace('day-', ''));
+                if (!isNaN(dayNum)) {
+                    var lesson = LawAIApp.LessonEngine.getLessonByDay(dayNum);
+                    if (lesson && lesson.summary) return lesson.summary;
+                    if (lesson && lesson.subtitle) return lesson.subtitle;
+                }
+            }
+        } catch (e) {}
+        return 'Continue building your AI knowledge with today\'s lesson.';
+    },
+
+    _getNextLessonTitle: function(day) {
+        var nextDay = day + 1;
+        if (nextDay > 365) nextDay = 365;
+        try {
+            if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
+                var lesson = LawAIApp.LessonEngine.getLessonByDay(nextDay);
+                if (lesson && lesson.title) return lesson.title;
+            }
+        } catch (e) {}
+        return 'Day ' + nextDay;
+    },
+
+    _getNextLessonSummary: function(day) {
+        var nextDay = day + 1;
+        if (nextDay > 365) nextDay = 365;
+        try {
+            if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
+                var lesson = LawAIApp.LessonEngine.getLessonByDay(nextDay);
+                if (lesson && lesson.summary) return lesson.summary;
+                if (lesson && lesson.subtitle) return lesson.subtitle;
+            }
+        } catch (e) {}
+        return 'Continue building your AI knowledge with today\'s lesson.';
+    },
+
+    // ============================================================
+    // Phase 8: 目标系统
+    // ============================================================
+
+    _generateGoals: function(day, completedList, streak, isDemo) {
+        var goals = [];
+        var totalLessons = 365;
+
+        if (isDemo) {
+            return [
+                { icon: '📖', label: 'Complete your first lesson', done: false },
+                { icon: '🔥', label: 'Start your first learning streak', done: false },
+                { icon: '⭐', label: 'Earn your first XP', done: false }
+            ];
+        }
+
+        // 今日课程目标
+        var nextDay = Math.min(day + 1, totalLessons);
+        var completed = completedList.length;
+        var todayGoal = Math.min(completed + 1, totalLessons);
+
+        goals.push({
+            icon: '📖',
+            label: 'Complete Day ' + todayGoal + ' lesson',
+            done: completed >= todayGoal
+        });
+
+        // 连续签到目标
+        if (streak < 7) {
+            goals.push({
+                icon: '🔥',
+                label: 'Reach 7-day streak (' + streak + '/7)',
+                done: false
+            });
+        } else if (streak < 14) {
+            goals.push({
+                icon: '🔥',
+                label: 'Reach 14-day streak (' + streak + '/14)',
+                done: false
+            });
+        } else if (streak < 30) {
+            goals.push({
+                icon: '🔥',
+                label: 'Reach 30-day streak (' + streak + '/30)',
+                done: false
+            });
+        } else {
+            goals.push({
+                icon: '🏅',
+                label: 'Maintain your ' + streak + '-day streak!',
+                done: true
+            });
+        }
+
+        // XP 目标
+        var xp = completed * 20;
+        if (xp < 100) {
+            goals.push({ icon: '⭐', label: 'Earn 100 XP (' + xp + '/100)', done: false });
+        } else if (xp < 500) {
+            goals.push({ icon: '⭐', label: 'Earn 500 XP (' + xp + '/500)', done: false });
+        } else {
+            goals.push({ icon: '🌟', label: 'You\'re an XP Champion! (' + xp + ' XP)', done: true });
+        }
+
+        return goals;
+    },
+
+    // ============================================================
+    // 渲染主 UI（Phase 8 完整版）
+    // ============================================================
+
+    _renderMainUI: function() {
+        if (!this.root) return;
+        if (document.getElementById("systemComposerRoot")) {
+            console.log("🔄 systemComposerRoot already exists, skipping render");
+            return;
+        }
+
+        var data = this._getState();
+        var isDemo = data.isDemo;
+        var state = data.state;
+        var completedList = data.completedList;
 
         var day = state.day || 1;
         var xp = state.xp || 0;
@@ -154,125 +281,57 @@ LawAIApp.SystemComposer = {
         var completionPercent = Math.round(state.completionPercent || 0);
         var currentStage = state.currentStage || 'Foundation';
         var remainingLessons = state.remainingLessons || 365;
-
-        // ===========================================
-        // 2. Phase 5: 成就系统数据
-        // ===========================================
-        var achievements = [
-            { id: 'first_lesson', name: 'First Step', icon: '🌱', desc: 'Complete your first lesson', unlocked: completedList.length >= 1, progress: Math.min(100, (completedList.length / 1) * 100) },
-            { id: 'week_streak', name: 'Weekly Warrior', icon: '📅', desc: '7-day learning streak', unlocked: streak >= 7, progress: Math.min(100, (streak / 7) * 100) },
-            { id: 'month_streak', name: 'Monthly Master', icon: '🏅', desc: '30-day learning streak', unlocked: streak >= 30, progress: Math.min(100, (streak / 30) * 100) },
-            { id: 'xp_100', name: 'XP Collector', icon: '⭐', desc: 'Earn 100 XP', unlocked: xp >= 100, progress: Math.min(100, (xp / 100) * 100) },
-            { id: 'xp_500', name: 'XP Champion', icon: '🌟', desc: 'Earn 500 XP', unlocked: xp >= 500, progress: Math.min(100, (xp / 500) * 100) },
-            { id: 'lessons_10', name: 'Dedicated Learner', icon: '📚', desc: 'Complete 10 lessons', unlocked: completedList.length >= 10, progress: Math.min(100, (completedList.length / 10) * 100) },
-            { id: 'lessons_50', name: 'AI Scholar', icon: '🎓', desc: 'Complete 50 lessons', unlocked: completedList.length >= 50, progress: Math.min(100, (completedList.length / 50) * 100) },
-            { id: 'lessons_100', name: 'AI Expert', icon: '🧠', desc: 'Complete 100 lessons', unlocked: completedList.length >= 100, progress: Math.min(100, (completedList.length / 100) * 100) }
-        ];
-
-        var unlockedCount = achievements.filter(function(a) { return a.unlocked; }).length;
-        var totalAchievements = achievements.length;
-
-        var achievementsHtml = achievements.map(function(a) {
-            var isUnlocked = a.unlocked;
-            var progress = Math.round(a.progress);
-            var opacity = isUnlocked ? 1 : 0.5;
-            var borderColor = isUnlocked ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.06)';
-            var progressColor = isUnlocked ? '#4a9eff' : '#64748b';
-            return `
-                <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:14px 16px;border:1px solid ${borderColor};opacity:${opacity};transition:all 0.3s;">
-                    <div style="display:flex;align-items:center;gap:12px;">
-                        <span style="font-size:24px;">${a.icon}</span>
-                        <div style="flex:1;">
-                            <div style="display:flex;justify-content:space-between;align-items:center;">
-                                <span style="font-size:14px;font-weight:600;color:#e2e8f0;">${a.name}</span>
-                                <span style="font-size:11px;color:#94a3b8;">${isUnlocked ? '✅ Unlocked' : progress + '%'}</span>
-                            </div>
-                            <div style="font-size:12px;color:#64748b;margin-top:2px;">${a.desc}</div>
-                            <div style="width:100%;height:3px;background:rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;margin-top:4px;">
-                                <div style="width:${progress}%;height:100%;background:${progressColor};border-radius:10px;transition:width 0.8s ease;"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        // ===========================================
-        // 3. Phase 5: 学习时长统计
-        // ===========================================
-        var todayMinutes = isDemo ? 0 : Math.floor(Math.random() * 45) + 5;
-        var weekMinutes = isDemo ? 0 : Math.floor(Math.random() * 300) + 30;
-        var totalMinutes = isDemo ? 0 : Math.floor(completedList.length * 12) + 30;
-
-        function formatTime(minutes) {
-            if (minutes < 60) return minutes + 'm';
-            var hours = Math.floor(minutes / 60);
-            var mins = minutes % 60;
-            return hours + 'h ' + mins + 'm';
-        }
-
-        // ===========================================
-        // 4. Phase 5: 连续签到奖励
-        // ===========================================
-        var nextMilestone = 0;
-        var milestoneReward = 0;
-        if (streak < 7) { nextMilestone = 7; milestoneReward = 50; }
-        else if (streak < 14) { nextMilestone = 14; milestoneReward = 100; }
-        else if (streak < 30) { nextMilestone = 30; milestoneReward = 200; }
-        else if (streak < 60) { nextMilestone = 60; milestoneReward = 500; }
-        else { nextMilestone = 100; milestoneReward = 1000; }
-
-        var streakProgress = Math.min(100, (streak / nextMilestone) * 100);
-
-        // ===========================================
-        // 5. 生成学习日历数据（最近 7 天）
-        // ===========================================
         var today = new Date();
-        var calendarData = [];
-        var daysToShow = 7;
 
-        for (var i = daysToShow - 1; i >= 0; i--) {
-            var d = new Date(today);
-            d.setDate(d.getDate() - i);
-            var dayStr = d.getDate() + '/' + (d.getMonth() + 1);
-            var isToday = i === 0;
-            var hasActivity = false;
-            if (hasProgress) {
-                var progressRatio = completedList.length / 365;
-                var randomChance = Math.random();
-                hasActivity = randomChance < Math.min(0.8, 0.3 + progressRatio * 0.5);
-                if (isToday && hasProgress) {
-                    hasActivity = true;
-                }
-            } else {
-                hasActivity = Math.random() < 0.3;
-            }
-            calendarData.push({
-                date: dayStr,
-                isToday: isToday,
-                hasActivity: hasActivity
-            });
-        }
+        // ---- 课程名称 ----
+        var nextTitle = this._getNextLessonTitle(day);
+        var nextSummary = this._getNextLessonSummary(day);
 
-        var calendarHtml = calendarData.map(function(item) {
-            var bgColor = item.isToday ? 'rgba(74,158,255,0.3)' :
-                          item.hasActivity ? 'rgba(74,158,255,0.6)' :
-                          'rgba(255,255,255,0.06)';
-            var borderColor = item.isToday ? '#4a9eff' : 'transparent';
-            var label = item.isToday ? 'Today' : item.date;
+        // ---- Phase 8: 目标系统 ----
+        var goals = this._generateGoals(day, completedList, streak, isDemo);
+        var completedGoals = goals.filter(function(g) { return g.done; }).length;
+        var totalGoals = goals.length;
+        var goalPercent = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
+
+        var goalsHtml = goals.map(function(g) {
+            var iconColor = g.done ? '#22c55e' : '#64748b';
+            var textColor = g.done ? '#22c55e' : '#e2e8f0';
+            var strike = g.done ? 'line-through' : 'none';
             return `
-                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">
-                    <div style="width:100%;padding-top:100%;position:relative;background:${bgColor};border-radius:8px;border:2px solid ${borderColor};transition:all 0.3s;">
-                        ${item.isToday ? '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:14px;">📍</span>' : ''}
-                    </div>
-                    <span style="font-size:10px;color:#64748b;">${label}</span>
+                <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+                    <span style="font-size:16px;color:${iconColor};">${g.icon}</span>
+                    <span style="font-size:13px;color:${textColor};text-decoration:${strike};">${g.label}</span>
+                    ${g.done ? '<span style="margin-left:auto;font-size:12px;color:#22c55e;">✅</span>' : '<span style="margin-left:auto;font-size:11px;color:#64748b;">⏳</span>'}
                 </div>
             `;
         }).join('');
 
-        // ===========================================
-        // 6. 技能雷达数据
-        // ===========================================
+        // ---- 目标完成进度 ----
+        var goalProgressHtml = '';
+        for (var i = 0; i < totalGoals; i++) {
+            var isDone = i < completedGoals;
+            goalProgressHtml += `
+                <div style="flex:1;height:4px;background:${isDone ? '#4a9eff' : 'rgba(255,255,255,0.06)'};border-radius:10px;${isDone ? 'box-shadow: 0 0 8px rgba(74,158,255,0.3);' : ''}"></div>
+            `;
+        }
+
+        // ---- Phase 8: 今日倒计时 ----
+        var now = new Date();
+        var endOfDay = new Date(now);
+        endOfDay.setHours(23, 59, 59, 999);
+        var diffMs = endOfDay - now;
+        var diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+        var diffMin = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+        // ---- Phase 7: AI 导师建议（简化） ----
+        var mentorMsg = isDemo ? '🌟 Complete your first lesson to unlock personalized guidance!' :
+                        (completedList.length >= 365 ? '🏆 You\'ve mastered all 365 lessons! Incredible!' :
+                        (completionPercent < 30 ? '🌱 Keep building your foundation. Consistency is key!' :
+                        (completionPercent < 60 ? '📈 You\'re making great progress! Keep it up!' :
+                        (completionPercent < 90 ? '💪 Almost there! Finish strong!' :
+                        '🎯 You\'re so close to the finish line!'))));
+
+        // ---- 技能雷达（精简） ----
         var skillCategories = [
             { name: 'Foundation', icon: '🏛️', level: isDemo ? 10 : Math.min(90, 10 + completedList.length * 0.15) },
             { name: 'Prompt', icon: '✍️', level: isDemo ? 5 : Math.min(90, 5 + completedList.length * 0.12) },
@@ -282,147 +341,45 @@ LawAIApp.SystemComposer = {
         ];
 
         var radarHtml = skillCategories.map(function(skill) {
-            var levelPercent = Math.round(skill.level);
-            var color = levelPercent > 70 ? '#4a9eff' : levelPercent > 40 ? '#8b5cf6' : '#64748b';
+            var lvl = Math.round(skill.level);
+            var color = lvl > 70 ? '#4a9eff' : lvl > 40 ? '#8b5cf6' : '#64748b';
             return `
-                <div style="display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
-                    <span style="font-size:18px;width:32px;">${skill.icon}</span>
-                    <span style="font-size:13px;color:#e2e8f0;flex:1;">${skill.name}</span>
-                    <div style="flex:2;height:6px;background:rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;max-width:120px;">
-                        <div style="width:${levelPercent}%;height:100%;background:${color};border-radius:10px;transition:width 0.8s ease;"></div>
+                <div style="display:flex;align-items:center;gap:8px;padding:4px 0;">
+                    <span style="font-size:14px;">${skill.icon}</span>
+                    <span style="font-size:11px;color:#94a3b8;width:50px;">${skill.name}</span>
+                    <div style="flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;">
+                        <div style="width:${lvl}%;height:100%;background:${color};border-radius:10px;"></div>
                     </div>
-                    <span style="font-size:12px;color:#94a3b8;width:36px;text-align:right;">${levelPercent}%</span>
+                    <span style="font-size:10px;color:#64748b;width:30px;text-align:right;">${lvl}%</span>
                 </div>
             `;
         }).join('');
 
-        // ===========================================
-        // 7. 课程名称和摘要辅助函数
-        // ===========================================
-        function getLessonTitle(lessonId) {
-            if (!lessonId) return 'Lesson';
-            try {
-                if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
-                    var dayNum = parseInt(lessonId.replace('day-', ''));
-                    if (!isNaN(dayNum)) {
-                        var lesson = LawAIApp.LessonEngine.getLessonByDay(dayNum);
-                        if (lesson && lesson.title) return lesson.title;
-                    }
-                }
-            } catch (e) {}
-            var num = lessonId.replace('day-', '');
-            return 'Day ' + num;
-        }
-
-        function getLessonSummary(lessonId) {
-            if (!lessonId) return 'Continue building your AI knowledge.';
-            try {
-                if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
-                    var dayNum = parseInt(lessonId.replace('day-', ''));
-                    if (!isNaN(dayNum)) {
-                        var lesson = LawAIApp.LessonEngine.getLessonByDay(dayNum);
-                        if (lesson && lesson.summary) return lesson.summary;
-                        if (lesson && lesson.subtitle) return lesson.subtitle;
-                    }
-                }
-            } catch (e) {}
-            return 'Continue building your AI knowledge with today\'s lesson.';
-        }
-
-        function getNextLessonTitle() {
-            var nextDay = day + 1;
-            if (nextDay > 365) nextDay = 365;
-            try {
-                if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
-                    var lesson = LawAIApp.LessonEngine.getLessonByDay(nextDay);
-                    if (lesson && lesson.title) return lesson.title;
-                }
-            } catch (e) {}
-            return 'Day ' + nextDay;
-        }
-
-        function getNextLessonSummary() {
-            var nextDay = day + 1;
-            if (nextDay > 365) nextDay = 365;
-            try {
-                if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
-                    var lesson = LawAIApp.LessonEngine.getLessonByDay(nextDay);
-                    if (lesson && lesson.summary) return lesson.summary;
-                    if (lesson && lesson.subtitle) return lesson.subtitle;
-                }
-            } catch (e) {}
-            return 'Continue building your AI knowledge with today\'s lesson.';
-        }
-
-        var nextTitle = getNextLessonTitle();
-        var nextSummary = getNextLessonSummary();
-
-        // ===========================================
-        // 8. 最近学习课程
-        // ===========================================
+        // ---- 最近学习 ----
         var recentLessons = [];
         if (completedList.length > 0) {
             var copy = completedList.slice();
-            var recent = copy.reverse().slice(0, 3);
-            recentLessons = recent;
+            recentLessons = copy.reverse().slice(0, 3);
         } else {
             recentLessons = ['day-1', 'day-2', 'day-3'];
         }
 
         var recentHtml = recentLessons.map(function(id) {
-            var title = getLessonTitle(id);
-            var isPlaceholder = (id === 'day-1' && !hasProgress);
+            var title = this._getLessonTitle(id);
+            var isPlaceholder = (id === 'day-1' && !data.hasProgress);
             return `
-                <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(255,255,255,0.04);border-radius:10px;margin-bottom:6px;border-left:3px solid ${isPlaceholder ? '#64748b' : '#22c55e'};opacity: ${isPlaceholder ? 0.7 : 1};">
-                    <span style="font-size:16px;">${isPlaceholder ? '📖' : '✅'}</span>
-                    <span style="font-size:14px;color:#e2e8f0;">${title}</span>
-                    <span style="margin-left:auto;font-size:12px;color:#64748b;">${isPlaceholder ? 'Start to unlock' : 'Completed'}</span>
+                <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:4px;border-left:3px solid ${isPlaceholder ? '#64748b' : '#22c55e'};opacity:${isPlaceholder ? 0.6 : 1};">
+                    <span style="font-size:14px;">${isPlaceholder ? '📖' : '✅'}</span>
+                    <span style="font-size:13px;color:#e2e8f0;">${title}</span>
+                    <span style="margin-left:auto;font-size:10px;color:#64748b;">${isPlaceholder ? 'Start' : 'Done'}</span>
                 </div>
             `;
-        }).join('');
+        }.bind(this)).join('');
 
-        // ===========================================
-        // 9. 今日学习卡片
-        // ===========================================
-        var isComplete = (completedList.length >= 365);
-        var goalHtml = '';
-        if (isComplete) {
-            goalHtml = `
-                <div style="background:linear-gradient(135deg,rgba(74,158,255,0.2),rgba(124,58,237,0.2));border-radius:16px;padding:32px;text-align:center;border:1px solid rgba(74,158,255,0.2);margin-bottom:20px;">
-                    <div style="font-size:48px;margin-bottom:8px;">🎉</div>
-                    <h3 style="margin:0 0 4px 0;font-size:22px;font-weight:700;">All 365 Lessons Complete!</h3>
-                    <p style="margin:0;color:#94a3b8;font-size:15px;">You've mastered the entire curriculum. Incredible work! 🏆</p>
-                    <a href="pages/academy.html" style="display:inline-block;margin-top:16px;padding:12px 32px;background:#4a9eff;border:none;border-radius:10px;color:white;font-size:14px;font-weight:600;text-decoration:none;">🏛️ Explore Advanced Topics</a>
-                </div>
-            `;
-        } else {
-            var demoTag = isDemo ? '🌟 Start Here' : 'Day ' + (day + 1);
-            var demoSubText = isDemo ? 'Complete your first lesson to start tracking!' : remainingLessons + ' lessons remaining';
-            var demoBtnText = isDemo ? '📖 Go to Academy' : '📖 Continue Learning';
-            var demoBtnLink = isDemo ? 'pages/academy.html' : 'pages/lesson.html';
+        // ============================================
+        // 渲染完整页面
+        // ============================================
 
-            goalHtml = `
-                <div style="background:rgba(255,255,255,0.04);border-radius:16px;padding:24px;border:1px solid rgba(255,255,255,0.08);margin-bottom:20px;">
-                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                        <span style="font-size:24px;">${isDemo ? '🌟' : '📖'}</span>
-                        <h3 style="margin:0;font-size:18px;font-weight:600;">${isDemo ? 'Start Your Journey' : "Today's Lesson"}</h3>
-                        <span style="margin-left:auto;font-size:12px;background:rgba(74,158,255,0.15);color:#4a9eff;padding:2px 12px;border-radius:20px;">${demoTag}</span>
-                    </div>
-                    <h4 style="margin:0 0 6px;font-size:20px;font-weight:700;color:#ffffff;">${nextTitle}</h4>
-                    <p style="margin:0 0 16px;color:#94a3b8;font-size:14px;line-height:1.6;">${isDemo ? 'Complete your first lesson to unlock personalized learning content.' : nextSummary}</p>
-                    <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                        <a href="${demoBtnLink}" style="padding:10px 28px;background:#4a9eff;border:none;border-radius:10px;color:white;font-size:14px;font-weight:600;text-decoration:none;transition:transform 0.2s;display:inline-block;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">${demoBtnText}</a>
-                        <button onclick="if(LawAIApp.Toast) LawAIApp.Toast.info('✏️ Practice mode coming soon! 🚧')" style="padding:10px 28px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#ffffff;font-size:14px;font-weight:500;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">✏️ Quick Practice</button>
-                        <button onclick="if(LawAIApp.Toast) LawAIApp.Toast.info('📝 Notes will open here soon! 🚧')" style="padding:10px 28px;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.2);border-radius:10px;color:#c4b5fd;font-size:14px;font-weight:500;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='rgba(124,58,237,0.3)'" onmouseout="this.style.background='rgba(124,58,237,0.2)'">📝 Take Notes</button>
-                    </div>
-                    <div style="margin-top:12px;font-size:12px;color:#475569;">${demoSubText}</div>
-                </div>
-            `;
-        }
-
-        // ===========================================
-        // 10. 渲染完整页面（Phase 5 增强版）
-        // ===========================================
         this.root.innerHTML = `
         <div id="systemComposerRoot" style="
             min-height: 100vh;
@@ -433,175 +390,129 @@ LawAIApp.SystemComposer = {
             margin: 0;
             box-sizing: border-box;
         ">
-            <div style="padding-bottom: 100px;">
+            <div style="padding-bottom: 90px;">
 
                 <!-- 顶部导航 -->
-                <header style="background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.08);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-                    <div style="display:flex;align-items:center;gap:14px;">
-                        <span style="font-size:28px;">🚀</span>
-                        <h1 style="margin:0;font-size:20px;font-weight:700;background:linear-gradient(90deg,#4a9eff,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Law AI Academy</h1>
-                        <span style="font-size:11px;background:rgba(74,158,255,0.2);color:#4a9eff;padding:2px 10px;border-radius:12px;font-weight:600;">v${this.version}</span>
+                <header style="background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.08);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:22px;">🚀</span>
+                        <h1 style="margin:0;font-size:18px;font-weight:700;background:linear-gradient(90deg,#4a9eff,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Law AI Academy</h1>
+                        <span style="font-size:10px;background:rgba(74,158,255,0.2);color:#4a9eff;padding:2px 8px;border-radius:12px;">v${this.version}</span>
                     </div>
-                    <div style="display:flex;align-items:center;gap:16px;font-size:13px;color:#94a3b8;">
+                    <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:#94a3b8;">
                         <span>🎯 Day ${day}</span>
-                        <span>⭐ ${xp} XP</span>
-                        <span>🔥 Level ${level}</span>
+                        <span>⭐ ${xp}</span>
+                        <span>🔥 ${level}</span>
                     </div>
                 </header>
 
-                <main style="max-width:1000px;margin:0 auto;padding:24px 20px 20px;">
+                <main style="max-width:1000px;margin:0 auto;padding:16px 16px 20px;">
 
-                    <!-- 欢迎横幅 -->
-                    <section style="background:linear-gradient(135deg,rgba(74,158,255,0.15),rgba(124,58,237,0.15));border:1px solid rgba(74,158,255,0.2);border-radius:16px;padding:24px 32px;text-align:center;margin-bottom:24px;">
-                        <h2 style="margin:0 0 4px 0;font-size:24px;font-weight:600;">${isDemo ? '🚀 Welcome to Law AI Academy!' : '👋 Welcome Back!'}</h2>
-                        <p style="margin:0;color:#94a3b8;font-size:15px;">${isDemo ? 'Start your 365-day AI learning journey today.' : "You're on Day " + day + " · " + currentStage}</p>
-                    </section>
+                    <!-- ========================================================= -->
+                    <!--  Phase 8: 今日目标 + 目标完成度 + 倒计时（新增）           -->
+                    <!-- ========================================================= -->
 
-                    <!-- 卡片网格 -->
-                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:24px;">
-                        <div style="background:rgba(255,255,255,0.05);border-radius:14px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,0.06);">
-                            <div style="font-size:32px;">📈</div>
-                            <div style="font-size:28px;font-weight:700;color:#4a9eff;">${level}</div>
-                            <div style="color:#94a3b8;font-size:13px;">Level</div>
+                    <div style="
+                        background:linear-gradient(135deg,rgba(74,158,255,0.12),rgba(124,58,237,0.12));
+                        border-radius:14px;
+                        padding:18px 20px;
+                        border:1px solid rgba(74,158,255,0.15);
+                        margin-bottom:16px;
+                    ">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                            <span style="font-size:13px;color:#94a3b8;">🎯 Today's Goals</span>
+                            <span style="font-size:13px;color:#4a9eff;font-weight:600;">${completedGoals}/${totalGoals}</span>
                         </div>
-                        <div style="background:rgba(255,255,255,0.05);border-radius:14px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,0.06);">
-                            <div style="font-size:32px;">⭐</div>
-                            <div style="font-size:28px;font-weight:700;color:#fbbf24;">${xp}</div>
-                            <div style="color:#94a3b8;font-size:13px;">Total XP</div>
+                        <div style="display:flex;gap:4px;margin-bottom:10px;">
+                            ${goalProgressHtml}
                         </div>
-                        <div style="background:rgba(255,255,255,0.05);border-radius:14px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,0.06);">
-                            <div style="font-size:32px;">🔥</div>
-                            <div style="font-size:28px;font-weight:700;color:#f97316;">${streak}</div>
-                            <div style="color:#94a3b8;font-size:13px;">Day Streak</div>
-                        </div>
-                        <div style="background:rgba(255,255,255,0.05);border-radius:14px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,0.06);">
-                            <div style="font-size:32px;">📚</div>
-                            <div style="font-size:28px;font-weight:700;color:#8b5cf6;">${completionPercent}%</div>
-                            <div style="color:#94a3b8;font-size:13px;">Progress</div>
-                        </div>
-                    </div>
-
-                    <!-- 进度条 -->
-                    <div style="margin-bottom:24px;">
-                        <div style="display:flex;justify-content:space-between;font-size:13px;color:#94a3b8;margin-bottom:6px;">
-                            <span>Learning Progress</span>
-                            <span>${completionPercent}%</span>
-                        </div>
-                        <div style="width:100%;height:6px;background:rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;">
-                            <div style="width:${completionPercent}%;height:100%;background:linear-gradient(90deg,#4a9eff,#7c3aed);border-radius:10px;transition:width 0.5s ease;"></div>
-                        </div>
-                        <div style="display:flex;justify-content:space-between;font-size:12px;color:#475569;margin-top:4px;">
-                            <span>Day ${day}</span>
-                            <span>${remainingLessons} lessons remaining</span>
+                        ${goalsHtml}
+                        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:#64748b;">
+                            <span>⏰ ${diffHrs}h ${diffMin}m remaining today</span>
+                            <span>${goalPercent}% complete</span>
                         </div>
                     </div>
 
                     <!-- ========================================================= -->
-                    <!--  Phase 5: 成就墙 + 学习时长 + 签到奖励                      -->
+                    <!--  Phase 7: AI 导师建议（精简）                              -->
                     <!-- ========================================================= -->
 
-                    <!-- 成就墙 -->
-                    <div style="background:rgba(255,255,255,0.03);border-radius:14px;padding:20px 24px;border:1px solid rgba(255,255,255,0.06);margin-bottom:24px;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                            <h3 style="margin:0;color:#94a3b8;font-size:14px;font-weight:400;">🏆 Achievements</h3>
-                            <span style="font-size:12px;color:#4a9eff;">${unlockedCount}/${totalAchievements} unlocked</span>
-                        </div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                            ${achievementsHtml}
-                        </div>
-                    </div>
-
-                    <!-- 学习时长 + 签到奖励（双列） -->
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
-
-                        <!-- 学习时长统计 -->
-                        <div style="background:rgba(255,255,255,0.03);border-radius:14px;padding:20px 24px;border:1px solid rgba(255,255,255,0.06);">
-                            <h3 style="margin:0 0 12px 0;color:#94a3b8;font-size:14px;font-weight:400;">⏱️ Learning Time</h3>
-                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-                                <div style="text-align:center;background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 8px;">
-                                    <div style="font-size:20px;font-weight:700;color:#4a9eff;">${formatTime(todayMinutes)}</div>
-                                    <div style="font-size:10px;color:#64748b;">Today</div>
-                                </div>
-                                <div style="text-align:center;background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 8px;">
-                                    <div style="font-size:20px;font-weight:700;color:#8b5cf6;">${formatTime(weekMinutes)}</div>
-                                    <div style="font-size:10px;color:#64748b;">This Week</div>
-                                </div>
-                                <div style="text-align:center;background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 8px;">
-                                    <div style="font-size:20px;font-weight:700;color:#fbbf24;">${formatTime(totalMinutes)}</div>
-                                    <div style="font-size:10px;color:#64748b;">Total</div>
-                                </div>
-                            </div>
-                            <div style="font-size:10px;color:#64748b;margin-top:8px;text-align:right;">
-                                ${isDemo ? 'Start learning to track your time!' : 'Keep up the momentum! 🚀'}
-                            </div>
-                        </div>
-
-                        <!-- 连续签到奖励 -->
-                        <div style="background:rgba(255,255,255,0.03);border-radius:14px;padding:20px 24px;border:1px solid rgba(255,255,255,0.06);">
-                            <h3 style="margin:0 0 12px 0;color:#94a3b8;font-size:14px;font-weight:400;">🔥 Streak Rewards</h3>
-                            <div style="display:flex;align-items:center;gap:16px;">
-                                <div style="flex:1;">
-                                    <div style="display:flex;justify-content:space-between;font-size:13px;">
-                                        <span style="color:#e2e8f0;">🔥 ${streak} days</span>
-                                        <span style="color:#94a3b8;">→ ${nextMilestone} days</span>
-                                    </div>
-                                    <div style="width:100%;height:6px;background:rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;margin-top:4px;">
-                                        <div style="width:${streakProgress}%;height:100%;background:linear-gradient(90deg,#f97316,#fbbf24);border-radius:10px;transition:width 0.8s ease;"></div>
-                                    </div>
-                                    <div style="font-size:12px;color:#64748b;margin-top:4px;">
-                                        ${isDemo ? 'Complete daily lessons to build your streak!' : 'Next reward: ' + milestoneReward + ' XP at ' + nextMilestone + ' days 🎯'}
-                                    </div>
-                                </div>
-                                <div style="text-align:center;background:rgba(251,191,36,0.1);border-radius:12px;padding:12px 16px;border:1px solid rgba(251,191,36,0.15);min-width:60px;">
-                                    <div style="font-size:24px;">🎁</div>
-                                    <div style="font-size:14px;font-weight:700;color:#fbbf24;">+${milestoneReward}</div>
-                                </div>
-                            </div>
-                        </div>
-
+                    <div style="
+                        background:rgba(74,158,255,0.08);
+                        border-radius:12px;
+                        padding:14px 18px;
+                        border:1px solid rgba(74,158,255,0.12);
+                        margin-bottom:16px;
+                        display:flex;
+                        align-items:center;
+                        gap:12px;
+                    ">
+                        <span style="font-size:24px;">🧠</span>
+                        <span style="font-size:14px;color:#e2e8f0;flex:1;">${mentorMsg}</span>
                     </div>
 
                     <!-- ========================================================= -->
-                    <!--  Phase 4: 学习日历 + 技能雷达（保留）                      -->
+                    <!--  卡片网格（精简）                                         -->
                     <!-- ========================================================= -->
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
 
-                        <!-- 学习日历 -->
-                        <div style="background:rgba(255,255,255,0.03);border-radius:14px;padding:20px 24px;border:1px solid rgba(255,255,255,0.06);">
-                            <h3 style="margin:0 0 12px 0;color:#94a3b8;font-size:14px;font-weight:400;">📅 Recent Activity</h3>
-                            <div style="display:flex;gap:6px;">
-                                ${calendarHtml}
-                            </div>
-                            <div style="display:flex;justify-content:space-between;font-size:10px;color:#64748b;margin-top:8px;">
-                                <span>Less activity</span>
-                                <span style="display:flex;align-items:center;gap:4px;">
-                                    <span style="display:inline-block;width:10px;height:10px;border-radius:4px;background:rgba(255,255,255,0.06);"></span>
-                                    <span style="display:inline-block;width:10px;height:10px;border-radius:4px;background:rgba(74,158,255,0.4);"></span>
-                                    <span style="display:inline-block;width:10px;height:10px;border-radius:4px;background:rgba(74,158,255,0.7);"></span>
-                                    <span style="display:inline-block;width:10px;height:10px;border-radius:4px;background:#4a9eff;"></span>
-                                </span>
-                                <span>More activity</span>
-                            </div>
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">
+                        <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(255,255,255,0.04);">
+                            <div style="font-size:22px;color:#4a9eff;">${level}</div>
+                            <div style="font-size:10px;color:#64748b;">Level</div>
                         </div>
+                        <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(255,255,255,0.04);">
+                            <div style="font-size:22px;color:#fbbf24;">${xp}</div>
+                            <div style="font-size:10px;color:#64748b;">XP</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(255,255,255,0.04);">
+                            <div style="font-size:22px;color:#f97316;">${streak}</div>
+                            <div style="font-size:10px;color:#64748b;">Streak</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(255,255,255,0.04);">
+                            <div style="font-size:22px;color:#8b5cf6;">${completionPercent}%</div>
+                            <div style="font-size:10px;color:#64748b;">Progress</div>
+                        </div>
+                    </div>
 
-                        <!-- 技能雷达 -->
-                        <div style="background:rgba(255,255,255,0.03);border-radius:14px;padding:20px 24px;border:1px solid rgba(255,255,255,0.06);">
-                            <h3 style="margin:0 0 12px 0;color:#94a3b8;font-size:14px;font-weight:400;">🧠 Skill Radar</h3>
+                    <!-- ========================================================= -->
+                    <!--  今日学习卡片                                               -->
+                    <!-- ========================================================= -->
+
+                    ${(completedList.length >= 365) ? `
+                    <div style="background:linear-gradient(135deg,rgba(74,158,255,0.15),rgba(124,58,237,0.15));border-radius:14px;padding:24px;text-align:center;border:1px solid rgba(74,158,255,0.15);margin-bottom:16px;">
+                        <div style="font-size:36px;">🎉</div>
+                        <h3 style="margin:4px 0;font-size:18px;">All 365 Lessons Complete!</h3>
+                        <p style="color:#94a3b8;font-size:13px;">You've mastered the entire curriculum! 🏆</p>
+                        <a href="pages/academy.html" style="display:inline-block;margin-top:10px;padding:8px 24px;background:#4a9eff;border-radius:8px;color:white;font-size:13px;font-weight:600;text-decoration:none;">🏛️ Explore Advanced</a>
+                    </div>
+                    ` : `
+                    <div style="background:rgba(255,255,255,0.03);border-radius:14px;padding:16px 18px;border:1px solid rgba(255,255,255,0.06);margin-bottom:16px;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                            <span style="font-size:20px;">📖</span>
+                            <span style="font-size:14px;font-weight:600;">${nextTitle}</span>
+                            <span style="margin-left:auto;font-size:10px;background:rgba(74,158,255,0.12);color:#4a9eff;padding:2px 10px;border-radius:12px;">Day ${Math.min(day + 1, 365)}</span>
+                        </div>
+                        <p style="margin:0 0 10px 0;color:#94a3b8;font-size:13px;">${isDemo ? 'Complete your first lesson to unlock content!' : nextSummary}</p>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <a href="${isDemo ? 'pages/academy.html' : 'pages/lesson.html'}" style="padding:8px 20px;background:#4a9eff;border-radius:8px;color:white;font-size:13px;font-weight:600;text-decoration:none;">${isDemo ? '📖 Start' : '📖 Continue'}</a>
+                            <button onclick="if(LawAIApp.Toast) LawAIApp.Toast.info('✏️ Practice coming soon!')" style="padding:8px 20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#94a3b8;font-size:13px;cursor:pointer;">✏️ Practice</button>
+                        </div>
+                    </div>
+                    `}
+
+                    <!-- ========================================================= -->
+                    <!--  技能雷达 + 最近学习（双列）                                -->
+                    <!-- ========================================================= -->
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                        <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px 16px;border:1px solid rgba(255,255,255,0.04);">
+                            <h4 style="margin:0 0 8px 0;color:#94a3b8;font-size:12px;font-weight:400;">🧠 Skills</h4>
                             ${radarHtml}
-                            <div style="font-size:10px;color:#64748b;margin-top:8px;text-align:right;">
-                                ${isDemo ? 'Complete lessons to unlock your skill radar!' : 'Based on your learning progress'}
-                            </div>
                         </div>
-
-                    </div>
-
-                    <!-- 今日学习卡片 -->
-                    ${goalHtml}
-
-                    <!-- 最近学习课程 -->
-                    <div style="background:rgba(255,255,255,0.03);border-radius:14px;padding:20px 24px;border:1px solid rgba(255,255,255,0.06);margin-bottom:24px;">
-                        <h3 style="margin:0 0 12px 0;color:#94a3b8;font-size:14px;font-weight:400;">📖 Recent Lessons</h3>
-                        ${recentHtml}
+                        <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px 16px;border:1px solid rgba(255,255,255,0.04);">
+                            <h4 style="margin:0 0 8px 0;color:#94a3b8;font-size:12px;font-weight:400;">📖 Recent</h4>
+                            ${recentHtml}
+                        </div>
                     </div>
 
                     <!-- 隐藏面板 -->
@@ -614,23 +525,24 @@ LawAIApp.SystemComposer = {
             </div>
 
             <!-- 底部导航 -->
-            <nav style="position:fixed;bottom:0;left:0;right:0;background:rgba(20,20,40,0.92);backdrop-filter:blur(12px);border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-around;padding:8px 0 16px;z-index:100;">
-                <a href="#" class="nav-item active" data-tab="home" style="display:flex;flex-direction:column;align-items:center;gap:2px;color:#4a9eff;text-decoration:none;font-size:10px;font-weight:500;"><span style="font-size:20px;">🏠</span><span>Home</span></a>
-                <a href="pages/academy.html" class="nav-item" data-tab="academy" style="display:flex;flex-direction:column;align-items:center;gap:2px;color:#64748b;text-decoration:none;font-size:10px;font-weight:500;"><span style="font-size:20px;">📚</span><span>Academy</span></a>
-                <a href="#" class="nav-item" data-tab="calendar" style="display:flex;flex-direction:column;align-items:center;gap:2px;color:#64748b;text-decoration:none;font-size:10px;font-weight:500;"><span style="font-size:20px;">📅</span><span>Calendar</span></a>
-                <a href="#" class="nav-item" data-tab="notes" style="display:flex;flex-direction:column;align-items:center;gap:2px;color:#64748b;text-decoration:none;font-size:10px;font-weight:500;"><span style="font-size:20px;">📝</span><span>Notes</span></a>
-                <a href="#" class="nav-item" data-tab="settings" style="display:flex;flex-direction:column;align-items:center;gap:2px;color:#64748b;text-decoration:none;font-size:10px;font-weight:500;"><span style="font-size:20px;">⚙️</span><span>Settings</span></a>
+            <nav style="position:fixed;bottom:0;left:0;right:0;background:rgba(20,20,40,0.92);backdrop-filter:blur(12px);border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-around;padding:6px 0 12px;z-index:100;">
+                <a href="#" class="nav-item active" data-tab="home" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#4a9eff;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">🏠</span><span>Home</span></a>
+                <a href="pages/academy.html" class="nav-item" data-tab="academy" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">📚</span><span>Academy</span></a>
+                <a href="#" class="nav-item" data-tab="calendar" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">📅</span><span>Calendar</span></a>
+                <a href="#" class="nav-item" data-tab="notes" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">📝</span><span>Notes</span></a>
+                <a href="#" class="nav-item" data-tab="settings" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">⚙️</span><span>Settings</span></a>
             </nav>
 
             <style>
                 .nav-item:hover { color: #94a3b8 !important; }
                 .nav-item.active { color: #4a9eff !important; }
-                @media (max-width: 600px) {
-                    .nav-item span:last-child { font-size: 9px; }
-                }
-                @media (max-width: 600px) {
+                @media (max-width: 480px) {
+                    .nav-item span:last-child { font-size: 8px; }
                     #systemComposerRoot div[style*="display:grid;grid-template-columns:1fr 1fr"] {
                         grid-template-columns: 1fr !important;
+                    }
+                    #systemComposerRoot div[style*="display:grid;grid-template-columns:repeat(4,1fr)"] {
+                        grid-template-columns: repeat(2,1fr) !important;
                     }
                 }
             </style>
@@ -640,11 +552,9 @@ LawAIApp.SystemComposer = {
         this._setupNavGuard();
     },
 
-    /**
-     * =========================
-     * 底部导航守卫
-     * =========================
-     */
+    // ============================================================
+    // 底部导航守卫
+    // ============================================================
 
     _setupNavGuard: function() {
         var self = this;
@@ -679,20 +589,16 @@ LawAIApp.SystemComposer = {
         });
     },
 
-    /**
-     * =========================
-     * 最小化 UI（兜底）
-     * =========================
-     */
+    // ============================================================
+    // 兜底 UI
+    // ============================================================
 
     _renderMinimalUI: function() {
         if (!this.root) return;
-
         if (document.getElementById("systemComposerRoot")) {
             console.log("🔄 systemComposerRoot already exists, skipping minimal render");
             return;
         }
-
         var container = document.createElement('div');
         container.id = 'systemComposerRoot';
         container.style.cssText = 'padding:20px;background:#0b1220;color:white;';
@@ -708,19 +614,11 @@ LawAIApp.SystemComposer = {
             <div id="runtimePanel"></div>
             <br>
             <div id="modulePanel"></div>
-            <div style="margin-top:40px;text-align:center;color:#475569;font-size:12px;">
-                ⚡ System running in fallback mode
-            </div>
+            <div style="margin-top:40px;text-align:center;color:#475569;font-size:12px;">⚡ System running in fallback mode</div>
         `;
         this.root.appendChild(container);
         this.root = container;
     },
-
-    /**
-     * =========================
-     * 失败时的兜底 UI
-     * =========================
-     */
 
     _renderFallbackUI: function(errorMsg) {
         if (!this.root) return;
@@ -728,39 +626,17 @@ LawAIApp.SystemComposer = {
             <div style="padding:40px;text-align:center;background:#0b1220;color:white;min-height:100vh;font-family:'Inter',sans-serif;">
                 <h2>⚠️ SystemComposer Error</h2>
                 <p style="color:#ff6b6b;">${errorMsg || 'Unknown error'}</p>
-                <p style="color:#666;font-size:14px;margin-top:20px;">
-                    Please refresh or check console for details
-                </p>
-                <button onclick="location.reload()" style="
-                    margin-top:20px;
-                    padding:10px 30px;
-                    background:#4a9eff;
-                    border:none;
-                    border-radius:8px;
-                    color:white;
-                    font-size:14px;
-                    cursor:pointer;
-                ">🔄 Refresh</button>
+                <p style="color:#666;font-size:14px;margin-top:20px;">Please refresh or check console for details</p>
+                <button onclick="location.reload()" style="margin-top:20px;padding:10px 30px;background:#4a9eff;border:none;border-radius:8px;color:white;font-size:14px;cursor:pointer;">🔄 Refresh</button>
             </div>
         `;
     },
 
-    /**
-     * =========================
-     * 通知 App 已挂载
-     * =========================
-     */
-
     _notifyMounted: function() {
         if (this._mountedNotified) return;
-
         try {
             var event = new CustomEvent('COMPOSER_MOUNTED', {
-                detail: {
-                    version: this.version,
-                    initialized: this.initialized,
-                    root: this.root ? this.root.id : null
-                }
+                detail: { version: this.version, initialized: this.initialized, root: this.root ? this.root.id : null }
             });
             window.dispatchEvent(event);
             this._mountedNotified = true;
@@ -774,17 +650,13 @@ LawAIApp.SystemComposer = {
         console.log("🔄 SystemComposer refreshing all panels...");
         var self = this;
         Object.values(this.panels).forEach(function(panel) {
-            try {
-                panel();
-            } catch (err) {
-                console.warn("Panel render failed:", err);
-            }
+            try { panel(); } catch (err) { console.warn("Panel render failed:", err); }
         });
     },
 
-    /* =====================================
-    LEARNING（兼容保留）
-    ===================================== */
+    // ============================================================
+    // 原有 Panel 方法（兼容保留）
+    // ============================================================
 
     mountLearning: function() {
         var el = this.cache.learning;
@@ -793,30 +665,14 @@ LawAIApp.SystemComposer = {
             if (!this.cache.learning) return;
             el = this.cache.learning;
         }
-
         var state = {};
         try {
             if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.getState === 'function') {
                 state = LawAIApp.ProgressEngine.getState();
             }
         } catch (err) {}
-
-        el.innerHTML = `
-            <div style="background:#1e293b;padding:18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.25);">
-                <h2 style="margin-top:0;">📚 Learning</h2>
-                <div style="display:flex;gap:24px;flex-wrap:wrap;">
-                    <div><strong>📈 Level</strong><br>${state.level || 1}</div>
-                    <div><strong>⭐ XP</strong><br>${state.xp || 0}</div>
-                    <div><strong>🔥 Streak</strong><br>${state.streak || 0}</div>
-                    <div><strong>📅 Day</strong><br>${state.day || 1}</div>
-                </div>
-            </div>
-        `;
+        el.innerHTML = `<div style="background:#1e293b;padding:18px;border-radius:12px;"><h2 style="margin:0 0 8px;">📚 Learning</h2><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;"><span>Level ${state.level || 1}</span><span>XP ${state.xp || 0}</span><span>Streak ${state.streak || 0}</span><span>Day ${state.day || 1}</span></div></div>`;
     },
-
-    /* =====================================
-    WORKSPACE（兼容保留）
-    ===================================== */
 
     mountWorkspace: function() {
         var el = this.cache.workspace;
@@ -825,25 +681,8 @@ LawAIApp.SystemComposer = {
             if (!this.cache.workspace) return;
             el = this.cache.workspace;
         }
-
-        var workspace = {};
-        try {
-            if (LawAIApp.WorkspaceState && typeof LawAIApp.WorkspaceState.get === 'function') {
-                workspace = LawAIApp.WorkspaceState.get("default") || {};
-            }
-        } catch (err) {}
-
-        el.innerHTML = `
-            <div style="background:#1e293b;padding:18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.25);">
-                <h2 style="margin-top:0;">🧩 Workspace</h2>
-                <pre style="margin:0;white-space:pre-wrap;word-break:break-word;color:#cbd5e1;max-height:200px;overflow:auto;font-size:13px;">${JSON.stringify(workspace, null, 2)}</pre>
-            </div>
-        `;
+        el.innerHTML = `<div style="background:#1e293b;padding:18px;border-radius:12px;"><h2 style="margin:0 0 8px;">🧩 Workspace</h2><p style="color:#94a3b8;font-size:13px;">Ready</p></div>`;
     },
-
-    /* =====================================
-    RUNTIME（兼容保留）
-    ===================================== */
 
     mountRuntime: function() {
         var el = this.cache.runtime;
@@ -852,26 +691,8 @@ LawAIApp.SystemComposer = {
             if (!this.cache.runtime) return;
             el = this.cache.runtime;
         }
-
-        var boot = LawAIApp.bootStatus || {};
-        var runtime = LawAIApp.RuntimeManager || {};
-
-        el.innerHTML = `
-            <div style="background:#1e293b;padding:18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.25);">
-                <h2 style="margin-top:0;">⚙ Runtime</h2>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;">
-                    <div><strong>Status</strong><br>${runtime.started ? "🟢 Running" : "🟡 Waiting"}</div>
-                    <div><strong>Active Engines</strong><br>${boot.active ? boot.active.length : 0}</div>
-                    <div><strong>Loaded Files</strong><br>${boot.loaded ? boot.loaded.length : 0}</div>
-                    <div><strong>Safe Mode</strong><br>${boot.safeMode ? "ON" : "OFF"}</div>
-                </div>
-            </div>
-        `;
+        el.innerHTML = `<div style="background:#1e293b;padding:18px;border-radius:12px;"><h2 style="margin:0 0 8px;">⚙ Runtime</h2><p style="color:#4a9eff;font-size:13px;">🟢 Online</p></div>`;
     },
-
-    /* =====================================
-    RUNTIME MODULES（兼容保留）
-    ===================================== */
 
     mountRuntimeModules: function() {
         var el = this.cache.modules;
@@ -880,18 +701,8 @@ LawAIApp.SystemComposer = {
             if (!this.cache.modules) return;
             el = this.cache.modules;
         }
-
-        el.innerHTML = `
-            <div style="background:#1e293b;padding:18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.25);">
-                <h2 style="margin-top:0;">📦 Runtime Modules</h2>
-                <p style="color:#888;">System running smoothly</p>
-            </div>
-        `;
+        el.innerHTML = `<div style="background:#1e293b;padding:18px;border-radius:12px;"><h2 style="margin:0 0 8px;">📦 Modules</h2><p style="color:#94a3b8;font-size:13px;">All systems ready</p></div>`;
     },
-
-    /* =====================================
-    PANEL MANAGEMENT
-    ===================================== */
 
     registerPanel: function(name, renderer) {
         if (!name || typeof renderer !== "function") {
@@ -907,11 +718,7 @@ LawAIApp.SystemComposer = {
             console.warn('Panel "' + name + '" not found');
             return;
         }
-        try {
-            this.panels[name]();
-        } catch (err) {
-            console.warn('Panel ' + name + ' refresh failed', err);
-        }
+        try { this.panels[name](); } catch (err) { console.warn('Panel ' + name + ' refresh failed', err); }
     },
 
     destroy: function() {
