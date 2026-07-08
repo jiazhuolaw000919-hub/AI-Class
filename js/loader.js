@@ -6,8 +6,18 @@ window.LawAIApp = window.LawAIApp || {};
  * =========================
  */
 const ENGINE_REGISTRY = {
-  core: ["storageEngine.js", "eventBus.js", "profileEngine.js"],
-  learning: ["levelEngine.js", "experienceEngine.js", "learningIntelligence.js"],
+  core: [
+    "storageEngine.js",
+    "eventBus.js",
+    "profileEngine.js"
+  ],
+
+  learning: [
+    "levelEngine.js",
+    "experienceEngine.js",
+    "learningIntelligence.js"
+  ],
+
   workspace: [
     "workspaceEngine.js",
     "workspaceState.js",
@@ -15,6 +25,7 @@ const ENGINE_REGISTRY = {
     "workspaceWidgets.js",
     "workspaceSearch.js"
   ],
+
   optional: [
     "motionSystem.js",
     "celebrationEngine.js",
@@ -30,64 +41,83 @@ const ENGINE_REGISTRY = {
  * BOOT STATE
  * =========================
  */
+
 window.__ENGINE_STATUS__ = {
-  loaded: [],
-  missing: [],
-  total: 0,
-  booted: false,
-  safeMode: false,
-  active: []   // 🔥 NEW: runtime active engines
+    loaded:[],
+    missing:[],
+    active:[],
+    total:0,
+    booted:false,
+    safeMode:false
 };
 
-const CRITICAL_ENGINES = [
-  "profileEngine.js",
-  "levelEngine.js",
-  "experienceEngine.js",
-  "learningIntelligence.js"
+const CRITICAL_ENGINES=[
+    "profileEngine.js",
+    "levelEngine.js",
+    "experienceEngine.js",
+    "learningIntelligence.js"
 ];
 
 /**
  * =========================
- * ENGINE ACTIVATION LAYER (🔥 NEW CORE FIX)
+ * STUB
  * =========================
  */
-function activateEngine(name, engine) {
-  if (!engine) return;
 
-  try {
-    // init lifecycle
-    if (typeof engine.init === "function") {
-      engine.init();
-    }
+function createStub(name){
 
-    // start lifecycle (optional)
-    if (typeof engine.start === "function") {
-      engine.start();
-    }
+    const stub={
+        __stub:true,
+        name,
 
-    window.__ENGINE_STATUS__.active.push(name);
+        init(){},
 
-    console.log(`⚡ activated: ${name}`);
-  } catch (e) {
-    console.warn(`⚠️ activation failed: ${name}`, e);
-  }
+        start(){}
+    };
+
+    window.LawAIApp[name]=stub;
+
+    window.LawAIApp.EngineRegistry?.register?.(
+        name,
+        stub
+    );
 }
 
 /**
  * =========================
- * STUB ENGINE
+ * ACTIVATE ENGINE
  * =========================
  */
-function createStub(name) {
-  const stub = {
-    __stub: true,
-    name,
-    init() {
-      console.warn(`⚠️ stub running: ${name}`);
-    }
-  };
 
-  window.LawAIApp?.EngineRegistry?.register?.(name, stub);
+function activateEngine(name){
+
+    const engine=window.LawAIApp[name];
+
+    if(!engine)return;
+
+    try{
+
+        engine.init?.();
+
+        engine.start?.();
+
+        window.__ENGINE_STATUS__.active.push(name);
+
+        window.LawAIApp.RuntimeRegistry?.register?.(
+            name,
+            engine
+        );
+
+    }catch(err){
+
+        console.warn(
+            "activation failed",
+            name,
+            err
+        );
+
+    }
+
 }
 
 /**
@@ -95,34 +125,59 @@ function createStub(name) {
  * LOAD SCRIPT
  * =========================
  */
-function loadScript(src) {
-  return new Promise((resolve) => {
-    const script = document.createElement("script");
-    script.src = "js/" + src;
 
-    script.onload = () => {
-      const name = src.replace(".js", "");
-      const engine = window.LawAIApp?.[name];
+function loadScript(src){
 
-      // register
-      if (engine) {
-        window.LawAIApp.EngineRegistry?.register?.(name, engine);
+    return new Promise(resolve=>{
 
-        // 🔥 NEW: AUTO ACTIVATE
-        activateEngine(name, engine);
-      }
+        const script=document.createElement("script");
 
-      resolve({ file: src, status: "ok" });
-    };
+        script.src="js/"+src;
 
-    script.onerror = () => {
-      const name = src.replace(".js", "");
-      createStub(name);
-      resolve({ file: src, status: "missing" });
-    };
+        script.onload=()=>{
 
-    document.head.appendChild(script);
-  });
+            const name=src.replace(".js","");
+
+            const engine=window.LawAIApp[name];
+
+            if(engine){
+
+                window.LawAIApp.EngineRegistry?.register?.(
+                    name,
+                    engine
+                );
+
+                activateEngine(name);
+
+            }
+
+            resolve({
+                file:src,
+                status:"ok"
+            });
+
+        };
+
+        script.onerror=()=>{
+
+            createStub(
+                src.replace(".js","")
+            );
+
+            resolve({
+
+                file:src,
+
+                status:"missing"
+
+            });
+
+        };
+
+        document.head.appendChild(script);
+
+    });
+
 }
 
 /**
@@ -130,85 +185,109 @@ function loadScript(src) {
  * LOAD GROUP
  * =========================
  */
-async function loadGroup(name, list) {
-  console.log(`📦 ${name}`);
-  return Promise.all(list.map(loadScript));
+
+async function loadGroup(group,list){
+
+    console.log("📦",group);
+
+    return Promise.all(
+
+        list.map(loadScript)
+
+    );
+
 }
 
 /**
  * =========================
- * BOOT SEQUENCE V3.9.7
+ * BOOT
  * =========================
  */
-async function boot() {
-  console.log("🚀 Loader V3.9.7 starting");
 
-  for (const [group, files] of Object.entries(ENGINE_REGISTRY)) {
-    const results = await loadGroup(group, files);
+async function boot(){
 
-    results.forEach(r => {
-      if (r.status === "ok") {
-        window.__ENGINE_STATUS__.loaded.push(r.file);
-      } else {
-        window.__ENGINE_STATUS__.missing.push(r.file);
-      }
-    });
-  }
+    console.log("🚀 Loader V3.9.8 starting");
 
-  const boot = window.__ENGINE_STATUS__;
+    for(const [group,files] of Object.entries(ENGINE_REGISTRY)){
 
-  boot.total = boot.loaded.length + boot.missing.length;
-  boot.booted = true;
+        const results=await loadGroup(group,files);
 
-  boot.safeMode = boot.missing.some(f =>
-    CRITICAL_ENGINES.includes(f)
-  );
+        results.forEach(r=>{
 
-  // 🔥 CRITICAL FIX: expose full runtime state
-  window.LawAIApp.bootStatus = boot;
+            if(r.status==="ok")
+                window.__ENGINE_STATUS__.loaded.push(r.file);
 
-  console.log("📊 BOOT REPORT");
-  console.table(boot);
+            else
+                window.__ENGINE_STATUS__.missing.push(r.file);
 
-  // SYSTEM READY
-  setTimeout(() => {
-    window.dispatchEvent(
-      new CustomEvent("SYSTEM_READY", {
-        detail: {
-          boot,
-          active: boot.active
-        }
-      })
-    );
-  }, 0);
+        });
 
-  // orchestrator hook
-  setTimeout(() => {
-    window.LawAIApp?.SystemOrchestrator?.init?.();
-  }, 50);
+    }
+
+    const boot=window.__ENGINE_STATUS__;
+
+    boot.total=
+
+        boot.loaded.length+
+
+        boot.missing.length;
+
+    boot.booted=true;
+
+    boot.safeMode=
+
+        boot.missing.some(f=>
+
+            CRITICAL_ENGINES.includes(f)
+
+        );
+
+    window.LawAIApp.bootStatus=boot;
+
+    console.table(boot);
+
+    /**
+     * Runtime Ready
+     */
+
+    window.LawAIApp.RuntimeManager?.boot?.();
+
+    setTimeout(()=>{
+
+        window.dispatchEvent(
+
+            new CustomEvent(
+
+                "SYSTEM_READY",
+
+                {
+
+                    detail:{
+
+                        boot,
+
+                        active:boot.active,
+
+                        timestamp:Date.now()
+
+                    }
+
+                }
+
+            )
+
+        );
+
+    },0);
+
 }
 
-// 🔥 V3.9.8 UI ACTIVATION HOOK
-setTimeout(() => {
-  if (window.LawAIApp?.SystemComposer?.init) {
-    window.LawAIApp.SystemComposer.init(window.__ENGINE_STATUS__);
-  }
-}, 50);
+/**
+ * =========================
+ * SELF HEALING
+ * =========================
+ */
 
-// 🔥 V3.9.9 SELF HEALING START
-if (window.LawAIApp?.SelfHealingSystem?.init) {
-  window.LawAIApp.SelfHealingSystem.init();
-}
-
-if (window.LawAIApp?.EngineActivationSystem?.init) {
-  setTimeout(() => window.LawAIApp.EngineActivationSystem.init(), 100);
-}
-
-if (window.LawAIApp?.SystemOrchestrator?.init) {
-  setTimeout(() => {
-    window.LawAIApp.SystemOrchestrator.init();
-  }, 50);
-}
+window.LawAIApp.SelfHealingSystem?.init?.();
 
 boot();
-
