@@ -1,47 +1,162 @@
+// ===========================================
 // memoryEngine.js
+// 记忆引擎 - 长期记忆保留（Phase 24 完善版）
+// ===========================================
+
+window.LawAIApp = window.LawAIApp || {};
+
 LawAIApp.MemoryEngine = (function() {
-  // 课程完成时更新记忆追踪
-  LawAIApp.EventBus.on('LessonCompleted', (data) => {
-    const lessonId = data.lessonId;
-    LawAIApp.MemoryTracker.getOrCreate(lessonId);
-    const currentStrength = LawAIApp.ForgettingCurve.calculateCurrentStrength(lessonId);
-    const boostedStrength = currentStrength + 15; // 完成课程显著增强记忆
-    const newState = boostedStrength >= 80 ? 'strong' : boostedStrength >= 50 ? 'stable' : 'learning';
-    LawAIApp.MemoryTracker.updateStrength(lessonId, boostedStrength, newState);
-    // 设置下次复习时间
-    const nextDate = LawAIApp.ForgettingCurve.getNextReviewDate(lessonId);
-    LawAIApp.MemoryTracker.getOrCreate(lessonId).nextReviewDate = nextDate.toISOString();
-    LawAIApp.EventBus.emit('MemoryUpdated', { lessonId, strength: boostedStrength });
-  });
+    var _initialized = false;
+    var _memories = {};
 
-  // 练习完成时增加少量记忆强度
-  LawAIApp.EventBus.on('PracticeCompleted', (data) => {
-    const lessonId = data.practice.lessonId;
-    const boost = 5;
-    const currentStr = LawAIApp.ForgettingCurve.calculateCurrentStrength(lessonId);
-    LawAIApp.MemoryTracker.updateStrength(lessonId, currentStr + boost);
-  });
+    // ===========================================
+    // 记忆存储
+    // ===========================================
+    function getAll() {
+        try {
+            var stored = LawAIApp.StorageEngine?.get?.('memory_entries') || {};
+            _memories = { ..._memories, ...stored };
+            return _memories;
+        } catch (e) {
+            return _memories;
+        }
+    }
 
-  // 定期检查并触发复习提醒
-  function scheduleReviews() {
-    const allMemory = LawAIApp.MemoryTracker.getAll();
-    Object.keys(allMemory).forEach(lessonId => {
-      if (LawAIApp.ForgettingCurve.isReviewDue(lessonId)) {
-        LawAIApp.EventBus.emit('ReviewScheduled', { lessonId, strength: allMemory[lessonId].strength });
-      }
-    });
-  }
+    function saveAll(memories) {
+        _memories = memories;
+        try {
+            LawAIApp.StorageEngine?.set?.('memory_entries', memories);
+        } catch (e) {}
+    }
 
-  // 每6小时检查一次
-  setInterval(scheduleReviews, 6 * 3600000);
-  scheduleReviews();
+    function getMemory(lessonId) {
+        var memories = getAll();
+        return memories[lessonId] || null;
+    }
 
-  return {
-    getMemoryStrength: (lessonId) => LawAIApp.ForgettingCurve.calculateCurrentStrength(lessonId),
-    getMemoryState: (lessonId) => LawAIApp.MemoryTracker.getOrCreate(lessonId).state,
-    getHeatmap: () => LawAIApp.MemoryHeatmap.getCategoryStrengthMap(),
-    getUpcomingReviews: () => LawAIApp.MemoryHeatmap.getUpcomingReviews(),
-    recall: (lessonId, quality) => LawAIApp.RecallEngine.recordRecall(lessonId, quality),
-    generateRecallPrompt: (lessonId) => LawAIApp.RecallEngine.generateRecallPrompt(lessonId)
-  };
+    function getMemoryStrength(lessonId) {
+        var memory = getMemory(lessonId);
+        if (!memory) return 0;
+        return memory.strength || 0;
+    }
+
+    // ===========================================
+    // 复习调度
+    // ===========================================
+    function scheduleReviews() {
+        var memories = getAll();
+        var today = new Date().toDateString();
+        var due = [];
+
+        for (var key in memories) {
+            var m = memories[key];
+            if (m.nextReview && new Date(m.nextReview).toDateString() <= today) {
+                due.push({
+                    lessonId: key,
+                    memory: m,
+                    strength: m.strength || 50
+                });
+            }
+        }
+
+        return due;
+    }
+
+    function getTodayReviews() {
+        var due = scheduleReviews();
+        return due.map(function(d) { return d.lessonId; });
+    }
+
+    // ===========================================
+    // 记忆更新
+    // ===========================================
+    function updateMemory(lessonId, strength) {
+        var memories = getAll();
+        var now = new Date();
+        var nextReview = new Date(now);
+        
+        // 根据强度计算下次复习时间
+        var daysToAdd = Math.max(1, Math.floor((strength || 50) / 10));
+        nextReview.setDate(nextReview.getDate() + daysToAdd);
+
+        memories[lessonId] = {
+            lessonId: lessonId,
+            strength: strength || 50,
+            lastReviewed: now.toISOString(),
+            nextReview: nextReview.toISOString(),
+            reviewCount: (memories[lessonId]?.reviewCount || 0) + 1
+        };
+
+        saveAll(memories);
+        return memories[lessonId];
+    }
+
+    function recordReview(lessonId, performance) {
+        performance = performance || 0.7; // 0-1
+        var memory = getMemory(lessonId);
+        var currentStrength = memory?.strength || 50;
+        
+        // 根据表现调整强度
+        var adjustment = (performance - 0.5) * 20;
+        var newStrength = Math.max(10, Math.min(100, currentStrength + adjustment));
+        
+        return updateMemory(lessonId, newStrength);
+    }
+
+    // ===========================================
+    // 记忆热图
+    // ===========================================
+    function getHeatmap() {
+        var memories = getAll();
+        var result = {};
+        for (var key in memories) {
+            result[key] = {
+                strength: memories[key].strength || 0,
+                reviewCount: memories[key].reviewCount || 0,
+                lastReviewed: memories[key].lastReviewed
+            };
+        }
+        return result;
+    }
+
+    // ===========================================
+    // 初始化
+    // ===========================================
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
+
+        // 监听课程完成
+        LawAIApp.EventBus?.on?.('LessonCompleted', function(data) {
+            var lessonId = data.lessonId;
+            if (lessonId) {
+                updateMemory(lessonId, 50);
+            }
+        });
+
+        // 监听复习完成
+        LawAIApp.EventBus?.on?.('ReviewCompleted', function(data) {
+            if (data.lessonId) {
+                recordReview(data.lessonId, data.performance || 0.7);
+            }
+        });
+
+        console.log('🧠 MemoryEngine initialized');
+    }
+
+    setTimeout(init, 300);
+
+    return {
+        init: init,
+        getAll: getAll,
+        getMemory: getMemory,
+        getMemoryStrength: getMemoryStrength,
+        updateMemory: updateMemory,
+        recordReview: recordReview,
+        scheduleReviews: scheduleReviews,
+        getTodayReviews: getTodayReviews,
+        getHeatmap: getHeatmap
+    };
 })();
+
+console.log('🧠 MemoryEngine V2.0 ready');
