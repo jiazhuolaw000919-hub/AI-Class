@@ -1,103 +1,260 @@
 window.LawAIApp = window.LawAIApp || {};
 
-LawAIApp.SystemComposer = {
-  init(boot) {
-    console.log("🧩 SystemComposer V3.9.12 init");
+LawAIApp.SystemComposer={
 
-    const root = document.getElementById("app") || document.body;
-    root.innerHTML = "";
+    initialized:false,
 
-    const container = document.createElement("div");
-    container.style.cssText = `
-      padding:20px;
-      font-family:Arial;
-      color:white;
-      background:#0b1220;
-      min-height:100vh;
-    `;
+    init(){
 
-    container.innerHTML = `
-      <h1>🚀 Law AI System LIVE</h1>
+        if(this.initialized){
 
-      <div style="margin-top:20px;">
-        <h2>📊 Learning Engine</h2>
-        <div id="learningPanel"></div>
-      </div>
+            this.refresh();
 
-      <div style="margin-top:20px;">
-        <h2>🧠 Learning Intelligence</h2>
-        <div id="intelligencePanel"></div>
-      </div>
+            return;
 
-      <div style="margin-top:20px;">
-        <h2>🧩 Workspace</h2>
-        <div id="workspacePanel"></div>
-      </div>
-    `;
+        }
 
-    root.appendChild(container);
+        this.initialized=true;
 
-    this.mountLearning();
-    this.mountIntelligence();
-    this.mountWorkspace();
-  },
+        console.log("🧩 Composer LIVE");
 
-  mountLearning() {
-    const el = document.getElementById("learningPanel");
+        const root=document.getElementById(
 
-    const level = LawAIApp.levelEngine?.getState?.() || {};
-    const xp = LawAIApp.experienceEngine?.getXP?.() || 0;
+            "law-runtime-root"
 
-    el.innerHTML = `
-      <div style="padding:10px;background:#1e293b;border-radius:10px">
-        <p>📈 Level: ${level.level || 1}</p>
-        <p>⭐ XP: ${xp}</p>
-      </div>
-    `;
-  },
+        );
 
-  mountIntelligence() {
-    const el = document.getElementById("intelligencePanel");
+        root.innerHTML=`
 
-    const ai = LawAIApp.learningIntelligence?.getState?.() || {
-      status: "inactive"
-    };
+        <div
+            style="
+                padding:25px;
+                color:white;
+            ">
 
-    el.innerHTML = `
-      <div style="padding:10px;background:#1e293b;border-radius:10px">
-        <p>🧠 AI Status: ${ai.status}</p>
-        <pre>${JSON.stringify(ai, null, 2)}</pre>
-      </div>
-    `;
-  },
+            <h1>
 
-  mountWorkspace() {
-    const el = document.getElementById("workspacePanel");
+            🚀 Law AI Academy
 
-    const ws = LawAIApp.WorkspaceState?.get?.("default") || {};
+            </h1>
 
-    el.innerHTML = `
-      <div style="padding:10px;background:#1e293b;border-radius:10px">
-        <p>🧩 Workspace Active</p>
-        <pre>${JSON.stringify(ws, null, 2)}</pre>
-      </div>
-    `;
-  }
+            <div id="learningPanel"></div>
+
+            <br>
+
+            <div id="workspacePanel"></div>
+
+            <br>
+
+            <div id="runtimePanel"></div>
+
+        </div>
+
+        `;
+
+        this.refresh();
+
+    },
+
+    refresh(){
+
+        this.mountLearning();
+
+        this.mountWorkspace();
+
+        this.mountRuntime();
+
+    },
+
+    mountLearning(){
+
+        const el=
+
+            document.getElementById(
+
+                "learningPanel"
+
+            );
+
+        if(!el)return;
+
+        const state=
+
+            LawAIApp
+
+            .LearningStateManager
+
+            ?.getState?.()
+
+            ||
+
+            {};
+
+        el.innerHTML=`
+
+        <div
+            style="
+                background:#1e293b;
+                padding:15px;
+                border-radius:10px;
+            ">
+
+        <h2>
+
+        📚 Learning
+
+        </h2>
+
+        <p>
+
+        Level :
+
+        ${state.level||1}
+
+        </p>
+
+        <p>
+
+        XP :
+
+        ${state.xp||0}
+
+        </p>
+
+        <p>
+
+        🔥
+
+        ${state.streak||0}
+
+        </p>
+
+        </div>
+
+        `;
+
+    },
+
+    mountWorkspace(){
+
+        const el=
+
+            document.getElementById(
+
+                "workspacePanel"
+
+            );
+
+        if(!el)return;
+
+        const ws=
+
+            LawAIApp
+
+            .WorkspaceState
+
+            ?.get?.("default")
+
+            ||
+
+            {};
+
+        el.innerHTML=`
+
+        <div
+            style="
+                background:#1e293b;
+                padding:15px;
+                border-radius:10px;
+            ">
+
+        <h2>
+
+        🧩 Workspace
+
+        </h2>
+
+        <pre>
+
+${JSON.stringify(ws,null,2)}
+
+        </pre>
+
+        </div>
+
+        `;
+
+    },
+
+    mountRuntime(){
+
+        const el=
+
+            document.getElementById(
+
+                "runtimePanel"
+
+            );
+
+        if(!el)return;
+
+        const boot=
+
+            LawAIApp
+
+            .bootStatus
+
+            ||
+
+            {};
+
+        el.innerHTML=`
+
+        <div
+            style="
+                background:#1e293b;
+                padding:15px;
+                border-radius:10px;
+            ">
+
+        <h2>
+
+        ⚙ Runtime
+
+        </h2>
+
+        <p>
+
+        Active Engines :
+
+        ${boot.active?.length||0}
+
+        </p>
+
+        <p>
+
+        Loaded :
+
+        ${boot.loaded?.length||0}
+
+        </p>
+
+        </div>
+
+        `;
+
+    }
+
 };
 
-window.addEventListener("LEARNING_UI_REFRESH", (e) => {
-  console.log("🎯 UI refresh received");
+window.addEventListener(
 
-  const state = e.detail?.state;
+    "LEARNING_UI_REFRESH",
 
-  const el = document.getElementById("learningPanel");
-  if (!el) return;
+    ()=>{
 
-  el.innerHTML = `
-    <div style="padding:10px;background:#1e293b;border-radius:10px">
-      <p>📈 Level: ${state?.level || 1}</p>
-      <p>⭐ XP: ${state?.xp || 0}</p>
-      <p>🔥 Streak: ${state?.streak || 0}</p>
-    </div>
-  `;
-});
+        LawAIApp.SystemComposer.refresh();
+
+    }
+
+);
