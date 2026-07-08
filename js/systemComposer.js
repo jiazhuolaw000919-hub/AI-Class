@@ -2,7 +2,7 @@ window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.SystemComposer = {
 
-    version: "4.0.16",
+    version: "4.0.17",
 
     initialized: false,
 
@@ -236,7 +236,7 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // Phase 9: 技能掌握度（新增）
+    // Phase 9: 技能掌握度
     // ============================================================
 
     _getSkillMastery: function(completedList, isDemo) {
@@ -265,7 +265,7 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // Phase 10: 知识图谱预览（新增）
+    // Phase 10: 知识图谱预览
     // ============================================================
 
     _getKnowledgeGraph: function(completedList, isDemo) {
@@ -302,7 +302,7 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 渲染主 UI（Phase 9+10 完整版）
+    // 渲染主 UI
     // ============================================================
 
     _renderMainUI: function() {
@@ -393,7 +393,6 @@ LawAIApp.SystemComposer = {
         var nodes = graph.nodes;
         var edges = graph.edges;
 
-        // 生成简单的节点-连线可视化
         var graphHtml = '';
         if (nodes.length > 0) {
             var nodeHtml = nodes.map(function(n, idx) {
@@ -475,7 +474,7 @@ LawAIApp.SystemComposer = {
         }.bind(this)).join('');
 
         // ============================================
-        // 渲染完整页面（Phase 9+10）
+        // 渲染完整页面
         // ============================================
 
         this.root.innerHTML = `
@@ -586,7 +585,7 @@ LawAIApp.SystemComposer = {
                     </div>
                     `}
 
-                    <!-- ===== Phase 9+10: 技能掌握度 + 知识图谱（双列） ===== -->
+                    <!-- ===== Phase 9+10: 技能掌握度 + 知识图谱 ===== -->
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
 
                         <!-- 技能掌握度 -->
