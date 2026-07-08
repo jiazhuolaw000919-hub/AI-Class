@@ -1,6 +1,8 @@
-// progressEngine.js (Phase 14 修正版 + 防御性检查)
+// ===========================================
+// progressEngine.js
+// 进度引擎 - 追踪用户学习进度
+// ===========================================
 
-// 确保 LawAIApp 存在
 window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.ProgressEngine = {
@@ -20,7 +22,10 @@ LawAIApp.ProgressEngine = {
       completionPercent: 0,
       currentStage: 'Foundation',
       xp: 0,
-      totalLessons: 365
+      totalLessons: 365,
+      day: 1,
+      level: 1,
+      streak: 0
     };
   },
 
@@ -57,8 +62,8 @@ LawAIApp.ProgressEngine = {
 
   _safeEmit(eventName, data) {
     try {
-      if (LawAIApp.ProgressEvents && typeof LawAIApp.ProgressEvents.emit === 'function') {
-        LawAIApp.ProgressEvents.emit(eventName, data);
+      if (LawAIApp.EventBus && typeof LawAIApp.EventBus.emit === 'function') {
+        LawAIApp.EventBus.emit(eventName, data);
         return true;
       }
       // 备选：使用自定义事件
@@ -101,7 +106,7 @@ LawAIApp.ProgressEngine = {
     }
   },
 
-  // 供 XPEngine 更新总 XP
+  // 更新 XP
   setXP(totalXP) {
     try {
       const prog = this.getProgress();
@@ -114,7 +119,6 @@ LawAIApp.ProgressEngine = {
     }
   },
 
-  // 获取当前 XP
   getXP() {
     try {
       const prog = this.getProgress();
@@ -125,34 +129,45 @@ LawAIApp.ProgressEngine = {
     }
   },
 
+  // 获取当前等级
+  getLevel() {
+    try {
+      const prog = this.getProgress();
+      return prog.level || 1;
+    } catch (err) {
+      console.warn('⚠️ Failed to get level:', err);
+      return 1;
+    }
+  },
+
+  // 获取当前 Day
+  getDay() {
+    try {
+      const prog = this.getProgress();
+      return prog.day || 1;
+    } catch (err) {
+      console.warn('⚠️ Failed to get day:', err);
+      return 1;
+    }
+  },
+
+  // 获取连续学习天数
+  getStreak() {
+    try {
+      const prog = this.getProgress();
+      return prog.streak || 0;
+    } catch (err) {
+      console.warn('⚠️ Failed to get streak:', err);
+      return 0;
+    }
+  },
+
   // 完成一节课
   completeLesson(lessonId) {
     console.log(`📚 ProgressEngine completing lesson: ${lessonId}`);
     
     try {
-      // ===========================================
-      // 1. 防御性检查：LessonEngine
-      // ===========================================
-      if (!LawAIApp.LessonEngine || typeof LawAIApp.LessonEngine.getAllLessons !== 'function') {
-        console.warn('⚠️ LessonEngine not ready, cannot complete lesson');
-        return null;
-      }
-
-      const allLessons = LawAIApp.LessonEngine.getAllLessons();
-      if (!allLessons || !Array.isArray(allLessons) || allLessons.length === 0) {
-        console.warn('⚠️ No lessons available');
-        return null;
-      }
-
-      const lesson = allLessons.find(l => l && l.lessonId === lessonId);
-      if (!lesson) {
-        console.warn(`⚠️ Lesson not found: ${lessonId}`);
-        return null;
-      }
-
-      // ===========================================
-      // 2. 获取进度
-      // ===========================================
+      // 获取进度
       const prog = this.getProgress();
       if (!prog || typeof prog !== 'object') {
         console.warn('⚠️ Invalid progress state');
@@ -170,102 +185,43 @@ LawAIApp.ProgressEngine = {
         return prog;
       }
 
-      // ===========================================
-      // 3. 更新完成列表
-      // ===========================================
+      // 更新完成列表
       prog.completedLessons.push(lessonId);
       
       const totalLessons = prog.totalLessons || 365;
       prog.completionPercent = Math.min(100, Math.round((prog.completedLessons.length / totalLessons) * 100));
 
-      // ===========================================
-      // 4. 标记课程已完成
-      // ===========================================
-      try {
-        if (lesson && typeof lesson === 'object') {
-          lesson.completed = true;
-          lesson.completedDate = new Date().toISOString();
-          if (allLessons && Array.isArray(allLessons) && lesson.day && lesson.day >= 1 && lesson.day <= allLessons.length) {
-            allLessons[lesson.day - 1] = lesson;
-            this._safeSet('allLessons', allLessons);
-          }
-        }
-      } catch (err) {
-        console.warn('⚠️ Failed to update lesson status:', err);
+      // 更新 Day（简单逻辑：完成课程数 + 1）
+      prog.day = Math.min(365, prog.completedLessons.length + 1);
+      
+      // 更新等级（每 10 节课升一级）
+      prog.level = Math.max(1, Math.floor(prog.completedLessons.length / 10) + 1);
+      
+      // 更新连续学习天数（简化版）
+      prog.streak = Math.min(365, prog.completedLessons.length);
+
+      // 更新当前课程
+      prog.currentLesson = prog.day;
+
+      // 更新阶段
+      if (prog.day <= 30) {
+        prog.currentStage = 'Foundation';
+      } else if (prog.day <= 70) {
+        prog.currentStage = 'Prompt Engineering';
+      } else if (prog.day <= 120) {
+        prog.currentStage = 'AI Tools';
+      } else if (prog.day <= 220) {
+        prog.currentStage = 'AI Development';
+      } else if (prog.day <= 300) {
+        prog.currentStage = 'Projects';
+      } else {
+        prog.currentStage = 'AI Business';
       }
 
-      // ===========================================
-      // 5. 更新当前课程
-      // ===========================================
-      try {
-        const allIds = allLessons.map(l => l && l.lessonId).filter(Boolean);
-        const nextIdx = allIds.findIndex(id => !prog.completedLessons.includes(id));
-        prog.currentLesson = nextIdx !== -1 ? (allLessons[nextIdx]?.day || 1) : 365;
-      } catch (err) {
-        console.warn('⚠️ Failed to find next lesson:', err);
-        prog.currentLesson = 1;
-      }
-
-      // ===========================================
-      // 6. 更新阶段
-      // ===========================================
-      try {
-        const currentLessonObj = allLessons[prog.currentLesson - 1];
-        if (currentLessonObj && LawAIApp.LessonEngine && LawAIApp.LessonEngine.stages) {
-          const stages = LawAIApp.LessonEngine.stages;
-          if (Array.isArray(stages)) {
-            const stage = stages.find(s => 
-              s && s.range && 
-              currentLessonObj.day >= s.range[0] && 
-              currentLessonObj.day <= s.range[1]
-            );
-            prog.currentStage = stage ? stage.name : 'Advanced';
-          } else {
-            prog.currentStage = 'Advanced';
-          }
-        } else {
-          prog.currentStage = 'Advanced';
-        }
-      } catch (err) {
-        console.warn('⚠️ Failed to determine stage:', err);
-        prog.currentStage = 'Advanced';
-      }
-
-      // ===========================================
-      // 7. 保存进度
-      // ===========================================
+      // 保存进度
       this.saveProgress(prog);
 
-      // ===========================================
-      // 8. 保存到 ProgressStorage（新模型）
-      // ===========================================
-      try {
-        if (LawAIApp.ProgressStorage && typeof LawAIApp.ProgressStorage.upsertLessonRecord === 'function') {
-          LawAIApp.ProgressStorage.upsertLessonRecord({
-            lessonId: lessonId,
-            academyId: 'academy_ai',
-            courseId: null,
-            moduleId: null,
-            status: 'completed',
-            completionPercentage: 100,
-            startedAt: lesson.completedDate,
-            lastOpened: lesson.completedDate,
-            completedAt: lesson.completedDate,
-            elapsedTime: 0,
-            attempts: 1,
-            resumePosition: null,
-            lastReview: null,
-            favorite: false,
-            bookmark: false
-          });
-        }
-      } catch (err) {
-        console.warn('⚠️ Failed to save to ProgressStorage:', err);
-      }
-
-      // ===========================================
-      // 9. 发布事件
-      // ===========================================
+      // 发布事件
       this._safeEmit('LessonCompleted', { lessonId });
       this._safeEmit('ProgressUpdated', { lessonId, overall: prog });
 
@@ -290,7 +246,6 @@ LawAIApp.ProgressEngine = {
     }
   },
 
-  // 获取完成百分比
   getCompletionPercent() {
     try {
       const prog = this.getProgress();
@@ -301,7 +256,6 @@ LawAIApp.ProgressEngine = {
     }
   },
 
-  // 获取当前课程
   getCurrentLesson() {
     try {
       const prog = this.getProgress();
@@ -312,7 +266,6 @@ LawAIApp.ProgressEngine = {
     }
   },
 
-  // 获取当前阶段
   getCurrentStage() {
     try {
       const prog = this.getProgress();
@@ -323,7 +276,6 @@ LawAIApp.ProgressEngine = {
     }
   },
 
-  // 检查课程是否已完成
   isLessonCompleted(lessonId) {
     try {
       const prog = this.getProgress();
@@ -334,7 +286,6 @@ LawAIApp.ProgressEngine = {
     }
   },
 
-  // 获取已完成课程列表
   getCompletedLessons() {
     try {
       const prog = this.getProgress();
@@ -345,7 +296,6 @@ LawAIApp.ProgressEngine = {
     }
   },
 
-  // 重置进度
   resetProgress() {
     try {
       this._safeSet('progress', null);
@@ -355,10 +305,53 @@ LawAIApp.ProgressEngine = {
       console.warn('⚠️ Failed to reset progress:', err);
       return this.defaultProgress();
     }
+  },
+
+  // 获取完整状态（供 UI 使用）
+  getState() {
+    try {
+      const prog = this.getProgress();
+      return {
+        level: prog.level || 1,
+        xp: prog.xp || 0,
+        streak: prog.streak || 0,
+        day: prog.day || 1,
+        completionPercent: prog.completionPercent || 0,
+        currentStage: prog.currentStage || 'Foundation',
+        completedLessons: prog.completedLessons || [],
+        totalLessons: prog.totalLessons || 365,
+        remainingLessons: this.getRemainingLessons()
+      };
+    } catch (err) {
+      console.warn('⚠️ Failed to get state:', err);
+      return {
+        level: 1,
+        xp: 0,
+        streak: 0,
+        day: 1,
+        completionPercent: 0,
+        currentStage: 'Foundation',
+        completedLessons: [],
+        totalLessons: 365,
+        remainingLessons: 365
+      };
+    }
   }
 };
 
-// 自动初始化
-LawAIApp.ProgressEngine.init();
+// ===========================================
+// 自动初始化（延迟执行）
+// ===========================================
+
+setTimeout(function() {
+  try {
+    if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.init === 'function') {
+      LawAIApp.ProgressEngine.init();
+      console.log('✅ ProgressEngine auto-initialized');
+    }
+  } catch (err) {
+    console.warn('⚠️ ProgressEngine auto-init failed:', err);
+  }
+}, 500);
 
 console.log('📊 ProgressEngine V1.0 ready');
