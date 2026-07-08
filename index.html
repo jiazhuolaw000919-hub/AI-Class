@@ -14,111 +14,84 @@
   <link rel="stylesheet" href="css/learning.css">
   <link rel="stylesheet" href="css/responsive.css">
   <link rel="stylesheet" href="css/theme.css">
-  <link rel="stylesheet" href="css/lesson.css">
-  <link rel="stylesheet" href="css/notes.css">
-  <link rel="stylesheet" href="css/calendar.css">
-  <link rel="stylesheet" href="css/settings.css">
 
   <!-- ========================= -->
-  <!-- 加载 JS -->
+  <!-- 只加载核心 JS -->
   <!-- ========================= -->
   
-  <!-- 1. 加载器 -->
-  <script src="js/loader.js"></script>
-  
-  <!-- 2. 核心启动引导器 -->
-  <script src="js/coreBootstrap.js"></script>
-  
-  <!-- 3. 核心引擎 -->
-  <script src="js/storageEngine.js"></script>
-  <script src="js/progressEngine.js"></script>
-  <script src="js/systemHealthMonitor.js"></script>
-  <script src="js/systemAnalyzer.js"></script>
-  <script src="js/selfImprovementEngine.js"></script>
-  <script src="js/evolutionDriveEngine.js"></script>
-  
-  <!-- 4. 系统组件 -->
-  <script src="js/systemComposer.js"></script>
-  <script src="js/app.js"></script>
-
-  <!-- 5. 占位模块（消除 warning） -->
+  <!-- 1. 核心启动引导器 -->
   <script>
-    // 为缺失的模块创建占位
+    // 确保 LawAIApp 存在
     window.LawAIApp = window.LawAIApp || {};
     
-    if (!LawAIApp.SystemBootstrapper) {
-      LawAIApp.SystemBootstrapper = {
-        bootstrap: function() { 
-          console.log('📡 SystemBootstrapper placeholder (ok)');
-          return Promise.resolve(); 
-        }
-      };
-    }
+    // 创建 StorageEngine 占位
+    LawAIApp.StorageEngine = {
+      _placeholder: true,
+      get: function(key, defaultValue) { 
+        try { return JSON.parse(localStorage.getItem('lawai_' + key)) || defaultValue; } 
+        catch(e) { return defaultValue; }
+      },
+      set: function(key, value) { 
+        try { localStorage.setItem('lawai_' + key, JSON.stringify(value)); return true; } 
+        catch(e) { return false; }
+      },
+      init: function() { console.log('💾 StorageEngine placeholder ready'); return this; }
+    };
     
-    if (!LawAIApp.CivilizationRuntime) {
-      LawAIApp.CivilizationRuntime = {
-        start: function() { 
-          console.log('🌍 CivilizationRuntime placeholder (ok)');
-          return Promise.resolve(); 
-        }
-      };
-    }
+    // 创建 EventBus 占位
+    LawAIApp.EventBus = {
+      _placeholder: true,
+      emit: function(event, data) { 
+        try { window.dispatchEvent(new CustomEvent(event, { detail: data })); } 
+        catch(e) {}
+        return true;
+      },
+      on: function(event, callback) { 
+        try { window.addEventListener(event, function(e) { callback(e.detail); }); } 
+        catch(e) {}
+        return true;
+      }
+    };
     
-    console.log('✅ Placeholder modules created');
+    console.log('✅ Core placeholders created');
   </script>
+  
+  <!-- 2. ProgressEngine -->
+  <script src="js/progressEngine.js"></script>
+  
+  <!-- 3. SystemComposer -->
+  <script src="js/systemComposer.js"></script>
+  
+  <!-- 4. App -->
+  <script src="js/app.js"></script>
 
-  <!-- 6. 启动脚本 -->
+  <!-- 5. 启动 -->
   <script>
-    // 监听 CoreBootstrap 就绪事件
-    document.addEventListener('CORE_BOOTSTRAP_READY', function() {
-      console.log('📡 CoreBootstrap ready, initializing SystemComposer...');
-      
-      if (window.LawAIApp?.SystemComposer) {
-        window.LawAIApp.SystemComposer.init({});
-      }
-      
-      loadAcademyPage();
-    });
-
-    // 备用启动
+    console.log('🚀 Starting application...');
+    
+    // 初始化 ProgressEngine
+    if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.init === 'function') {
+      LawAIApp.ProgressEngine.init();
+    }
+    
+    // 初始化 SystemComposer
     setTimeout(function() {
-      if (!window._bootstrapped) {
-        console.warn('⚠️ CoreBootstrap not triggered, manual fallback...');
-        
-        try {
-          if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.init === 'function') {
-            LawAIApp.ProgressEngine.init();
-          }
-          if (LawAIApp.SystemHealthMonitor && typeof LawAIApp.SystemHealthMonitor.init === 'function') {
-            LawAIApp.SystemHealthMonitor.init();
-          }
-        } catch (err) {
-          console.warn('⚠️ Manual init failed:', err);
-        }
-        
-        if (window.LawAIApp?.SystemComposer) {
-          window.LawAIApp.SystemComposer.init({});
-        }
-        
-        loadAcademyPage();
+      if (LawAIApp.SystemComposer && typeof LawAIApp.SystemComposer.init === 'function') {
+        LawAIApp.SystemComposer.init({});
+        console.log('✅ SystemComposer initialized');
       }
-    }, 5000);
-
+    }, 500);
+    
+    // 加载 academy 页面
     function loadAcademyPage() {
-      console.log('📄 Loading academy page...');
-      
       fetch('pages/academy.html')
         .then(function(response) {
-          if (!response.ok) {
-            throw new Error('Failed to load academy page: ' + response.status);
-          }
+          if (!response.ok) throw new Error('Failed to load');
           return response.text();
         })
         .then(function(html) {
           var parser = new DOMParser();
           var doc = parser.parseFromString(html, 'text/html');
-          var bodyContent = doc.body.innerHTML;
-          
           var root = document.getElementById('law-runtime-root');
           if (root) {
             var container = document.getElementById('systemComposerRoot');
@@ -127,25 +100,35 @@
               container.id = 'systemComposerRoot';
               root.appendChild(container);
             }
-            container.innerHTML = bodyContent;
-            console.log('✅ Academy page loaded successfully!');
-            window._academyLoaded = true;
+            container.innerHTML = doc.body.innerHTML;
+            console.log('✅ Academy page loaded!');
           }
         })
         .catch(function(err) {
-          console.warn('⚠️ Failed to load academy page, using fallback:', err.message);
-          if (window.LawAIApp?.SystemComposer) {
-            window.LawAIApp.SystemComposer._renderMainUI();
+          console.warn('⚠️ Failed to load academy page:', err);
+          if (LawAIApp.SystemComposer && typeof LawAIApp.SystemComposer._renderMainUI === 'function') {
+            LawAIApp.SystemComposer._renderMainUI();
           }
         });
     }
-
-    window._bootstrapped = true;
+    
+    // 等待 SystemComposer 就绪后加载页面
+    document.addEventListener('COMPOSER_MOUNTED', function() {
+      console.log('📡 COMPOSER_MOUNTED received');
+      setTimeout(loadAcademyPage, 500);
+    });
+    
+    // 备用：5秒后强制加载
+    setTimeout(function() {
+      var root = document.getElementById('law-runtime-root');
+      if (root && root.innerHTML.trim() === '') {
+        loadAcademyPage();
+      }
+    }, 5000);
   </script>
 
 </head>
 <body>
-  <!-- 挂载点 -->
   <div id="law-runtime-root"></div>
 
   <!-- 加载提示 -->
@@ -172,43 +155,19 @@
     <div style="font-size: 48px; margin-bottom: 16px;">🚀</div>
     <h2 style="color: white; font-weight: 600; margin: 0 0 8px 0;">Loading Law AI Academy</h2>
     <p style="margin: 0; font-size: 14px;">Preparing your learning environment...</p>
-    <div style="
-      margin-top: 24px;
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(74,158,255,0.15);
-      border-top-color: #4a9eff;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    "></div>
-    <style>
-      @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
+    <div style="margin-top: 24px; width: 40px; height: 40px; border: 3px solid rgba(74,158,255,0.15); border-top-color: #4a9eff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
   </div>
 
   <script>
     document.addEventListener('COMPOSER_MOUNTED', function() {
-      hideLoading();
+      var el = document.getElementById('loading-placeholder');
+      if (el) { el.style.opacity = '0'; setTimeout(function() { el.style.display = 'none'; }, 800); }
     });
-    
-    setTimeout(hideLoading, 5000);
-    
-    function hideLoading() {
-      var placeholder = document.getElementById('loading-placeholder');
-      if (placeholder) {
-        placeholder.style.opacity = '0';
-        setTimeout(function() {
-          placeholder.style.display = 'none';
-        }, 800);
-      }
-    }
+    setTimeout(function() {
+      var el = document.getElementById('loading-placeholder');
+      if (el && el.style.display !== 'none') { el.style.opacity = '0'; setTimeout(function() { el.style.display = 'none'; }, 800); }
+    }, 5000);
   </script>
-
-  <noscript>
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#0b1220;color:white;text-align:center;padding:20px;">
-      <h2>⚠️ JavaScript 未启用</h2>
-      <p style="color:#94a3b8;">请启用 JavaScript 以使用 Law AI Academy</p>
-    </div>
-  </noscript>
 </body>
 </html>
