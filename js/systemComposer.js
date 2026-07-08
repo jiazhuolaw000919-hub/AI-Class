@@ -2,7 +2,7 @@ window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.SystemComposer = {
 
-    version: "4.0.1",
+    version: "4.0.2",
 
     initialized: false,
 
@@ -16,6 +16,8 @@ LawAIApp.SystemComposer = {
 
     _mounting: false,
 
+    _mountedNotified: false,
+
     init(boot = {}) {
 
         this.boot = boot || LawAIApp.bootStatus || {};
@@ -23,8 +25,10 @@ LawAIApp.SystemComposer = {
         if (this.initialized) {
             console.log("🔄 SystemComposer already initialized, refreshing...");
             this.refresh();
-            // 仍然触发事件，通知 App 它还活着
-            this._notifyMounted();
+            // 只在首次初始化时通知，避免重复
+            if (!this._mountedNotified) {
+                this._notifyMounted();
+            }
             return;
         }
 
@@ -35,7 +39,8 @@ LawAIApp.SystemComposer = {
         }
 
         this._mounting = true;
-        console.log("🧩 SystemComposer V4.0.1 initializing...");
+        this._mountedNotified = false;
+        console.log("🧩 SystemComposer V" + this.version + " initializing...");
 
         try {
             this.initialized = true;
@@ -45,53 +50,51 @@ LawAIApp.SystemComposer = {
 
             this.cache = {};
 
-            // 只在 root 是 law-runtime-root 时才渲染完整界面
-            // 避免破坏外部布局
-            if (this.root.id === "law-runtime-root") {
-                this._renderMainUI();
+            // 检查是否已经存在 systemComposerRoot，防止重复渲染
+            const existingRoot = document.getElementById("systemComposerRoot");
+            if (existingRoot) {
+                console.log("🔄 systemComposerRoot already exists, reusing...");
+                // 更新 root 引用
+                this.root = existingRoot;
+                // 重新获取缓存
+                this.cache.learning = document.getElementById("learningPanel");
+                this.cache.workspace = document.getElementById("workspacePanel");
+                this.cache.runtime = document.getElementById("runtimePanel");
+                this.cache.modules = document.getElementById("modulePanel");
             } else {
-                console.warn("⚠️ Root element is not 'law-runtime-root', skipping full UI render");
-                // 如果 root 不是预期的，只渲染核心内容
-                this._renderMinimalUI();
+                // 只在 root 是 law-runtime-root 时才渲染完整界面
+                if (this.root.id === "law-runtime-root") {
+                    this._renderMainUI();
+                } else {
+                    console.warn("⚠️ Root element is not 'law-runtime-root', using fallback");
+                    this._renderMinimalUI();
+                }
+
+                // Cache frequently-used DOM nodes
+                this.cache.learning = document.getElementById("learningPanel");
+                this.cache.workspace = document.getElementById("workspacePanel");
+                this.cache.runtime = document.getElementById("runtimePanel");
+                this.cache.modules = document.getElementById("modulePanel");
             }
-
-            // Cache frequently-used DOM nodes
-            this.cache.learning =
-                document.getElementById("learningPanel");
-
-            this.cache.workspace =
-                document.getElementById("workspacePanel");
-
-            this.cache.runtime =
-                document.getElementById("runtimePanel");
-
-            this.cache.modules =
-                document.getElementById("modulePanel");
 
             // Register built-in panels
             this.panels = {
-
                 learning: () => this.mountLearning(),
-
                 workspace: () => this.mountWorkspace(),
-
                 runtime: () => this.mountRuntime(),
-
                 modules: () => this.mountRuntimeModules()
-
             };
 
             // 首次渲染所有面板
             this.refresh();
 
-            console.log("✅ SystemComposer V4.0.1 initialized successfully");
+            console.log("✅ SystemComposer V" + this.version + " initialized successfully");
             
-            // 通知 App 已经挂载完成
+            // 通知 App 已经挂载完成（仅一次）
             this._notifyMounted();
 
         } catch (err) {
             console.error("❌ SystemComposer init failed:", err);
-            // 即使失败，也显示基本内容
             this._renderFallbackUI(err.message);
         } finally {
             this._mounting = false;
@@ -108,6 +111,12 @@ LawAIApp.SystemComposer = {
     _renderMainUI() {
         if (!this.root) return;
         
+        // 防止重复渲染：如果已经存在 systemComposerRoot，不重建
+        if (document.getElementById("systemComposerRoot")) {
+            console.log("🔄 systemComposerRoot already exists, skipping render");
+            return;
+        }
+        
         this.root.innerHTML = `
 
         <div
@@ -121,12 +130,12 @@ LawAIApp.SystemComposer = {
                 box-sizing:border-box;
             ">
 
-            <h1 style="margin-top:0;display:flex;align-items:center;gap:12px;">
-                <span>🚀 Law AI Academy</span>
-                <span style="font-size:14px;color:#4a9eff;font-weight:normal;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+                <h1 style="margin:0;">🚀 Law AI Academy</h1>
+                <span style="font-size:14px;color:#4a9eff;font-weight:normal;background:#1e293b;padding:4px 12px;border-radius:20px;">
                     v${this.version}
                 </span>
-            </h1>
+            </div>
 
             <div id="learningPanel"></div>
 
@@ -155,7 +164,13 @@ LawAIApp.SystemComposer = {
 
     _renderMinimalUI() {
         if (!this.root) return;
-        // 如果 root 不是预期的，只追加内容而不是覆盖
+        
+        // 防止重复添加
+        if (document.getElementById("systemComposerRoot")) {
+            console.log("🔄 systemComposerRoot already exists, skipping minimal render");
+            return;
+        }
+        
         const container = document.createElement('div');
         container.id = 'systemComposerRoot';
         container.style.cssText = 'padding:20px;background:#0b1220;color:white;';
@@ -193,11 +208,15 @@ LawAIApp.SystemComposer = {
 
     /**
      * =========================
-     * 通知 App 已挂载
+     * 通知 App 已挂载（仅触发一次）
      * =========================
      */
 
     _notifyMounted() {
+        if (this._mountedNotified) {
+            return; // 已经通知过了，不再重复
+        }
+        
         try {
             const event = new CustomEvent('COMPOSER_MOUNTED', {
                 detail: {
@@ -207,7 +226,8 @@ LawAIApp.SystemComposer = {
                 }
             });
             window.dispatchEvent(event);
-            console.log("📡 Dispatched COMPOSER_MOUNTED event");
+            this._mountedNotified = true;
+            console.log("📡 Dispatched COMPOSER_MOUNTED event (once)");
         } catch (err) {
             console.warn("Failed to dispatch COMPOSER_MOUNTED:", err);
         }
@@ -216,25 +236,13 @@ LawAIApp.SystemComposer = {
     refresh() {
         console.log("🔄 SystemComposer refreshing all panels...");
         Object.values(this.panels).forEach(panel => {
-
             try {
-
                 panel();
-
+            } catch (err) {
+                console.warn("Panel render failed:", err);
             }
-
-            catch (err) {
-
-                console.warn(
-                    "Panel render failed:",
-                    err
-                );
-
-            }
-
         });
-        // 刷新后也通知
-        this._notifyMounted();
+        // 刷新后不重复通知，减少事件泛滥
     },
 
     /* =====================================
@@ -615,6 +623,8 @@ destroy() {
 
     this._mounting = false;
 
+    this._mountedNotified = false;
+
     console.log("🧩 SystemComposer destroyed");
 
 }
@@ -703,11 +713,10 @@ window.addEventListener(
 
 );
 
-// 新增：监听 COMPOSER_MOUNTED 事件，App 可以据此确认渲染完成
-console.log("🧩 SystemComposer V4.0.1 Ready");
+console.log("🧩 SystemComposer V4.0.2 Ready");
 
 // 确保挂载到全局
 if (typeof window.LawAIApp !== 'undefined') {
     window.LawAIApp.SystemComposer = LawAIApp.SystemComposer;
-    console.log('✅ SystemComposer attached to LawAIApp');
+    console.log('✅ SystemComposer V' + LawAIApp.SystemComposer.version + ' attached to LawAIApp');
 }
