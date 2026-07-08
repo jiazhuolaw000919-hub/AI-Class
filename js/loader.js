@@ -101,13 +101,24 @@ function activateEngine(name){
 
         engine.start?.();
 
-        window.__ENGINE_STATUS__.active.push(name);
+if (
+    !window.__ENGINE_STATUS__.active.includes(name)
+) {
+    window.__ENGINE_STATUS__.active.push(name);
+}
 
-        window.LawAIApp.RuntimeRegistry?.register?.(
+if(
+    !window.LawAIApp.RuntimeManager
+        ?.engines?.[name]
+){
+
+    window.LawAIApp.RuntimeManager
+        ?.registerEngine?.(
             name,
             engine
         );
 
+}
     }catch(err){
 
         console.warn(
@@ -206,30 +217,42 @@ async function loadGroup(group,list){
 
 async function boot(){
 
-    console.log("🚀 Loader V3.9.8 starting");
+    console.log("🚀 Loader V3.9.10 starting");
 
-    for(const [group,files] of Object.entries(ENGINE_REGISTRY)){
+    // Runtime Boot
+    LawAIApp.RuntimeRegistry?.init?.();
+    LawAIApp.RuntimeManager?.init?.();
 
-        const results=await loadGroup(group,files);
+  // =========================
+// LOAD ALL ENGINE GROUPS
+// =========================
 
-        results.forEach(r=>{
+for (const [group, files] of Object.entries(ENGINE_REGISTRY)) {
 
-            if(r.status==="ok")
-                window.__ENGINE_STATUS__.loaded.push(r.file);
+    const results = await loadGroup(group, files);
 
-            else
-                window.__ENGINE_STATUS__.missing.push(r.file);
+    results.forEach(r => {
 
-        });
+        if (r.status === "ok") {
 
-    }
+            window.__ENGINE_STATUS__.loaded.push(r.file);
+
+        } else {
+
+            window.__ENGINE_STATUS__.missing.push(r.file);
+
+        }
+
+    });
+
+}
 
     const boot=window.__ENGINE_STATUS__;
 
+ 
+  
     boot.total=
-
         boot.loaded.length+
-
         boot.missing.length;
 
     boot.booted=true;
@@ -246,18 +269,50 @@ async function boot(){
 
     console.table(boot);
 
+console.log("📊 Runtime Summary");
+
+console.log({
+
+    loaded:boot.loaded.length,
+
+    active:boot.active.length,
+
+    missing:boot.missing.length,
+
+    safeMode:boot.safeMode
+
+});
+
     /**
      * Runtime Ready
      */
 
-    window.LawAIApp.RuntimeManager?.boot?.();
+    window.LawAIApp.RuntimeManager?.boot?.({
 
-    setTimeout(()=>{
+    boot,
+
+    active:boot.active
+
+});
+
+if (!LawAIApp.SystemComposer?.initialized) {
+    LawAIApp.SystemComposer?.init?.();
+}
+
+if (!LawAIApp.LayoutEngineV2?.initialized) {
+    LawAIApp.LayoutEngineV2?.init?.();
+}
+
+if (!LawAIApp.EngineBinder?.initialized) {
+    LawAIApp.EngineBinder?.init?.();
+}
+    
+setTimeout(()=>{
 
         window.dispatchEvent(
 
             new CustomEvent(
-
+  
                 "SYSTEM_READY",
 
                 {
