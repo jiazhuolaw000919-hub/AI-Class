@@ -242,7 +242,6 @@ LawAIApp.SystemComposer = {
                 console.warn("Panel render failed:", err);
             }
         });
-        // 更新顶部状态栏
         this._updateHeaderStats();
     },
 
@@ -264,7 +263,7 @@ LawAIApp.SystemComposer = {
     },
 
     /* =====================================
-   LEARNING（使用 CSS 类）
+   LEARNING
 ===================================== */
 
 mountLearning() {
@@ -303,7 +302,7 @@ mountLearning() {
 },
 
 /* =====================================
-   WORKSPACE（使用 CSS 类）
+   WORKSPACE
 ===================================== */
 
 mountWorkspace() {
@@ -327,7 +326,7 @@ mountWorkspace() {
 },
 
     /* =====================================
-   RUNTIME（使用 CSS 类）
+   RUNTIME
 ===================================== */
 
 mountRuntime() {
@@ -385,7 +384,7 @@ mountRuntime() {
 },
 
 /* =====================================
-   RUNTIME MODULES（使用 CSS 类）
+   RUNTIME MODULES
 ===================================== */
 
 mountRuntimeModules() {
