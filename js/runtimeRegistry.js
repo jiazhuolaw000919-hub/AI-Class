@@ -40,3 +40,9 @@ LawAIApp.RuntimeRegistry = {
     });
   }
 };
+
+discover(){
+
+    return Object.values(this.engines);
+
+}
