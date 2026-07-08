@@ -289,4 +289,17 @@ LawAIApp.SecondBrainEngine = (function() {
     return {
         init: init,
         getOrCreate: getOrCreateCard,
-        get: get
+        get: getCard,
+        getAllCards: getAllCards,
+        update: updateCard,
+        getGraph: getGraph,
+        getNeighbors: getNeighbors,
+        getConfidence: calculateConfidence,
+        checkDecay: checkDecay,
+        checkAll: checkAll,
+        search: search,
+        autoLinkForLesson: autoLinkForLesson
+    };
+})();
+
+console.log('🧠 SecondBrainEngine V2.0 ready');
