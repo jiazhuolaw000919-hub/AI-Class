@@ -592,4 +592,242 @@ LawAIApp.SystemComposer = {
     _renderFallbackUI: function(errorMsg) {
         if (!this.root) return;
         this.root.innerHTML = `
-            <div style="padding:40px;text-align
+            <div style="padding:40px;text-align:center;background:#0b1220;color:white;min-height:100vh;font-family:'Inter',sans-serif;">
+                <h2>⚠️ SystemComposer Error</h2>
+                <p style="color:#ff6b6b;">${errorMsg || 'Unknown error'}</p>
+                <p style="color:#666;font-size:14px;margin-top:20px;">
+                    Please refresh or check console for details
+                </p>
+                <button onclick="location.reload()" style="
+                    margin-top:20px;
+                    padding:10px 30px;
+                    background:#4a9eff;
+                    border:none;
+                    border-radius:8px;
+                    color:white;
+                    font-size:14px;
+                    cursor:pointer;
+                ">🔄 Refresh</button>
+            </div>
+        `;
+    },
+
+    /**
+     * =========================
+     * 通知 App 已挂载
+     * =========================
+     */
+
+    _notifyMounted: function() {
+        if (this._mountedNotified) return;
+
+        try {
+            var event = new CustomEvent('COMPOSER_MOUNTED', {
+                detail: {
+                    version: this.version,
+                    initialized: this.initialized,
+                    root: this.root ? this.root.id : null
+                }
+            });
+            window.dispatchEvent(event);
+            this._mountedNotified = true;
+            console.log("📡 Dispatched COMPOSER_MOUNTED event (once)");
+        } catch (err) {
+            console.warn("Failed to dispatch COMPOSER_MOUNTED:", err);
+        }
+    },
+
+    refresh: function() {
+        console.log("🔄 SystemComposer refreshing all panels...");
+        var self = this;
+        Object.values(this.panels).forEach(function(panel) {
+            try {
+                panel();
+            } catch (err) {
+                console.warn("Panel render failed:", err);
+            }
+        });
+    },
+
+    /* =====================================
+    LEARNING（兼容保留）
+    ===================================== */
+
+    mountLearning: function() {
+        var el = this.cache.learning;
+        if (!el) {
+            this.cache.learning = document.getElementById("learningPanel");
+            if (!this.cache.learning) return;
+            el = this.cache.learning;
+        }
+
+        var state = {};
+        try {
+            if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.getState === 'function') {
+                state = LawAIApp.ProgressEngine.getState();
+            }
+        } catch (err) {}
+
+        el.innerHTML = `
+            <div style="background:#1e293b;padding:18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.25);">
+                <h2 style="margin-top:0;">📚 Learning</h2>
+                <div style="display:flex;gap:24px;flex-wrap:wrap;">
+                    <div><strong>📈 Level</strong><br>${state.level || 1}</div>
+                    <div><strong>⭐ XP</strong><br>${state.xp || 0}</div>
+                    <div><strong>🔥 Streak</strong><br>${state.streak || 0}</div>
+                    <div><strong>📅 Day</strong><br>${state.day || 1}</div>
+                </div>
+            </div>
+        `;
+    },
+
+    /* =====================================
+    WORKSPACE（兼容保留）
+    ===================================== */
+
+    mountWorkspace: function() {
+        var el = this.cache.workspace;
+        if (!el) {
+            this.cache.workspace = document.getElementById("workspacePanel");
+            if (!this.cache.workspace) return;
+            el = this.cache.workspace;
+        }
+
+        var workspace = {};
+        try {
+            if (LawAIApp.WorkspaceState && typeof LawAIApp.WorkspaceState.get === 'function') {
+                workspace = LawAIApp.WorkspaceState.get("default") || {};
+            }
+        } catch (err) {}
+
+        el.innerHTML = `
+            <div style="background:#1e293b;padding:18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.25);">
+                <h2 style="margin-top:0;">🧩 Workspace</h2>
+                <pre style="margin:0;white-space:pre-wrap;word-break:break-word;color:#cbd5e1;max-height:200px;overflow:auto;font-size:13px;">${JSON.stringify(workspace, null, 2)}</pre>
+            </div>
+        `;
+    },
+
+    /* =====================================
+    RUNTIME（兼容保留）
+    ===================================== */
+
+    mountRuntime: function() {
+        var el = this.cache.runtime;
+        if (!el) {
+            this.cache.runtime = document.getElementById("runtimePanel");
+            if (!this.cache.runtime) return;
+            el = this.cache.runtime;
+        }
+
+        var boot = LawAIApp.bootStatus || {};
+        var runtime = LawAIApp.RuntimeManager || {};
+
+        el.innerHTML = `
+            <div style="background:#1e293b;padding:18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.25);">
+                <h2 style="margin-top:0;">⚙ Runtime</h2>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;">
+                    <div><strong>Status</strong><br>${runtime.started ? "🟢 Running" : "🟡 Waiting"}</div>
+                    <div><strong>Active Engines</strong><br>${boot.active ? boot.active.length : 0}</div>
+                    <div><strong>Loaded Files</strong><br>${boot.loaded ? boot.loaded.length : 0}</div>
+                    <div><strong>Safe Mode</strong><br>${boot.safeMode ? "ON" : "OFF"}</div>
+                </div>
+            </div>
+        `;
+    },
+
+    /* =====================================
+    RUNTIME MODULES（兼容保留）
+    ===================================== */
+
+    mountRuntimeModules: function() {
+        var el = this.cache.modules;
+        if (!el) {
+            this.cache.modules = document.getElementById("modulePanel");
+            if (!this.cache.modules) return;
+            el = this.cache.modules;
+        }
+
+        el.innerHTML = `
+            <div style="background:#1e293b;padding:18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.25);">
+                <h2 style="margin-top:0;">📦 Runtime Modules</h2>
+                <p style="color:#888;">System running smoothly</p>
+            </div>
+        `;
+    },
+
+    /* =====================================
+    PANEL MANAGEMENT
+    ===================================== */
+
+    registerPanel: function(name, renderer) {
+        if (!name || typeof renderer !== "function") {
+            console.warn("Invalid panel registration:", name);
+            return;
+        }
+        this.panels[name] = renderer;
+        console.log('📌 Panel "' + name + '" registered');
+    },
+
+    refreshPanel: function(name) {
+        if (!this.panels[name]) {
+            console.warn('Panel "' + name + '" not found');
+            return;
+        }
+        try {
+            this.panels[name]();
+        } catch (err) {
+            console.warn('Panel ' + name + ' refresh failed', err);
+        }
+    },
+
+    destroy: function() {
+        this.initialized = false;
+        this.boot = {};
+        this.cache = {};
+        this.panels = {};
+        this.root = null;
+        this._mounting = false;
+        this._mountedNotified = false;
+        console.log("🧩 SystemComposer destroyed");
+    }
+
+};
+
+/* =====================================
+   AUTO REFRESH
+===================================== */
+
+window.addEventListener("LEARNING_UI_REFRESH", function() {
+    LawAIApp.SystemComposer?.refreshPanel("learning");
+});
+
+window.addEventListener("SYSTEM_READY", function(e) {
+    console.log("📡 SYSTEM_READY received by SystemComposer");
+    if (!LawAIApp.SystemComposer.initialized) {
+        LawAIApp.SystemComposer.init(e.detail ? e.detail.boot : undefined);
+    } else {
+        LawAIApp.SystemComposer.boot = e.detail ? e.detail.boot : LawAIApp.bootStatus || {};
+        LawAIApp.SystemComposer.refresh();
+    }
+});
+
+window.addEventListener("RUNTIME_READY", function() {
+    LawAIApp.SystemComposer?.refreshPanel("runtime");
+    LawAIApp.SystemComposer?.refreshPanel("modules");
+});
+
+window.addEventListener("WORKSPACE_UPDATED", function() {
+    LawAIApp.SystemComposer?.refreshPanel("workspace");
+});
+
+window.addEventListener("PROFILE_UPDATED", function() {
+    LawAIApp.SystemComposer?.refreshPanel("learning");
+});
+
+console.log("🧩 SystemComposer V" + LawAIApp.SystemComposer.version + " Ready");
+
+if (typeof window.LawAIApp !== 'undefined') {
+    window.LawAIApp.SystemComposer = LawAIApp.SystemComposer;
+    console.log('✅ SystemComposer V' + LawAIApp.SystemComposer.version + ' attached to LawAIApp');
+}
