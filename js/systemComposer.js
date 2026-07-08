@@ -2,7 +2,7 @@ window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.SystemComposer = {
 
-    version: "4.0.15",
+    version: "4.0.16",
 
     initialized: false,
 
@@ -207,45 +207,22 @@ LawAIApp.SystemComposer = {
             ];
         }
 
-        // 今日课程目标
         var nextDay = Math.min(day + 1, totalLessons);
         var completed = completedList.length;
         var todayGoal = Math.min(completed + 1, totalLessons);
 
-        goals.push({
-            icon: '📖',
-            label: 'Complete Day ' + todayGoal + ' lesson',
-            done: completed >= todayGoal
-        });
+        goals.push({ icon: '📖', label: 'Complete Day ' + todayGoal + ' lesson', done: completed >= todayGoal });
 
-        // 连续签到目标
         if (streak < 7) {
-            goals.push({
-                icon: '🔥',
-                label: 'Reach 7-day streak (' + streak + '/7)',
-                done: false
-            });
+            goals.push({ icon: '🔥', label: 'Reach 7-day streak (' + streak + '/7)', done: false });
         } else if (streak < 14) {
-            goals.push({
-                icon: '🔥',
-                label: 'Reach 14-day streak (' + streak + '/14)',
-                done: false
-            });
+            goals.push({ icon: '🔥', label: 'Reach 14-day streak (' + streak + '/14)', done: false });
         } else if (streak < 30) {
-            goals.push({
-                icon: '🔥',
-                label: 'Reach 30-day streak (' + streak + '/30)',
-                done: false
-            });
+            goals.push({ icon: '🔥', label: 'Reach 30-day streak (' + streak + '/30)', done: false });
         } else {
-            goals.push({
-                icon: '🏅',
-                label: 'Maintain your ' + streak + '-day streak!',
-                done: true
-            });
+            goals.push({ icon: '🏅', label: 'Maintain your ' + streak + '-day streak!', done: true });
         }
 
-        // XP 目标
         var xp = completed * 20;
         if (xp < 100) {
             goals.push({ icon: '⭐', label: 'Earn 100 XP (' + xp + '/100)', done: false });
@@ -259,7 +236,73 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 渲染主 UI（Phase 8 完整版）
+    // Phase 9: 技能掌握度（新增）
+    // ============================================================
+
+    _getSkillMastery: function(completedList, isDemo) {
+        var skills = [
+            { id: 'foundation', name: 'Foundation', icon: '🏛️', color: '#4a9eff' },
+            { id: 'prompt', name: 'Prompt Eng', icon: '✍️', color: '#8b5cf6' },
+            { id: 'tools', name: 'AI Tools', icon: '🛠️', color: '#f59e0b' },
+            { id: 'coding', name: 'Coding', icon: '💻', color: '#22c55e' },
+            { id: 'aidev', name: 'AI Dev', icon: '🤖', color: '#f97316' }
+        ];
+
+        if (isDemo) {
+            return skills.map(function(s) {
+                return { ...s, level: Math.floor(Math.random() * 20) + 5 };
+            });
+        }
+
+        var total = completedList.length || 1;
+        var base = Math.min(total / 365, 1);
+
+        return skills.map(function(s, index) {
+            var multiplier = 1 + (index * 0.05);
+            var level = Math.round(Math.min(95, (base * 85 + 10) * multiplier));
+            return { ...s, level: level };
+        });
+    },
+
+    // ============================================================
+    // Phase 10: 知识图谱预览（新增）
+    // ============================================================
+
+    _getKnowledgeGraph: function(completedList, isDemo) {
+        if (isDemo || completedList.length < 3) {
+            return {
+                nodes: [
+                    { id: 'node1', label: 'Start Here', size: 1 },
+                    { id: 'node2', label: 'Learn AI', size: 0.8 },
+                    { id: 'node3', label: 'Build Skills', size: 0.6 }
+                ],
+                edges: [
+                    { from: 'node1', to: 'node2' },
+                    { from: 'node2', to: 'node3' }
+                ]
+            };
+        }
+
+        var recent = completedList.slice(-5);
+        var nodes = recent.map(function(id, index) {
+            var title = this._getLessonTitle(id);
+            return {
+                id: 'node' + index,
+                label: title.length > 12 ? title.slice(0, 10) + '…' : title,
+                size: 0.6 + (index / recent.length) * 0.4
+            };
+        }.bind(this));
+
+        var edges = [];
+        for (var i = 0; i < nodes.length - 1; i++) {
+            edges.push({ from: nodes[i].id, to: nodes[i + 1].id });
+        }
+
+        return { nodes: nodes, edges: edges };
+    },
+
+    // ============================================================
+    // 渲染主 UI（Phase 9+10 完整版）
     // ============================================================
 
     _renderMainUI: function() {
@@ -283,11 +326,10 @@ LawAIApp.SystemComposer = {
         var remainingLessons = state.remainingLessons || 365;
         var today = new Date();
 
-        // ---- 课程名称 ----
         var nextTitle = this._getNextLessonTitle(day);
         var nextSummary = this._getNextLessonSummary(day);
 
-        // ---- Phase 8: 目标系统 ----
+        // ---- Phase 8: 目标 ----
         var goals = this._generateGoals(day, completedList, streak, isDemo);
         var completedGoals = goals.filter(function(g) { return g.done; }).length;
         var totalGoals = goals.length;
@@ -306,7 +348,6 @@ LawAIApp.SystemComposer = {
             `;
         }).join('');
 
-        // ---- 目标完成进度 ----
         var goalProgressHtml = '';
         for (var i = 0; i < totalGoals; i++) {
             var isDone = i < completedGoals;
@@ -315,7 +356,6 @@ LawAIApp.SystemComposer = {
             `;
         }
 
-        // ---- Phase 8: 今日倒计时 ----
         var now = new Date();
         var endOfDay = new Date(now);
         endOfDay.setHours(23, 59, 59, 999);
@@ -323,7 +363,7 @@ LawAIApp.SystemComposer = {
         var diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
         var diffMin = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
-        // ---- Phase 7: AI 导师建议（简化） ----
+        // ---- Phase 7: AI 导师 ----
         var mentorMsg = isDemo ? '🌟 Complete your first lesson to unlock personalized guidance!' :
                         (completedList.length >= 365 ? '🏆 You\'ve mastered all 365 lessons! Incredible!' :
                         (completionPercent < 30 ? '🌱 Keep building your foundation. Consistency is key!' :
@@ -331,29 +371,87 @@ LawAIApp.SystemComposer = {
                         (completionPercent < 90 ? '💪 Almost there! Finish strong!' :
                         '🎯 You\'re so close to the finish line!'))));
 
-        // ---- 技能雷达（精简） ----
-        var skillCategories = [
-            { name: 'Foundation', icon: '🏛️', level: isDemo ? 10 : Math.min(90, 10 + completedList.length * 0.15) },
-            { name: 'Prompt', icon: '✍️', level: isDemo ? 5 : Math.min(90, 5 + completedList.length * 0.12) },
-            { name: 'Tools', icon: '🛠️', level: isDemo ? 8 : Math.min(90, 8 + completedList.length * 0.1) },
-            { name: 'Coding', icon: '💻', level: isDemo ? 3 : Math.min(90, 3 + completedList.length * 0.08) },
-            { name: 'AI Dev', icon: '🤖', level: isDemo ? 2 : Math.min(90, 2 + completedList.length * 0.06) }
-        ];
-
-        var radarHtml = skillCategories.map(function(skill) {
-            var lvl = Math.round(skill.level);
-            var color = lvl > 70 ? '#4a9eff' : lvl > 40 ? '#8b5cf6' : '#64748b';
+        // ---- Phase 9: 技能掌握度 ----
+        var skills = this._getSkillMastery(completedList, isDemo);
+        var skillsHtml = skills.map(function(s) {
+            var level = s.level;
+            var color = level > 70 ? s.color : level > 40 ? '#8b5cf6' : '#64748b';
             return `
-                <div style="display:flex;align-items:center;gap:8px;padding:4px 0;">
-                    <span style="font-size:14px;">${skill.icon}</span>
-                    <span style="font-size:11px;color:#94a3b8;width:50px;">${skill.name}</span>
+                <div style="display:flex;align-items:center;gap:6px;padding:3px 0;">
+                    <span style="font-size:14px;">${s.icon}</span>
+                    <span style="font-size:10px;color:#94a3b8;width:50px;">${s.name}</span>
                     <div style="flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;">
-                        <div style="width:${lvl}%;height:100%;background:${color};border-radius:10px;"></div>
+                        <div style="width:${level}%;height:100%;background:${color};border-radius:10px;"></div>
                     </div>
-                    <span style="font-size:10px;color:#64748b;width:30px;text-align:right;">${lvl}%</span>
+                    <span style="font-size:10px;color:#64748b;width:28px;text-align:right;">${level}%</span>
                 </div>
             `;
         }).join('');
+
+        // ---- Phase 10: 知识图谱 ----
+        var graph = this._getKnowledgeGraph(completedList, isDemo);
+        var nodes = graph.nodes;
+        var edges = graph.edges;
+
+        // 生成简单的节点-连线可视化
+        var graphHtml = '';
+        if (nodes.length > 0) {
+            var nodeHtml = nodes.map(function(n, idx) {
+                var size = 24 + (n.size || 0.6) * 16;
+                var left = 10 + (idx / (nodes.length - 1 || 1)) * 80;
+                var color = idx === nodes.length - 1 ? '#4a9eff' : '#8b5cf6';
+                return `
+                    <div style="
+                        position:absolute;
+                        left:${left}%;
+                        top:50%;
+                        transform:translate(-50%,-50%);
+                        width:${size}px;
+                        height:${size}px;
+                        background:${color};
+                        border-radius:50%;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        font-size:${size > 30 ? 8 : 6}px;
+                        color:white;
+                        font-weight:600;
+                        text-align:center;
+                        box-shadow: 0 0 20px rgba(74,158,255,0.2);
+                        border:2px solid rgba(255,255,255,0.1);
+                        z-index:2;
+                        line-height:1.1;
+                        padding:2px;
+                    ">
+                        ${n.label.length > 8 ? n.label.slice(0,6)+'…' : n.label}
+                    </div>
+                `;
+            }).join('');
+
+            var edgeHtml = edges.map(function(e) {
+                var fromIdx = nodes.findIndex(function(n) { return n.id === e.from; });
+                var toIdx = nodes.findIndex(function(n) { return n.id === e.to; });
+                if (fromIdx === -1 || toIdx === -1) return '';
+                var fromLeft = 10 + (fromIdx / (nodes.length - 1 || 1)) * 80;
+                var toLeft = 10 + (toIdx / (nodes.length - 1 || 1)) * 80;
+                return `
+                    <svg style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;">
+                        <line x1="${fromLeft}%" y1="50%" x2="${toLeft}%" y2="50%" stroke="rgba(74,158,255,0.2)" stroke-width="2" stroke-dasharray="4,4"/>
+                    </svg>
+                `;
+            }).join('');
+
+            graphHtml = `
+                <div style="position:relative;height:70px;margin:4px 0 2px;">
+                    ${edgeHtml}
+                    ${nodeHtml}
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:8px;color:#64748b;margin-top:2px;">
+                    <span>Knowledge Graph</span>
+                    <span>${nodes.length} nodes</span>
+                </div>
+            `;
+        }
 
         // ---- 最近学习 ----
         var recentLessons = [];
@@ -377,7 +475,7 @@ LawAIApp.SystemComposer = {
         }.bind(this)).join('');
 
         // ============================================
-        // 渲染完整页面
+        // 渲染完整页面（Phase 9+10）
         // ============================================
 
         this.root.innerHTML = `
@@ -408,10 +506,7 @@ LawAIApp.SystemComposer = {
 
                 <main style="max-width:1000px;margin:0 auto;padding:16px 16px 20px;">
 
-                    <!-- ========================================================= -->
-                    <!--  Phase 8: 今日目标 + 目标完成度 + 倒计时（新增）           -->
-                    <!-- ========================================================= -->
-
+                    <!-- ===== Phase 8: 今日目标 ===== -->
                     <div style="
                         background:linear-gradient(135deg,rgba(74,158,255,0.12),rgba(124,58,237,0.12));
                         border-radius:14px;
@@ -433,10 +528,7 @@ LawAIApp.SystemComposer = {
                         </div>
                     </div>
 
-                    <!-- ========================================================= -->
-                    <!--  Phase 7: AI 导师建议（精简）                              -->
-                    <!-- ========================================================= -->
-
+                    <!-- ===== Phase 7: AI 导师 ===== -->
                     <div style="
                         background:rgba(74,158,255,0.08);
                         border-radius:12px;
@@ -451,10 +543,7 @@ LawAIApp.SystemComposer = {
                         <span style="font-size:14px;color:#e2e8f0;flex:1;">${mentorMsg}</span>
                     </div>
 
-                    <!-- ========================================================= -->
-                    <!--  卡片网格（精简）                                         -->
-                    <!-- ========================================================= -->
-
+                    <!-- ===== 卡片网格 ===== -->
                     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">
                         <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(255,255,255,0.04);">
                             <div style="font-size:22px;color:#4a9eff;">${level}</div>
@@ -474,10 +563,7 @@ LawAIApp.SystemComposer = {
                         </div>
                     </div>
 
-                    <!-- ========================================================= -->
-                    <!--  今日学习卡片                                               -->
-                    <!-- ========================================================= -->
-
+                    <!-- ===== 今日学习卡片 ===== -->
                     ${(completedList.length >= 365) ? `
                     <div style="background:linear-gradient(135deg,rgba(74,158,255,0.15),rgba(124,58,237,0.15));border-radius:14px;padding:24px;text-align:center;border:1px solid rgba(74,158,255,0.15);margin-bottom:16px;">
                         <div style="font-size:36px;">🎉</div>
@@ -500,19 +586,24 @@ LawAIApp.SystemComposer = {
                     </div>
                     `}
 
-                    <!-- ========================================================= -->
-                    <!--  技能雷达 + 最近学习（双列）                                -->
-                    <!-- ========================================================= -->
-
+                    <!-- ===== Phase 9+10: 技能掌握度 + 知识图谱（双列） ===== -->
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+
+                        <!-- 技能掌握度 -->
                         <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px 16px;border:1px solid rgba(255,255,255,0.04);">
-                            <h4 style="margin:0 0 8px 0;color:#94a3b8;font-size:12px;font-weight:400;">🧠 Skills</h4>
-                            ${radarHtml}
+                            <h4 style="margin:0 0 8px 0;color:#94a3b8;font-size:12px;font-weight:400;">🧠 Skill Mastery</h4>
+                            ${skillsHtml}
+                            <div style="font-size:8px;color:#64748b;margin-top:4px;text-align:right;">
+                                ${isDemo ? 'Complete lessons to unlock skills!' : 'Based on completed lessons'}
+                            </div>
                         </div>
+
+                        <!-- 知识图谱 -->
                         <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px 16px;border:1px solid rgba(255,255,255,0.04);">
-                            <h4 style="margin:0 0 8px 0;color:#94a3b8;font-size:12px;font-weight:400;">📖 Recent</h4>
-                            ${recentHtml}
+                            <h4 style="margin:0 0 8px 0;color:#94a3b8;font-size:12px;font-weight:400;">🔗 Knowledge Graph</h4>
+                            ${graphHtml || '<div style="color:#64748b;font-size:12px;text-align:center;padding:12px 0;">Complete lessons to build your knowledge graph!</div>'}
                         </div>
+
                     </div>
 
                     <!-- 隐藏面板 -->
