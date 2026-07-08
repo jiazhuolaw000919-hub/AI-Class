@@ -2,7 +2,7 @@ window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.SystemComposer = {
 
-    version: "4.0.5",
+    version: "4.0.6",
 
     initialized: false,
 
@@ -89,19 +89,19 @@ LawAIApp.SystemComposer = {
 
     /**
      * =========================
-     * 渲染主 UI（用户界面版）
+     * 渲染主 UI（CSS class 为主 + 内联样式兜底）
      * =========================
      */
 
     _renderMainUI: function() {
         if (!this.root) return;
-        
+
         if (document.getElementById("systemComposerRoot")) {
             console.log("🔄 systemComposerRoot already exists, skipping render");
             return;
         }
-        
-        // 获取学习状态
+
+        // 获取学习状态（保留你原有逻辑）
         var state = {};
         try {
             if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.getState === 'function') {
@@ -121,174 +121,112 @@ LawAIApp.SystemComposer = {
         } catch (err) {
             console.warn('⚠️ Failed to get progress state:', err);
         }
-        
+
+        // 安全取值
+        var day = state.day || 1;
+        var xp = state.xp || 0;
+        var level = state.level || 1;
+        var streak = state.streak || 0;
+        var completionPercent = Math.round(state.completionPercent || 0);
+        var currentStage = state.currentStage || 'Foundation';
+        var remainingLessons = state.remainingLessons || 365;
+
         this.root.innerHTML = `
-        <div id="systemComposerRoot" style="
-            min-height: 100vh;
-            background: linear-gradient(135deg, #0b1220 0%, #1a1a2e 50%, #16213e 100%);
-            color: #ffffff;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            padding: 0;
-            margin: 0;
-            box-sizing: border-box;
-        ">
-            <!-- ===== 顶部导航 ===== -->
-            <header style="
-                background: rgba(255,255,255,0.05);
-                backdrop-filter: blur(10px);
-                border-bottom: 1px solid rgba(255,255,255,0.08);
-                padding: 16px 24px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                flex-wrap: wrap;
-                gap: 12px;
-            ">
-                <div style="display:flex;align-items:center;gap:14px;">
-                    <span style="font-size:28px;">🚀</span>
-                    <h1 style="
-                        margin:0;
-                        font-size:20px;
-                        font-weight:700;
-                        background: linear-gradient(90deg, #4a9eff, #7c3aed);
-                        -webkit-background-clip: text;
-                        -webkit-text-fill-color: transparent;
-                        background-clip: text;
-                    ">Law AI Academy</h1>
-                    <span style="
-                        font-size:11px;
-                        background: rgba(74,158,255,0.2);
-                        color: #4a9eff;
-                        padding:2px 10px;
-                        border-radius:12px;
-                        font-weight:600;
-                    ">v${this.version}</span>
+        <div id="systemComposerRoot" class="app-container">
+
+            <!-- 顶部导航 -->
+            <header class="app-header">
+                <div class="header-left">
+                    <span class="logo-icon">🚀</span>
+                    <h1 class="app-title">Law AI Academy</h1>
+                    <span class="version-badge">v${this.version}</span>
                 </div>
-                <div style="display:flex;align-items:center;gap:16px;font-size:13px;color:#94a3b8;">
-                    <span>🎯 Day ${state.day || 1}</span>
-                    <span>⭐ ${state.xp || 0} XP</span>
-                    <span>🔥 Level ${state.level || 1}</span>
+                <div class="header-right">
+                    <span class="stat-item">🎯 Day ${day}</span>
+                    <span class="stat-item">⭐ ${xp} XP</span>
+                    <span class="stat-item">🔥 Level ${level}</span>
                 </div>
             </header>
 
-            <!-- ===== 主内容 ===== -->
-            <main style="max-width:1000px;margin:0 auto;padding:24px 20px 60px;">
-                
+            <!-- 主内容 -->
+            <main class="app-main">
+
                 <!-- 欢迎横幅 -->
-                <div style="
-                    background: linear-gradient(135deg, rgba(74,158,255,0.15), rgba(124,58,237,0.15));
-                    border: 1px solid rgba(74,158,255,0.2);
-                    border-radius: 16px;
-                    padding: 32px;
-                    text-align: center;
-                    margin-bottom: 24px;
-                ">
-                    <h2 style="margin:0 0 8px 0;font-size:28px;font-weight:600;">👋 Welcome Back!</h2>
-                    <p style="margin:0;color:#94a3b8;font-size:16px;">
-                        Continue your AI learning journey. You're on Day ${state.day || 1}!
-                    </p>
-                    <div style="margin-top:20px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-                        <button onclick="location.href='pages/lesson.html'" style="
-                            padding:12px 32px;
-                            background:#4a9eff;
-                            border:none;
-                            border-radius:10px;
-                            color:white;
-                            font-size:15px;
-                            font-weight:600;
-                            cursor:pointer;
-                            transition: transform 0.2s;
-                        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                            📖 Continue Learning
-                        </button>
-                        <button onclick="location.href='pages/academy.html'" style="
-                            padding:12px 32px;
-                            background:rgba(255,255,255,0.08);
-                            border:1px solid rgba(255,255,255,0.15);
-                            border-radius:10px;
-                            color:white;
-                            font-size:15px;
-                            cursor:pointer;
-                            transition: all 0.2s;
-                        " onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
-                            🏛️ Academy
-                        </button>
+                <section class="welcome-banner">
+                    <h2>👋 Welcome Back!</h2>
+                    <p>Continue your AI learning journey. You're on Day ${day}!</p>
+                    <div class="banner-actions">
+                        <a href="pages/lesson.html" class="btn-primary">📖 Continue Learning</a>
+                        <a href="pages/academy.html" class="btn-secondary">🏛️ Academy</a>
+                    </div>
+                </section>
+
+                <!-- Dashboard 卡片网格 -->
+                <div class="dashboard-grid">
+                    <div class="dashboard-card card-learning">
+                        <div class="card-icon">📚</div>
+                        <div class="card-content">
+                            <span class="card-label">Learning Progress</span>
+                            <span class="card-value">${completionPercent}%</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width:${completionPercent}%;"></div>
+                            </div>
+                            <span class="card-sub">${day} / 365 days</span>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card card-xp">
+                        <div class="card-icon">⭐</div>
+                        <div class="card-content">
+                            <span class="card-label">Total XP</span>
+                            <span class="card-value">${xp}</span>
+                            <span class="card-sub">${remainingLessons} lessons remaining</span>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card card-streak">
+                        <div class="card-icon">🔥</div>
+                        <div class="card-content">
+                            <span class="card-label">Day Streak</span>
+                            <span class="card-value">${streak}</span>
+                            <span class="card-sub">Keep going! 🚀</span>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card card-stage">
+                        <div class="card-icon">📍</div>
+                        <div class="card-content">
+                            <span class="card-label">Current Stage</span>
+                            <span class="card-value">${currentStage}</span>
+                            <span class="card-sub">Level ${level}</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- ===== 状态卡片 ===== -->
-                <div style="
-                    display:grid;
-                    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-                    gap:16px;
-                    margin-bottom:24px;
-                ">
-                    <div style="background:rgba(255,255,255,0.05);border-radius:14px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,0.06);">
-                        <div style="font-size:32px;">📈</div>
-                        <div style="font-size:28px;font-weight:700;color:#4a9eff;">${state.level || 1}</div>
-                        <div style="color:#94a3b8;font-size:13px;">Level</div>
+                <!-- 快捷操作 -->
+                <section class="quick-actions">
+                    <h3>🚀 Quick Actions</h3>
+                    <div class="actions-grid">
+                        <a href="pages/lesson.html" class="action-item">
+                            <span class="action-icon">📖</span>
+                            <span class="action-label">Today's Lesson</span>
+                        </a>
+                        <a href="pages/academy.html" class="action-item">
+                            <span class="action-icon">🏛️</span>
+                            <span class="action-label">Academy</span>
+                        </a>
+                        <a href="#" class="action-item" onclick="LawAIApp.SystemComposer.refresh(); return false;">
+                            <span class="action-icon">🔄</span>
+                            <span class="action-label">Refresh</span>
+                        </a>
+                        <a href="#" class="action-item" onclick="location.reload(); return false;">
+                            <span class="action-icon">🔁</span>
+                            <span class="action-label">Reload</span>
+                        </a>
                     </div>
-                    <div style="background:rgba(255,255,255,0.05);border-radius:14px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,0.06);">
-                        <div style="font-size:32px;">⭐</div>
-                        <div style="font-size:28px;font-weight:700;color:#fbbf24;">${state.xp || 0}</div>
-                        <div style="color:#94a3b8;font-size:13px;">Total XP</div>
-                    </div>
-                    <div style="background:rgba(255,255,255,0.05);border-radius:14px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,0.06);">
-                        <div style="font-size:32px;">🔥</div>
-                        <div style="font-size:28px;font-weight:700;color:#f97316;">${state.streak || 0}</div>
-                        <div style="color:#94a3b8;font-size:13px;">Day Streak</div>
-                    </div>
-                    <div style="background:rgba(255,255,255,0.05);border-radius:14px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,0.06);">
-                        <div style="font-size:32px;">📚</div>
-                        <div style="font-size:28px;font-weight:700;color:#8b5cf6;">${Math.round(state.completionPercent || 0)}%</div>
-                        <div style="color:#94a3b8;font-size:13px;">Progress</div>
-                    </div>
-                </div>
+                </section>
 
-                <!-- ===== 快速操作 ===== -->
-                <div style="
-                    background:rgba(255,255,255,0.03);
-                    border-radius:14px;
-                    padding:20px 24px;
-                    border:1px dashed rgba(255,255,255,0.08);
-                ">
-                    <h3 style="margin:0 0 12px 0;color:#94a3b8;font-size:14px;font-weight:400;">🚀 Quick Actions</h3>
-                    <div style="display:flex;gap:16px;flex-wrap:wrap;">
-                        <a href="pages/lesson.html" style="color:#4a9eff;text-decoration:none;font-size:14px;transition:color 0.2s;" onmouseover="this.style.color='#7c3aed'" onmouseout="this.style.color='#4a9eff'">📖 Today's Lesson</a>
-                        <a href="pages/academy.html" style="color:#4a9eff;text-decoration:none;font-size:14px;transition:color 0.2s;" onmouseover="this.style.color='#7c3aed'" onmouseout="this.style.color='#4a9eff'">🏛️ Academy Dashboard</a>
-                        <span style="color:#475569;font-size:14px;">⚡ System: Online</span>
-                        <span style="color:#475569;font-size:14px;">📍 ${state.currentStage || 'Foundation'}</span>
-                    </div>
-                </div>
-
-                <!-- ===== 进度条 ===== -->
-                <div style="margin-top:20px;">
-                    <div style="display:flex;justify-content:space-between;font-size:13px;color:#94a3b8;margin-bottom:6px;">
-                        <span>Learning Progress</span>
-                        <span>${Math.round(state.completionPercent || 0)}%</span>
-                    </div>
-                    <div style="
-                        width:100%;
-                        height:6px;
-                        background:rgba(255,255,255,0.08);
-                        border-radius:10px;
-                        overflow:hidden;
-                    ">
-                        <div style="
-                            width:${Math.round(state.completionPercent || 0)}%;
-                            height:100%;
-                            background: linear-gradient(90deg, #4a9eff, #7c3aed);
-                            border-radius:10px;
-                            transition: width 0.5s ease;
-                        "></div>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;font-size:12px;color:#475569;margin-top:4px;">
-                        <span>Day ${state.day || 1}</span>
-                        <span>${state.remainingLessons || 365} lessons remaining</span>
-                    </div>
-                </div>
-
-                <!-- ===== 隐藏的面板（保留功能） ===== -->
+                <!-- 隐藏的面板（保留功能） -->
                 <div id="learningPanel" style="display:none;"></div>
                 <div id="workspacePanel" style="display:none;"></div>
                 <div id="runtimePanel" style="display:none;"></div>
@@ -296,16 +234,164 @@ LawAIApp.SystemComposer = {
 
             </main>
 
-            <!-- ===== 底部 ===== -->
-            <footer style="
-                text-align:center;
-                padding:20px;
-                border-top:1px solid rgba(255,255,255,0.05);
-                color:#475569;
-                font-size:12px;
-            ">
+            <!-- 底部 -->
+            <footer class="app-footer">
                 <span>🏛️ Law AI Academy · Built with ❤️ · v${this.version}</span>
             </footer>
+
+            <!-- ===== 兜底样式（CSS 未加载时保底） ===== -->
+            <style>
+                #systemComposerRoot {
+                    min-height: 100vh;
+                    background: linear-gradient(135deg, #0b1220 0%, #1a1a2e 50%, #16213e 100%);
+                    color: #ffffff;
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+                    padding: 0;
+                    margin: 0;
+                    box-sizing: border-box;
+                }
+                #systemComposerRoot * { box-sizing: border-box; }
+                .app-header {
+                    background: rgba(255,255,255,0.05);
+                    backdrop-filter: blur(10px);
+                    border-bottom: 1px solid rgba(255,255,255,0.08);
+                    padding: 16px 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    flex-wrap: wrap;
+                    gap: 12px;
+                }
+                .header-left { display: flex; align-items: center; gap: 14px; }
+                .logo-icon { font-size: 28px; }
+                .app-title {
+                    margin: 0;
+                    font-size: 20px;
+                    font-weight: 700;
+                    background: linear-gradient(90deg, #4a9eff, #7c3aed);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                }
+                .version-badge {
+                    font-size: 11px;
+                    background: rgba(74,158,255,0.2);
+                    color: #4a9eff;
+                    padding: 2px 10px;
+                    border-radius: 12px;
+                    font-weight: 600;
+                }
+                .header-right { display: flex; align-items: center; gap: 16px; font-size: 13px; color: #94a3b8; }
+                .app-main { max-width: 1000px; margin: 0 auto; padding: 24px 20px 60px; }
+                .welcome-banner {
+                    background: linear-gradient(135deg, rgba(74,158,255,0.15), rgba(124,58,237,0.15));
+                    border: 1px solid rgba(74,158,255,0.2);
+                    border-radius: 16px;
+                    padding: 32px;
+                    text-align: center;
+                    margin-bottom: 24px;
+                }
+                .welcome-banner h2 { margin: 0 0 8px 0; font-size: 28px; font-weight: 600; }
+                .welcome-banner p { margin: 0; color: #94a3b8; font-size: 16px; }
+                .banner-actions { margin-top: 20px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+                .btn-primary {
+                    padding: 12px 32px;
+                    background: #4a9eff;
+                    border: none;
+                    border-radius: 10px;
+                    color: white;
+                    font-size: 15px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    text-decoration: none;
+                    transition: transform 0.2s;
+                }
+                .btn-primary:hover { transform: scale(1.05); }
+                .btn-secondary {
+                    padding: 12px 32px;
+                    background: rgba(255,255,255,0.08);
+                    border: 1px solid rgba(255,255,255,0.15);
+                    border-radius: 10px;
+                    color: white;
+                    font-size: 15px;
+                    cursor: pointer;
+                    text-decoration: none;
+                    transition: background 0.2s;
+                }
+                .btn-secondary:hover { background: rgba(255,255,255,0.15); }
+                .dashboard-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 16px;
+                    margin-bottom: 24px;
+                }
+                .dashboard-card {
+                    background: rgba(255,255,255,0.05);
+                    border-radius: 14px;
+                    padding: 20px;
+                    border: 1px solid rgba(255,255,255,0.06);
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                }
+                .card-icon { font-size: 32px; }
+                .card-content { flex: 1; }
+                .card-label { display: block; font-size: 12px; color: #94a3b8; }
+                .card-value { display: block; font-size: 24px; font-weight: 700; }
+                .card-learning .card-value { color: #4a9eff; }
+                .card-xp .card-value { color: #fbbf24; }
+                .card-streak .card-value { color: #f97316; }
+                .card-stage .card-value { color: #8b5cf6; font-size: 18px; }
+                .card-sub { display: block; font-size: 12px; color: #64748b; margin-top: 4px; }
+                .progress-bar {
+                    width: 100%;
+                    height: 4px;
+                    background: rgba(255,255,255,0.08);
+                    border-radius: 10px;
+                    overflow: hidden;
+                    margin-top: 8px;
+                }
+                .progress-fill {
+                    height: 100%;
+                    background: linear-gradient(90deg, #4a9eff, #7c3aed);
+                    border-radius: 10px;
+                    transition: width 0.5s ease;
+                }
+                .quick-actions {
+                    background: rgba(255,255,255,0.03);
+                    border-radius: 14px;
+                    padding: 20px 24px;
+                    border: 1px dashed rgba(255,255,255,0.08);
+                }
+                .quick-actions h3 { margin: 0 0 12px 0; color: #94a3b8; font-size: 14px; font-weight: 400; }
+                .actions-grid { display: flex; gap: 16px; flex-wrap: wrap; }
+                .action-item {
+                    color: #4a9eff;
+                    text-decoration: none;
+                    font-size: 14px;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    transition: color 0.2s;
+                }
+                .action-item:hover { color: #7c3aed; }
+                .action-icon { font-size: 16px; }
+                .app-footer {
+                    text-align: center;
+                    padding: 20px;
+                    border-top: 1px solid rgba(255,255,255,0.05);
+                    color: #475569;
+                    font-size: 12px;
+                }
+                @media (max-width: 600px) {
+                    .app-header { padding: 12px 16px; }
+                    .app-title { font-size: 16px; }
+                    .header-right { gap: 10px; font-size: 12px; }
+                    .dashboard-grid { grid-template-columns: 1fr 1fr; }
+                    .welcome-banner { padding: 20px; }
+                    .welcome-banner h2 { font-size: 20px; }
+                }
+            </style>
         </div>
         `;
     },
@@ -576,7 +662,7 @@ window.addEventListener("PROFILE_UPDATED", function() {
     LawAIApp.SystemComposer?.refreshPanel("learning");
 });
 
-console.log("🧩 SystemComposer V4.0.5 Ready");
+console.log("🧩 SystemComposer V4.0.6 Ready");
 
 // 确保挂载到全局
 if (typeof window.LawAIApp !== 'undefined') {
