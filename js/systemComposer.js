@@ -1,605 +1,209 @@
-window.LawAIApp = window.LawAIApp || {};
-
-LawAIApp.SystemComposer = {
-
-    version: "4.0.4",
-
-    initialized: false,
-
-    boot: {},
-
-    root: null,
-
-    cache: {},
-
-    panels: {},
-
-    _mounting: false,
-
-    _mountedNotified: false,
-
-    init(boot = {}) {
-
-        this.boot = boot || LawAIApp.bootStatus || {};
-
-        if (this.initialized) {
-            console.log("🔄 SystemComposer already initialized, refreshing...");
-            this.refresh();
-            if (!this._mountedNotified) {
-                this._notifyMounted();
-            }
-            return;
-        }
-
-        if (this._mounting) {
-            console.warn("⏳ SystemComposer is already mounting, skipping duplicate init");
-            return;
-        }
-
-        this._mounting = true;
-        this._mountedNotified = false;
-        console.log("🧩 SystemComposer V" + this.version + " initializing...");
-
-        try {
-            this.initialized = true;
-            this.root =
-                document.getElementById("law-runtime-root")
-                || document.body;
-
-            this.cache = {};
-
-            const existingRoot = document.getElementById("systemComposerRoot");
-            if (existingRoot) {
-                console.log("🔄 systemComposerRoot already exists, reusing...");
-                this.root = existingRoot;
-                this.cache.learning = document.getElementById("learningPanel");
-                this.cache.workspace = document.getElementById("workspacePanel");
-                this.cache.runtime = document.getElementById("runtimePanel");
-                this.cache.modules = document.getElementById("modulePanel");
-            } else {
-                if (this.root.id === "law-runtime-root") {
-                    this._renderMainUI();
-                } else {
-                    console.warn("⚠️ Root element is not 'law-runtime-root', using fallback");
-                    this._renderMinimalUI();
-                }
-
-                this.cache.learning = document.getElementById("learningPanel");
-                this.cache.workspace = document.getElementById("workspacePanel");
-                this.cache.runtime = document.getElementById("runtimePanel");
-                this.cache.modules = document.getElementById("modulePanel");
-            }
-
-            this.panels = {
-                learning: () => this.mountLearning(),
-                workspace: () => this.mountWorkspace(),
-                runtime: () => this.mountRuntime(),
-                modules: () => this.mountRuntimeModules()
+_renderMainUI: function() {
+    if (!this.root) return;
+    
+    if (document.getElementById("systemComposerRoot")) {
+        console.log("🔄 systemComposerRoot already exists, skipping render");
+        return;
+    }
+    
+    // 获取学习状态
+    var state = {};
+    try {
+        if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.getState === 'function') {
+            state = LawAIApp.ProgressEngine.getState();
+        } else if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.getProgress === 'function') {
+            var p = LawAIApp.ProgressEngine.getProgress();
+            state = {
+                level: p.level || 1,
+                xp: p.xp || 0,
+                streak: p.streak || 0,
+                day: p.day || 1,
+                completionPercent: p.completionPercent || 0,
+                currentStage: p.currentStage || 'Foundation'
             };
-
-            this.refresh();
-
-            console.log("✅ SystemComposer V" + this.version + " initialized successfully");
-            this._notifyMounted();
-
-        } catch (err) {
-            console.error("❌ SystemComposer init failed:", err);
-            this._renderFallbackUI(err.message);
-        } finally {
-            this._mounting = false;
         }
-
-    },
-
-    /**
-     * =========================
-     * 渲染主 UI（CSS 类 + 内联样式兜底）
-     * =========================
-     */
-
-    _renderMainUI() {
-        if (!this.root) return;
-        
-        if (document.getElementById("systemComposerRoot")) {
-            console.log("🔄 systemComposerRoot already exists, skipping render");
-            return;
-        }
-        
-        this.root.innerHTML = `
-        <div id="systemComposerRoot" class="app-container" style="
-            min-height: 100vh;
-            background: #0b1220;
-            color: #ffffff;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            padding: 0;
-            margin: 0;
-            box-sizing: border-box;
+    } catch (err) {
+        console.warn('⚠️ Failed to get progress state:', err);
+    }
+    
+    this.root.innerHTML = `
+    <div id="systemComposerRoot" style="
+        min-height: 100vh;
+        background: linear-gradient(135deg, #0b1220 0%, #1a1a2e 50%, #16213e 100%);
+        color: #ffffff;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+    ">
+        <!-- ===== 顶部导航 ===== -->
+        <header style="
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
         ">
-            <!-- 顶部导航 -->
-            <header class="app-header" style="
-                background: rgba(255,255,255,0.05);
-                backdrop-filter: blur(10px);
-                border-bottom: 1px solid rgba(255,255,255,0.08);
-                padding: 16px 32px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                flex-wrap: wrap;
-                gap: 12px;
-            ">
-                <div class="header-left" style="display:flex;align-items:center;gap:14px;">
-                    <span class="logo-icon" style="font-size:28px;">🚀</span>
-                    <h1 class="app-title" style="
-                        margin:0;
-                        font-size:22px;
-                        font-weight:700;
-                        background: linear-gradient(90deg, #4a9eff, #7c3aed);
-                        -webkit-background-clip: text;
-                        -webkit-text-fill-color: transparent;
-                        background-clip: text;
-                    ">Law AI Academy</h1>
-                    <span class="version-badge" style="
-                        font-size:11px;
-                        background: rgba(74,158,255,0.2);
-                        color: #4a9eff;
-                        padding:2px 10px;
-                        border-radius:12px;
-                        font-weight:600;
-                    ">v${this.version}</span>
-                </div>
-                <div class="header-right" style="display:flex;align-items:center;gap:16px;font-size:13px;color:#94a3b8;">
-                    <span class="stat-item" id="headerDay" style="color:#94a3b8;">🎯 Day 1</span>
-                    <span class="stat-item" id="headerXP" style="color:#94a3b8;">⭐ 0 XP</span>
-                    <span class="stat-item" id="headerLevel" style="color:#94a3b8;">🔥 Level 1</span>
-                </div>
-            </header>
+            <div style="display:flex;align-items:center;gap:14px;">
+                <span style="font-size:28px;">🚀</span>
+                <h1 style="
+                    margin:0;
+                    font-size:20px;
+                    font-weight:700;
+                    background: linear-gradient(90deg, #4a9eff, #7c3aed);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                ">Law AI Academy</h1>
+                <span style="
+                    font-size:11px;
+                    background: rgba(74,158,255,0.2);
+                    color: #4a9eff;
+                    padding:2px 10px;
+                    border-radius:12px;
+                    font-weight:600;
+                ">v${this.version}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;font-size:13px;color:#94a3b8;">
+                <span>🎯 Day ${state.day || 1}</span>
+                <span>⭐ ${state.xp || 0} XP</span>
+                <span>🔥 Level ${state.level || 1}</span>
+            </div>
+        </header>
 
-            <!-- 主内容 -->
-            <main class="app-main" style="
-                max-width: 1200px;
-                margin: 0 auto;
-                padding: 24px 32px 60px;
-            ">
-                <!-- 欢迎横幅 -->
-                <section class="welcome-banner" style="
-                    background: linear-gradient(135deg, rgba(74,158,255,0.15), rgba(124,58,237,0.15));
-                    border: 1px solid rgba(74,158,255,0.2);
-                    border-radius: 16px;
-                    padding: 28px 32px;
-                    margin-bottom: 28px;
-                    text-align: center;
-                ">
-                    <h2 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#ffffff;">👋 Welcome to Your AI Learning Journey</h2>
-                    <p style="margin:0;color:#94a3b8;font-size:15px;">365 days of immersive AI education — track your progress, earn XP, and master the future.</p>
-                </section>
-
-                <!-- 面板网格 -->
-                <div class="panels-grid" style="
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-                    gap: 20px;
-                ">
-                    <div id="learningPanel" class="panel-card" style="
-                        background: rgba(255,255,255,0.05);
-                        border: 1px solid rgba(255,255,255,0.08);
-                        border-radius: 14px;
-                        padding: 20px;
-                        backdrop-filter: blur(5px);
-                    "></div>
-                    <div id="workspacePanel" class="panel-card" style="
-                        background: rgba(255,255,255,0.05);
-                        border: 1px solid rgba(255,255,255,0.08);
-                        border-radius: 14px;
-                        padding: 20px;
-                        backdrop-filter: blur(5px);
-                    "></div>
-                    <div id="runtimePanel" class="panel-card" style="
-                        background: rgba(255,255,255,0.05);
-                        border: 1px solid rgba(255,255,255,0.08);
-                        border-radius: 14px;
-                        padding: 20px;
-                        backdrop-filter: blur(5px);
-                    "></div>
-                    <div id="modulePanel" class="panel-card panel-full" style="
-                        background: rgba(255,255,255,0.05);
-                        border: 1px solid rgba(255,255,255,0.08);
-                        border-radius: 14px;
-                        padding: 20px;
-                        backdrop-filter: blur(5px);
-                        grid-column: 1 / -1;
-                    "></div>
-                </div>
-            </main>
-
-            <!-- 底部 -->
-            <footer class="app-footer" style="
+        <!-- ===== 主内容 ===== -->
+        <main style="max-width:1000px;margin:0 auto;padding:24px 20px 60px;">
+            
+            <!-- 欢迎横幅 -->
+            <div style="
+                background: linear-gradient(135deg, rgba(74,158,255,0.15), rgba(124,58,237,0.15));
+                border: 1px solid rgba(74,158,255,0.2);
+                border-radius: 16px;
+                padding: 32px;
                 text-align: center;
-                padding: 20px;
-                border-top: 1px solid rgba(255,255,255,0.05);
-                color: #475569;
-                font-size: 12px;
+                margin-bottom: 24px;
             ">
-                <span>🏛️ Law AI Academy · Built with ❤️ · v${this.version}</span>
-            </footer>
-
-            <!-- 全局样式增强 -->
-            <style>
-                #systemComposerRoot * { box-sizing: border-box; }
-                #systemComposerRoot h2 { font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #e2e8f0; }
-                #systemComposerRoot ::-webkit-scrollbar { width: 6px; height: 6px; }
-                #systemComposerRoot ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 8px; }
-                #systemComposerRoot ::-webkit-scrollbar-thumb { background: rgba(74,158,255,0.3); border-radius: 8px; }
-                #systemComposerRoot ::-webkit-scrollbar-thumb:hover { background: rgba(74,158,255,0.5); }
-                .panel-content { padding: 4px; }
-                .panel-title { font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #e2e8f0; }
-                .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; }
-                .stat-box { background: rgba(255,255,255,0.06); padding: 14px; border-radius: 10px; text-align: center; }
-                .stat-label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
-                .stat-value { display: block; font-size: 22px; font-weight: 700; color: #ffffff; }
-                .runtime-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
-                .runtime-item { background: rgba(255,255,255,0.06); padding: 12px; border-radius: 10px; text-align: center; }
-                .runtime-label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 2px; }
-                .runtime-value { display: block; font-size: 16px; font-weight: 600; color: #ffffff; }
-                .modules-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
-                .module-card { background: #1e293b; padding: 12px 16px; border-radius: 8px; border-left: 3px solid #4a9eff; }
-                .module-name { font-size: 13px; color: #e2e8f0; }
-                .workspace-preview { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px; overflow: auto; max-height: 180px; }
-                .workspace-json { margin: 0; font-size: 12px; color: #94a3b8; white-space: pre-wrap; word-break: break-word; font-family: 'Courier New', monospace; }
-                .error-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: #0b1220; color: white; text-align: center; padding: 20px; }
-                .error-message { color: #ff6b6b; margin-top: 10px; }
-                .error-hint { color: #666; font-size: 14px; margin-top: 20px; }
-                .no-modules { color: #888; text-align: center; padding: 20px; }
-            </style>
-        </div>
-        `;
-    },
-
-    /**
-     * =========================
-     * 最小化 UI（兜底）
-     * =========================
-     */
-
-    _renderMinimalUI() {
-        if (!this.root) return;
-        
-        if (document.getElementById("systemComposerRoot")) {
-            console.log("🔄 systemComposerRoot already exists, skipping minimal render");
-            return;
-        }
-        
-        const container = document.createElement('div');
-        container.id = 'systemComposerRoot';
-        container.style.cssText = 'padding:20px;background:#0b1220;color:white;';
-        container.innerHTML = `
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-                <h1 style="margin:0;">🚀 Law AI Academy</h1>
-                <span style="font-size:14px;color:#4a9eff;font-weight:normal;background:#1e293b;padding:4px 12px;border-radius:20px;">v${this.version}</span>
-            </div>
-            <div id="learningPanel"></div>
-            <br>
-            <div id="workspacePanel"></div>
-            <br>
-            <div id="runtimePanel"></div>
-            <br>
-            <div id="modulePanel"></div>
-        `;
-        this.root.appendChild(container);
-        this.root = container;
-    },
-
-    /**
-     * =========================
-     * 失败时的兜底 UI
-     * =========================
-     */
-
-    _renderFallbackUI(errorMsg) {
-        if (!this.root) return;
-        this.root.innerHTML = `
-            <div class="error-container">
-                <h2>⚠️ SystemComposer Error</h2>
-                <p class="error-message">${errorMsg || 'Unknown error'}</p>
-                <p class="error-hint">Please refresh or check console for details</p>
-            </div>
-        `;
-    },
-
-    /**
-     * =========================
-     * 通知 App 已挂载
-     * =========================
-     */
-
-    _notifyMounted() {
-        if (this._mountedNotified) return;
-        
-        try {
-            const event = new CustomEvent('COMPOSER_MOUNTED', {
-                detail: {
-                    version: this.version,
-                    initialized: this.initialized,
-                    root: this.root?.id || null
-                }
-            });
-            window.dispatchEvent(event);
-            this._mountedNotified = true;
-            console.log("📡 Dispatched COMPOSER_MOUNTED event (once)");
-        } catch (err) {
-            console.warn("Failed to dispatch COMPOSER_MOUNTED:", err);
-        }
-    },
-
-    refresh() {
-        console.log("🔄 SystemComposer refreshing all panels...");
-        Object.values(this.panels).forEach(panel => {
-            try {
-                panel();
-            } catch (err) {
-                console.warn("Panel render failed:", err);
-            }
-        });
-        this._updateHeaderStats();
-    },
-
-    /**
-     * =========================
-     * 更新顶部状态栏
-     * =========================
-     */
-
-    _updateHeaderStats() {
-        const state = LawAIApp.LearningStateManager?.getState?.() || {};
-        const dayEl = document.getElementById('headerDay');
-        const xpEl = document.getElementById('headerXP');
-        const levelEl = document.getElementById('headerLevel');
-        
-        if (dayEl) dayEl.textContent = `🎯 Day ${state.day || 1}`;
-        if (xpEl) xpEl.textContent = `⭐ ${state.xp || 0} XP`;
-        if (levelEl) levelEl.textContent = `🔥 Level ${state.level || 1}`;
-    },
-
-    /* =====================================
-   LEARNING
-===================================== */
-
-    mountLearning() {
-        const el = this.cache.learning;
-        if (!el) {
-            this.cache.learning = document.getElementById("learningPanel");
-            if (!this.cache.learning) return;
-            el = this.cache.learning;
-        }
-
-        const state = LawAIApp.LearningStateManager?.getState?.() || {};
-
-        el.innerHTML = `
-            <div class="panel-content">
-                <h2 class="panel-title">📚 Learning</h2>
-                <div class="stats-grid">
-                    <div class="stat-box">
-                        <span class="stat-label">📈 Level</span>
-                        <span class="stat-value">${state.level ?? 1}</span>
-                    </div>
-                    <div class="stat-box">
-                        <span class="stat-label">⭐ XP</span>
-                        <span class="stat-value">${state.xp ?? 0}</span>
-                    </div>
-                    <div class="stat-box">
-                        <span class="stat-label">🔥 Streak</span>
-                        <span class="stat-value">${state.streak ?? 0}</span>
-                    </div>
-                    <div class="stat-box">
-                        <span class="stat-label">📅 Day</span>
-                        <span class="stat-value">${state.day ?? 1}</span>
-                    </div>
+                <h2 style="margin:0 0 8px 0;font-size:28px;font-weight:600;">👋 Welcome Back!</h2>
+                <p style="margin:0;color:#94a3b8;font-size:16px;">
+                    Continue your AI learning journey. You're on Day ${state.day || 1}!
+                </p>
+                <div style="margin-top:20px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+                    <button onclick="location.href='pages/lesson.html'" style="
+                        padding:12px 32px;
+                        background:#4a9eff;
+                        border:none;
+                        border-radius:10px;
+                        color:white;
+                        font-size:15px;
+                        font-weight:600;
+                        cursor:pointer;
+                        transition: transform 0.2s;
+                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        📖 Continue Learning
+                    </button>
+                    <button onclick="location.href='pages/academy.html'" style="
+                        padding:12px 32px;
+                        background:rgba(255,255,255,0.08);
+                        border:1px solid rgba(255,255,255,0.15);
+                        border-radius:10px;
+                        color:white;
+                        font-size:15px;
+                        cursor:pointer;
+                        transition: all 0.2s;
+                    " onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+                        🏛️ Academy
+                    </button>
                 </div>
             </div>
-        `;
-    },
 
-    /* =====================================
-   WORKSPACE
-===================================== */
-
-    mountWorkspace() {
-        const el = this.cache.workspace;
-        if (!el) {
-            this.cache.workspace = document.getElementById("workspacePanel");
-            if (!this.cache.workspace) return;
-            el = this.cache.workspace;
-        }
-
-        const workspace = LawAIApp.WorkspaceState?.get?.("default") || {};
-
-        el.innerHTML = `
-            <div class="panel-content">
-                <h2 class="panel-title">🧩 Workspace</h2>
-                <div class="workspace-preview">
-                    <pre class="workspace-json">${JSON.stringify(workspace, null, 2)}</pre>
+            <!-- ===== 状态卡片 ===== -->
+            <div style="
+                display:grid;
+                grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+                gap:16px;
+                margin-bottom:24px;
+            ">
+                <div style="background:rgba(255,255,255,0.05);border-radius:14px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,0.06);">
+                    <div style="font-size:32px;">📈</div>
+                    <div style="font-size:28px;font-weight:700;color:#4a9eff;">${state.level || 1}</div>
+                    <div style="color:#94a3b8;font-size:13px;">Level</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.05);border-radius:14px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,0.06);">
+                    <div style="font-size:32px;">⭐</div>
+                    <div style="font-size:28px;font-weight:700;color:#fbbf24;">${state.xp || 0}</div>
+                    <div style="color:#94a3b8;font-size:13px;">Total XP</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.05);border-radius:14px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,0.06);">
+                    <div style="font-size:32px;">🔥</div>
+                    <div style="font-size:28px;font-weight:700;color:#f97316;">${state.streak || 0}</div>
+                    <div style="color:#94a3b8;font-size:13px;">Day Streak</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.05);border-radius:14px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,0.06);">
+                    <div style="font-size:32px;">📚</div>
+                    <div style="font-size:28px;font-weight:700;color:#8b5cf6;">${Math.round(state.completionPercent || 0)}%</div>
+                    <div style="color:#94a3b8;font-size:13px;">Progress</div>
                 </div>
             </div>
-        `;
-    },
 
-    /* =====================================
-   RUNTIME
-===================================== */
-
-    mountRuntime() {
-        const el = this.cache.runtime;
-        if (!el) {
-            this.cache.runtime = document.getElementById("runtimePanel");
-            if (!this.cache.runtime) return;
-            el = this.cache.runtime;
-        }
-
-        const boot = LawAIApp.bootStatus || {};
-        const runtime = LawAIApp.RuntimeManager || {};
-        const registry = LawAIApp.RuntimeRegistry;
-
-        let modules = [];
-        try {
-            modules = registry?.discover?.() || registry?.getAll?.() || [];
-        } catch (err) {
-            console.warn("Runtime registry error:", err);
-        }
-
-        const runtimeStarted = runtime.started ? "🟢 Running" : "🟡 Waiting";
-
-        el.innerHTML = `
-            <div class="panel-content">
-                <h2 class="panel-title">⚙ Runtime</h2>
-                <div class="runtime-grid">
-                    <div class="runtime-item">
-                        <span class="runtime-label">Status</span>
-                        <span class="runtime-value">${runtimeStarted}</span>
-                    </div>
-                    <div class="runtime-item">
-                        <span class="runtime-label">Active Engines</span>
-                        <span class="runtime-value">${boot.active?.length ?? 0}</span>
-                    </div>
-                    <div class="runtime-item">
-                        <span class="runtime-label">Loaded Files</span>
-                        <span class="runtime-value">${boot.loaded?.length ?? 0}</span>
-                    </div>
-                    <div class="runtime-item">
-                        <span class="runtime-label">Runtime Modules</span>
-                        <span class="runtime-value">${modules.length}</span>
-                    </div>
-                    <div class="runtime-item">
-                        <span class="runtime-label">Missing</span>
-                        <span class="runtime-value">${boot.missing?.length ?? 0}</span>
-                    </div>
-                    <div class="runtime-item">
-                        <span class="runtime-label">Safe Mode</span>
-                        <span class="runtime-value">${boot.safeMode ? "ON" : "OFF"}</span>
-                    </div>
+            <!-- ===== 快速操作 ===== -->
+            <div style="
+                background:rgba(255,255,255,0.03);
+                border-radius:14px;
+                padding:20px 24px;
+                border:1px dashed rgba(255,255,255,0.08);
+            ">
+                <h3 style="margin:0 0 12px 0;color:#94a3b8;font-size:14px;font-weight:400;">🚀 Quick Actions</h3>
+                <div style="display:flex;gap:16px;flex-wrap:wrap;">
+                    <a href="pages/lesson.html" style="color:#4a9eff;text-decoration:none;font-size:14px;transition:color 0.2s;" onmouseover="this.style.color='#7c3aed'" onmouseout="this.style.color='#4a9eff'">📖 Today's Lesson</a>
+                    <a href="pages/academy.html" style="color:#4a9eff;text-decoration:none;font-size:14px;transition:color 0.2s;" onmouseover="this.style.color='#7c3aed'" onmouseout="this.style.color='#4a9eff'">🏛️ Academy Dashboard</a>
+                    <span style="color:#475569;font-size:14px;">⚡ System: Online</span>
+                    <span style="color:#475569;font-size:14px;">📍 ${state.currentStage || 'Foundation'}</span>
                 </div>
             </div>
-        `;
-    },
 
-    /* =====================================
-   RUNTIME MODULES
-===================================== */
-
-    mountRuntimeModules() {
-        const el = this.cache.modules;
-        if (!el) {
-            this.cache.modules = document.getElementById("modulePanel");
-            if (!this.cache.modules) return;
-            el = this.cache.modules;
-        }
-
-        el.innerHTML = "";
-
-        if (LawAIApp.RuntimeInjector?.inject) {
-            try {
-                LawAIApp.RuntimeInjector.inject(el);
-                return;
-            } catch (err) {
-                console.warn("RuntimeInjector failed:", err);
-            }
-        }
-
-        const registry = LawAIApp.RuntimeRegistry;
-        let engines = [];
-        try {
-            engines = registry?.discover?.() || registry?.getAll?.() || [];
-        } catch (err) {
-            console.warn("Runtime registry error:", err);
-        }
-
-        const cards = engines.length > 0 ? engines.map(engine => `
-            <div class="module-card">
-                <span class="module-name">${engine.name || engine.constructor?.name || "Unnamed Engine"}</span>
-            </div>
-        `).join("") : "<p class='no-modules'>No runtime modules loaded.</p>";
-
-        el.innerHTML = `
-            <div class="panel-content">
-                <h2 class="panel-title">📦 Runtime Modules</h2>
-                <div class="modules-grid">
-                    ${cards}
+            <!-- ===== 进度条 ===== -->
+            <div style="margin-top:20px;">
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:#94a3b8;margin-bottom:6px;">
+                    <span>Learning Progress</span>
+                    <span>${Math.round(state.completionPercent || 0)}%</span>
+                </div>
+                <div style="
+                    width:100%;
+                    height:6px;
+                    background:rgba(255,255,255,0.08);
+                    border-radius:10px;
+                    overflow:hidden;
+                ">
+                    <div style="
+                        width:${Math.round(state.completionPercent || 0)}%;
+                        height:100%;
+                        background: linear-gradient(90deg, #4a9eff, #7c3aed);
+                        border-radius:10px;
+                        transition: width 0.5s ease;
+                    "></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:#475569;margin-top:4px;">
+                    <span>Day ${state.day || 1}</span>
+                    <span>${state.remainingLessons || 365} lessons remaining</span>
                 </div>
             </div>
-        `;
-    },
 
-    /* =====================================
-   PANEL MANAGEMENT
-===================================== */
+        </main>
 
-    registerPanel(name, renderer) {
-        if (!name || typeof renderer !== "function") {
-            console.warn("Invalid panel registration:", name);
-            return;
-        }
-        this.panels[name] = renderer;
-        console.log(`📌 Panel "${name}" registered`);
-    },
-
-    refreshPanel(name) {
-        if (!this.panels[name]) {
-            console.warn(`Panel "${name}" not found`);
-            return;
-        }
-        try {
-            this.panels[name]();
-        } catch (err) {
-            console.warn(`Panel ${name} refresh failed`, err);
-        }
-    },
-
-    destroy() {
-        this.initialized = false;
-        this.boot = {};
-        this.cache = {};
-        this.panels = {};
-        this.root = null;
-        this._mounting = false;
-        this._mountedNotified = false;
-        console.log("🧩 SystemComposer destroyed");
-    }
-
-};
-
-/* =====================================
-   AUTO REFRESH
-===================================== */
-
-window.addEventListener("LEARNING_UI_REFRESH", () => {
-    LawAIApp.SystemComposer?.refreshPanel("learning");
-});
-
-window.addEventListener("SYSTEM_READY", e => {
-    console.log("📡 SYSTEM_READY received by SystemComposer");
-    if (!LawAIApp.SystemComposer.initialized) {
-        LawAIApp.SystemComposer.init(e.detail?.boot);
-    } else {
-        LawAIApp.SystemComposer.boot = e.detail?.boot || LawAIApp.bootStatus || {};
-        LawAIApp.SystemComposer.refresh();
-    }
-});
-
-window.addEventListener("RUNTIME_READY", () => {
-    LawAIApp.SystemComposer?.refreshPanel("runtime");
-    LawAIApp.SystemComposer?.refreshPanel("modules");
-});
-
-window.addEventListener("WORKSPACE_UPDATED", () => {
-    LawAIApp.SystemComposer?.refreshPanel("workspace");
-});
-
-window.addEventListener("PROFILE_UPDATED", () => {
-    LawAIApp.SystemComposer?.refreshPanel("learning");
-});
-
-console.log("🧩 SystemComposer V4.0.4 Ready");
-
-// 确保挂载到全局
-if (typeof window.LawAIApp !== 'undefined') {
-    window.LawAIApp.SystemComposer = LawAIApp.SystemComposer;
-    console.log('✅ SystemComposer V' + LawAIApp.SystemComposer.version + ' attached to LawAIApp');
+        <!-- ===== 底部 ===== -->
+        <footer style="
+            text-align:center;
+            padding:20px;
+            border-top:1px solid rgba(255,255,255,0.05);
+            color:#475569;
+            font-size:12px;
+        ">
+            <span>🏛️ Law AI Academy · Built with ❤️ · v${this.version}</span>
+        </footer>
+    </div>
+    `;
 }
