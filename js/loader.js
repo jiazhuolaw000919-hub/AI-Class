@@ -484,7 +484,9 @@ const OPTIONAL_ENGINES = [
     "xpRewardEngine.js"
 ];
 
-// 合并所有引擎
+// ===========================================
+// 合并所有引擎（按优先级分组）
+// ===========================================
 const ENGINE_REGISTRY = {
     core: CORE_ENGINES,
     learning: LEARNING_ENGINES,
@@ -496,6 +498,9 @@ const ENGINE_REGISTRY = {
     ai: AI_ENGINES,
     optional: OPTIONAL_ENGINES
 };
+
+// 按优先级排序的加载顺序
+const LOAD_ORDER = ['core', 'learning', 'workspace', 'mentor', 'skill', 'goal', 'knowledge', 'ai', 'optional'];
 
 /**
  * =========================
@@ -531,16 +536,11 @@ function createStub(name) {
     const stub = {
         __stub: true,
         name,
-        init() {},
-        start() {}
+        init: function() {},
+        start: function() {}
     };
-
     window.LawAIApp[name] = stub;
-
-    window.LawAIApp.EngineRegistry?.register?.(
-        name,
-        stub
-    );
+    window.LawAIApp.EngineRegistry?.register?.(name, stub);
 }
 
 /**
@@ -551,22 +551,16 @@ function createStub(name) {
 
 function activateEngine(name) {
     const engine = window.LawAIApp[name];
-
     if (!engine) return;
 
     try {
         engine.init?.();
         engine.start?.();
-
         if (!window.__ENGINE_STATUS__.active.includes(name)) {
             window.__ENGINE_STATUS__.active.push(name);
         }
-
         if (!window.LawAIApp.RuntimeManager?.engines?.[name]) {
-            window.LawAIApp.RuntimeManager?.registerEngine?.(
-                name,
-                engine
-            );
+            window.LawAIApp.RuntimeManager?.registerEngine?.(name, engine);
         }
     } catch (err) {
         console.warn("activation failed", name, err);
@@ -575,50 +569,43 @@ function activateEngine(name) {
 
 /**
  * =========================
- * LOAD SCRIPT
+ * LOAD SCRIPT（带重试）
  * =========================
  */
 
-function loadScript(src) {
-    return new Promise(resolve => {
-        // 检查是否已经加载
-        const existing = document.querySelector(`script[src="js/${src}"]`);
+function loadScript(src, retries) {
+    retries = retries || 2;
+    return new Promise(function(resolve) {
+        // 检查是否已加载
+        var existing = document.querySelector('script[src="js/' + src + '"]');
         if (existing) {
-            resolve({
-                file: src,
-                status: "ok",
-                cached: true
-            });
+            resolve({ file: src, status: "ok", cached: true });
             return;
         }
 
-        const script = document.createElement("script");
+        var script = document.createElement("script");
         script.src = "js/" + src;
 
-        script.onload = () => {
-            const name = src.replace(".js", "");
-            const engine = window.LawAIApp[name];
-
+        script.onload = function() {
+            var name = src.replace(".js", "");
+            var engine = window.LawAIApp[name];
             if (engine) {
-                window.LawAIApp.EngineRegistry?.register?.(
-                    name,
-                    engine
-                );
+                window.LawAIApp.EngineRegistry?.register?.(name, engine);
                 activateEngine(name);
             }
-
-            resolve({
-                file: src,
-                status: "ok"
-            });
+            resolve({ file: src, status: "ok" });
         };
 
-        script.onerror = () => {
-            createStub(src.replace(".js", ""));
-            resolve({
-                file: src,
-                status: "missing"
-            });
+        script.onerror = function() {
+            if (retries > 0) {
+                console.warn("⚠️ Retrying " + src + " (" + retries + " attempts left)");
+                setTimeout(function() {
+                    loadScript(src, retries - 1).then(resolve);
+                }, 500);
+            } else {
+                createStub(src.replace(".js", ""));
+                resolve({ file: src, status: "missing" });
+            }
         };
 
         document.head.appendChild(script);
@@ -627,67 +614,86 @@ function loadScript(src) {
 
 /**
  * =========================
- * LOAD GROUP
+ * LOAD GROUP（按顺序加载）
  * =========================
  */
 
-async function loadGroup(group, list) {
-    console.log("📦", group, `(${list.length} files)`);
-    
-    // 分批加载，避免浏览器请求限制
-    const batchSize = 20;
-    const results = [];
-    
-    for (let i = 0; i < list.length; i += batchSize) {
-        const batch = list.slice(i, i + batchSize);
-        const batchResults = await Promise.all(batch.map(loadScript));
-        results.push(...batchResults);
-        
-        // 显示进度
-        console.log(`   📊 ${group}: ${Math.min(i + batchSize, list.length)}/${list.length} loaded`);
+async function loadGroup(group, list, isCritical) {
+    isCritical = isCritical || false;
+    console.log("📦", group, "(" + list.length + " files)" + (isCritical ? " ⚡CRITICAL" : ""));
+
+    var results = [];
+    // 关键组用较小批次，保证快速加载
+    var batchSize = isCritical ? 5 : 20;
+
+    for (var i = 0; i < list.length; i += batchSize) {
+        var batch = list.slice(i, i + batchSize);
+        var batchResults = await Promise.all(batch.map(function(src) {
+            return loadScript(src);
+        }));
+        results = results.concat(batchResults);
+        console.log("   📊 " + group + ": " + Math.min(i + batchSize, list.length) + "/" + list.length + " loaded");
     }
-    
+
     return results;
 }
 
 /**
  * =========================
- * BOOT
+ * BOOT（优化版）
  * =========================
  */
 
 async function boot() {
-    console.log("🚀 Loader V3.9.10 starting");
-    console.log("📋 Total modules to load:", Object.values(ENGINE_REGISTRY).reduce((sum, arr) => sum + arr.length, 0));
+    console.log("🚀 Loader V4.0 starting (optimized)");
+    var totalModules = Object.values(ENGINE_REGISTRY).reduce(function(sum, arr) {
+        return sum + arr.length;
+    }, 0);
+    console.log("📋 Total modules: " + totalModules);
 
     // Runtime Boot
     LawAIApp.RuntimeRegistry?.init?.();
     LawAIApp.RuntimeManager?.init?.();
 
     // =========================
-    // LOAD ALL ENGINE GROUPS
+    // 按优先级加载
     // =========================
 
-    for (const [group, files] of Object.entries(ENGINE_REGISTRY)) {
-        const results = await loadGroup(group, files);
-        results.forEach(r => {
+    for (var g = 0; g < LOAD_ORDER.length; g++) {
+        var groupName = LOAD_ORDER[g];
+        var files = ENGINE_REGISTRY[groupName];
+        if (!files || files.length === 0) continue;
+
+        var isCritical = (groupName === 'core');
+        var results = await loadGroup(groupName, files, isCritical);
+
+        results.forEach(function(r) {
             if (r.status === "ok") {
-                if (!window.__ENGINE_STATUS__.loaded.includes(r.file)) {
+                if (window.__ENGINE_STATUS__.loaded.indexOf(r.file) === -1) {
                     window.__ENGINE_STATUS__.loaded.push(r.file);
                 }
             } else {
-                if (!window.__ENGINE_STATUS__.missing.includes(r.file)) {
+                if (window.__ENGINE_STATUS__.missing.indexOf(r.file) === -1) {
                     window.__ENGINE_STATUS__.missing.push(r.file);
                 }
             }
         });
+
+        // 核心组加载完成后，触发部分就绪事件（让 App 提前启动）
+        if (groupName === 'core') {
+            console.log("✅ Core modules loaded, App can start");
+            window.dispatchEvent(new CustomEvent("CORE_LOADED", {
+                detail: { status: window.__ENGINE_STATUS__ }
+            }));
+        }
     }
 
-    const boot = window.__ENGINE_STATUS__;
-
+    var boot = window.__ENGINE_STATUS__;
     boot.total = boot.loaded.length + boot.missing.length;
     boot.booted = true;
-    boot.safeMode = boot.missing.some(f => CRITICAL_ENGINES.includes(f));
+    boot.safeMode = boot.missing.some(function(f) {
+        return CRITICAL_ENGINES.indexOf(f) !== -1;
+    });
 
     window.LawAIApp.bootStatus = boot;
 
@@ -699,12 +705,8 @@ async function boot() {
         safeMode: boot.safeMode
     });
 
-    /**
-     * Runtime Ready
-     */
-
     window.LawAIApp.RuntimeManager?.boot?.({
-        boot,
+        boot: boot,
         active: boot.active
     });
 
@@ -721,20 +723,20 @@ async function boot() {
         LawAIApp.EngineBinder?.init?.();
     }
 
-    setTimeout(() => {
-        window.dispatchEvent(
-            new CustomEvent(
-                "SYSTEM_READY",
-                {
-                    detail: {
-                        boot,
-                        active: boot.active,
-                        timestamp: Date.now()
-                    }
-                }
-            )
-        );
+    // 触发系统就绪事件
+    setTimeout(function() {
+        window.dispatchEvent(new CustomEvent("SYSTEM_READY", {
+            detail: {
+                boot: boot,
+                active: boot.active,
+                timestamp: Date.now()
+            }
+        }));
+        console.log("✅ System ready");
     }, 0);
+
+    // 后台加载非核心模块（核心已加载完成，不影响用户体验）
+    console.log("⏳ Loading remaining modules in background...");
 }
 
 /**
@@ -745,5 +747,17 @@ async function boot() {
 
 window.LawAIApp.SelfHealingSystem?.init?.();
 
+// =========================
 // 启动
-boot();
+// =========================
+
+// 如果 DOM 已加载，立即启动；否则等待
+if (document.readyState === "complete" || document.readyState === "interactive") {
+    setTimeout(boot, 50);
+} else {
+    document.addEventListener("DOMContentLoaded", function() {
+        setTimeout(boot, 50);
+    });
+}
+
+console.log("🚀 Loader V4.0 optimized ready");
