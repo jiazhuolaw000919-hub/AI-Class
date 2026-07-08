@@ -2,7 +2,7 @@ window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.SystemComposer = {
 
-    version: "4.0.8",
+    version: "4.0.9",
 
     initialized: false,
 
@@ -89,7 +89,7 @@ LawAIApp.SystemComposer = {
 
     /**
      * =========================
-     * 渲染主 UI（Phase 2 完整版）
+     * 渲染主 UI（Phase 3 完整版）
      * =========================
      */
 
@@ -154,18 +154,16 @@ LawAIApp.SystemComposer = {
         // ===========================================
         var recentLessons = [];
         if (completedList.length > 0) {
-            // 取最后 3 个（最新的）
             var copy = completedList.slice();
             var recent = copy.reverse().slice(0, 3);
             recentLessons = recent;
         }
 
         // ===========================================
-        // 4. 课程名称辅助函数
+        // 4. 课程名称和摘要辅助函数（Phase 3 增强）
         // ===========================================
         function getLessonTitle(lessonId) {
             if (!lessonId) return 'Lesson';
-            // 尝试从 LessonEngine 获取
             try {
                 if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
                     var dayNum = parseInt(lessonId.replace('day-', ''));
@@ -175,9 +173,23 @@ LawAIApp.SystemComposer = {
                     }
                 }
             } catch (e) {}
-            // 兜底：显示 Day X
             var num = lessonId.replace('day-', '');
             return 'Day ' + num;
+        }
+
+        function getLessonSummary(lessonId) {
+            if (!lessonId) return 'Continue building your AI knowledge.';
+            try {
+                if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
+                    var dayNum = parseInt(lessonId.replace('day-', ''));
+                    if (!isNaN(dayNum)) {
+                        var lesson = LawAIApp.LessonEngine.getLessonByDay(dayNum);
+                        if (lesson && lesson.summary) return lesson.summary;
+                        if (lesson && lesson.subtitle) return lesson.subtitle;
+                    }
+                }
+            } catch (e) {}
+            return 'Continue building your AI knowledge with today\'s lesson.';
         }
 
         function getNextLessonTitle() {
@@ -190,7 +202,19 @@ LawAIApp.SystemComposer = {
             return 'Day ' + nextLessonDay;
         }
 
+        function getNextLessonSummary() {
+            try {
+                if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
+                    var lesson = LawAIApp.LessonEngine.getLessonByDay(nextLessonDay);
+                    if (lesson && lesson.summary) return lesson.summary;
+                    if (lesson && lesson.subtitle) return lesson.subtitle;
+                }
+            } catch (e) {}
+            return 'Continue building your AI knowledge with today\'s lesson.';
+        }
+
         var nextTitle = getNextLessonTitle();
+        var nextSummary = getNextLessonSummary();
         var isComplete = (completedList.length >= totalLessons);
 
         // ===========================================
@@ -272,7 +296,6 @@ LawAIApp.SystemComposer = {
             </div>
             `;
 
-            // 渲染空状态
             var emptyRoot = document.getElementById('empty-state-root');
             if (emptyRoot) {
                 if (LawAIApp.EmptyStates && typeof LawAIApp.EmptyStates.renderTo === 'function') {
@@ -304,8 +327,10 @@ LawAIApp.SystemComposer = {
         }
 
         // ===========================================
-        // 6. 有进度 → 完整 Dashboard（含 Phase 2 功能）
+        // 6. 有进度 → 完整 Dashboard（Phase 3 增强）
         // ===========================================
+        
+        // 最近学习课程 HTML
         var recentHtml = '';
         if (recentLessons.length > 0) {
             recentHtml = recentLessons.map(function(id) {
@@ -335,23 +360,27 @@ LawAIApp.SystemComposer = {
             `;
         }
 
+        // ===========================================
+        // 7. Phase 3: 今日学习卡片（增强版）
+        // ===========================================
         var goalHtml = '';
         if (isComplete) {
             goalHtml = `
                 <div style="
                     background: linear-gradient(135deg, rgba(74,158,255,0.2), rgba(124,58,237,0.2));
-                    border-radius:14px;
-                    padding:24px;
+                    border-radius:16px;
+                    padding:32px;
                     text-align:center;
                     border:1px solid rgba(74,158,255,0.2);
+                    margin-bottom:20px;
                 ">
-                    <div style="font-size:40px;margin-bottom:8px;">🎉</div>
-                    <h3 style="margin:0 0 4px 0;font-size:18px;font-weight:600;">All 365 Lessons Complete!</h3>
-                    <p style="margin:0;color:#94a3b8;font-size:14px;">You've mastered the entire curriculum. Incredible work! 🏆</p>
+                    <div style="font-size:48px;margin-bottom:8px;">🎉</div>
+                    <h3 style="margin:0 0 4px 0;font-size:22px;font-weight:700;">All 365 Lessons Complete!</h3>
+                    <p style="margin:0;color:#94a3b8;font-size:15px;">You've mastered the entire curriculum. Incredible work! 🏆</p>
                     <a href="pages/academy.html" style="
                         display:inline-block;
                         margin-top:16px;
-                        padding:10px 28px;
+                        padding:12px 32px;
                         background:#4a9eff;
                         border:none;
                         border-radius:10px;
@@ -365,37 +394,65 @@ LawAIApp.SystemComposer = {
         } else {
             goalHtml = `
                 <div style="
-                    background: linear-gradient(135deg, rgba(74,158,255,0.12), rgba(124,58,237,0.12));
-                    border-radius:14px;
-                    padding:20px 24px;
-                    border:1px solid rgba(74,158,255,0.15);
-                    display:flex;
-                    align-items:center;
-                    justify-content:space-between;
-                    flex-wrap:wrap;
-                    gap:12px;
+                    background: rgba(255,255,255,0.04);
+                    border-radius:16px;
+                    padding:24px;
+                    border:1px solid rgba(255,255,255,0.08);
+                    margin-bottom:20px;
                 ">
-                    <div>
-                        <div style="font-size:13px;color:#94a3b8;font-weight:400;">🎯 Today's Goal</div>
-                        <div style="font-size:16px;font-weight:600;color:#ffffff;">${nextTitle}</div>
-                        <div style="font-size:12px;color:#64748b;margin-top:2px;">${remainingLessons} lessons remaining</div>
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                        <span style="font-size:24px;">📖</span>
+                        <h3 style="margin:0;font-size:18px;font-weight:600;">Today's Lesson</h3>
+                        <span style="margin-left:auto;font-size:12px;background:rgba(74,158,255,0.15);color:#4a9eff;padding:2px 12px;border-radius:20px;">Day ${nextLessonDay}</span>
                     </div>
-                    <a href="pages/lesson.html" style="
-                        padding:10px 24px;
-                        background:#4a9eff;
-                        border:none;
-                        border-radius:10px;
-                        color:white;
-                        font-size:14px;
-                        font-weight:600;
-                        text-decoration:none;
-                        white-space:nowrap;
-                        transition:transform 0.2s;
-                    " onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">▶ Start Learning</a>
+                    <h4 style="margin:0 0 6px;font-size:20px;font-weight:700;color:#ffffff;">${nextTitle}</h4>
+                    <p style="margin:0 0 16px;color:#94a3b8;font-size:14px;line-height:1.6;">${nextSummary}</p>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                        <a href="pages/lesson.html" style="
+                            padding:10px 28px;
+                            background:#4a9eff;
+                            border:none;
+                            border-radius:10px;
+                            color:white;
+                            font-size:14px;
+                            font-weight:600;
+                            text-decoration:none;
+                            transition:transform 0.2s;
+                            display:inline-block;
+                        " onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">📖 Continue Learning</a>
+                        <button onclick="if(LawAIApp.Toast) LawAIApp.Toast.info('✏️ Practice mode coming soon! 🚧')" style="
+                            padding:10px 28px;
+                            background:rgba(255,255,255,0.08);
+                            border:1px solid rgba(255,255,255,0.12);
+                            border-radius:10px;
+                            color:#ffffff;
+                            font-size:14px;
+                            font-weight:500;
+                            cursor:pointer;
+                            transition:background 0.2s;
+                        " onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">✏️ Quick Practice</button>
+                        <button onclick="if(LawAIApp.Toast) LawAIApp.Toast.info('📝 Notes will open here soon! 🚧')" style="
+                            padding:10px 28px;
+                            background:rgba(124,58,237,0.2);
+                            border:1px solid rgba(124,58,237,0.2);
+                            border-radius:10px;
+                            color:#c4b5fd;
+                            font-size:14px;
+                            font-weight:500;
+                            cursor:pointer;
+                            transition:background 0.2s;
+                        " onmouseover="this.style.background='rgba(124,58,237,0.3)'" onmouseout="this.style.background='rgba(124,58,237,0.2)'">📝 Take Notes</button>
+                    </div>
+                    <div style="margin-top:12px;font-size:12px;color:#475569;">
+                        ${remainingLessons} lessons remaining in your journey
+                    </div>
                 </div>
             `;
         }
 
+        // ===========================================
+        // 8. 渲染最终页面
+        // ===========================================
         this.root.innerHTML = `
         <div id="systemComposerRoot" style="
             min-height: 100vh;
@@ -449,37 +506,12 @@ LawAIApp.SystemComposer = {
                         background: linear-gradient(135deg, rgba(74,158,255,0.15), rgba(124,58,237,0.15));
                         border: 1px solid rgba(74,158,255,0.2);
                         border-radius: 16px;
-                        padding: 32px;
+                        padding: 24px 32px;
                         text-align: center;
                         margin-bottom: 24px;
                     ">
-                        <h2 style="margin:0 0 8px 0;font-size:28px;font-weight:600;">👋 Welcome Back!</h2>
-                        <p style="margin:0;color:#94a3b8;font-size:16px;">Continue your AI learning journey. You're on Day ${day}!</p>
-                        <div style="margin-top:20px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-                            <a href="pages/lesson.html" style="
-                                padding:12px 32px;
-                                background:#4a9eff;
-                                border:none;
-                                border-radius:10px;
-                                color:white;
-                                font-size:15px;
-                                font-weight:600;
-                                cursor:pointer;
-                                text-decoration:none;
-                                transition:transform 0.2s;
-                            " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">📖 Continue Learning</a>
-                            <a href="pages/academy.html" style="
-                                padding:12px 32px;
-                                background:rgba(255,255,255,0.08);
-                                border:1px solid rgba(255,255,255,0.15);
-                                border-radius:10px;
-                                color:white;
-                                font-size:15px;
-                                cursor:pointer;
-                                text-decoration:none;
-                                transition:background 0.2s;
-                            " onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">🏛️ Academy</a>
-                        </div>
+                        <h2 style="margin:0 0 4px 0;font-size:24px;font-weight:600;">👋 Welcome Back!</h2>
+                        <p style="margin:0;color:#94a3b8;font-size:15px;">You're on Day ${day} · ${currentStage}</p>
                     </section>
 
                     <!-- Dashboard 卡片网格 -->
@@ -526,10 +558,8 @@ LawAIApp.SystemComposer = {
                         </div>
                     </div>
 
-                    <!-- ===== Phase 2: 今日学习目标 ===== -->
-                    <div style="margin-bottom:20px;">
-                        ${goalHtml}
-                    </div>
+                    <!-- ===== Phase 3: 今日学习卡片（增强版） ===== -->
+                    ${goalHtml}
 
                     <!-- ===== Phase 2: 最近学习课程 ===== -->
                     <div style="
