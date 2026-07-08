@@ -114,4 +114,78 @@ LawAIApp.LearningPathEngine = {
         var progress = LawAIApp.ProgressEngine?.getProgress?.() || {};
         var path = this.getCurrentPath();
         var completed = progress.completedLessons || [];
-        var total = progress
+        var total = progress.totalLessons || 365;
+
+        return {
+            totalLessons: total,
+            completedLessons: completed.length,
+            completionPercent: total > 0 ? Math.round((completed.length / total) * 100) : 0,
+            pathName: path?.name || 'AI Learning Path',
+            milestones: path?.milestones || [],
+            nextMilestone: this._getNextMilestone(completed.length, path?.milestones)
+        };
+    },
+
+    _getNextMilestone: function(completed, milestones) {
+        if (!milestones) return null;
+        for (var i = 0; i < milestones.length; i++) {
+            if (completed < milestones[i].at) {
+                return milestones[i];
+            }
+        }
+        return null;
+    },
+
+    getMilestones: function() {
+        try {
+            var path = this.getCurrentPath();
+            if (!path || !path.milestones) return [];
+            
+            var completed = LawAIApp.ProgressEngine?.getProgress?.()?.completedLessons?.length || 0;
+            return path.milestones.filter(function(m) {
+                return completed >= m.at;
+            });
+        } catch (e) {
+            return [];
+        }
+    },
+
+    addOptionalLesson: function(lessonId) {
+        try {
+            var path = LawAIApp.StorageEngine?.get?.('current_path');
+            if (path && path.optionalLessons.indexOf(lessonId) === -1) {
+                path.optionalLessons.push(lessonId);
+                path.updatedAt = new Date().toISOString();
+                LawAIApp.StorageEngine?.set?.('current_path', path);
+                LawAIApp.EventBus?.emit?.('PathUpdated', { path: path });
+                return true;
+            }
+        } catch (e) {}
+        return false;
+    },
+
+    getOptionalLessons: function() {
+        try {
+            var path = this.getCurrentPath();
+            return path?.optionalLessons || [];
+        } catch (e) {
+            return [];
+        }
+    },
+
+    getRequiredLessons: function() {
+        try {
+            var path = this.getCurrentPath();
+            return path?.requiredLessons || [];
+        } catch (e) {
+            return [];
+        }
+    }
+};
+
+// 自动初始化
+setTimeout(function() {
+    LawAIApp.LearningPathEngine.init();
+}, 300);
+
+console.log('🗺️ LearningPathEngine V2.0 ready');
