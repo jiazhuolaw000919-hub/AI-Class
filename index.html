@@ -16,29 +16,28 @@
   <link rel="stylesheet" href="css/theme.css">
 
   <!-- ========================= -->
-  <!-- 只加载核心 JS -->
+  <!-- 核心 JS -->
   <!-- ========================= -->
   
   <!-- 1. 核心启动引导器 -->
   <script>
-    // 确保 LawAIApp 存在
     window.LawAIApp = window.LawAIApp || {};
     
-    // 创建 StorageEngine 占位
+    // StorageEngine 占位
     LawAIApp.StorageEngine = {
       _placeholder: true,
       get: function(key, defaultValue) { 
-        try { return JSON.parse(localStorage.getItem('lawai_' + key)) || defaultValue; } 
+        try { var val = localStorage.getItem('lawai_' + key); return val ? JSON.parse(val) : defaultValue; } 
         catch(e) { return defaultValue; }
       },
       set: function(key, value) { 
         try { localStorage.setItem('lawai_' + key, JSON.stringify(value)); return true; } 
         catch(e) { return false; }
       },
-      init: function() { console.log('💾 StorageEngine placeholder ready'); return this; }
+      init: function() { console.log('💾 StorageEngine ready'); return this; }
     };
     
-    // 创建 EventBus 占位
+    // EventBus 占位
     LawAIApp.EventBus = {
       _placeholder: true,
       emit: function(event, data) { 
@@ -65,7 +64,7 @@
   <!-- 4. App -->
   <script src="js/app.js"></script>
 
-  <!-- 5. 启动 -->
+  <!-- 5. 启动脚本 -->
   <script>
     console.log('🚀 Starting application...');
     
@@ -82,16 +81,20 @@
       }
     }, 500);
     
-    // 加载 academy 页面
+    // 加载 academy 页面作为 Dashboard
     function loadAcademyPage() {
+      console.log('📄 Loading academy page...');
+      
       fetch('pages/academy.html')
         .then(function(response) {
-          if (!response.ok) throw new Error('Failed to load');
+          if (!response.ok) throw new Error('Failed to load: ' + response.status);
           return response.text();
         })
         .then(function(html) {
           var parser = new DOMParser();
           var doc = parser.parseFromString(html, 'text/html');
+          var bodyContent = doc.body.innerHTML;
+          
           var root = document.getElementById('law-runtime-root');
           if (root) {
             var container = document.getElementById('systemComposerRoot');
@@ -100,12 +103,13 @@
               container.id = 'systemComposerRoot';
               root.appendChild(container);
             }
-            container.innerHTML = doc.body.innerHTML;
-            console.log('✅ Academy page loaded!');
+            container.innerHTML = bodyContent;
+            console.log('✅ Academy page loaded as Dashboard!');
           }
         })
         .catch(function(err) {
-          console.warn('⚠️ Failed to load academy page:', err);
+          console.warn('⚠️ Failed to load academy page:', err.message);
+          // 如果加载失败，显示 SystemComposer 默认界面
           if (LawAIApp.SystemComposer && typeof LawAIApp.SystemComposer._renderMainUI === 'function') {
             LawAIApp.SystemComposer._renderMainUI();
           }
@@ -114,14 +118,15 @@
     
     // 等待 SystemComposer 就绪后加载页面
     document.addEventListener('COMPOSER_MOUNTED', function() {
-      console.log('📡 COMPOSER_MOUNTED received');
-      setTimeout(loadAcademyPage, 500);
+      console.log('📡 COMPOSER_MOUNTED received, loading academy page...');
+      setTimeout(loadAcademyPage, 300);
     });
     
     // 备用：5秒后强制加载
     setTimeout(function() {
       var root = document.getElementById('law-runtime-root');
       if (root && root.innerHTML.trim() === '') {
+        console.warn('⚠️ Fallback: forcing academy page load...');
         loadAcademyPage();
       }
     }, 5000);
