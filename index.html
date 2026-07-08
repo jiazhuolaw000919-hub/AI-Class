@@ -16,27 +16,35 @@
   <link rel="stylesheet" href="css/theme.css">
 
   <!-- ========================= -->
-  <!-- 加载 JS（优化后） -->
+  <!-- 加载 JS -->
   <!-- ========================= -->
   
-  <!-- 1. 优化版 Loader（只加载核心模块） -->
+  <!-- 1. Loader（核心加载器） -->
   <script src="js/loader.js"></script>
   
   <!-- 2. UI 组件 -->
   <script src="js/ui/toastSystem.js"></script>
   <script src="js/ui/emptyStates.js"></script>
 
-  <!-- 3. 启动脚本 -->
+  <!-- 3. 启动脚本（修复版） -->
   <script>
     console.log('🚀 Starting Law AI Academy...');
     
-    // 监听系统就绪事件
-    document.addEventListener('SYSTEM_READY', function(e) {
+    // 等待 loader 完成
+    function initApp() {
       console.log('✅ System ready, initializing App...');
       
-      // 初始化 SystemComposer
-      if (window.LawAIApp?.SystemComposer) {
-        window.LawAIApp.SystemComposer.init({});
+      // 检查 SystemComposer 是否存在（不用可选链）
+      if (window.LawAIApp && window.LawAIApp.SystemComposer) {
+        try {
+          window.LawAIApp.SystemComposer.init({});
+        } catch (err) {
+          console.warn('⚠️ SystemComposer init error:', err);
+        }
+      } else {
+        console.warn('⚠️ SystemComposer not found, retrying...');
+        setTimeout(initApp, 500);
+        return;
       }
       
       // 隐藏加载提示
@@ -44,19 +52,38 @@
         var el = document.getElementById('loading-placeholder');
         if (el) {
           el.style.opacity = '0';
-          setTimeout(function() { el.style.display = 'none'; }, 800);
+          setTimeout(function() {
+            el.style.display = 'none';
+          }, 800);
         }
       }, 500);
+    }
+
+    // 监听系统就绪事件
+    document.addEventListener('SYSTEM_READY', function(e) {
+      console.log('📡 SYSTEM_READY received');
+      initApp();
     });
 
-    // 备用：5秒后强制隐藏加载
+    // 备用：如果 SYSTEM_READY 没触发，5秒后强制初始化
+    setTimeout(function() {
+      var root = document.getElementById('law-runtime-root');
+      if (root && root.innerHTML.trim() === '') {
+        console.warn('⚠️ Fallback: forcing init...');
+        initApp();
+      }
+    }, 5000);
+
+    // 强制隐藏加载（7秒后无论如何都隐藏）
     setTimeout(function() {
       var el = document.getElementById('loading-placeholder');
       if (el && el.style.display !== 'none') {
         el.style.opacity = '0';
-        setTimeout(function() { el.style.display = 'none'; }, 800);
+        setTimeout(function() {
+          el.style.display = 'none';
+        }, 800);
       }
-    }, 5000);
+    }, 7000);
   </script>
 
 </head>
