@@ -2,7 +2,7 @@ window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.SystemComposer = {
 
-    version: "4.0.7",
+    version: "4.0.8",
 
     initialized: false,
 
@@ -89,7 +89,7 @@ LawAIApp.SystemComposer = {
 
     /**
      * =========================
-     * 渲染主 UI（Phase 1 完整版）
+     * 渲染主 UI（Phase 2 完整版）
      * =========================
      */
 
@@ -106,13 +106,16 @@ LawAIApp.SystemComposer = {
         // ===========================================
         var state = {};
         var hasProgress = false;
+        var completedList = [];
 
         try {
             if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.getState === 'function') {
                 state = LawAIApp.ProgressEngine.getState();
-                hasProgress = (state.completedLessons && state.completedLessons.length > 0);
+                completedList = state.completedLessons || [];
+                hasProgress = completedList.length > 0;
             } else if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.getProgress === 'function') {
                 var p = LawAIApp.ProgressEngine.getProgress();
+                completedList = p.completedLessons || [];
                 state = {
                     level: p.level || 1,
                     xp: p.xp || 0,
@@ -120,10 +123,10 @@ LawAIApp.SystemComposer = {
                     day: p.day || 1,
                     completionPercent: p.completionPercent || 0,
                     currentStage: p.currentStage || 'Foundation',
-                    remainingLessons: (p.totalLessons || 365) - (p.completedLessons ? p.completedLessons.length : 0),
-                    completedLessons: p.completedLessons || []
+                    remainingLessons: (p.totalLessons || 365) - completedList.length,
+                    completedLessons: completedList
                 };
-                hasProgress = (p.completedLessons && p.completedLessons.length > 0);
+                hasProgress = completedList.length > 0;
             }
         } catch (err) {
             console.warn('⚠️ Failed to get progress state:', err);
@@ -138,7 +141,60 @@ LawAIApp.SystemComposer = {
         var remainingLessons = state.remainingLessons || 365;
 
         // ===========================================
-        // 2. 空状态判断
+        // 2. 计算下一节课
+        // ===========================================
+        var nextLessonDay = day + 1;
+        var totalLessons = 365;
+        if (nextLessonDay > totalLessons) {
+            nextLessonDay = totalLessons;
+        }
+
+        // ===========================================
+        // 3. 获取最近 3 节已学课程
+        // ===========================================
+        var recentLessons = [];
+        if (completedList.length > 0) {
+            // 取最后 3 个（最新的）
+            var copy = completedList.slice();
+            var recent = copy.reverse().slice(0, 3);
+            recentLessons = recent;
+        }
+
+        // ===========================================
+        // 4. 课程名称辅助函数
+        // ===========================================
+        function getLessonTitle(lessonId) {
+            if (!lessonId) return 'Lesson';
+            // 尝试从 LessonEngine 获取
+            try {
+                if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
+                    var dayNum = parseInt(lessonId.replace('day-', ''));
+                    if (!isNaN(dayNum)) {
+                        var lesson = LawAIApp.LessonEngine.getLessonByDay(dayNum);
+                        if (lesson && lesson.title) return lesson.title;
+                    }
+                }
+            } catch (e) {}
+            // 兜底：显示 Day X
+            var num = lessonId.replace('day-', '');
+            return 'Day ' + num;
+        }
+
+        function getNextLessonTitle() {
+            try {
+                if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
+                    var lesson = LawAIApp.LessonEngine.getLessonByDay(nextLessonDay);
+                    if (lesson && lesson.title) return lesson.title;
+                }
+            } catch (e) {}
+            return 'Day ' + nextLessonDay;
+        }
+
+        var nextTitle = getNextLessonTitle();
+        var isComplete = (completedList.length >= totalLessons);
+
+        // ===========================================
+        // 5. 空状态判断
         // ===========================================
         if (!hasProgress) {
             this.root.innerHTML = `
@@ -153,7 +209,7 @@ LawAIApp.SystemComposer = {
                 display: flex;
                 flex-direction: column;
             ">
-                <!-- 顶部导航（简化） -->
+                <!-- 顶部导航 -->
                 <header style="
                     background: rgba(255,255,255,0.05);
                     backdrop-filter: blur(10px);
@@ -180,7 +236,7 @@ LawAIApp.SystemComposer = {
                     </div>
                 </header>
 
-                <!-- 空状态主区域 -->
+                <!-- 空状态 -->
                 <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px 20px 100px;">
                     <div id="empty-state-root" style="width:100%;max-width:480px;"></div>
                 </div>
@@ -243,14 +299,103 @@ LawAIApp.SystemComposer = {
                 }
             }
 
-            // 底部导航守卫
             this._setupNavGuard();
             return;
         }
 
         // ===========================================
-        // 3. 有进度 → 完整 Dashboard
+        // 6. 有进度 → 完整 Dashboard（含 Phase 2 功能）
         // ===========================================
+        var recentHtml = '';
+        if (recentLessons.length > 0) {
+            recentHtml = recentLessons.map(function(id) {
+                var title = getLessonTitle(id);
+                return `
+                    <div style="
+                        display:flex;
+                        align-items:center;
+                        gap:12px;
+                        padding:10px 14px;
+                        background:rgba(255,255,255,0.04);
+                        border-radius:10px;
+                        margin-bottom:6px;
+                        border-left:3px solid #22c55e;
+                    ">
+                        <span style="font-size:16px;">✅</span>
+                        <span style="font-size:14px;color:#e2e8f0;">${title}</span>
+                        <span style="margin-left:auto;font-size:12px;color:#64748b;">Completed</span>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            recentHtml = `
+                <div style="text-align:center;padding:16px 0;color:#64748b;font-size:14px;">
+                    No lessons completed yet. Start your first lesson!
+                </div>
+            `;
+        }
+
+        var goalHtml = '';
+        if (isComplete) {
+            goalHtml = `
+                <div style="
+                    background: linear-gradient(135deg, rgba(74,158,255,0.2), rgba(124,58,237,0.2));
+                    border-radius:14px;
+                    padding:24px;
+                    text-align:center;
+                    border:1px solid rgba(74,158,255,0.2);
+                ">
+                    <div style="font-size:40px;margin-bottom:8px;">🎉</div>
+                    <h3 style="margin:0 0 4px 0;font-size:18px;font-weight:600;">All 365 Lessons Complete!</h3>
+                    <p style="margin:0;color:#94a3b8;font-size:14px;">You've mastered the entire curriculum. Incredible work! 🏆</p>
+                    <a href="pages/academy.html" style="
+                        display:inline-block;
+                        margin-top:16px;
+                        padding:10px 28px;
+                        background:#4a9eff;
+                        border:none;
+                        border-radius:10px;
+                        color:white;
+                        font-size:14px;
+                        font-weight:600;
+                        text-decoration:none;
+                    ">🏛️ Explore Advanced Topics</a>
+                </div>
+            `;
+        } else {
+            goalHtml = `
+                <div style="
+                    background: linear-gradient(135deg, rgba(74,158,255,0.12), rgba(124,58,237,0.12));
+                    border-radius:14px;
+                    padding:20px 24px;
+                    border:1px solid rgba(74,158,255,0.15);
+                    display:flex;
+                    align-items:center;
+                    justify-content:space-between;
+                    flex-wrap:wrap;
+                    gap:12px;
+                ">
+                    <div>
+                        <div style="font-size:13px;color:#94a3b8;font-weight:400;">🎯 Today's Goal</div>
+                        <div style="font-size:16px;font-weight:600;color:#ffffff;">${nextTitle}</div>
+                        <div style="font-size:12px;color:#64748b;margin-top:2px;">${remainingLessons} lessons remaining</div>
+                    </div>
+                    <a href="pages/lesson.html" style="
+                        padding:10px 24px;
+                        background:#4a9eff;
+                        border:none;
+                        border-radius:10px;
+                        color:white;
+                        font-size:14px;
+                        font-weight:600;
+                        text-decoration:none;
+                        white-space:nowrap;
+                        transition:transform 0.2s;
+                    " onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">▶ Start Learning</a>
+                </div>
+            `;
+        }
+
         this.root.innerHTML = `
         <div id="systemComposerRoot" style="
             min-height: 100vh;
@@ -261,7 +406,7 @@ LawAIApp.SystemComposer = {
             margin: 0;
             box-sizing: border-box;
         ">
-            <!-- 主内容（留出底部导航空间） -->
+            <!-- 主内容 -->
             <div style="padding-bottom: 100px;">
 
                 <!-- 顶部导航 -->
@@ -381,20 +526,21 @@ LawAIApp.SystemComposer = {
                         </div>
                     </div>
 
-                    <!-- 最近学习课程（Phase 2 占位） -->
+                    <!-- ===== Phase 2: 今日学习目标 ===== -->
+                    <div style="margin-bottom:20px;">
+                        ${goalHtml}
+                    </div>
+
+                    <!-- ===== Phase 2: 最近学习课程 ===== -->
                     <div style="
                         background:rgba(255,255,255,0.03);
                         border-radius:14px;
                         padding:20px 24px;
-                        border:1px dashed rgba(255,255,255,0.08);
+                        border:1px solid rgba(255,255,255,0.06);
                         margin-bottom:24px;
                     ">
                         <h3 style="margin:0 0 12px 0;color:#94a3b8;font-size:14px;font-weight:400;">📖 Recent Lessons</h3>
-                        <div style="color:#64748b;font-size:14px;text-align:center;padding:16px 0;">
-                            ${state.completedLessons && state.completedLessons.length > 0 
-                                ? '✅ ' + state.completedLessons.length + ' lessons completed so far!' 
-                                : 'Start learning to see your progress here.'}
-                        </div>
+                        ${recentHtml}
                     </div>
 
                     <!-- 隐藏的面板（保留功能） -->
@@ -406,7 +552,7 @@ LawAIApp.SystemComposer = {
                 </main>
             </div>
 
-            <!-- 底部导航（Phase 1） -->
+            <!-- 底部导航 -->
             <nav style="
                 position:fixed;
                 bottom:0;
@@ -437,7 +583,6 @@ LawAIApp.SystemComposer = {
         </div>
         `;
 
-        // 设置底部导航守卫
         this._setupNavGuard();
     },
 
@@ -452,34 +597,24 @@ LawAIApp.SystemComposer = {
         var navItems = document.querySelectorAll('.nav-item');
 
         navItems.forEach(function(item) {
-            // 移除已有监听器防止重复绑定
             item.removeEventListener('click', self._navClickHandler);
             item.addEventListener('click', self._navClickHandler = function(e) {
                 var tab = this.getAttribute('data-tab');
-
-                // 如果是 Home 或 Academy，允许跳转
                 if (tab === 'home' || tab === 'academy') {
                     return;
                 }
-
-                // 其他 Tab → 阻止跳转，显示 Toast
                 e.preventDefault();
-
                 var tabNames = {
                     'calendar': '📅 Calendar',
                     'notes': '📝 Notes',
                     'settings': '⚙️ Settings'
                 };
-
                 var tabDisplay = tabNames[tab] || tab;
-
                 if (LawAIApp.Toast && typeof LawAIApp.Toast.info === 'function') {
                     LawAIApp.Toast.info(tabDisplay + ' is coming soon! 🚧');
                 } else {
                     alert(tabDisplay + ' is coming soon! 🚧');
                 }
-
-                // 更新激活状态（视觉反馈）
                 navItems.forEach(function(nav) {
                     nav.style.color = '#64748b';
                     nav.classList.remove('active');
@@ -771,7 +906,6 @@ window.addEventListener("PROFILE_UPDATED", function() {
 
 console.log("🧩 SystemComposer V" + LawAIApp.SystemComposer.version + " Ready");
 
-// 确保挂载到全局
 if (typeof window.LawAIApp !== 'undefined') {
     window.LawAIApp.SystemComposer = LawAIApp.SystemComposer;
     console.log('✅ SystemComposer V' + LawAIApp.SystemComposer.version + ' attached to LawAIApp');
