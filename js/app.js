@@ -2,87 +2,158 @@ window.LawAIApp = window.LawAIApp || {};
 
 window.App = {
 
-    initialized:false,
+    initialized: false,
 
-    init(payload){
+    root: null,
 
-        if(this.initialized)return;
+    boot: null,
 
-        this.initialized=true;
+    /**
+     * =========================
+     * INIT
+     * =========================
+     */
 
-        console.log("🚀 App Runtime V3.9.8");
+    init(payload) {
 
-        const boot=
+        if (this.initialized) {
 
+            this.refresh(payload);
+
+            return;
+
+        }
+
+        this.initialized = true;
+
+        console.log("🚀 App Runtime V4");
+
+        this.boot =
             payload?.boot ||
-
             window.LawAIApp.bootStatus ||
-
             {};
 
-        this.mount(boot);
+        this.mountRoot();
+
+        this.render();
 
     },
 
-    mount(boot){
+    /**
+     * =========================
+     * ROOT
+     * =========================
+     */
 
-        document.body.innerHTML=`
+    mountRoot() {
 
-        <div id="law-runtime-root"
+        let root =
+            document.getElementById(
+                "law-runtime-root"
+            );
 
-            style="
+        if (!root) {
 
-                min-height:100vh;
+            document.body.innerHTML = `
 
-                background:#0b1220;
+            <div
+                id="law-runtime-root"
+                style="
+                    min-height:100vh;
+                    background:#0b1220;
+                    color:white;
+                    font-family:Arial;
+                ">
+            </div>
 
-                color:white;
+            `;
 
-                font-family:Arial;
+            root =
+                document.getElementById(
+                    "law-runtime-root"
+                );
 
-            ">
+        }
+
+        this.root = root;
+
+    },
+
+    /**
+     * =========================
+     * RENDER
+     * =========================
+     */
+
+    render() {
+
+        if (!this.root) return;
+
+        if (
+
+            window.LawAIApp
+                .SystemComposer
+                ?.init
+
+        ) {
+
+            window.LawAIApp
+                .SystemComposer
+                .init(this.boot);
+
+            return;
+
+        }
+
+        this.root.innerHTML = `
+
+        <div style="padding:30px">
+
+            <h1>🚀 Runtime Loading...</h1>
+
+            <p>Waiting SystemComposer...</p>
 
         </div>
 
         `;
 
-        const root=
+    },
 
-            document.getElementById(
+    /**
+     * =========================
+     * REFRESH
+     * =========================
+     */
 
-                "law-runtime-root"
+    refresh(payload) {
 
-            );
+        if (payload?.boot) {
 
-        if(
-
-            window.LawAIApp.SystemComposer?.init
-
-        ){
-
-            window.LawAIApp.SystemComposer.init(
-
-                boot
-
-            );
+            this.boot = payload.boot;
 
         }
 
-        else{
+        window.LawAIApp
+            .SystemComposer
+            ?.refresh?.();
 
-            root.innerHTML=`
+    },
 
-            <div style="padding:30px">
+    /**
+     * =========================
+     * DESTROY
+     * =========================
+     */
 
-                <h1>
+    destroy() {
 
-                🚀 Runtime Loading...
+        this.initialized = false;
 
-                </h1>
+        this.boot = null;
 
-            </div>
+        if (this.root) {
 
-            `;
+            this.root.innerHTML = "";
 
         }
 
@@ -90,23 +161,45 @@ window.App = {
 
 };
 
+/**
+ * =========================
+ * EVENTS
+ * =========================
+ */
+
 window.addEventListener(
 
     "SYSTEM_READY",
 
-    e=>{
+    (e) => {
 
-        console.log(
+        console.log("⚡ SYSTEM_READY");
 
-            "⚡ SYSTEM_READY"
+        window.App.init(e.detail);
 
-        );
+    }
 
-        window.App.init(
+);
 
-            e.detail
+window.addEventListener(
 
-        );
+    "RUNTIME_REFRESH",
+
+    () => {
+
+        window.App.refresh();
+
+    }
+
+);
+
+window.addEventListener(
+
+    "RUNTIME_RESET",
+
+    () => {
+
+        window.App.destroy();
 
     }
 
