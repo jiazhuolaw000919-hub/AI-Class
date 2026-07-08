@@ -5,184 +5,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Law AI Academy</title>
 
-  <!-- ========================= -->
-  <!-- 预加载关键资源 -->
-  <!-- ========================= -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-
-  <!-- ========================= -->
-  <!-- 加载所有 CSS 文件 -->
-  <!-- ========================= -->
+  <!-- CSS -->
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/academy.css">
   <link rel="stylesheet" href="css/animation.css">
-  <link rel="stylesheet" href="css/calendar.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/dashboard.css">
   <link rel="stylesheet" href="css/learning.css">
-  <link rel="stylesheet" href="css/lesson.css">
-  <link rel="stylesheet" href="css/notes.css">
   <link rel="stylesheet" href="css/responsive.css">
-  <link rel="stylesheet" href="css/settings.css">
   <link rel="stylesheet" href="css/theme.css">
 
-  <!-- ========================= -->
-  <!-- 加载核心 JS 文件 -->
-  <!-- ========================= -->
-  <!-- 1. Loader - 模块加载器 -->
+  <!-- 核心 JS -->
   <script src="js/loader.js"></script>
-  
-  <!-- 2. UI 组件 -->
-  <script src="js/ui/toastSystem.js"></script>
-  <script src="js/ui/loadingStates.js"></script>
-  <script src="js/ui/emptyStates.js"></script>
-
-  <!-- 3. 系统工具 -->
-  <script src="js/system/factoryReset.js"></script>
-
-  <!-- 4. 核心引擎 -->
-  <script src="learningIntelligence.js"></script>
-  <script src="levelEngine.js"></script>
-  <script src="progressEngine.js"></script>
-  <script src="searchEngine.js"></script>
-  <script src="streakEngine.js"></script>
-
-  <!-- 5. Debug 工具（仅开发环境） -->
-  <script src="js/debug/devPanel.js"></script>
-  <script src="js/debug/storageAudit.js"></script>
-
-  <!-- 6. 核心应用（在 loader 之后加载） -->
-  <script>
-    // 等待所有核心文件加载完成后，启动应用
-    window.LawAIApp = window.LawAIApp || {};
-    
-    // 确保 Loader 已经加载了 SystemComposer 和 App
-    // 使用 DOMContentLoaded 确保所有脚本已加载
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('📄 DOM ready, checking SystemComposer...');
-      
-      // 如果 SystemComposer 还没加载，手动加载
-      if (!window.LawAIApp?.SystemComposer) {
-        console.warn('⚠️ SystemComposer not found, loading manually...');
-        const script = document.createElement('script');
-        script.src = 'js/systemComposer.js';
-        document.head.appendChild(script);
-        
-        script.onload = function() {
-          console.log('✅ SystemComposer loaded manually');
-          // 加载 App
-          const appScript = document.createElement('script');
-          appScript.src = 'js/app.js';
-          document.head.appendChild(appScript);
-        };
-      }
-    });
-
-    // 备用：如果所有脚本加载完成但 App 没启动，自动启动
-    window.addEventListener('load', function() {
-      console.log('🔄 Window loaded, checking App status...');
-      if (window.App && !window.App.initialized) {
-        console.log('🚀 Auto-starting App...');
-        // 触发 SYSTEM_READY 事件
-        window.dispatchEvent(new CustomEvent('SYSTEM_READY', {
-          detail: {
-            boot: window.LawAIApp.bootStatus || {},
-            active: window.__ENGINE_STATUS__?.active || [],
-            timestamp: Date.now()
-          }
-        }));
-      }
-    });
-  </script>
+  <script src="js/systemComposer.js"></script>
+  <script src="js/app.js"></script>
 
 </head>
 <body>
-  <!-- 挂载点 - App 会渲染到这里 -->
+  <!-- 挂载点 -->
   <div id="law-runtime-root"></div>
 
-  <!-- 加载提示（如果 JS 加载慢） -->
-  <div id="loading-placeholder" style="
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    background: #0b1220;
-    color: #94a3b8;
-    font-family: 'Inter', -apple-system, sans-serif;
-    text-align: center;
-    padding: 20px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 9999;
-    pointer-events: none;
-    transition: opacity 0.8s ease;
-  ">
-    <div style="font-size: 48px; margin-bottom: 16px;">🚀</div>
-    <h2 style="color: white; font-weight: 600; margin: 0 0 8px 0;">Loading Law AI Academy</h2>
-    <p style="margin: 0; font-size: 14px;">Preparing your learning environment...</p>
-    <div style="
-      margin-top: 24px;
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(74,158,255,0.15);
-      border-top-color: #4a9eff;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    "></div>
-    <style>
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    </style>
-  </div>
-
+  <!-- 直接加载 academy.html 的内容 -->
   <script>
-    // 当 SystemComposer 渲染完成后，隐藏 loading 占位
-    document.addEventListener('COMPOSER_MOUNTED', function() {
-      const placeholder = document.getElementById('loading-placeholder');
-      if (placeholder) {
-        placeholder.style.opacity = '0';
-        setTimeout(function() {
-          placeholder.style.display = 'none';
-        }, 800);
-      }
-    });
-
-    // 备用：5秒后自动隐藏 loading
-    setTimeout(function() {
-      const placeholder = document.getElementById('loading-placeholder');
-      if (placeholder && placeholder.style.display !== 'none') {
-        placeholder.style.opacity = '0';
-        setTimeout(function() {
-          placeholder.style.display = 'none';
-        }, 800);
-      }
-    }, 5000);
+    // 加载 academy 页面
+    fetch('pages/academy.html')
+      .then(response => response.text())
+      .then(html => {
+        // 提取 body 内容
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const content = doc.body.innerHTML;
+        
+        // 找到挂载点并插入
+        const root = document.getElementById('law-runtime-root');
+        if (root) {
+          root.innerHTML = content;
+        }
+        
+        // 触发页面加载完成事件
+        document.dispatchEvent(new Event('DOMContentLoaded'));
+      })
+      .catch(err => {
+        console.warn('Failed to load academy page, using fallback:', err);
+        // 如果加载失败，显示 SystemComposer
+        if (window.LawAIApp?.SystemComposer) {
+          window.LawAIApp.SystemComposer.init({});
+        }
+      });
   </script>
-
-  <!-- 如果 JavaScript 被禁用 -->
-  <noscript>
-    <div style="
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      background: #0b1220;
-      color: white;
-      font-family: 'Inter', -apple-system, sans-serif;
-      text-align: center;
-      padding: 20px;
-    ">
-      <h2>⚠️ JavaScript 未启用</h2>
-      <p style="color: #94a3b8;">请启用 JavaScript 以使用 Law AI Academy</p>
-    </div>
-  </noscript>
 </body>
 </html>
