@@ -2,37 +2,56 @@ window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.SystemComposer = {
 
+    version: "4.0.0",
+
     initialized: false,
 
-    init(boot) {
+    boot: {},
+
+    root: null,
+
+    cache: {},
+
+    panels: {},
+
+    init(boot = {}) {
+
+        this.boot = boot || LawAIApp.bootStatus || {};
 
         if (this.initialized) {
+
             this.refresh();
+
             return;
+
         }
 
         this.initialized = true;
 
-        console.log("🧩 SystemComposer V3.9.9 LIVE");
+        console.log("🧩 SystemComposer V4.0 LIVE");
 
-        const root =
+        this.root =
             document.getElementById("law-runtime-root")
             || document.body;
 
-        root.innerHTML = "";
+        this.cache = {};
 
-        root.innerHTML = `
+        this.root.innerHTML = `
 
         <div
+            id="systemComposerRoot"
             style="
-                padding:25px;
-                color:white;
-                background:#0b1220;
                 min-height:100vh;
-                font-family:Arial;
+                background:#0b1220;
+                color:white;
+                font-family:Arial,sans-serif;
+                padding:24px;
+                box-sizing:border-box;
             ">
 
-            <h1>🚀 Law AI Academy</h1>
+            <h1 style="margin-top:0;">
+                🚀 Law AI Academy
+            </h1>
 
             <div id="learningPanel"></div>
 
@@ -52,251 +71,410 @@ LawAIApp.SystemComposer = {
 
         `;
 
+        // Cache frequently-used DOM nodes
+        this.cache.learning =
+            document.getElementById("learningPanel");
+
+        this.cache.workspace =
+            document.getElementById("workspacePanel");
+
+        this.cache.runtime =
+            document.getElementById("runtimePanel");
+
+        this.cache.modules =
+            document.getElementById("modulePanel");
+
+        // Register built-in panels
+        this.panels = {
+
+            learning: () => this.mountLearning(),
+
+            workspace: () => this.mountWorkspace(),
+
+            runtime: () => this.mountRuntime(),
+
+            modules: () => this.mountRuntimeModules()
+
+        };
+
         this.refresh();
 
     },
 
     refresh() {
 
-        this.mountLearning();
+        Object.values(this.panels).forEach(panel => {
 
-        this.mountWorkspace();
+            try {
 
-        this.mountRuntime();
+                panel();
 
-        this.mountRuntimeModules();
+            }
+
+            catch (err) {
+
+                console.warn(
+                    "Panel render failed:",
+                    err
+                );
+
+            }
+
+        });
 
     },
 
     /* =====================================
-       LEARNING
-    ===================================== */
+   LEARNING
+===================================== */
 
-    mountLearning() {
+mountLearning() {
 
-        const el =
-            document.getElementById("learningPanel");
+    const el = this.cache.learning;
 
-        if (!el) return;
+    if (!el) return;
 
-        const state =
-            LawAIApp
-                .LearningStateManager
-                ?.getState?.()
-            || {};
+    const state =
+        LawAIApp
+            .LearningStateManager
+            ?.getState?.()
+        || {};
 
-        el.innerHTML = `
+    el.innerHTML = `
 
-        <div
-            style="
-                background:#1e293b;
-                padding:15px;
-                border-radius:10px;
-            ">
+    <div
+        style="
+            background:#1e293b;
+            padding:18px;
+            border-radius:12px;
+            box-shadow:0 2px 8px rgba(0,0,0,.25);
+        ">
 
-            <h2>📚 Learning</h2>
+        <h2 style="margin-top:0;">
+            📚 Learning
+        </h2>
 
-            <p>📈 Level : ${state.level || 1}</p>
+        <div style="
+            display:flex;
+            gap:24px;
+            flex-wrap:wrap;
+        ">
 
-            <p>⭐ XP : ${state.xp || 0}</p>
+            <div>
+                <strong>📈 Level</strong><br>
+                ${state.level ?? 1}
+            </div>
 
-            <p>🔥 Streak : ${state.streak || 0}</p>
+            <div>
+                <strong>⭐ XP</strong><br>
+                ${state.xp ?? 0}
+            </div>
+
+            <div>
+                <strong>🔥 Streak</strong><br>
+                ${state.streak ?? 0}
+            </div>
 
         </div>
 
-        `;
+    </div>
 
-    },
+    `;
+
+},
+
+/* =====================================
+   WORKSPACE
+===================================== */
+
+mountWorkspace() {
+
+    const el = this.cache.workspace;
+
+    if (!el) return;
+
+    const workspace =
+        LawAIApp
+            .WorkspaceState
+            ?.get?.("default")
+        || {};
+
+    el.innerHTML = `
+
+    <div
+        style="
+            background:#1e293b;
+            padding:18px;
+            border-radius:12px;
+            box-shadow:0 2px 8px rgba(0,0,0,.25);
+        ">
+
+        <h2 style="margin-top:0;">
+            🧩 Workspace
+        </h2>
+
+        <pre style="
+            margin:0;
+            white-space:pre-wrap;
+            word-break:break-word;
+            color:#cbd5e1;
+        ">${JSON.stringify(workspace, null, 2)}</pre>
+
+    </div>
+
+    `;
+
+},
 
     /* =====================================
-       WORKSPACE
-    ===================================== */
+   RUNTIME
+===================================== */
 
-    mountWorkspace() {
+mountRuntime() {
 
-        const el =
-            document.getElementById("workspacePanel");
+    const el = this.cache.runtime;
 
-        if (!el) return;
+    if (!el) return;
 
-        const ws =
-            LawAIApp
-                .WorkspaceState
-                ?.get?.("default")
-            || {};
+    const boot =
+        LawAIApp.bootStatus || {};
 
-        el.innerHTML = `
+    const runtime =
+        LawAIApp.RuntimeManager || {};
 
-        <div
-            style="
-                background:#1e293b;
-                padding:15px;
-                border-radius:10px;
-            ">
+    const registry =
+        LawAIApp.RuntimeRegistry;
 
-            <h2>🧩 Workspace</h2>
+    let modules = [];
 
-            <pre>${JSON.stringify(ws, null, 2)}</pre>
+    try {
 
-        </div>
+        modules =
+            registry?.discover?.()
+            || registry?.getAll?.()
+            || [];
 
-        `;
+    } catch (err) {
 
-    },
+        console.warn(err);
 
-    /* =====================================
-       RUNTIME
-    ===================================== */
+    }
 
-    mountRuntime() {
+    const runtimeStarted =
+        runtime.started
+            ? "🟢 Running"
+            : "🟡 Waiting";
 
-        const el =
-            document.getElementById("runtimePanel");
+    el.innerHTML = `
 
-        if (!el) return;
+    <div
+        style="
+            background:#1e293b;
+            padding:18px;
+            border-radius:12px;
+            box-shadow:0 2px 8px rgba(0,0,0,.25);
+        ">
 
-        const boot =
-            LawAIApp.bootStatus
-            || {};
+        <h2 style="margin-top:0;">
+            ⚙ Runtime
+        </h2>
 
-        let runtimeModules = [];
+        <div style="
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+            gap:16px;
+        ">
 
-        try {
+            <div>
 
-            runtimeModules =
-                LawAIApp.RuntimeRegistry
-                    ?.discover?.()
-                || [];
+                <strong>Status</strong><br>
 
-        } catch (err) {
+                ${runtimeStarted}
 
-            console.warn(
-                "RuntimeRegistry discover failed",
-                err
-            );
+            </div>
 
-        }
+            <div>
 
-        el.innerHTML = `
+                <strong>Active Engines</strong><br>
 
-        <div
-            style="
-                background:#1e293b;
-                padding:15px;
-                border-radius:10px;
-            ">
+                ${boot.active?.length ?? 0}
 
-            <h2>⚙ Runtime</h2>
+            </div>
 
-            <p>
+            <div>
 
-                ✅ Active Engines :
+                <strong>Loaded Files</strong><br>
 
-                <strong>
+                ${boot.loaded?.length ?? 0}
 
-                ${boot.active?.length || 0}
+            </div>
 
-                </strong>
+            <div>
 
-            </p>
+                <strong>Runtime Modules</strong><br>
 
-            <p>
+                ${modules.length}
 
-                📦 Loaded Files :
+            </div>
 
-                <strong>
+            <div>
 
-                ${boot.loaded?.length || 0}
+                <strong>Missing</strong><br>
 
-                </strong>
+                ${boot.missing?.length ?? 0}
 
-            </p>
+            </div>
 
-            <p>
+            <div>
 
-                🧩 Runtime Modules :
-
-                <strong>
-
-                ${runtimeModules.length}
-
-                </strong>
-
-            </p>
-
-            <p>
-
-                🚨 Missing :
-
-                <strong>
-
-                ${boot.missing?.length || 0}
-
-                </strong>
-
-            </p>
-
-            <p>
-
-                🛡 Safe Mode :
-
-                <strong>
+                <strong>Safe Mode</strong><br>
 
                 ${boot.safeMode ? "ON" : "OFF"}
 
-                </strong>
-
-            </p>
+            </div>
 
         </div>
 
-        `;
+    </div>
 
-    },
+    `;
 
-    /* =====================================
-       RUNTIME MODULES
-    ===================================== */
+},
 
-    mountRuntimeModules() {
+/* =====================================
+   RUNTIME MODULES
+===================================== */
 
-        const el =
-            document.getElementById("modulePanel");
+mountRuntimeModules() {
 
-        if (!el) return;
+    const el = this.cache.modules;
 
-        el.innerHTML = "";
+    if (!el) return;
 
-        if (LawAIApp.RuntimeInjector?.inject) {
+    el.innerHTML = "";
 
-            LawAIApp.RuntimeInjector.inject(el);
+    if (LawAIApp.RuntimeInjector?.inject) {
 
-            return;
+        LawAIApp.RuntimeInjector.inject(el);
 
-        }
+        return;
 
-        el.innerHTML = `
+    }
+
+    const registry =
+        LawAIApp.RuntimeRegistry;
+
+    let engines = [];
+
+    try {
+
+        engines =
+            registry?.discover?.()
+            || registry?.getAll?.()
+            || [];
+
+    } catch (err) {
+
+        console.warn(err);
+
+    }
+
+    const cards = engines.map(engine => `
 
         <div
             style="
-                background:#1e293b;
-                padding:15px;
-                border-radius:10px;
+                padding:10px;
+                border-radius:8px;
+                background:#334155;
             ">
 
-            <h2>📦 Runtime Modules</h2>
-
-            <p>
-
-                RuntimeInjector not ready.
-
-            </p>
+            ${engine.name || engine.constructor?.name || "Unnamed Engine"}
 
         </div>
 
-        `;
+    `).join("");
+
+    el.innerHTML = `
+
+    <div
+        style="
+            background:#1e293b;
+            padding:18px;
+            border-radius:12px;
+            box-shadow:0 2px 8px rgba(0,0,0,.25);
+        ">
+
+        <h2 style="margin-top:0;">
+            📦 Runtime Modules
+        </h2>
+
+        <div
+            style="
+                display:grid;
+                grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+                gap:10px;
+            ">
+
+            ${cards || "<p>No runtime modules.</p>"}
+
+        </div>
+
+    </div>
+
+    ";
+
+},
+
+},
+
+/* =====================================
+   PANEL MANAGEMENT
+===================================== */
+
+registerPanel(name, renderer) {
+
+    if (!name || typeof renderer !== "function") return;
+
+    this.panels[name] = renderer;
+
+},
+
+refreshPanel(name) {
+
+    if (!this.panels[name]) return;
+
+    try {
+
+        this.panels[name]();
 
     }
+
+    catch (err) {
+
+        console.warn(
+            `Panel ${name} refresh failed`,
+            err
+        );
+
+    }
+
+},
+
+destroy() {
+
+    this.initialized = false;
+
+    this.boot = {};
+
+    this.cache = {};
+
+    this.panels = {};
+
+    this.root = null;
+
+    console.log("🧩 SystemComposer destroyed");
+
+}
 
 };
 
@@ -310,7 +488,7 @@ window.addEventListener(
 
     () => {
 
-        LawAIApp.SystemComposer.refresh();
+        LawAIApp.SystemComposer?.refresh();
 
     }
 
@@ -320,10 +498,96 @@ window.addEventListener(
 
     "SYSTEM_READY",
 
-    () => {
+    e => {
 
-        LawAIApp.SystemComposer.refresh();
+        if (
+
+            !LawAIApp.SystemComposer.initialized
+
+        ) {
+
+            LawAIApp.SystemComposer.init(
+
+                e.detail?.boot
+
+            );
+
+        }
+
+        else {
+
+            LawAIApp.SystemComposer.boot =
+
+                e.detail?.boot ||
+
+                LawAIApp.bootStatus ||
+
+                {};
+
+            LawAIApp.SystemComposer.refresh();
+
+        }
 
     }
+
+);
+
+window.addEventListener(
+
+    "RUNTIME_READY",
+
+    () => {
+
+        LawAIApp.SystemComposer?.refreshPanel(
+
+            "runtime"
+
+        );
+
+        LawAIApp.SystemComposer?.refreshPanel(
+
+            "modules"
+
+        );
+
+    }
+
+);
+
+window.addEventListener(
+
+    "WORKSPACE_UPDATED",
+
+    () => {
+
+        LawAIApp.SystemComposer?.refreshPanel(
+
+            "workspace"
+
+        );
+
+    }
+
+);
+
+window.addEventListener(
+
+    "PROFILE_UPDATED",
+
+    () => {
+
+        LawAIApp.SystemComposer?.refreshPanel(
+
+            "learning"
+
+        );
+
+    }
+
+);
+
+console.log(
+
+    "🧩 SystemComposer V4.0 Ready"
 
 );
