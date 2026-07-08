@@ -1,130 +1,281 @@
 window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.SystemOrchestrator = {
-  initialized: false,
-  ready: false,
 
-  init() {
-    if (this.initialized) return;
-    this.initialized = true;
+    initialized:false,
 
-    console.log("🧠 SystemOrchestrator V3.9.5 init");
+    ready:false,
 
-    const waitForDeps = () => {
-      const ok =
-        LawAIApp.EventBus &&
-        LawAIApp.LearningStateManager;
+    runtimeTimer:null,
 
-      if (!ok) {
-        console.warn("⚠️ waiting dependencies...");
-        return setTimeout(waitForDeps, 200);
-      }
+    init(){
 
-      this.bindEvents();
-      this.start();
-    };
+        if(this.initialized)return;
 
-    waitForDeps();
-  },
+        this.initialized=true;
 
-  bindEvents() {
-    const updateState = () => {
-      try {
-        LawAIApp.LearningStateManager.refresh();
-      } catch (e) {
-        console.warn("⚠️ refresh failed", e);
-      }
-    };
+        console.log("🧠 SystemOrchestrator V3.9.8");
 
-    [
-      "LessonCompleted",
-      "QuizCompleted",
-      "PracticeCompleted",
-      "ProjectFinished",
-      "GoalUpdated",
-      "MemoryUpdated",
-      "StreakMilestone"
-    ].forEach(evt => {
-      LawAIApp.EventBus.on(evt, updateState);
-    });
+        this.waitDependencies();
 
-    this.updateState = updateState;
-  },
+    },
 
-  start() {
-    setTimeout(() => this.updateState?.(), 300);
+    waitDependencies(){
 
-    this.ready = true;
+        if(
 
-    const payload = {
-      boot: LawAIApp.bootStatus,
-      safeMode: LawAIApp.bootStatus?.safeMode,
-      timestamp: Date.now()
-    };
+            !LawAIApp.EventBus ||
 
-    // 🔥 FIX 1: unified system event
-    window.dispatchEvent(
-      new CustomEvent("SYSTEM_READY", { detail: payload })
-    );
+            !LawAIApp.LearningStateManager
 
-    // 🔥 FIX 2: learning layer event
-    window.dispatchEvent(
-      new CustomEvent("LEARNING_SYSTEM_READY", { detail: payload })
-    );
+        ){
 
-    // 🧩 FIX 2 (YOU REQUESTED): UI refresh hook
-    window.dispatchEvent(
-      new CustomEvent("LEARNING_UI_REFRESH", {
-        detail: {
-          state: LawAIApp.LearningStateManager?.getState?.()
+            return setTimeout(
+
+                ()=>this.waitDependencies(),
+
+                200
+
+            );
+
         }
-      })
-    );
 
-    console.log("🧠 SystemOrchestrator READY + WIRED + UI HOOK ACTIVE");
-  },
+        this.bindEvents();
 
-  triggerLearningLoop(lessonId, result) {
-    const loop = LawAIApp.LearningLoopEngine;
-    const state = LawAIApp.LearningStateManager?.getState?.();
+        this.start();
 
-    if (!loop || !state) return;
+    },
 
-    if (result === "completed") {
-      loop.recordSuccess(lessonId);
+    bindEvents(){
 
-      if (state.riskLevel === "low") {
-        LawAIApp.EventBus?.emit(
-          "ContentAccelerationSuggested",
-          { lessonId }
+        const refresh=()=>{
+
+            try{
+
+                LawAIApp.LearningStateManager.refresh?.();
+
+                this.refreshUI();
+
+            }
+
+            catch(e){
+
+                console.warn(e);
+
+            }
+
+        };
+
+        [
+
+            "LessonCompleted",
+
+            "QuizCompleted",
+
+            "PracticeCompleted",
+
+            "ProjectFinished",
+
+            "GoalUpdated",
+
+            "MemoryUpdated",
+
+            "StreakMilestone"
+
+        ].forEach(evt=>{
+
+            LawAIApp.EventBus.on(
+
+                evt,
+
+                refresh
+
+            );
+
+        });
+
+        this.refreshState=refresh;
+
+    },
+
+    start(){
+
+        this.ready=true;
+
+        this.refreshState?.();
+
+        const payload={
+
+            boot:LawAIApp.bootStatus,
+
+            safeMode:LawAIApp.bootStatus?.safeMode,
+
+            timestamp:Date.now()
+
+        };
+
+        window.dispatchEvent(
+
+            new CustomEvent(
+
+                "SYSTEM_READY",
+
+                {
+
+                    detail:payload
+
+                }
+
+            )
+
         );
-      }
-    } else {
-      loop.recordFailure(lessonId);
 
-      LawAIApp.EventBus?.emit("ReviewInserted", { lessonId });
-      LawAIApp.EventBus?.emit("DifficultyReduced", { lessonId });
+        window.dispatchEvent(
+
+            new CustomEvent(
+
+                "LEARNING_SYSTEM_READY",
+
+                {
+
+                    detail:payload
+
+                }
+
+            )
+
+        );
+
+        this.refreshUI();
+
+        this.startRuntimeLoop();
+
+        console.log(
+
+            "🧠 Runtime LIVE"
+
+        );
+
+    },
+
+    refreshUI(){
+
+        window.dispatchEvent(
+
+            new CustomEvent(
+
+                "LEARNING_UI_REFRESH",
+
+                {
+
+                    detail:{
+
+                        state:
+
+                        LawAIApp
+
+                        .LearningStateManager
+
+                        ?.getState?.()
+
+                    }
+
+                }
+
+            )
+
+        );
+
+    },
+
+    startRuntimeLoop(){
+
+        if(this.runtimeTimer)return;
+
+        this.runtimeTimer=
+
+            setInterval(()=>{
+
+                this.refreshUI();
+
+            },1000);
+
+    },
+
+    triggerLearningLoop(
+
+        lessonId,
+
+        result
+
+    ){
+
+        const loop=
+
+            LawAIApp
+
+            .LearningLoopEngine;
+
+        const state=
+
+            LawAIApp
+
+            .LearningStateManager
+
+            ?.getState?.();
+
+        if(
+
+            !loop||
+
+            !state
+
+        )return;
+
+        if(
+
+            result==="completed"
+
+        ){
+
+            loop.recordSuccess(
+
+                lessonId
+
+            );
+
+        }
+
+        else{
+
+            loop.recordFailure(
+
+                lessonId
+
+            );
+
+        }
+
+        loop.adapt?.();
+
+        this.refreshUI();
+
     }
 
-    loop.adapt?.();
-  }
 };
 
-/**
- * =========================
- * ENGINE WIRING (UNCHANGED)
- * =========================
- */
-window.addEventListener("SYSTEM_READY", (e) => {
-  console.log("⚙️ SYSTEM_READY wiring engines");
+window.addEventListener(
 
-  try {
-    LawAIApp.EngineBinder?.init?.(e.detail);
-    LawAIApp.LayoutEngineV2?.init?.(e.detail);
-    LawAIApp.ExperienceComposer?.init?.(e.detail);
+    "SYSTEM_READY",
 
-    LawAIApp.LearningStateManager?.refresh?.();
-  } catch (err) {
-    console.warn("⚠️ engine wiring failed:", err);
-  }
-});
+    e=>{
+
+        LawAIApp.EngineBinder?.init?.(e.detail);
+
+        LawAIApp.LayoutEngineV2?.init?.(e.detail);
+
+        LawAIApp.ExperienceComposer?.init?.(e.detail);
+
+    }
+
+);
