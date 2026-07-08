@@ -22,65 +22,101 @@
   <link rel="stylesheet" href="css/settings.css">
 
   <!-- ========================= -->
-  <!-- 加载 JS -->
+  <!-- 加载 JS（按顺序：核心启动器 → 核心引擎 → 系统组件） -->
   <!-- ========================= -->
+  
+  <!-- 1. 加载器 -->
   <script src="js/loader.js"></script>
   
-  <!-- 核心引擎 -->
+  <!-- 2. 核心启动引导器（新增 - 管理依赖顺序） -->
+  <script src="js/coreBootstrap.js"></script>
+  
+  <!-- 3. 核心引擎（按依赖顺序） -->
+  <script src="js/storageEngine.js"></script>
+  <script src="js/progressEngine.js"></script>
+  <script src="js/systemHealthMonitor.js"></script>
+  <script src="js/systemAnalyzer.js"></script>
+  <script src="js/selfImprovementEngine.js"></script>
+  <script src="js/evolutionDriveEngine.js"></script>
+  
+  <!-- 4. 系统组件 -->
+  <script src="js/systemComposer.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- 5. 启动脚本 -->
   <script>
-    // 等待 loader 完成后再加载其他
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('📄 DOM ready, booting system...');
+    // 监听 CoreBootstrap 就绪事件
+    document.addEventListener('CORE_BOOTSTRAP_READY', function() {
+      console.log('📡 CoreBootstrap ready, initializing SystemComposer...');
       
-      // 加载 SystemComposer
-      const script1 = document.createElement('script');
-      script1.src = 'js/systemComposer.js';
-      document.head.appendChild(script1);
+      // 初始化 SystemComposer
+      if (window.LawAIApp?.SystemComposer) {
+        window.LawAIApp.SystemComposer.init({});
+      } else {
+        console.warn('⚠️ SystemComposer not found after bootstrap');
+      }
       
-      script1.onload = function() {
-        console.log('✅ SystemComposer loaded');
-        
-        // 加载 App
-        const script2 = document.createElement('script');
-        script2.src = 'js/app.js';
-        document.head.appendChild(script2);
-        
-        script2.onload = function() {
-          console.log('✅ App loaded, initializing...');
-          
-          // 初始化 SystemComposer
-          if (window.LawAIApp?.SystemComposer) {
-            window.LawAIApp.SystemComposer.init({});
-          }
-          
-          // 显示 academy 页面内容
-          loadAcademyPage();
-        };
-      };
+      // 加载 academy 页面
+      loadAcademyPage();
     });
-    
+
+    // 备用启动：如果 CoreBootstrap 没触发，5秒后手动启动
+    setTimeout(function() {
+      if (!window._bootstrapped) {
+        console.warn('⚠️ CoreBootstrap not triggered, manual fallback...');
+        
+        // 手动初始化核心模块
+        try {
+          if (LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.init === 'function') {
+            LawAIApp.StorageEngine.init();
+          }
+          if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.init === 'function') {
+            LawAIApp.ProgressEngine.init();
+          }
+          if (LawAIApp.SystemHealthMonitor && typeof LawAIApp.SystemHealthMonitor.init === 'function') {
+            LawAIApp.SystemHealthMonitor.init();
+          }
+          if (LawAIApp.SystemAnalyzer && typeof LawAIApp.SystemAnalyzer.init === 'function') {
+            LawAIApp.SystemAnalyzer.init();
+          }
+        } catch (err) {
+          console.warn('⚠️ Manual init failed:', err);
+        }
+        
+        // 初始化 SystemComposer
+        if (window.LawAIApp?.SystemComposer) {
+          window.LawAIApp.SystemComposer.init({});
+        }
+        
+        // 加载 academy 页面
+        loadAcademyPage();
+      }
+    }, 5000);
+
     function loadAcademyPage() {
+      console.log('📄 Loading academy page...');
+      
       // 使用 fetch 加载 academy.html 的内容
       fetch('pages/academy.html')
-        .then(response => {
+        .then(function(response) {
           if (!response.ok) {
-            throw new Error('Failed to load academy page');
+            throw new Error('Failed to load academy page: ' + response.status);
           }
           return response.text();
         })
-        .then(html => {
+        .then(function(html) {
           // 提取 body 内容
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
+          var parser = new DOMParser();
+          var doc = parser.parseFromString(html, 'text/html');
           
-          // 获取 body 内的内容（排除 script 和 style）
-          const bodyContent = doc.body.innerHTML;
+          // 获取 body 内的内容
+          var bodyContent = doc.body.innerHTML;
           
           // 找到挂载点
-          const root = document.getElementById('law-runtime-root');
+          var root = document.getElementById('law-runtime-root');
           if (root) {
             // 保留原有的 systemComposerRoot 作为容器
-            let container = document.getElementById('systemComposerRoot');
+            var container = document.getElementById('systemComposerRoot');
             if (!container) {
               container = document.createElement('div');
               container.id = 'systemComposerRoot';
@@ -90,25 +126,21 @@
             // 将 academy 内容放入容器
             container.innerHTML = bodyContent;
             
-            // 重新执行页面中的脚本（如果有）
-            const scripts = container.querySelectorAll('script');
-            scripts.forEach(oldScript => {
-              const newScript = document.createElement('script');
-              newScript.textContent = oldScript.textContent;
-              container.appendChild(newScript);
-            });
-            
             console.log('✅ Academy page loaded successfully!');
+            window._academyLoaded = true;
           }
         })
-        .catch(err => {
-          console.warn('⚠️ Failed to load academy page, using fallback:', err);
+        .catch(function(err) {
+          console.warn('⚠️ Failed to load academy page, using fallback:', err.message);
           // 如果加载失败，使用 SystemComposer 的默认渲染
           if (window.LawAIApp?.SystemComposer) {
             window.LawAIApp.SystemComposer._renderMainUI();
           }
         });
     }
+
+    // 标记启动完成
+    window._bootstrapped = true;
   </script>
 
 </head>
@@ -164,7 +196,7 @@
     setTimeout(hideLoading, 5000);
     
     function hideLoading() {
-      const placeholder = document.getElementById('loading-placeholder');
+      var placeholder = document.getElementById('loading-placeholder');
       if (placeholder) {
         placeholder.style.opacity = '0';
         setTimeout(function() {
