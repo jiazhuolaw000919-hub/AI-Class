@@ -1,42 +1,38 @@
 window.LawAIApp = window.LawAIApp || {};
 
-LawAIApp.SystemComposer={
+LawAIApp.SystemComposer = {
 
-    initialized:false,
+    initialized: false,
 
-    init(){
+    init(boot) {
 
-        if(this.initialized){
-
+        if (this.initialized) {
             this.refresh();
-
             return;
-
         }
 
-        this.initialized=true;
+        this.initialized = true;
 
-        console.log("🧩 Composer LIVE");
+        console.log("🧩 SystemComposer V3.9.9 LIVE");
 
-        const root=document.getElementById(
+        const root =
+            document.getElementById("law-runtime-root")
+            || document.body;
 
-            "law-runtime-root"
+        root.innerHTML = "";
 
-        );
-
-        root.innerHTML=`
+        root.innerHTML = `
 
         <div
             style="
                 padding:25px;
                 color:white;
+                background:#0b1220;
+                min-height:100vh;
+                font-family:Arial;
             ">
 
-            <h1>
-
-            🚀 Law AI Academy
-
-            </h1>
+            <h1>🚀 Law AI Academy</h1>
 
             <div id="learningPanel"></div>
 
@@ -48,6 +44,10 @@ LawAIApp.SystemComposer={
 
             <div id="runtimePanel"></div>
 
+            <br>
+
+            <div id="modulePanel"></div>
+
         </div>
 
         `;
@@ -56,7 +56,7 @@ LawAIApp.SystemComposer={
 
     },
 
-    refresh(){
+    refresh() {
 
         this.mountLearning();
 
@@ -64,33 +64,28 @@ LawAIApp.SystemComposer={
 
         this.mountRuntime();
 
+        this.mountRuntimeModules();
+
     },
 
-    mountLearning(){
+    /* =====================================
+       LEARNING
+    ===================================== */
 
-        const el=
+    mountLearning() {
 
-            document.getElementById(
+        const el =
+            document.getElementById("learningPanel");
 
-                "learningPanel"
+        if (!el) return;
 
-            );
-
-        if(!el)return;
-
-        const state=
-
+        const state =
             LawAIApp
+                .LearningStateManager
+                ?.getState?.()
+            || {};
 
-            .LearningStateManager
-
-            ?.getState?.()
-
-            ||
-
-            {};
-
-        el.innerHTML=`
+        el.innerHTML = `
 
         <div
             style="
@@ -99,35 +94,13 @@ LawAIApp.SystemComposer={
                 border-radius:10px;
             ">
 
-        <h2>
+            <h2>📚 Learning</h2>
 
-        📚 Learning
+            <p>📈 Level : ${state.level || 1}</p>
 
-        </h2>
+            <p>⭐ XP : ${state.xp || 0}</p>
 
-        <p>
-
-        Level :
-
-        ${state.level||1}
-
-        </p>
-
-        <p>
-
-        XP :
-
-        ${state.xp||0}
-
-        </p>
-
-        <p>
-
-        🔥
-
-        ${state.streak||0}
-
-        </p>
+            <p>🔥 Streak : ${state.streak || 0}</p>
 
         </div>
 
@@ -135,31 +108,24 @@ LawAIApp.SystemComposer={
 
     },
 
-    mountWorkspace(){
+    /* =====================================
+       WORKSPACE
+    ===================================== */
 
-        const el=
+    mountWorkspace() {
 
-            document.getElementById(
+        const el =
+            document.getElementById("workspacePanel");
 
-                "workspacePanel"
+        if (!el) return;
 
-            );
-
-        if(!el)return;
-
-        const ws=
-
+        const ws =
             LawAIApp
+                .WorkspaceState
+                ?.get?.("default")
+            || {};
 
-            .WorkspaceState
-
-            ?.get?.("default")
-
-            ||
-
-            {};
-
-        el.innerHTML=`
+        el.innerHTML = `
 
         <div
             style="
@@ -168,17 +134,9 @@ LawAIApp.SystemComposer={
                 border-radius:10px;
             ">
 
-        <h2>
+            <h2>🧩 Workspace</h2>
 
-        🧩 Workspace
-
-        </h2>
-
-        <pre>
-
-${JSON.stringify(ws,null,2)}
-
-        </pre>
+            <pre>${JSON.stringify(ws, null, 2)}</pre>
 
         </div>
 
@@ -186,29 +144,40 @@ ${JSON.stringify(ws,null,2)}
 
     },
 
-    mountRuntime(){
+    /* =====================================
+       RUNTIME
+    ===================================== */
 
-        const el=
+    mountRuntime() {
 
-            document.getElementById(
+        const el =
+            document.getElementById("runtimePanel");
 
-                "runtimePanel"
+        if (!el) return;
 
+        const boot =
+            LawAIApp.bootStatus
+            || {};
+
+        let runtimeModules = [];
+
+        try {
+
+            runtimeModules =
+                LawAIApp.RuntimeRegistry
+                    ?.discover?.()
+                || [];
+
+        } catch (err) {
+
+            console.warn(
+                "RuntimeRegistry discover failed",
+                err
             );
 
-        if(!el)return;
+        }
 
-        const boot=
-
-            LawAIApp
-
-            .bootStatus
-
-            ||
-
-            {};
-
-        el.innerHTML=`
+        el.innerHTML = `
 
         <div
             style="
@@ -217,27 +186,111 @@ ${JSON.stringify(ws,null,2)}
                 border-radius:10px;
             ">
 
-        <h2>
+            <h2>⚙ Runtime</h2>
 
-        ⚙ Runtime
+            <p>
 
-        </h2>
+                ✅ Active Engines :
 
-        <p>
+                <strong>
 
-        Active Engines :
+                ${boot.active?.length || 0}
 
-        ${boot.active?.length||0}
+                </strong>
 
-        </p>
+            </p>
 
-        <p>
+            <p>
 
-        Loaded :
+                📦 Loaded Files :
 
-        ${boot.loaded?.length||0}
+                <strong>
 
-        </p>
+                ${boot.loaded?.length || 0}
+
+                </strong>
+
+            </p>
+
+            <p>
+
+                🧩 Runtime Modules :
+
+                <strong>
+
+                ${runtimeModules.length}
+
+                </strong>
+
+            </p>
+
+            <p>
+
+                🚨 Missing :
+
+                <strong>
+
+                ${boot.missing?.length || 0}
+
+                </strong>
+
+            </p>
+
+            <p>
+
+                🛡 Safe Mode :
+
+                <strong>
+
+                ${boot.safeMode ? "ON" : "OFF"}
+
+                </strong>
+
+            </p>
+
+        </div>
+
+        `;
+
+    },
+
+    /* =====================================
+       RUNTIME MODULES
+    ===================================== */
+
+    mountRuntimeModules() {
+
+        const el =
+            document.getElementById("modulePanel");
+
+        if (!el) return;
+
+        el.innerHTML = "";
+
+        if (LawAIApp.RuntimeInjector?.inject) {
+
+            LawAIApp.RuntimeInjector.inject(el);
+
+            return;
+
+        }
+
+        el.innerHTML = `
+
+        <div
+            style="
+                background:#1e293b;
+                padding:15px;
+                border-radius:10px;
+            ">
+
+            <h2>📦 Runtime Modules</h2>
+
+            <p>
+
+                RuntimeInjector not ready.
+
+            </p>
 
         </div>
 
@@ -247,11 +300,27 @@ ${JSON.stringify(ws,null,2)}
 
 };
 
+/* =====================================
+   AUTO REFRESH
+===================================== */
+
 window.addEventListener(
 
     "LEARNING_UI_REFRESH",
 
-    ()=>{
+    () => {
+
+        LawAIApp.SystemComposer.refresh();
+
+    }
+
+);
+
+window.addEventListener(
+
+    "SYSTEM_READY",
+
+    () => {
 
         LawAIApp.SystemComposer.refresh();
 
