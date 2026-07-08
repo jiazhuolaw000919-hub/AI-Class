@@ -1,65 +1,229 @@
 window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.RuntimeManager = {
-  started: false,
 
-  start() {
-    if (this.started) return;
+    initialized: false,
 
-    this.started = true;
+    started: false,
 
-    console.log("🚀 RuntimeManager starting...");
+    engines: {},
 
-    this.collect();
+    /**
+     * =========================
+     * INIT
+     * =========================
+     */
 
-    LawAIApp.RuntimeRegistry?.activateAll?.();
+    init() {
 
-    window.dispatchEvent(
-      new CustomEvent("RUNTIME_READY", {
-        detail: {
-          boot: LawAIApp.bootStatus,
-          timestamp: Date.now()
-        }
-      })
-    );
+        if (this.initialized) return;
 
-    console.log("✅ Runtime READY");
-  },
+        this.initialized = true;
 
-  collect() {
+        console.log("🧠 RuntimeManager initialized");
 
-    const runtimeEngines = [
-      "LevelEngine",
-      "ExperienceEngine",
-      "LearningIntelligence",
+    },
 
-      "WorkspaceEngine",
-      "WorkspaceState",
-      "WorkspaceLayout",
-      "WorkspaceWidgets",
-      "WorkspaceSearch",
+    /**
+     * =========================
+     * REGISTER ENGINE
+     * Loader 会调用这里
+     * =========================
+     */
 
-      "MotionSystem",
-      "CelebrationEngine",
-      "ThemeExperience",
-      "AmbientEngine",
+    registerEngine(name, engine) {
 
-      "KnowledgeNetwork",
-      "KREEngine"
-    ];
+        if (!name || !engine) return;
 
-    runtimeEngines.forEach(name => {
+        if (this.engines[name]) return;
 
-      const engine = LawAIApp[name];
+        this.engines[name] = engine;
 
-      if (!engine) return;
+        console.log("📦 Runtime registered:", name);
 
-      LawAIApp.RuntimeRegistry?.register(name, engine);
+    },
 
-    });
+    /**
+     * =========================
+     * GET ENGINE
+     * =========================
+     */
 
-    console.log(
-      `🧠 Runtime collected ${LawAIApp.RuntimeRegistry.getAll().length} engines`
-    );
-  }
+    getEngine(name) {
+
+        return this.engines[name];
+
+    },
+
+    /**
+     * =========================
+     * GET ALL
+     * =========================
+     */
+
+    getAll() {
+
+        return Object.values(this.engines);
+
+    },
+
+    /**
+     * =========================
+     * AUTO COLLECT
+     * =========================
+     */
+
+    collect() {
+
+        const runtimeEngines = [
+
+            "storageEngine",
+            "eventBus",
+            "profileEngine",
+
+            "levelEngine",
+            "experienceEngine",
+            "learningIntelligence",
+
+            "workspaceEngine",
+            "workspaceState",
+            "workspaceLayout",
+            "workspaceWidgets",
+            "workspaceSearch",
+
+            "motionSystem",
+            "celebrationEngine",
+            "themeExperience",
+            "ambientEngine",
+
+            "knowledgeNetwork",
+            "kreEngine"
+
+        ];
+
+        runtimeEngines.forEach(name => {
+
+            const engine = LawAIApp[name];
+
+            if (!engine) return;
+
+            this.registerEngine(name, engine);
+
+            LawAIApp.RuntimeRegistry?.register?.(
+
+                name,
+
+                engine
+
+            );
+
+        });
+
+        console.log(
+
+            `🧠 Runtime collected ${Object.keys(this.engines).length} engines`
+
+        );
+
+    },
+
+    /**
+     * =========================
+     * START
+     * =========================
+     */
+
+    start() {
+
+        if (this.started) return;
+
+        this.started = true;
+
+        console.log("🚀 RuntimeManager starting...");
+
+        this.collect();
+
+        LawAIApp.RuntimeRegistry?.activateAll?.();
+
+        window.dispatchEvent(
+
+            new CustomEvent(
+
+                "RUNTIME_READY",
+
+                {
+
+                    detail: {
+
+                        boot: LawAIApp.bootStatus,
+
+                        timestamp: Date.now()
+
+                    }
+
+                }
+
+            )
+
+        );
+
+        console.log("✅ Runtime READY");
+
+    },
+
+    /**
+     * =========================
+     * BOOT
+     * Loader 调用这里
+     * =========================
+     */
+
+    boot(payload) {
+
+        this.start();
+
+        console.log("📊 Runtime Boot");
+
+        console.table({
+
+            registered:
+
+                Object.keys(this.engines).length,
+
+            active:
+
+                payload?.active?.length || 0,
+
+            loaded:
+
+                payload?.boot?.loaded?.length || 0,
+
+            missing:
+
+                payload?.boot?.missing?.length || 0
+
+        });
+
+    },
+
+    /**
+     * =========================
+     * REFRESH
+     * =========================
+     */
+
+    refresh() {
+
+        window.dispatchEvent(
+
+            new CustomEvent(
+
+                "RUNTIME_REFRESH"
+
+            )
+
+        );
+
+    }
+
 };
