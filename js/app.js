@@ -2,6 +2,8 @@ window.LawAIApp = window.LawAIApp || {};
 
 window.App = {
 
+    version: "4.0.2",
+
     initialized: false,
 
     root: null,
@@ -19,16 +21,14 @@ window.App = {
     init(payload) {
 
         if (this.initialized) {
-
+            console.log("🔄 App already initialized, refreshing...");
             this.refresh(payload);
-
             return;
-
         }
 
         this.initialized = true;
 
-        console.log("🚀 App Runtime V4");
+        console.log("🚀 App Runtime V" + this.version);
         console.log("📋 Boot payload:", payload);
 
         this.boot =
@@ -58,10 +58,13 @@ window.App = {
         }
 
         this._composerHandler = (e) => {
-            console.log("📡 App received COMPOSER_MOUNTED:", e.detail);
+            console.log("📡 App received COMPOSER_MOUNTED:", e.detail?.version || '');
             this._mounted = true;
-            // 移除 loading 状态，显示内容
-            this._hideLoadingState();
+            // 清除兜底检查定时器（已经收到通知，不需要了）
+            if (this._fallbackTimer) {
+                clearTimeout(this._fallbackTimer);
+                this._fallbackTimer = null;
+            }
         };
 
         window.addEventListener('COMPOSER_MOUNTED', this._composerHandler);
@@ -70,25 +73,6 @@ window.App = {
         if (window.LawAIApp?.SystemComposer?.initialized) {
             console.log("✅ SystemComposer already initialized, marking as mounted");
             this._mounted = true;
-            this._hideLoadingState();
-        }
-    },
-
-    /**
-     * =========================
-     * 隐藏 Loading 状态
-     * =========================
-     */
-
-    _hideLoadingState() {
-        if (!this.root) return;
-        // 如果 root 里还是 loading 内容，清除它
-        const isLoading = this.root.innerHTML.includes('Runtime Loading') ||
-                          this.root.innerHTML.includes('Waiting SystemComposer');
-        if (isLoading) {
-            console.log("🔄 Clearing loading state from root");
-            // 不直接清空，因为 SystemComposer 已经渲染了内容
-            // 但如果是 loading 状态，让它自己消失
         }
     },
 
@@ -134,7 +118,7 @@ window.App = {
 
     /**
      * =========================
-     * RENDER（增强版）
+     * RENDER
      * =========================
      */
 
@@ -145,6 +129,12 @@ window.App = {
             return;
         }
 
+        // 如果已经挂载完成，不再重复渲染
+        if (this._mounted) {
+            console.log("✅ Already mounted, skipping render");
+            return;
+        }
+
         const composer = window.LawAIApp?.SystemComposer;
         
         if (composer?.init) {
@@ -152,7 +142,7 @@ window.App = {
             console.log("🎯 SystemComposer found, initializing...");
             
             try {
-                // 先显示 loading
+                // 显示 loading 状态
                 this._showLoadingState();
 
                 const result = composer.init(this.boot);
@@ -161,8 +151,7 @@ window.App = {
                     console.log("⏳ SystemComposer.init is async, waiting...");
                     result
                         .then(() => {
-                            console.log("✅ SystemComposer.init completed successfully");
-                            // 如果 3 秒后还没收到 COMPOSER_MOUNTED，强行检查
+                            console.log("✅ SystemComposer.init completed");
                             this._scheduleFallbackCheck();
                         })
                         .catch((err) => {
@@ -234,7 +223,7 @@ window.App = {
 
     /**
      * =========================
-     * 兜底检查
+     * 兜底检查（3秒后自动确认）
      * =========================
      */
 
@@ -244,20 +233,25 @@ window.App = {
         }
         this._fallbackTimer = setTimeout(() => {
             console.log("🔍 Running fallback content check...");
-            // 检查是否收到了 COMPOSER_MOUNTED 事件
-            if (!this._mounted) {
-                console.warn("⚠️ COMPOSER_MOUNTED not received, checking root content...");
-                // 检查 root 是否有内容
-                if (this.root && this.root.children.length === 0) {
-                    console.warn("⚠️ Root is empty, SystemComposer may have failed silently");
-                    this._showErrorState("SystemComposer 未正常启动，请刷新重试");
-                } else {
-                    console.log("✅ Root has content, assuming SystemComposer mounted successfully");
-                    this._mounted = true;
-                }
+            
+            // 如果已经收到 COMPOSER_MOUNTED，不需要兜底
+            if (this._mounted) {
+                console.log("✅ Already mounted, fallback not needed");
+                this._fallbackTimer = null;
+                return;
             }
+            
+            // 检查 root 是否有内容
+            if (this.root && this.root.children.length > 0) {
+                console.log("✅ Root has content, assuming SystemComposer mounted successfully");
+                this._mounted = true;
+            } else {
+                console.warn("⚠️ Root is empty, SystemComposer may have failed");
+                this._showErrorState("SystemComposer 未正常启动，请刷新重试");
+            }
+            
             this._fallbackTimer = null;
-        }, 5000); // 5 秒兜底
+        }, 3000); // 3 秒兜底（比之前的5秒更快响应）
     },
 
     /**
@@ -357,6 +351,8 @@ window.App = {
             this.root.innerHTML = "";
         }
 
+        console.log("🧹 App Runtime destroyed");
+
     }
 
 };
@@ -374,7 +370,6 @@ window.addEventListener(
     (e) => {
 
         console.log("⚡ SYSTEM_READY");
-        console.log("📦 Event detail:", e.detail);
         window.App.init(e.detail);
 
     }
@@ -420,4 +415,4 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     }, 100);
 }
 
-console.log("🚀 App Runtime V4 Loaded");
+console.log("🚀 App Runtime V" + window.App.version + " Loaded");
