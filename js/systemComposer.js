@@ -705,3 +705,9 @@ window.addEventListener(
 
 // 新增：监听 COMPOSER_MOUNTED 事件，App 可以据此确认渲染完成
 console.log("🧩 SystemComposer V4.0.1 Ready");
+
+// 确保挂载到全局
+if (typeof window.LawAIApp !== 'undefined') {
+    window.LawAIApp.SystemComposer = LawAIApp.SystemComposer;
+    console.log('✅ SystemComposer attached to LawAIApp');
+}
