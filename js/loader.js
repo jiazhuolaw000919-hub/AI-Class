@@ -1,12 +1,13 @@
 window.LawAIApp = window.LawAIApp || {};
 
 // ===========================================
-// 核心引擎（只加载这些，其他按需加载）
+// 核心引擎（必须优先加载）
 // ===========================================
 var CORE_ENGINES = [
     "storageEngine.js",
     "eventBus.js",
     "profileEngine.js",
+    "progressEngine.js",  // ← 新增！SystemComposer 依赖它
     "systemComposer.js",
     "app.js"
 ];
@@ -39,7 +40,7 @@ function loadScript(src) {
 }
 
 // ===========================================
-// 按需加载模块（供其他组件调用）
+// 按需加载模块
 // ===========================================
 LawAIApp.require = function(moduleName) {
     var fileName = moduleName + '.js';
@@ -50,7 +51,7 @@ LawAIApp.require = function(moduleName) {
 // 启动
 // ===========================================
 async function boot() {
-    console.log("🚀 Loader V4.1 starting (core only)");
+    console.log("🚀 Loader V4.2 starting (core + progress)");
     console.log("📦 Loading " + CORE_ENGINES.length + " core modules...");
 
     var results = await Promise.all(CORE_ENGINES.map(function(src) {
@@ -80,8 +81,8 @@ async function boot() {
                 timestamp: Date.now()
             }
         }));
-        console.log("✅ System ready (core only)");
-        console.log("📌 Non-core modules load on demand via LawAIApp.require()");
+        console.log("✅ System ready");
+        console.log("📌 Other modules load on demand via LawAIApp.require()");
     }, 200);
 }
 
@@ -96,4 +97,4 @@ if (document.readyState === "complete" || document.readyState === "interactive")
     });
 }
 
-console.log("🚀 Loader V4.1 ready (on-demand loading)");
+console.log("🚀 Loader V4.2 ready");
