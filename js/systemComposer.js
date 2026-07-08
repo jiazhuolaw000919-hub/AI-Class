@@ -2,7 +2,7 @@ window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.SystemComposer = {
 
-    version: "4.0.10",
+    version: "4.0.11",
 
     initialized: false,
 
@@ -89,7 +89,7 @@ LawAIApp.SystemComposer = {
 
     /**
      * =========================
-     * 渲染主 UI（直接显示完整界面版）
+     * 渲染主 UI（Phase 4 完整版）
      * =========================
      */
 
@@ -102,7 +102,7 @@ LawAIApp.SystemComposer = {
         }
 
         // ===========================================
-        // 1. 获取学习状态（有进度就用真实数据，无进度用示范占位）
+        // 1. 获取学习状态
         // ===========================================
         var state = {};
         var hasProgress = false;
@@ -132,10 +132,8 @@ LawAIApp.SystemComposer = {
             console.warn('⚠️ Failed to get progress state:', err);
         }
 
-        // 如果没有进度，使用示范占位数据（但仍显示完整界面）
-        var isDemo = false;
-        if (!hasProgress) {
-            isDemo = true;
+        var isDemo = !hasProgress;
+        if (isDemo) {
             state = {
                 level: 1,
                 xp: 0,
@@ -158,26 +156,76 @@ LawAIApp.SystemComposer = {
         var remainingLessons = state.remainingLessons || 365;
 
         // ===========================================
-        // 2. 计算下一节课
+        // 2. 生成学习日历数据（最近 7 天）
         // ===========================================
-        var nextLessonDay = day + 1;
-        var totalLessons = 365;
-        if (nextLessonDay > totalLessons) {
-            nextLessonDay = totalLessons;
+        var today = new Date();
+        var calendarData = [];
+        var daysToShow = 7;
+
+        for (var i = daysToShow - 1; i >= 0; i--) {
+            var d = new Date(today);
+            d.setDate(d.getDate() - i);
+            var dayStr = d.getDate() + '/' + (d.getMonth() + 1);
+            var isToday = i === 0;
+            var hasActivity = false;
+            if (hasProgress) {
+                var progressRatio = completedList.length / 365;
+                var randomChance = Math.random();
+                hasActivity = randomChance < Math.min(0.8, 0.3 + progressRatio * 0.5);
+                if (isToday && hasProgress) {
+                    hasActivity = true;
+                }
+            } else {
+                hasActivity = Math.random() < 0.3;
+            }
+            calendarData.push({
+                date: dayStr,
+                isToday: isToday,
+                hasActivity: hasActivity
+            });
         }
 
+        var calendarHtml = calendarData.map(function(item) {
+            var bgColor = item.isToday ? 'rgba(74,158,255,0.3)' :
+                          item.hasActivity ? 'rgba(74,158,255,0.6)' :
+                          'rgba(255,255,255,0.06)';
+            var borderColor = item.isToday ? '#4a9eff' : 'transparent';
+            var label = item.isToday ? 'Today' : item.date;
+            return `
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">
+                    <div style="width:100%;padding-top:100%;position:relative;background:${bgColor};border-radius:8px;border:2px solid ${borderColor};transition:all 0.3s;">
+                        ${item.isToday ? '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:14px;">📍</span>' : ''}
+                    </div>
+                    <span style="font-size:10px;color:#64748b;">${label}</span>
+                </div>
+            `;
+        }).join('');
+
         // ===========================================
-        // 3. 获取最近 3 节已学课程（或示范数据）
+        // 3. 技能雷达数据（Phase 4 新增）
         // ===========================================
-        var recentLessons = [];
-        if (completedList.length > 0) {
-            var copy = completedList.slice();
-            var recent = copy.reverse().slice(0, 3);
-            recentLessons = recent;
-        } else {
-            // 示范占位数据
-            recentLessons = ['day-1', 'day-2', 'day-3'];
-        }
+        var skillCategories = [
+            { name: 'Foundation', icon: '🏛️', level: isDemo ? 10 : Math.min(90, 10 + completedList.length * 0.15) },
+            { name: 'Prompt', icon: '✍️', level: isDemo ? 5 : Math.min(90, 5 + completedList.length * 0.12) },
+            { name: 'Tools', icon: '🛠️', level: isDemo ? 8 : Math.min(90, 8 + completedList.length * 0.1) },
+            { name: 'Coding', icon: '💻', level: isDemo ? 3 : Math.min(90, 3 + completedList.length * 0.08) },
+            { name: 'AI Dev', icon: '🤖', level: isDemo ? 2 : Math.min(90, 2 + completedList.length * 0.06) }
+        ];
+
+        var radarHtml = skillCategories.map(function(skill) {
+            var levelPercent = Math.round(skill.level);
+            var color = levelPercent > 70 ? '#4a9eff' : levelPercent > 40 ? '#8b5cf6' : '#64748b';
+            return `
+                <div style="display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+                    <span style="font-size:18px;width:32px;">${skill.icon}</span>
+                    <span style="font-size:13px;color:#e2e8f0;flex:1;">${skill.name}</span>
+                    <div style="flex:2;height:6px;background:rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;max-width:120px;">
+                        <div style="width:${levelPercent}%;height:100%;background:${color};border-radius:10px;transition:width 0.8s ease;"></div>
+                    </div>
+                    <span style="font-size:12px;color:#94a3b8;width:36px;text-align:right;">${levelPercent}%</span>
+                </div>
+            `;
+        }).join('');
 
         // ===========================================
         // 4. 课程名称和摘要辅助函数
@@ -213,19 +261,23 @@ LawAIApp.SystemComposer = {
         }
 
         function getNextLessonTitle() {
+            var nextDay = day + 1;
+            if (nextDay > 365) nextDay = 365;
             try {
                 if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
-                    var lesson = LawAIApp.LessonEngine.getLessonByDay(nextLessonDay);
+                    var lesson = LawAIApp.LessonEngine.getLessonByDay(nextDay);
                     if (lesson && lesson.title) return lesson.title;
                 }
             } catch (e) {}
-            return 'Day ' + nextLessonDay;
+            return 'Day ' + nextDay;
         }
 
         function getNextLessonSummary() {
+            var nextDay = day + 1;
+            if (nextDay > 365) nextDay = 365;
             try {
                 if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
-                    var lesson = LawAIApp.LessonEngine.getLessonByDay(nextLessonDay);
+                    var lesson = LawAIApp.LessonEngine.getLessonByDay(nextDay);
                     if (lesson && lesson.summary) return lesson.summary;
                     if (lesson && lesson.subtitle) return lesson.subtitle;
                 }
@@ -235,87 +287,53 @@ LawAIApp.SystemComposer = {
 
         var nextTitle = getNextLessonTitle();
         var nextSummary = getNextLessonSummary();
-        var isComplete = (completedList.length >= totalLessons);
 
         // ===========================================
-        // 5. 最近学习课程 HTML（支持示范模式）
+        // 5. 最近学习课程
         // ===========================================
-        var recentHtml = '';
-        if (recentLessons.length > 0) {
-            recentHtml = recentLessons.map(function(id) {
-                var title = getLessonTitle(id);
-                var isPlaceholder = (id === 'day-1' && !hasProgress);
-                return `
-                    <div style="
-                        display:flex;
-                        align-items:center;
-                        gap:12px;
-                        padding:10px 14px;
-                        background:rgba(255,255,255,0.04);
-                        border-radius:10px;
-                        margin-bottom:6px;
-                        border-left:3px solid ${isPlaceholder ? '#64748b' : '#22c55e'};
-                        opacity: ${isPlaceholder ? 0.7 : 1};
-                    ">
-                        <span style="font-size:16px;">${isPlaceholder ? '📖' : '✅'}</span>
-                        <span style="font-size:14px;color:#e2e8f0;">${title}</span>
-                        <span style="margin-left:auto;font-size:12px;color:#64748b;">${isPlaceholder ? 'Start to unlock' : 'Completed'}</span>
-                    </div>
-                `;
-            }).join('');
+        var recentLessons = [];
+        if (completedList.length > 0) {
+            var copy = completedList.slice();
+            var recent = copy.reverse().slice(0, 3);
+            recentLessons = recent;
         } else {
-            recentHtml = `
-                <div style="text-align:center;padding:16px 0;color:#64748b;font-size:14px;">
-                    Complete your first lesson to see progress here!
-                </div>
-            `;
+            recentLessons = ['day-1', 'day-2', 'day-3'];
         }
 
+        var recentHtml = recentLessons.map(function(id) {
+            var title = getLessonTitle(id);
+            var isPlaceholder = (id === 'day-1' && !hasProgress);
+            return `
+                <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(255,255,255,0.04);border-radius:10px;margin-bottom:6px;border-left:3px solid ${isPlaceholder ? '#64748b' : '#22c55e'};opacity: ${isPlaceholder ? 0.7 : 1};">
+                    <span style="font-size:16px;">${isPlaceholder ? '📖' : '✅'}</span>
+                    <span style="font-size:14px;color:#e2e8f0;">${title}</span>
+                    <span style="margin-left:auto;font-size:12px;color:#64748b;">${isPlaceholder ? 'Start to unlock' : 'Completed'}</span>
+                </div>
+            `;
+        }).join('');
+
         // ===========================================
-        // 6. 今日学习卡片（支持示范模式）
+        // 6. 今日学习卡片
         // ===========================================
+        var isComplete = (completedList.length >= 365);
         var goalHtml = '';
         if (isComplete) {
             goalHtml = `
-                <div style="
-                    background: linear-gradient(135deg, rgba(74,158,255,0.2), rgba(124,58,237,0.2));
-                    border-radius:16px;
-                    padding:32px;
-                    text-align:center;
-                    border:1px solid rgba(74,158,255,0.2);
-                    margin-bottom:20px;
-                ">
+                <div style="background:linear-gradient(135deg,rgba(74,158,255,0.2),rgba(124,58,237,0.2));border-radius:16px;padding:32px;text-align:center;border:1px solid rgba(74,158,255,0.2);margin-bottom:20px;">
                     <div style="font-size:48px;margin-bottom:8px;">🎉</div>
                     <h3 style="margin:0 0 4px 0;font-size:22px;font-weight:700;">All 365 Lessons Complete!</h3>
                     <p style="margin:0;color:#94a3b8;font-size:15px;">You've mastered the entire curriculum. Incredible work! 🏆</p>
-                    <a href="pages/academy.html" style="
-                        display:inline-block;
-                        margin-top:16px;
-                        padding:12px 32px;
-                        background:#4a9eff;
-                        border:none;
-                        border-radius:10px;
-                        color:white;
-                        font-size:14px;
-                        font-weight:600;
-                        text-decoration:none;
-                    ">🏛️ Explore Advanced Topics</a>
+                    <a href="pages/academy.html" style="display:inline-block;margin-top:16px;padding:12px 32px;background:#4a9eff;border:none;border-radius:10px;color:white;font-size:14px;font-weight:600;text-decoration:none;">🏛️ Explore Advanced Topics</a>
                 </div>
             `;
         } else {
-            var demoTag = isDemo ? '🌟 Start Here' : 'Day ' + nextLessonDay;
+            var demoTag = isDemo ? '🌟 Start Here' : 'Day ' + (day + 1);
             var demoSubText = isDemo ? 'Complete your first lesson to start tracking!' : remainingLessons + ' lessons remaining';
             var demoBtnText = isDemo ? '📖 Go to Academy' : '📖 Continue Learning';
             var demoBtnLink = isDemo ? 'pages/academy.html' : 'pages/lesson.html';
 
             goalHtml = `
-                <div style="
-                    background: rgba(255,255,255,0.04);
-                    border-radius:16px;
-                    padding:24px;
-                    border:1px solid rgba(255,255,255,0.08);
-                    margin-bottom:20px;
-                ">
+                <div style="background:rgba(255,255,255,0.04);border-radius:16px;padding:24px;border:1px solid rgba(255,255,255,0.08);margin-bottom:20px;">
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
                         <span style="font-size:24px;">${isDemo ? '🌟' : '📖'}</span>
                         <h3 style="margin:0;font-size:18px;font-weight:600;">${isDemo ? 'Start Your Journey' : "Today's Lesson"}</h3>
@@ -324,50 +342,17 @@ LawAIApp.SystemComposer = {
                     <h4 style="margin:0 0 6px;font-size:20px;font-weight:700;color:#ffffff;">${nextTitle}</h4>
                     <p style="margin:0 0 16px;color:#94a3b8;font-size:14px;line-height:1.6;">${isDemo ? 'Complete your first lesson to unlock personalized learning content.' : nextSummary}</p>
                     <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                        <a href="${demoBtnLink}" style="
-                            padding:10px 28px;
-                            background:#4a9eff;
-                            border:none;
-                            border-radius:10px;
-                            color:white;
-                            font-size:14px;
-                            font-weight:600;
-                            text-decoration:none;
-                            transition:transform 0.2s;
-                            display:inline-block;
-                        " onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">${demoBtnText}</a>
-                        <button onclick="if(LawAIApp.Toast) LawAIApp.Toast.info('✏️ Practice mode coming soon! 🚧')" style="
-                            padding:10px 28px;
-                            background:rgba(255,255,255,0.08);
-                            border:1px solid rgba(255,255,255,0.12);
-                            border-radius:10px;
-                            color:#ffffff;
-                            font-size:14px;
-                            font-weight:500;
-                            cursor:pointer;
-                            transition:background 0.2s;
-                        " onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">✏️ Quick Practice</button>
-                        <button onclick="if(LawAIApp.Toast) LawAIApp.Toast.info('📝 Notes will open here soon! 🚧')" style="
-                            padding:10px 28px;
-                            background:rgba(124,58,237,0.2);
-                            border:1px solid rgba(124,58,237,0.2);
-                            border-radius:10px;
-                            color:#c4b5fd;
-                            font-size:14px;
-                            font-weight:500;
-                            cursor:pointer;
-                            transition:background 0.2s;
-                        " onmouseover="this.style.background='rgba(124,58,237,0.3)'" onmouseout="this.style.background='rgba(124,58,237,0.2)'">📝 Take Notes</button>
+                        <a href="${demoBtnLink}" style="padding:10px 28px;background:#4a9eff;border:none;border-radius:10px;color:white;font-size:14px;font-weight:600;text-decoration:none;transition:transform 0.2s;display:inline-block;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">${demoBtnText}</a>
+                        <button onclick="if(LawAIApp.Toast) LawAIApp.Toast.info('✏️ Practice mode coming soon! 🚧')" style="padding:10px 28px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#ffffff;font-size:14px;font-weight:500;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">✏️ Quick Practice</button>
+                        <button onclick="if(LawAIApp.Toast) LawAIApp.Toast.info('📝 Notes will open here soon! 🚧')" style="padding:10px 28px;background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.2);border-radius:10px;color:#c4b5fd;font-size:14px;font-weight:500;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='rgba(124,58,237,0.3)'" onmouseout="this.style.background='rgba(124,58,237,0.2)'">📝 Take Notes</button>
                     </div>
-                    <div style="margin-top:12px;font-size:12px;color:#475569;">
-                        ${demoSubText}
-                    </div>
+                    <div style="margin-top:12px;font-size:12px;color:#475569;">${demoSubText}</div>
                 </div>
             `;
         }
 
         // ===========================================
-        // 7. 渲染完整页面（始终显示完整界面）
+        // 7. 渲染完整页面（Phase 4 增强版）
         // ===========================================
         this.root.innerHTML = `
         <div id="systemComposerRoot" style="
@@ -379,32 +364,13 @@ LawAIApp.SystemComposer = {
             margin: 0;
             box-sizing: border-box;
         ">
-            <!-- 主内容 -->
             <div style="padding-bottom: 100px;">
 
                 <!-- 顶部导航 -->
-                <header style="
-                    background: rgba(255,255,255,0.05);
-                    backdrop-filter: blur(10px);
-                    border-bottom: 1px solid rgba(255,255,255,0.08);
-                    padding: 16px 24px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    flex-wrap: wrap;
-                    gap: 12px;
-                ">
+                <header style="background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.08);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
                     <div style="display:flex;align-items:center;gap:14px;">
                         <span style="font-size:28px;">🚀</span>
-                        <h1 style="
-                            margin:0;
-                            font-size:20px;
-                            font-weight:700;
-                            background: linear-gradient(90deg, #4a9eff, #7c3aed);
-                            -webkit-background-clip: text;
-                            -webkit-text-fill-color: transparent;
-                            background-clip: text;
-                        ">Law AI Academy</h1>
+                        <h1 style="margin:0;font-size:20px;font-weight:700;background:linear-gradient(90deg,#4a9eff,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Law AI Academy</h1>
                         <span style="font-size:11px;background:rgba(74,158,255,0.2);color:#4a9eff;padding:2px 10px;border-radius:12px;font-weight:600;">v${this.version}</span>
                     </div>
                     <div style="display:flex;align-items:center;gap:16px;font-size:13px;color:#94a3b8;">
@@ -414,29 +380,16 @@ LawAIApp.SystemComposer = {
                     </div>
                 </header>
 
-                <!-- 主内容 -->
                 <main style="max-width:1000px;margin:0 auto;padding:24px 20px 20px;">
 
                     <!-- 欢迎横幅 -->
-                    <section style="
-                        background: linear-gradient(135deg, rgba(74,158,255,0.15), rgba(124,58,237,0.15));
-                        border: 1px solid rgba(74,158,255,0.2);
-                        border-radius: 16px;
-                        padding: 24px 32px;
-                        text-align: center;
-                        margin-bottom: 24px;
-                    ">
+                    <section style="background:linear-gradient(135deg,rgba(74,158,255,0.15),rgba(124,58,237,0.15));border:1px solid rgba(74,158,255,0.2);border-radius:16px;padding:24px 32px;text-align:center;margin-bottom:24px;">
                         <h2 style="margin:0 0 4px 0;font-size:24px;font-weight:600;">${isDemo ? '🚀 Welcome to Law AI Academy!' : '👋 Welcome Back!'}</h2>
                         <p style="margin:0;color:#94a3b8;font-size:15px;">${isDemo ? 'Start your 365-day AI learning journey today.' : "You're on Day " + day + " · " + currentStage}</p>
                     </section>
 
-                    <!-- Dashboard 卡片网格 -->
-                    <div style="
-                        display:grid;
-                        grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-                        gap:16px;
-                        margin-bottom:24px;
-                    ">
+                    <!-- 卡片网格 -->
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:24px;">
                         <div style="background:rgba(255,255,255,0.05);border-radius:14px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,0.06);">
                             <div style="font-size:32px;">📈</div>
                             <div style="font-size:28px;font-weight:700;color:#4a9eff;">${level}</div>
@@ -474,22 +427,50 @@ LawAIApp.SystemComposer = {
                         </div>
                     </div>
 
-                    <!-- ===== 今日学习卡片 ===== -->
+                    <!-- ========================================================= -->
+                    <!--  Phase 4: 学习日历 + 技能雷达                                -->
+                    <!-- ========================================================= -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+
+                        <!-- 学习日历 -->
+                        <div style="background:rgba(255,255,255,0.03);border-radius:14px;padding:20px 24px;border:1px solid rgba(255,255,255,0.06);">
+                            <h3 style="margin:0 0 12px 0;color:#94a3b8;font-size:14px;font-weight:400;">📅 Recent Activity</h3>
+                            <div style="display:flex;gap:6px;">
+                                ${calendarHtml}
+                            </div>
+                            <div style="display:flex;justify-content:space-between;font-size:10px;color:#64748b;margin-top:8px;">
+                                <span>Less activity</span>
+                                <span style="display:flex;align-items:center;gap:4px;">
+                                    <span style="display:inline-block;width:10px;height:10px;border-radius:4px;background:rgba(255,255,255,0.06);"></span>
+                                    <span style="display:inline-block;width:10px;height:10px;border-radius:4px;background:rgba(74,158,255,0.4);"></span>
+                                    <span style="display:inline-block;width:10px;height:10px;border-radius:4px;background:rgba(74,158,255,0.7);"></span>
+                                    <span style="display:inline-block;width:10px;height:10px;border-radius:4px;background:#4a9eff;"></span>
+                                </span>
+                                <span>More activity</span>
+                            </div>
+                        </div>
+
+                        <!-- 技能雷达 -->
+                        <div style="background:rgba(255,255,255,0.03);border-radius:14px;padding:20px 24px;border:1px solid rgba(255,255,255,0.06);">
+                            <h3 style="margin:0 0 12px 0;color:#94a3b8;font-size:14px;font-weight:400;">🧠 Skill Radar</h3>
+                            ${radarHtml}
+                            <div style="font-size:10px;color:#64748b;margin-top:8px;text-align:right;">
+                                ${isDemo ? 'Complete lessons to unlock your skill radar!' : 'Based on your learning progress'}
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- 今日学习卡片 -->
                     ${goalHtml}
 
-                    <!-- ===== 最近学习课程 ===== -->
-                    <div style="
-                        background:rgba(255,255,255,0.03);
-                        border-radius:14px;
-                        padding:20px 24px;
-                        border:1px solid rgba(255,255,255,0.06);
-                        margin-bottom:24px;
-                    ">
+                    <!-- 最近学习课程 -->
+                    <div style="background:rgba(255,255,255,0.03);border-radius:14px;padding:20px 24px;border:1px solid rgba(255,255,255,0.06);margin-bottom:24px;">
                         <h3 style="margin:0 0 12px 0;color:#94a3b8;font-size:14px;font-weight:400;">📖 Recent Lessons</h3>
                         ${recentHtml}
                     </div>
 
-                    <!-- 隐藏的面板（保留功能） -->
+                    <!-- 隐藏面板 -->
                     <div id="learningPanel" style="display:none;"></div>
                     <div id="workspacePanel" style="display:none;"></div>
                     <div id="runtimePanel" style="display:none;"></div>
@@ -499,19 +480,7 @@ LawAIApp.SystemComposer = {
             </div>
 
             <!-- 底部导航 -->
-            <nav style="
-                position:fixed;
-                bottom:0;
-                left:0;
-                right:0;
-                background:rgba(20,20,40,0.92);
-                backdrop-filter:blur(12px);
-                border-top:1px solid rgba(255,255,255,0.06);
-                display:flex;
-                justify-content:space-around;
-                padding:8px 0 16px;
-                z-index:100;
-            ">
+            <nav style="position:fixed;bottom:0;left:0;right:0;background:rgba(20,20,40,0.92);backdrop-filter:blur(12px);border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-around;padding:8px 0 16px;z-index:100;">
                 <a href="#" class="nav-item active" data-tab="home" style="display:flex;flex-direction:column;align-items:center;gap:2px;color:#4a9eff;text-decoration:none;font-size:10px;font-weight:500;"><span style="font-size:20px;">🏠</span><span>Home</span></a>
                 <a href="pages/academy.html" class="nav-item" data-tab="academy" style="display:flex;flex-direction:column;align-items:center;gap:2px;color:#64748b;text-decoration:none;font-size:10px;font-weight:500;"><span style="font-size:20px;">📚</span><span>Academy</span></a>
                 <a href="#" class="nav-item" data-tab="calendar" style="display:flex;flex-direction:column;align-items:center;gap:2px;color:#64748b;text-decoration:none;font-size:10px;font-weight:500;"><span style="font-size:20px;">📅</span><span>Calendar</span></a>
@@ -524,6 +493,12 @@ LawAIApp.SystemComposer = {
                 .nav-item.active { color: #4a9eff !important; }
                 @media (max-width: 600px) {
                     .nav-item span:last-child { font-size: 9px; }
+                    #systemComposerRoot .grid-cols-2 { grid-template-columns: 1fr; }
+                }
+                @media (max-width: 600px) {
+                    #systemComposerRoot div[style*="display:grid;grid-template-columns:1fr 1fr"] {
+                        grid-template-columns: 1fr !important;
+                    }
                 }
             </style>
         </div>
@@ -617,242 +592,4 @@ LawAIApp.SystemComposer = {
     _renderFallbackUI: function(errorMsg) {
         if (!this.root) return;
         this.root.innerHTML = `
-            <div style="padding:40px;text-align:center;background:#0b1220;color:white;min-height:100vh;font-family:'Inter',sans-serif;">
-                <h2>⚠️ SystemComposer Error</h2>
-                <p style="color:#ff6b6b;">${errorMsg || 'Unknown error'}</p>
-                <p style="color:#666;font-size:14px;margin-top:20px;">
-                    Please refresh or check console for details
-                </p>
-                <button onclick="location.reload()" style="
-                    margin-top:20px;
-                    padding:10px 30px;
-                    background:#4a9eff;
-                    border:none;
-                    border-radius:8px;
-                    color:white;
-                    font-size:14px;
-                    cursor:pointer;
-                ">🔄 Refresh</button>
-            </div>
-        `;
-    },
-
-    /**
-     * =========================
-     * 通知 App 已挂载
-     * =========================
-     */
-
-    _notifyMounted: function() {
-        if (this._mountedNotified) return;
-
-        try {
-            var event = new CustomEvent('COMPOSER_MOUNTED', {
-                detail: {
-                    version: this.version,
-                    initialized: this.initialized,
-                    root: this.root ? this.root.id : null
-                }
-            });
-            window.dispatchEvent(event);
-            this._mountedNotified = true;
-            console.log("📡 Dispatched COMPOSER_MOUNTED event (once)");
-        } catch (err) {
-            console.warn("Failed to dispatch COMPOSER_MOUNTED:", err);
-        }
-    },
-
-    refresh: function() {
-        console.log("🔄 SystemComposer refreshing all panels...");
-        var self = this;
-        Object.values(this.panels).forEach(function(panel) {
-            try {
-                panel();
-            } catch (err) {
-                console.warn("Panel render failed:", err);
-            }
-        });
-    },
-
-    /* =====================================
-    LEARNING（兼容保留）
-    ===================================== */
-
-    mountLearning: function() {
-        var el = this.cache.learning;
-        if (!el) {
-            this.cache.learning = document.getElementById("learningPanel");
-            if (!this.cache.learning) return;
-            el = this.cache.learning;
-        }
-
-        var state = {};
-        try {
-            if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.getState === 'function') {
-                state = LawAIApp.ProgressEngine.getState();
-            }
-        } catch (err) {}
-
-        el.innerHTML = `
-            <div style="background:#1e293b;padding:18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.25);">
-                <h2 style="margin-top:0;">📚 Learning</h2>
-                <div style="display:flex;gap:24px;flex-wrap:wrap;">
-                    <div><strong>📈 Level</strong><br>${state.level || 1}</div>
-                    <div><strong>⭐ XP</strong><br>${state.xp || 0}</div>
-                    <div><strong>🔥 Streak</strong><br>${state.streak || 0}</div>
-                    <div><strong>📅 Day</strong><br>${state.day || 1}</div>
-                </div>
-            </div>
-        `;
-    },
-
-    /* =====================================
-    WORKSPACE（兼容保留）
-    ===================================== */
-
-    mountWorkspace: function() {
-        var el = this.cache.workspace;
-        if (!el) {
-            this.cache.workspace = document.getElementById("workspacePanel");
-            if (!this.cache.workspace) return;
-            el = this.cache.workspace;
-        }
-
-        var workspace = {};
-        try {
-            if (LawAIApp.WorkspaceState && typeof LawAIApp.WorkspaceState.get === 'function') {
-                workspace = LawAIApp.WorkspaceState.get("default") || {};
-            }
-        } catch (err) {}
-
-        el.innerHTML = `
-            <div style="background:#1e293b;padding:18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.25);">
-                <h2 style="margin-top:0;">🧩 Workspace</h2>
-                <pre style="margin:0;white-space:pre-wrap;word-break:break-word;color:#cbd5e1;max-height:200px;overflow:auto;font-size:13px;">${JSON.stringify(workspace, null, 2)}</pre>
-            </div>
-        `;
-    },
-
-    /* =====================================
-    RUNTIME（兼容保留）
-    ===================================== */
-
-    mountRuntime: function() {
-        var el = this.cache.runtime;
-        if (!el) {
-            this.cache.runtime = document.getElementById("runtimePanel");
-            if (!this.cache.runtime) return;
-            el = this.cache.runtime;
-        }
-
-        var boot = LawAIApp.bootStatus || {};
-        var runtime = LawAIApp.RuntimeManager || {};
-
-        el.innerHTML = `
-            <div style="background:#1e293b;padding:18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.25);">
-                <h2 style="margin-top:0;">⚙ Runtime</h2>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;">
-                    <div><strong>Status</strong><br>${runtime.started ? "🟢 Running" : "🟡 Waiting"}</div>
-                    <div><strong>Active Engines</strong><br>${boot.active ? boot.active.length : 0}</div>
-                    <div><strong>Loaded Files</strong><br>${boot.loaded ? boot.loaded.length : 0}</div>
-                    <div><strong>Safe Mode</strong><br>${boot.safeMode ? "ON" : "OFF"}</div>
-                </div>
-            </div>
-        `;
-    },
-
-    /* =====================================
-    RUNTIME MODULES（兼容保留）
-    ===================================== */
-
-    mountRuntimeModules: function() {
-        var el = this.cache.modules;
-        if (!el) {
-            this.cache.modules = document.getElementById("modulePanel");
-            if (!this.cache.modules) return;
-            el = this.cache.modules;
-        }
-
-        el.innerHTML = `
-            <div style="background:#1e293b;padding:18px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.25);">
-                <h2 style="margin-top:0;">📦 Runtime Modules</h2>
-                <p style="color:#888;">System running smoothly</p>
-            </div>
-        `;
-    },
-
-    /* =====================================
-    PANEL MANAGEMENT
-    ===================================== */
-
-    registerPanel: function(name, renderer) {
-        if (!name || typeof renderer !== "function") {
-            console.warn("Invalid panel registration:", name);
-            return;
-        }
-        this.panels[name] = renderer;
-        console.log('📌 Panel "' + name + '" registered');
-    },
-
-    refreshPanel: function(name) {
-        if (!this.panels[name]) {
-            console.warn('Panel "' + name + '" not found');
-            return;
-        }
-        try {
-            this.panels[name]();
-        } catch (err) {
-            console.warn('Panel ' + name + ' refresh failed', err);
-        }
-    },
-
-    destroy: function() {
-        this.initialized = false;
-        this.boot = {};
-        this.cache = {};
-        this.panels = {};
-        this.root = null;
-        this._mounting = false;
-        this._mountedNotified = false;
-        console.log("🧩 SystemComposer destroyed");
-    }
-
-};
-
-/* =====================================
-   AUTO REFRESH
-===================================== */
-
-window.addEventListener("LEARNING_UI_REFRESH", function() {
-    LawAIApp.SystemComposer?.refreshPanel("learning");
-});
-
-window.addEventListener("SYSTEM_READY", function(e) {
-    console.log("📡 SYSTEM_READY received by SystemComposer");
-    if (!LawAIApp.SystemComposer.initialized) {
-        LawAIApp.SystemComposer.init(e.detail ? e.detail.boot : undefined);
-    } else {
-        LawAIApp.SystemComposer.boot = e.detail ? e.detail.boot : LawAIApp.bootStatus || {};
-        LawAIApp.SystemComposer.refresh();
-    }
-});
-
-window.addEventListener("RUNTIME_READY", function() {
-    LawAIApp.SystemComposer?.refreshPanel("runtime");
-    LawAIApp.SystemComposer?.refreshPanel("modules");
-});
-
-window.addEventListener("WORKSPACE_UPDATED", function() {
-    LawAIApp.SystemComposer?.refreshPanel("workspace");
-});
-
-window.addEventListener("PROFILE_UPDATED", function() {
-    LawAIApp.SystemComposer?.refreshPanel("learning");
-});
-
-console.log("🧩 SystemComposer V" + LawAIApp.SystemComposer.version + " Ready");
-
-if (typeof window.LawAIApp !== 'undefined') {
-    window.LawAIApp.SystemComposer = LawAIApp.SystemComposer;
-    console.log('✅ SystemComposer V' + LawAIApp.SystemComposer.version + ' attached to LawAIApp');
-}
+            <div style="padding:40px;text-align
