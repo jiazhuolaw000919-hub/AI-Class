@@ -1,117 +1,218 @@
+// ===========================================
+// workspaceEngine.js
+// 知识工作空间引擎 - 学习工作区（Phase 27 完善版）
+// ===========================================
+
+window.LawAIApp = window.LawAIApp || {};
+
 LawAIApp.WorkspaceEngine = (function() {
+    var _initialized = false;
 
-  function safeGet(moduleName) {
-    const mod = LawAIApp[moduleName];
-    if (!mod) {
-      console.warn(`[WorkspaceEngine] Missing module: ${moduleName}`);
-      return null;
+    // ===========================================
+    // 工作区状态
+    // ===========================================
+    function get(lessonId) {
+        try {
+            var key = 'workspace_' + lessonId;
+            var stored = LawAIApp.StorageEngine?.get?.(key);
+            if (stored) return stored;
+            
+            // 创建默认工作区
+            var ws = {
+                workspaceId: 'ws_' + Date.now(),
+                lessonId: lessonId,
+                layout: 'default',
+                widgets: ['lesson', 'summary', 'notebook', 'resources'],
+                pinnedWidgets: [],
+                focusMode: 'study',
+                lastOpened: new Date().toISOString(),
+                sessionState: {
+                    scrollPosition: 0,
+                    openResources: [],
+                    notebookText: '',
+                    practiceProgress: {}
+                }
+            };
+            LawAIApp.StorageEngine?.set?.(key, ws);
+            return ws;
+        } catch (e) {
+            return {
+                workspaceId: 'ws_fallback',
+                lessonId: lessonId,
+                layout: 'default',
+                widgets: ['lesson', 'summary', 'notebook', 'resources'],
+                pinnedWidgets: [],
+                focusMode: 'study',
+                lastOpened: new Date().toISOString(),
+                sessionState: {}
+            };
+        }
     }
-    return mod;
-  }
 
-  function openWorkspace(lessonId) {
-    const State = safeGet("WorkspaceState");
-    const Bus = safeGet("EventBus");
+    function save(lessonId, workspace) {
+        try {
+            var key = 'workspace_' + lessonId;
+            workspace.lastOpened = new Date().toISOString();
+            LawAIApp.StorageEngine?.set?.(key, workspace);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
 
-    if (!State) return null;
+    // ===========================================
+    // 工作区操作
+    // ===========================================
+    function open(lessonId) {
+        var ws = get(lessonId);
+        ws.lastOpened = new Date().toISOString();
+        save(lessonId, ws);
+        LawAIApp.EventBus?.emit?.('WorkspaceOpened', { workspace: ws, lessonId: lessonId });
+        return ws;
+    }
 
-    const ws = State.get(lessonId);
+    function close(lessonId, sessionState) {
+        var ws = get(lessonId);
+        if (sessionState) {
+            ws.sessionState = { ...ws.sessionState, ...sessionState };
+        }
+        save(lessonId, ws);
+        LawAIApp.EventBus?.emit?.('WorkspaceClosed', { lessonId: lessonId });
+    }
 
-    ws.lastOpened = new Date().toISOString();
-    State.save(lessonId, ws);
+    function restoreLastSession() {
+        try {
+            var keys = LawAIApp.StorageEngine?.getAllKeys?.() || [];
+            var wsKeys = keys.filter(function(k) { return k.startsWith('workspace_'); });
+            
+            if (wsKeys.length === 0) return null;
+            
+            var workspaces = wsKeys
+                .map(function(k) { return LawAIApp.StorageEngine?.get?.(k); })
+                .filter(function(w) { return w; });
+            
+            workspaces.sort(function(a, b) {
+                return new Date(b.lastOpened || 0) - new Date(a.lastOpened || 0);
+            });
+            
+            return workspaces[0] || null;
+        } catch (e) {
+            return null;
+        }
+    }
 
-    if (Bus) Bus.emit('WorkspaceOpened', { workspace: ws });
+    function setFocusMode(lessonId, mode) {
+        var validModes = ['focus', 'study', 'practice', 'research', 'review', 'custom'];
+        if (validModes.indexOf(mode) === -1) return;
+        
+        var ws = get(lessonId);
+        ws.focusMode = mode;
+        save(lessonId, ws);
+        
+        LawAIApp.EventBus?.emit?.('FocusModeChanged', { lessonId: lessonId, mode: mode });
+    }
 
-    return ws;
-  }
+    // ===========================================
+    // 布局管理
+    // ===========================================
+    function changeLayout(lessonId, layout) {
+        var validLayouts = ['default', 'focus', 'practice', 'review', 'research'];
+        if (validLayouts.indexOf(layout) === -1) return;
+        
+        var ws = get(lessonId);
+        ws.layout = layout;
+        save(lessonId, ws);
+    }
 
-  function closeWorkspace(lessonId, sessionState = {}) {
-    const State = safeGet("WorkspaceState");
-    const Bus = safeGet("EventBus");
+    function applyLayout(lessonId, layout) {
+        changeLayout(lessonId, layout);
+    }
 
-    if (!State) return;
+    // ===========================================
+    // 小部件管理
+    // ===========================================
+    function addWidget(lessonId, widgetType) {
+        var ws = get(lessonId);
+        if (ws.widgets.indexOf(widgetType) === -1) {
+            ws.widgets.push(widgetType);
+            save(lessonId, ws);
+        }
+    }
 
-    const ws = State.get(lessonId);
-    ws.sessionState = { ...ws.sessionState, ...sessionState };
+    function removeWidget(lessonId, widgetType) {
+        var ws = get(lessonId);
+        ws.widgets = ws.widgets.filter(function(w) { return w !== widgetType; });
+        save(lessonId, ws);
+    }
 
-    State.save(lessonId, ws);
+    function togglePinWidget(lessonId, widgetType) {
+        var ws = get(lessonId);
+        var index = ws.pinnedWidgets.indexOf(widgetType);
+        if (index === -1) {
+            ws.pinnedWidgets.push(widgetType);
+        } else {
+            ws.pinnedWidgets.splice(index, 1);
+        }
+        save(lessonId, ws);
+    }
 
-    if (Bus) Bus.emit('WorkspaceClosed', { lessonId });
-  }
+    // ===========================================
+    // 搜索
+    // ===========================================
+    function search(query) {
+        try {
+            var keys = LawAIApp.StorageEngine?.getAllKeys?.() || [];
+            var wsKeys = keys.filter(function(k) { return k.startsWith('workspace_'); });
+            var results = [];
+            var q = query.toLowerCase();
+            
+            wsKeys.forEach(function(k) {
+                var ws = LawAIApp.StorageEngine?.get?.(k);
+                if (ws && ws.lessonId && ws.lessonId.indexOf(q) !== -1) {
+                    results.push(ws);
+                }
+            });
+            
+            return results;
+        } catch (e) {
+            return [];
+        }
+    }
 
-  function restoreLastSession() {
-    const Storage = safeGet("StorageEngine");
-    const State = safeGet("WorkspaceState");
+    // ===========================================
+    // 资源推荐
+    // ===========================================
+    function getRecommendedResources(lessonId) {
+        return LawAIApp.ResourceEngine?.getRecommendation?.(lessonId) || null;
+    }
 
-    if (!Storage || !State) return null;
+    // ===========================================
+    // 初始化
+    // ===========================================
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
+        console.log('🧩 WorkspaceEngine initialized');
+    }
 
-    const keys = Storage.getAllKeys?.() || [];
-    const wsKeys = keys.filter(k => k.startsWith('workspace_day-'));
+    setTimeout(init, 300);
 
-    if (wsKeys.length === 0) return null;
-
-    const workspaces = wsKeys
-      .map(k => Storage.get(k))
-      .filter(Boolean);
-
-    workspaces.sort((a,b) =>
-      new Date(b.lastOpened || 0) - new Date(a.lastOpened || 0)
-    );
-
-    return workspaces[0] || null;
-  }
-
-  function setFocusMode(lessonId, mode) {
-    const State = safeGet("WorkspaceState");
-    const Layout = safeGet("WorkspaceLayout");
-
-    const validModes = ['focus','study','practice','research','review','custom'];
-    if (!validModes.includes(mode)) return;
-
-    if (!State) return;
-
-    const ws = State.get(lessonId);
-    ws.focusMode = mode;
-
-    State.save(lessonId, ws);
-
-    if (!Layout) return;
-
-    if (mode === 'focus') Layout.applyLayout(lessonId, 'focus');
-    else if (mode === 'practice') Layout.applyLayout(lessonId, 'practice');
-    else if (mode === 'review') Layout.applyLayout(lessonId, 'review');
-  }
-
-  function getRecommendedResources(lessonId) {
-    const Resource = safeGet("ResourceEngine");
-    if (!Resource) return null;
-    return Resource.getRecommendation(lessonId);
-  }
-
-  return {
-    open: openWorkspace,
-    close: closeWorkspace,
-    restoreLast: restoreLastSession,
-    setMode: setFocusMode,
-
-    get: (id) => LawAIApp.WorkspaceState?.get?.(id),
-
-    addWidget: (...args) =>
-      LawAIApp.WorkspaceWidgets?.addWidget?.(...args),
-
-    removeWidget: (...args) =>
-      LawAIApp.WorkspaceWidgets?.removeWidget?.(...args),
-
-    pinWidget: (...args) =>
-      LawAIApp.WorkspaceWidgets?.togglePinWidget?.(...args),
-
-    search: (...args) =>
-      LawAIApp.WorkspaceSearch?.search?.(...args),
-
-    changeLayout: (...args) =>
-      LawAIApp.WorkspaceLayout?.applyLayout?.(...args),
-
-    getRecommendedResources
-  };
-
+    return {
+        init: init,
+        get: get,
+        save: save,
+        open: open,
+        close: close,
+        restoreLast: restoreLastSession,
+        setMode: setFocusMode,
+        changeLayout: changeLayout,
+        applyLayout: applyLayout,
+        addWidget: addWidget,
+        removeWidget: removeWidget,
+        togglePinWidget: togglePinWidget,
+        search: search,
+        getRecommendedResources: getRecommendedResources
+    };
 })();
+
+console.log('🧩 WorkspaceEngine V2.0 ready');
