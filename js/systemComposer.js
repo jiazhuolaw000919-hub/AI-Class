@@ -2,7 +2,7 @@ window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.SystemComposer = {
 
-    version: "4.0.2",
+    version: "4.0.3",
 
     initialized: false,
 
@@ -25,14 +25,12 @@ LawAIApp.SystemComposer = {
         if (this.initialized) {
             console.log("🔄 SystemComposer already initialized, refreshing...");
             this.refresh();
-            // 只在首次初始化时通知，避免重复
             if (!this._mountedNotified) {
                 this._notifyMounted();
             }
             return;
         }
 
-        // 防止并发初始化
         if (this._mounting) {
             console.warn("⏳ SystemComposer is already mounting, skipping duplicate init");
             return;
@@ -50,19 +48,15 @@ LawAIApp.SystemComposer = {
 
             this.cache = {};
 
-            // 检查是否已经存在 systemComposerRoot，防止重复渲染
             const existingRoot = document.getElementById("systemComposerRoot");
             if (existingRoot) {
                 console.log("🔄 systemComposerRoot already exists, reusing...");
-                // 更新 root 引用
                 this.root = existingRoot;
-                // 重新获取缓存
                 this.cache.learning = document.getElementById("learningPanel");
                 this.cache.workspace = document.getElementById("workspacePanel");
                 this.cache.runtime = document.getElementById("runtimePanel");
                 this.cache.modules = document.getElementById("modulePanel");
             } else {
-                // 只在 root 是 law-runtime-root 时才渲染完整界面
                 if (this.root.id === "law-runtime-root") {
                     this._renderMainUI();
                 } else {
@@ -70,14 +64,12 @@ LawAIApp.SystemComposer = {
                     this._renderMinimalUI();
                 }
 
-                // Cache frequently-used DOM nodes
                 this.cache.learning = document.getElementById("learningPanel");
                 this.cache.workspace = document.getElementById("workspacePanel");
                 this.cache.runtime = document.getElementById("runtimePanel");
                 this.cache.modules = document.getElementById("modulePanel");
             }
 
-            // Register built-in panels
             this.panels = {
                 learning: () => this.mountLearning(),
                 workspace: () => this.mountWorkspace(),
@@ -85,12 +77,9 @@ LawAIApp.SystemComposer = {
                 modules: () => this.mountRuntimeModules()
             };
 
-            // 首次渲染所有面板
             this.refresh();
 
             console.log("✅ SystemComposer V" + this.version + " initialized successfully");
-            
-            // 通知 App 已经挂载完成（仅一次）
             this._notifyMounted();
 
         } catch (err) {
@@ -104,55 +93,56 @@ LawAIApp.SystemComposer = {
 
     /**
      * =========================
-     * 渲染主 UI
+     * 渲染主 UI（使用 CSS 类）
      * =========================
      */
 
     _renderMainUI() {
         if (!this.root) return;
         
-        // 防止重复渲染：如果已经存在 systemComposerRoot，不重建
         if (document.getElementById("systemComposerRoot")) {
             console.log("🔄 systemComposerRoot already exists, skipping render");
             return;
         }
         
         this.root.innerHTML = `
+        <div id="systemComposerRoot" class="app-container">
+            <!-- 顶部导航 -->
+            <header class="app-header">
+                <div class="header-left">
+                    <span class="logo-icon">🚀</span>
+                    <h1 class="app-title">Law AI Academy</h1>
+                    <span class="version-badge">v${this.version}</span>
+                </div>
+                <div class="header-right">
+                    <span class="stat-item" id="headerDay">🎯 Day 1</span>
+                    <span class="stat-item" id="headerXP">⭐ 0 XP</span>
+                    <span class="stat-item" id="headerLevel">🔥 Level 1</span>
+                </div>
+            </header>
 
-        <div
-            id="systemComposerRoot"
-            style="
-                min-height:100vh;
-                background:#0b1220;
-                color:white;
-                font-family:Arial,sans-serif;
-                padding:24px;
-                box-sizing:border-box;
-            ">
+            <!-- 主内容 -->
+            <main class="app-main">
+                <!-- 欢迎横幅 -->
+                <section class="welcome-banner">
+                    <h2>👋 Welcome to Your AI Learning Journey</h2>
+                    <p>365 days of immersive AI education — track your progress, earn XP, and master the future.</p>
+                </section>
 
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-                <h1 style="margin:0;">🚀 Law AI Academy</h1>
-                <span style="font-size:14px;color:#4a9eff;font-weight:normal;background:#1e293b;padding:4px 12px;border-radius:20px;">
-                    v${this.version}
-                </span>
-            </div>
+                <!-- 面板网格 -->
+                <div class="panels-grid">
+                    <div id="learningPanel" class="panel-card"></div>
+                    <div id="workspacePanel" class="panel-card"></div>
+                    <div id="runtimePanel" class="panel-card"></div>
+                    <div id="modulePanel" class="panel-card panel-full"></div>
+                </div>
+            </main>
 
-            <div id="learningPanel"></div>
-
-            <br>
-
-            <div id="workspacePanel"></div>
-
-            <br>
-
-            <div id="runtimePanel"></div>
-
-            <br>
-
-            <div id="modulePanel"></div>
-
+            <!-- 底部 -->
+            <footer class="app-footer">
+                <span>🏛️ Law AI Academy · Built with ❤️ · v${this.version}</span>
+            </footer>
         </div>
-
         `;
     },
 
@@ -165,7 +155,6 @@ LawAIApp.SystemComposer = {
     _renderMinimalUI() {
         if (!this.root) return;
         
-        // 防止重复添加
         if (document.getElementById("systemComposerRoot")) {
             console.log("🔄 systemComposerRoot already exists, skipping minimal render");
             return;
@@ -173,17 +162,32 @@ LawAIApp.SystemComposer = {
         
         const container = document.createElement('div');
         container.id = 'systemComposerRoot';
-        container.style.cssText = 'padding:20px;background:#0b1220;color:white;';
+        container.className = 'app-container';
         container.innerHTML = `
-            <h2>🚀 SystemComposer Active</h2>
-            <p style="color:#aaa;">Version ${this.version}</p>
-            <div id="learningPanel"></div>
-            <div id="workspacePanel"></div>
-            <div id="runtimePanel"></div>
-            <div id="modulePanel"></div>
+            <header class="app-header">
+                <div class="header-left">
+                    <span class="logo-icon">🚀</span>
+                    <h1 class="app-title">Law AI Academy</h1>
+                    <span class="version-badge">v${this.version}</span>
+                </div>
+            </header>
+            <main class="app-main">
+                <section class="welcome-banner">
+                    <h2>🚀 SystemComposer Active</h2>
+                    <p>Version ${this.version}</p>
+                </section>
+                <div class="panels-grid">
+                    <div id="learningPanel" class="panel-card"></div>
+                    <div id="workspacePanel" class="panel-card"></div>
+                    <div id="runtimePanel" class="panel-card"></div>
+                    <div id="modulePanel" class="panel-card panel-full"></div>
+                </div>
+            </main>
+            <footer class="app-footer">
+                <span>🏛️ Law AI Academy · v${this.version}</span>
+            </footer>
         `;
         this.root.appendChild(container);
-        // 更新 root 引用到新容器
         this.root = container;
     },
 
@@ -196,26 +200,22 @@ LawAIApp.SystemComposer = {
     _renderFallbackUI(errorMsg) {
         if (!this.root) return;
         this.root.innerHTML = `
-            <div style="padding:40px;text-align:center;background:#0b1220;color:white;min-height:100vh;">
+            <div class="error-container">
                 <h2>⚠️ SystemComposer Error</h2>
-                <p style="color:#ff6b6b;">${errorMsg || 'Unknown error'}</p>
-                <p style="color:#666;font-size:14px;margin-top:20px;">
-                    Please refresh or check console for details
-                </p>
+                <p class="error-message">${errorMsg || 'Unknown error'}</p>
+                <p class="error-hint">Please refresh or check console for details</p>
             </div>
         `;
     },
 
     /**
      * =========================
-     * 通知 App 已挂载（仅触发一次）
+     * 通知 App 已挂载
      * =========================
      */
 
     _notifyMounted() {
-        if (this._mountedNotified) {
-            return; // 已经通知过了，不再重复
-        }
+        if (this._mountedNotified) return;
         
         try {
             const event = new CustomEvent('COMPOSER_MOUNTED', {
@@ -242,249 +242,154 @@ LawAIApp.SystemComposer = {
                 console.warn("Panel render failed:", err);
             }
         });
-        // 刷新后不重复通知，减少事件泛滥
+        // 更新顶部状态栏
+        this._updateHeaderStats();
+    },
+
+    /**
+     * =========================
+     * 更新顶部状态栏
+     * =========================
+     */
+
+    _updateHeaderStats() {
+        const state = LawAIApp.LearningStateManager?.getState?.() || {};
+        const dayEl = document.getElementById('headerDay');
+        const xpEl = document.getElementById('headerXP');
+        const levelEl = document.getElementById('headerLevel');
+        
+        if (dayEl) dayEl.textContent = `🎯 Day ${state.day || 1}`;
+        if (xpEl) xpEl.textContent = `⭐ ${state.xp || 0} XP`;
+        if (levelEl) levelEl.textContent = `🔥 Level ${state.level || 1}`;
     },
 
     /* =====================================
-   LEARNING
+   LEARNING（使用 CSS 类）
 ===================================== */
 
 mountLearning() {
-
     const el = this.cache.learning;
-
     if (!el) {
-        // 如果缓存丢失，尝试重新获取
         this.cache.learning = document.getElementById("learningPanel");
         if (!this.cache.learning) return;
         el = this.cache.learning;
     }
 
-    const state =
-        LawAIApp
-            .LearningStateManager
-            ?.getState?.()
-        || {};
+    const state = LawAIApp.LearningStateManager?.getState?.() || {};
 
     el.innerHTML = `
-
-    <div
-        style="
-            background:#1e293b;
-            padding:18px;
-            border-radius:12px;
-            box-shadow:0 2px 8px rgba(0,0,0,.25);
-        ">
-
-        <h2 style="margin-top:0;">
-            📚 Learning
-        </h2>
-
-        <div style="
-            display:flex;
-            gap:24px;
-            flex-wrap:wrap;
-        ">
-
-            <div>
-                <strong>📈 Level</strong><br>
-                ${state.level ?? 1}
+        <div class="panel-content">
+            <h2 class="panel-title">📚 Learning</h2>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <span class="stat-label">📈 Level</span>
+                    <span class="stat-value">${state.level ?? 1}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">⭐ XP</span>
+                    <span class="stat-value">${state.xp ?? 0}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">🔥 Streak</span>
+                    <span class="stat-value">${state.streak ?? 0}</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">📅 Day</span>
+                    <span class="stat-value">${state.day ?? 1}</span>
+                </div>
             </div>
-
-            <div>
-                <strong>⭐ XP</strong><br>
-                ${state.xp ?? 0}
-            </div>
-
-            <div>
-                <strong>🔥 Streak</strong><br>
-                ${state.streak ?? 0}
-            </div>
-
         </div>
-
-    </div>
-
     `;
-
 },
 
 /* =====================================
-   WORKSPACE
+   WORKSPACE（使用 CSS 类）
 ===================================== */
 
 mountWorkspace() {
-
     const el = this.cache.workspace;
-
     if (!el) {
         this.cache.workspace = document.getElementById("workspacePanel");
         if (!this.cache.workspace) return;
         el = this.cache.workspace;
     }
 
-    const workspace =
-        LawAIApp
-            .WorkspaceState
-            ?.get?.("default")
-        || {};
+    const workspace = LawAIApp.WorkspaceState?.get?.("default") || {};
 
     el.innerHTML = `
-
-    <div
-        style="
-            background:#1e293b;
-            padding:18px;
-            border-radius:12px;
-            box-shadow:0 2px 8px rgba(0,0,0,.25);
-        ">
-
-        <h2 style="margin-top:0;">
-            🧩 Workspace
-        </h2>
-
-        <pre style="
-            margin:0;
-            white-space:pre-wrap;
-            word-break:break-word;
-            color:#cbd5e1;
-            max-height:200px;
-            overflow:auto;
-            font-size:13px;
-        ">${JSON.stringify(workspace, null, 2)}</pre>
-
-    </div>
-
+        <div class="panel-content">
+            <h2 class="panel-title">🧩 Workspace</h2>
+            <div class="workspace-preview">
+                <pre class="workspace-json">${JSON.stringify(workspace, null, 2)}</pre>
+            </div>
+        </div>
     `;
-
 },
 
     /* =====================================
-   RUNTIME
+   RUNTIME（使用 CSS 类）
 ===================================== */
 
 mountRuntime() {
-
     const el = this.cache.runtime;
-
     if (!el) {
         this.cache.runtime = document.getElementById("runtimePanel");
         if (!this.cache.runtime) return;
         el = this.cache.runtime;
     }
 
-    const boot =
-        LawAIApp.bootStatus || {};
-
-    const runtime =
-        LawAIApp.RuntimeManager || {};
-
-    const registry =
-        LawAIApp.RuntimeRegistry;
+    const boot = LawAIApp.bootStatus || {};
+    const runtime = LawAIApp.RuntimeManager || {};
+    const registry = LawAIApp.RuntimeRegistry;
 
     let modules = [];
-
     try {
-
-        modules =
-            registry?.discover?.()
-            || registry?.getAll?.()
-            || [];
-
+        modules = registry?.discover?.() || registry?.getAll?.() || [];
     } catch (err) {
-
         console.warn("Runtime registry error:", err);
-
     }
 
-    const runtimeStarted = runtime.started
-        ? "🟢 Running"
-        : "🟡 Waiting";
+    const runtimeStarted = runtime.started ? "🟢 Running" : "🟡 Waiting";
 
     el.innerHTML = `
-
-    <div
-        style="
-            background:#1e293b;
-            padding:18px;
-            border-radius:12px;
-            box-shadow:0 2px 8px rgba(0,0,0,.25);
-        ">
-
-        <h2 style="margin-top:0;">
-            ⚙ Runtime
-        </h2>
-
-        <div style="
-            display:grid;
-            grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-            gap:16px;
-        ">
-
-            <div>
-
-                <strong>Status</strong><br>
-
-                ${runtimeStarted}
-
+        <div class="panel-content">
+            <h2 class="panel-title">⚙ Runtime</h2>
+            <div class="runtime-grid">
+                <div class="runtime-item">
+                    <span class="runtime-label">Status</span>
+                    <span class="runtime-value">${runtimeStarted}</span>
+                </div>
+                <div class="runtime-item">
+                    <span class="runtime-label">Active Engines</span>
+                    <span class="runtime-value">${boot.active?.length ?? 0}</span>
+                </div>
+                <div class="runtime-item">
+                    <span class="runtime-label">Loaded Files</span>
+                    <span class="runtime-value">${boot.loaded?.length ?? 0}</span>
+                </div>
+                <div class="runtime-item">
+                    <span class="runtime-label">Runtime Modules</span>
+                    <span class="runtime-value">${modules.length}</span>
+                </div>
+                <div class="runtime-item">
+                    <span class="runtime-label">Missing</span>
+                    <span class="runtime-value">${boot.missing?.length ?? 0}</span>
+                </div>
+                <div class="runtime-item">
+                    <span class="runtime-label">Safe Mode</span>
+                    <span class="runtime-value">${boot.safeMode ? "ON" : "OFF"}</span>
+                </div>
             </div>
-
-            <div>
-
-                <strong>Active Engines</strong><br>
-
-                ${boot.active?.length ?? 0}
-
-            </div>
-
-            <div>
-
-                <strong>Loaded Files</strong><br>
-
-                ${boot.loaded?.length ?? 0}
-
-            </div>
-
-            <div>
-
-                <strong>Runtime Modules</strong><br>
-
-                ${modules.length}
-
-            </div>
-
-            <div>
-
-                <strong>Missing</strong><br>
-
-                ${boot.missing?.length ?? 0}
-
-            </div>
-
-            <div>
-
-                <strong>Safe Mode</strong><br>
-
-                ${boot.safeMode ? "ON" : "OFF"}
-
-            </div>
-
         </div>
-
-    </div>
-
     `;
-
 },
 
 /* =====================================
-   RUNTIME MODULES
+   RUNTIME MODULES（使用 CSS 类）
 ===================================== */
 
 mountRuntimeModules() {
-
     const el = this.cache.modules;
-
     if (!el) {
         this.cache.modules = document.getElementById("modulePanel");
         if (!this.cache.modules) return;
@@ -494,79 +399,36 @@ mountRuntimeModules() {
     el.innerHTML = "";
 
     if (LawAIApp.RuntimeInjector?.inject) {
-
         try {
             LawAIApp.RuntimeInjector.inject(el);
             return;
         } catch (err) {
             console.warn("RuntimeInjector failed:", err);
         }
-
     }
 
-    const registry =
-        LawAIApp.RuntimeRegistry;
-
+    const registry = LawAIApp.RuntimeRegistry;
     let engines = [];
-
     try {
-
-        engines =
-            registry?.discover?.()
-            || registry?.getAll?.()
-            || [];
-
+        engines = registry?.discover?.() || registry?.getAll?.() || [];
     } catch (err) {
-
         console.warn("Runtime registry error:", err);
-
     }
 
     const cards = engines.length > 0 ? engines.map(engine => `
-
-        <div
-            style="
-                padding:10px;
-                border-radius:8px;
-                background:#334155;
-                border-left:3px solid #4a9eff;
-            ">
-
-            ${engine.name || engine.constructor?.name || "Unnamed Engine"}
-
+        <div class="module-card">
+            <span class="module-name">${engine.name || engine.constructor?.name || "Unnamed Engine"}</span>
         </div>
-
-    `).join("") : "<p style='color:#888;'>No runtime modules loaded.</p>";
+    `).join("") : "<p class='no-modules'>No runtime modules loaded.</p>";
 
     el.innerHTML = `
-
-    <div
-        style="
-            background:#1e293b;
-            padding:18px;
-            border-radius:12px;
-            box-shadow:0 2px 8px rgba(0,0,0,.25);
-        ">
-
-        <h2 style="margin-top:0;">
-            📦 Runtime Modules
-        </h2>
-
-        <div
-            style="
-                display:grid;
-                grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-                gap:10px;
-            ">
-
-            ${cards}
-
+        <div class="panel-content">
+            <h2 class="panel-title">📦 Runtime Modules</h2>
+            <div class="modules-grid">
+                ${cards}
+            </div>
         </div>
-
-    </div>
-
     `;
-
 },
 
 /* =====================================
@@ -574,59 +436,35 @@ mountRuntimeModules() {
 ===================================== */
 
 registerPanel(name, renderer) {
-
     if (!name || typeof renderer !== "function") {
         console.warn("Invalid panel registration:", name);
         return;
     }
-
     this.panels[name] = renderer;
     console.log(`📌 Panel "${name}" registered`);
-
 },
 
 refreshPanel(name) {
-
     if (!this.panels[name]) {
         console.warn(`Panel "${name}" not found`);
         return;
     }
-
     try {
-
         this.panels[name]();
-
+    } catch (err) {
+        console.warn(`Panel ${name} refresh failed`, err);
     }
-
-    catch (err) {
-
-        console.warn(
-            `Panel ${name} refresh failed`,
-            err
-        );
-
-    }
-
 },
 
 destroy() {
-
     this.initialized = false;
-
     this.boot = {};
-
     this.cache = {};
-
     this.panels = {};
-
     this.root = null;
-
     this._mounting = false;
-
     this._mountedNotified = false;
-
     console.log("🧩 SystemComposer destroyed");
-
 }
 
 };
@@ -635,85 +473,34 @@ destroy() {
    AUTO REFRESH
 ===================================== */
 
-window.addEventListener(
+window.addEventListener("LEARNING_UI_REFRESH", () => {
+    LawAIApp.SystemComposer?.refreshPanel("learning");
+});
 
-    "LEARNING_UI_REFRESH",
-
-    () => {
-
-        LawAIApp.SystemComposer?.refreshPanel("learning");
-
+window.addEventListener("SYSTEM_READY", e => {
+    console.log("📡 SYSTEM_READY received by SystemComposer");
+    if (!LawAIApp.SystemComposer.initialized) {
+        LawAIApp.SystemComposer.init(e.detail?.boot);
+    } else {
+        LawAIApp.SystemComposer.boot = e.detail?.boot || LawAIApp.bootStatus || {};
+        LawAIApp.SystemComposer.refresh();
     }
+});
 
-);
+window.addEventListener("RUNTIME_READY", () => {
+    LawAIApp.SystemComposer?.refreshPanel("runtime");
+    LawAIApp.SystemComposer?.refreshPanel("modules");
+});
 
-window.addEventListener(
+window.addEventListener("WORKSPACE_UPDATED", () => {
+    LawAIApp.SystemComposer?.refreshPanel("workspace");
+});
 
-    "SYSTEM_READY",
+window.addEventListener("PROFILE_UPDATED", () => {
+    LawAIApp.SystemComposer?.refreshPanel("learning");
+});
 
-    e => {
-
-        console.log("📡 SYSTEM_READY received by SystemComposer");
-
-        if (!LawAIApp.SystemComposer.initialized) {
-
-            LawAIApp.SystemComposer.init(
-                e.detail?.boot
-            );
-
-        } else {
-
-            LawAIApp.SystemComposer.boot =
-                e.detail?.boot ||
-                LawAIApp.bootStatus ||
-                {};
-
-            LawAIApp.SystemComposer.refresh();
-
-        }
-
-    }
-
-);
-
-window.addEventListener(
-
-    "RUNTIME_READY",
-
-    () => {
-
-        LawAIApp.SystemComposer?.refreshPanel("runtime");
-        LawAIApp.SystemComposer?.refreshPanel("modules");
-
-    }
-
-);
-
-window.addEventListener(
-
-    "WORKSPACE_UPDATED",
-
-    () => {
-
-        LawAIApp.SystemComposer?.refreshPanel("workspace");
-
-    }
-
-);
-
-window.addEventListener(
-
-    "PROFILE_UPDATED",
-
-    () => {
-
-        LawAIApp.SystemComposer?.refreshPanel("learning");
-
-    }
-
-);
-
-console.log("🧩 SystemComposer V4.0.2 Ready");
+console.log("🧩 SystemComposer V4.0.3 Ready");
 
 // 确保挂载到全局
 if (typeof window.LawAIApp !== 'undefined') {
