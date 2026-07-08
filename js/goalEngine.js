@@ -161,4 +161,115 @@ LawAIApp.GoalEngine = (function() {
         active.forEach(function(goal) {
             var daysSinceUpdate = 0;
             if (goal.updatedAt) {
-                daysSinceUpdate = Math.floor((Date.now() - new Date(goal.updatedAt).getTime()) / (1000 * 60 * 60 * 24
+                daysSinceUpdate = Math.floor((Date.now() - new Date(goal.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
+            }
+            
+            if (daysSinceUpdate > 7 && goal.progress < 50) {
+                unhealthy.push({
+                    goalId: goal.goalId,
+                    title: goal.title,
+                    issue: 'No progress in ' + daysSinceUpdate + ' days',
+                    severity: daysSinceUpdate > 14 ? 'high' : 'medium'
+                });
+            }
+        });
+        
+        return unhealthy;
+    }
+
+    // ===========================================
+    // 私有方法
+    // ===========================================
+    function _sync() {
+        try {
+            var stored = LawAIApp.StorageEngine?.get?.('goals');
+            if (stored) _goals = stored;
+        } catch (e) {}
+        
+        // 如果没有目标，创建默认
+        if (_goals.length === 0) {
+            var defaultGoal = {
+                goalId: 'goal_default',
+                type: GOAL_TYPES.DAILY,
+                title: 'Complete Daily Lessons',
+                description: 'Complete at least 1 lesson each day',
+                target: 1,
+                currentValue: 0,
+                progress: 0,
+                status: 'active',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            _goals.push(defaultGoal);
+            _save();
+        }
+    }
+
+    function _save() {
+        try {
+            LawAIApp.StorageEngine?.set?.('goals', _goals);
+        } catch (e) {}
+    }
+
+    // ===========================================
+    // 初始化
+    // ===========================================
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
+        
+        _sync();
+        
+        // 监听事件自动更新
+        LawAIApp.EventBus?.on?.('LessonCompleted', function(data) {
+            var active = getActiveGoals();
+            active.forEach(function(goal) {
+                if (goal.type === GOAL_TYPES.DAILY || goal.type === GOAL_TYPES.MILESTONE) {
+                    var progress = LawAIApp.ProgressEngine?.getProgress?.() || {};
+                    updateProgress(goal.goalId, {
+                        completedLessons: progress.completedLessons?.length || 0
+                    });
+                }
+            });
+        });
+        
+        LawAIApp.EventBus?.on?.('XPUpdated', function(data) {
+            var active = getActiveGoals();
+            active.forEach(function(goal) {
+                if (goal.type === GOAL_TYPES.WEEKLY) {
+                    updateProgress(goal.goalId, {
+                        learningHours: (LawAIApp.XPEngine?.getCurrentXP?.() || 0)
+                    });
+                }
+            });
+        });
+        
+        // 定期健康检查
+        setInterval(function() {
+            var unhealthy = checkGoalHealth();
+            unhealthy.forEach(function(issue) {
+                LawAIApp.EventBus?.emit?.('GoalHealthWarning', { issue: issue });
+            });
+        }, 86400000);
+        
+        console.log('🎯 GoalEngine initialized');
+    }
+
+    setTimeout(init, 300);
+
+    return {
+        init: init,
+        createGoal: createGoal,
+        updateProgress: updateProgress,
+        getActiveGoals: getActiveGoals,
+        getAllGoals: getAllGoals,
+        getGoal: getGoal,
+        getGoalTimeline: getGoalTimeline,
+        getFullTimeline: getFullTimeline,
+        recommendGoal: recommendGoal,
+        checkHealth: checkGoalHealth,
+        GOAL_TYPES: GOAL_TYPES
+    };
+})();
+
+console.log('🎯 GoalEngine V2.0 ready');
