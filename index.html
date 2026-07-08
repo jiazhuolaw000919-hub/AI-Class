@@ -5,7 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Law AI Academy</title>
 
-<script src="js/loader.js"></script>
-<script src="js/app.js"></script>
+  <!-- 
+    ⚠️ 加载顺序非常重要！
+    1. loader.js - 加载器（先加载）
+    2. systemComposer.js - 系统组件（必须在 app.js 之前）
+    3. app.js - 应用主程序（依赖上面的组件）
+  -->
+  <script src="js/loader.js"></script>
+  <script src="js/systemComposer.js"></script>
+  <script src="js/app.js"></script>
 
+</head>
+<body>
+  <!-- 
+    页面内容由 App Runtime 动态渲染
+    law-runtime-root 是 App 的挂载点
+  -->
+  <div id="law-runtime-root"></div>
+
+  <!-- 
+    额外的安全网：如果上面的脚本加载失败，显示一个友好的提示
+  -->
+  <noscript>
+    <div style="padding:40px;text-align:center;background:#0b1220;color:white;min-height:100vh;">
+      <h2>⚠️ JavaScript 未启用</h2>
+      <p>请启用 JavaScript 以使用 Law AI Academy</p>
+    </div>
+  </noscript>
+</body>
 </html>
