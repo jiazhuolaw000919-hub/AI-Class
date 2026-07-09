@@ -2,7 +2,7 @@ window.LawAIApp = window.LawAIApp || {};
 
 window.App = {
 
-    version: "4.0.3",
+    version: "4.0.4",
 
     initialized: false,
 
@@ -57,7 +57,6 @@ window.App = {
                 clearTimeout(this._fallbackTimer);
                 this._fallbackTimer = null;
             }
-            // 隐藏 loading
             this._hideLoadingState();
         }.bind(this);
 
@@ -93,7 +92,7 @@ window.App = {
 
     /**
      * =========================
-     * RENDER（增强版）
+     * RENDER
      * =========================
      */
 
@@ -138,7 +137,6 @@ window.App = {
             return;
         }
 
-        // SystemComposer 不存在 → 等待或重试
         console.warn("⏳ SystemComposer not ready, attempt " + (this._retryCount + 1) + "/" + this._maxRetries);
         this._showLoadingState();
 
@@ -209,7 +207,6 @@ window.App = {
                         this.root.innerHTML.includes('Waiting SystemComposer');
         if (isLoading) {
             console.log("🔄 Clearing loading state");
-            // 不直接清空，让 SystemComposer 的内容显示
         }
     },
 
@@ -353,7 +350,7 @@ window.addEventListener("RUNTIME_RESET", function() {
     window.App.destroy();
 });
 
-// 安全网：自动初始化
+// 安全网：自动初始化（增加等待时间到 500ms）
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
     setTimeout(function() {
         if (!window.App.initialized) {
@@ -363,7 +360,7 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
                 window.App.init({ boot: window.LawAIApp.bootStatus || {} });
             }
         }
-    }, 100);
+    }, 500);
 }
 
 console.log("🚀 App Runtime V" + window.App.version + " Loaded");
