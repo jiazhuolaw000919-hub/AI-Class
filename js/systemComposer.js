@@ -2,7 +2,7 @@ window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.SystemComposer = {
 
-    version: "4.0.17",
+    version: "4.0.18",
 
     initialized: false,
 
@@ -302,7 +302,7 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 渲染主 UI
+    // 渲染主 UI（修复路径：所有 pages/ 改为绝对路径 /pages/）
     // ============================================================
 
     _renderMainUI: function() {
@@ -474,7 +474,7 @@ LawAIApp.SystemComposer = {
         }.bind(this)).join('');
 
         // ============================================
-        // 渲染完整页面
+        // 渲染完整页面（所有路径已修复为绝对路径）
         // ============================================
 
         this.root.innerHTML = `
@@ -562,13 +562,13 @@ LawAIApp.SystemComposer = {
                         </div>
                     </div>
 
-                    <!-- ===== 今日学习卡片 ===== -->
+                    <!-- ===== 今日学习卡片（路径已修复） ===== -->
                     ${(completedList.length >= 365) ? `
                     <div style="background:linear-gradient(135deg,rgba(74,158,255,0.15),rgba(124,58,237,0.15));border-radius:14px;padding:24px;text-align:center;border:1px solid rgba(74,158,255,0.15);margin-bottom:16px;">
                         <div style="font-size:36px;">🎉</div>
                         <h3 style="margin:4px 0;font-size:18px;">All 365 Lessons Complete!</h3>
                         <p style="color:#94a3b8;font-size:13px;">You've mastered the entire curriculum! 🏆</p>
-                        <a href="pages/academy.html" style="display:inline-block;margin-top:10px;padding:8px 24px;background:#4a9eff;border-radius:8px;color:white;font-size:13px;font-weight:600;text-decoration:none;">🏛️ Explore Advanced</a>
+                        <a href="/pages/academy.html" style="display:inline-block;margin-top:10px;padding:8px 24px;background:#4a9eff;border-radius:8px;color:white;font-size:13px;font-weight:600;text-decoration:none;">🏛️ Explore Advanced</a>
                     </div>
                     ` : `
                     <div style="background:rgba(255,255,255,0.03);border-radius:14px;padding:16px 18px;border:1px solid rgba(255,255,255,0.06);margin-bottom:16px;">
@@ -579,7 +579,7 @@ LawAIApp.SystemComposer = {
                         </div>
                         <p style="margin:0 0 10px 0;color:#94a3b8;font-size:13px;">${isDemo ? 'Complete your first lesson to unlock content!' : nextSummary}</p>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            <a href="${isDemo ? 'pages/academy.html' : 'pages/lesson.html'}" style="padding:8px 20px;background:#4a9eff;border-radius:8px;color:white;font-size:13px;font-weight:600;text-decoration:none;">${isDemo ? '📖 Start' : '📖 Continue'}</a>
+                            <a href="${isDemo ? '/pages/academy.html' : '/pages/lesson.html'}" style="padding:8px 20px;background:#4a9eff;border-radius:8px;color:white;font-size:13px;font-weight:600;text-decoration:none;">${isDemo ? '📖 Start' : '📖 Continue'}</a>
                             <button onclick="if(LawAIApp.Toast) LawAIApp.Toast.info('✏️ Practice coming soon!')" style="padding:8px 20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#94a3b8;font-size:13px;cursor:pointer;">✏️ Practice</button>
                         </div>
                     </div>
@@ -614,10 +614,10 @@ LawAIApp.SystemComposer = {
                 </main>
             </div>
 
-            <!-- 底部导航 -->
+            <!-- 底部导航（路径已修复） -->
             <nav style="position:fixed;bottom:0;left:0;right:0;background:rgba(20,20,40,0.92);backdrop-filter:blur(12px);border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-around;padding:6px 0 12px;z-index:100;">
                 <a href="#" class="nav-item active" data-tab="home" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#4a9eff;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">🏠</span><span>Home</span></a>
-                <a href="pages/academy.html" class="nav-item" data-tab="academy" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">📚</span><span>Academy</span></a>
+                <a href="/pages/academy.html" class="nav-item" data-tab="academy" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">📚</span><span>Academy</span></a>
                 <a href="#" class="nav-item" data-tab="calendar" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">📅</span><span>Calendar</span></a>
                 <a href="#" class="nav-item" data-tab="notes" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">📝</span><span>Notes</span></a>
                 <a href="#" class="nav-item" data-tab="settings" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">⚙️</span><span>Settings</span></a>
