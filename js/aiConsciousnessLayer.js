@@ -1,49 +1,100 @@
 // ===========================================
 // aiConsciousnessLayer.js
-// AI意识层：整合身份、记忆与感知，形成统一的意识表示
+// AI 意识层：整合身份、记忆与感知（Phase 78 升级版）
 // ===========================================
+
+window.LawAIApp = window.LawAIApp || {};
+
 LawAIApp.AIConsciousnessLayer = {
-  init() {
-    // 订阅文明事件，更新意识状态
-    LawAIApp.EventBus.on('CivilizationIdentityUpdated', (state) => {
-      LawAIApp.CollectiveMemorySystem.takeSnapshot();
-    });
+    _initialized: false,
 
-    LawAIApp.EventBus.on('SkillCertified', (data) => {
-      LawAIApp.CollectiveMemorySystem.recordSkillEvolution(data.skillId, data.masteryScore);
-    });
+    init: function() {
+        if (this._initialized) return;
+        this._initialized = true;
 
-    LawAIApp.EventBus.on('WorkTaskCompleted', (data) => {
-      LawAIApp.CollectiveMemorySystem.recordEvent({
-        type: 'task_completed',
-        taskId: data.taskId,
-        performance: data.performanceScore
-      });
-    });
+        console.log('🧠 AIConsciousnessLayer initializing...');
 
-    // 启动感知监控
-    LawAIApp.CivilizationAwarenessMonitor.start();
+        LawAIApp.EventBus?.on?.('CivilizationIdentityUpdated', function() {
+            if (LawAIApp.CollectiveMemorySystem && typeof LawAIApp.CollectiveMemorySystem.takeSnapshot === 'function') {
+                LawAIApp.CollectiveMemorySystem.takeSnapshot();
+            }
+        });
 
-    // 首次刷新身份
-    LawAIApp.CivilizationIdentityCore.refreshSelfState();
+        LawAIApp.EventBus?.on?.('SkillCertified', function(data) {
+            if (LawAIApp.CollectiveMemorySystem && typeof LawAIApp.CollectiveMemorySystem.recordSkillEvolution === 'function') {
+                LawAIApp.CollectiveMemorySystem.recordSkillEvolution(data.skillId, data.masteryScore);
+            }
+        });
 
-    console.log('AI Consciousness Layer is now active. The civilization is self-aware.');
-  },
+        LawAIApp.EventBus?.on?.('WorkTaskCompleted', function(data) {
+            if (LawAIApp.CollectiveMemorySystem && typeof LawAIApp.CollectiveMemorySystem.recordEvent === 'function') {
+                LawAIApp.CollectiveMemorySystem.recordEvent({
+                    type: 'task_completed',
+                    taskId: data.taskId,
+                    performance: data.performanceScore
+                });
+            }
+        });
 
-  // 获取完整的意识报告
-  getConsciousnessReport() {
-    return {
-      identity: LawAIApp.CivilizationIdentityCore.getIdentity(),
-      memory: LawAIApp.CollectiveMemorySystem.getMemorySummary(),
-      awareness: LawAIApp.CivilizationAwarenessMonitor.getAwarenessReport(),
-      alignment: LawAIApp.IdentityAlignmentEngine.performFullAudit()
-    };
-  }
+        if (LawAIApp.CivilizationAwarenessMonitor && typeof LawAIApp.CivilizationAwarenessMonitor.start === 'function') {
+            LawAIApp.CivilizationAwarenessMonitor.start();
+        }
+
+        if (LawAIApp.CivilizationIdentityCore && typeof LawAIApp.CivilizationIdentityCore.refreshSelfState === 'function') {
+            LawAIApp.CivilizationIdentityCore.refreshSelfState();
+        }
+
+        console.log('🧠 AI Consciousness Layer is now active. The civilization is self-aware.');
+    },
+
+    getConsciousnessReport: function() {
+        var report = {
+            identity: null,
+            memory: null,
+            awareness: null,
+            alignment: null
+        };
+
+        try {
+            if (LawAIApp.CivilizationIdentityCore && typeof LawAIApp.CivilizationIdentityCore.getIdentity === 'function') {
+                report.identity = LawAIApp.CivilizationIdentityCore.getIdentity();
+            }
+        } catch (e) {}
+
+        try {
+            if (LawAIApp.CollectiveMemorySystem && typeof LawAIApp.CollectiveMemorySystem.getMemorySummary === 'function') {
+                report.memory = LawAIApp.CollectiveMemorySystem.getMemorySummary();
+            }
+        } catch (e) {}
+
+        try {
+            if (LawAIApp.CivilizationAwarenessMonitor && typeof LawAIApp.CivilizationAwarenessMonitor.getAwarenessReport === 'function') {
+                report.awareness = LawAIApp.CivilizationAwarenessMonitor.getAwarenessReport();
+            }
+        } catch (e) {}
+
+        try {
+            if (LawAIApp.IdentityAlignmentEngine && typeof LawAIApp.IdentityAlignmentEngine.performFullAudit === 'function') {
+                report.alignment = LawAIApp.IdentityAlignmentEngine.performFullAudit();
+            }
+        } catch (e) {}
+
+        return report;
+    },
+
+    getStatus: function() {
+        return {
+            initialized: this._initialized,
+            report: this.getConsciousnessReport()
+        };
+    }
 };
 
 // 等待其他组件就绪后启动
-setTimeout(() => {
-  if (LawAIApp.CivilizationIdentityCore && LawAIApp.AgentOrchestrator) {
-    LawAIApp.AIConsciousnessLayer.init();
-  }
+setTimeout(function() {
+    if (LawAIApp.AIConsciousnessLayer && typeof LawAIApp.AIConsciousnessLayer.init === 'function') {
+        LawAIApp.AIConsciousnessLayer.init();
+    }
 }, 1500);
+
+console.log('🧠 AIConsciousnessLayer V2.0 ready');
