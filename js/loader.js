@@ -7,36 +7,93 @@ var CORE_ENGINES = [
     "storageEngine.js",
     "eventBus.js",
     "profileEngine.js",
-    "progressEngine.js",  // ← 新增！SystemComposer 依赖它
+    "progressEngine.js",
     "systemComposer.js",
     "app.js"
 ];
 
 // ===========================================
-// 加载脚本
+// 加载缓存
+// ===========================================
+var _loadCache = {};
+var _loadingPromises = {};
+
+// ===========================================
+// 获取正确的脚本路径（自动适配）
+// ===========================================
+function getScriptPath(src) {
+    // 检查当前页面是否在 pages/ 子目录下
+    var path = window.location.pathname;
+    var isInPages = path.includes('/pages/');
+    
+    // 如果当前在 pages/ 目录下，使用相对路径 ../js/
+    // 否则使用 /js/
+    if (isInPages) {
+        return '../js/' + src;
+    }
+    return 'js/' + src;
+}
+
+// ===========================================
+// 加载脚本（带缓存 + 路径适配）
 // ===========================================
 function loadScript(src) {
-    return new Promise(function(resolve) {
-        var existing = document.querySelector('script[src="js/' + src + '"]');
+    // 如果已经在缓存中，直接返回
+    if (_loadCache[src]) {
+        return Promise.resolve({ file: src, status: "ok", cached: true });
+    }
+
+    // 如果正在加载中，返回同一个 Promise
+    if (_loadingPromises[src]) {
+        return _loadingPromises[src];
+    }
+
+    var promise = new Promise(function(resolve) {
+        var path = getScriptPath(src);
+        
+        // 检查是否已存在
+        var existing = document.querySelector('script[src="' + path + '"]');
         if (existing) {
+            _loadCache[src] = true;
             resolve({ file: src, status: "ok", cached: true });
             return;
         }
 
         var script = document.createElement("script");
-        script.src = "js/" + src;
+        script.src = path;
 
         script.onload = function() {
+            _loadCache[src] = true;
             resolve({ file: src, status: "ok" });
         };
 
         script.onerror = function() {
-            console.warn("⚠️ Failed to load:", src);
-            resolve({ file: src, status: "missing" });
+            console.warn("⚠️ Failed to load:", src, "from", path);
+            
+            // 尝试备用路径
+            var fallbackPath = (path.startsWith('../') ? 'js/' : '../js/') + src;
+            if (fallbackPath !== path) {
+                console.log('🔄 Retrying with fallback path:', fallbackPath);
+                var fallbackScript = document.createElement("script");
+                fallbackScript.src = fallbackPath;
+                fallbackScript.onload = function() {
+                    _loadCache[src] = true;
+                    resolve({ file: src, status: "ok" });
+                };
+                fallbackScript.onerror = function() {
+                    resolve({ file: src, status: "missing" });
+                };
+                document.head.appendChild(fallbackScript);
+            } else {
+                resolve({ file: src, status: "missing" });
+            }
         };
 
         document.head.appendChild(script);
     });
+
+    _loadingPromises[src] = promise;
+    return promise;
 }
 
 // ===========================================
@@ -44,15 +101,52 @@ function loadScript(src) {
 // ===========================================
 LawAIApp.require = function(moduleName) {
     var fileName = moduleName + '.js';
+    if (_loadCache[fileName]) {
+        return Promise.resolve({ file: fileName, status: "ok", cached: true });
+    }
     return loadScript(fileName);
+};
+
+// ===========================================
+// 批量按需加载
+// ===========================================
+LawAIApp.requireAll = function(moduleNames) {
+    return Promise.all(moduleNames.map(function(name) {
+        return LawAIApp.require(name);
+    }));
+};
+
+// ===========================================
+// 获取加载状态
+// ===========================================
+LawAIApp.getLoadStatus = function() {
+    return {
+        cached: Object.keys(_loadCache),
+        loading: Object.keys(_loadingPromises)
+    };
+};
+
+// ===========================================
+// 清除缓存（调试用）
+// ===========================================
+LawAIApp.clearLoadCache = function() {
+    for (var key in _loadCache) {
+        delete _loadCache[key];
+    }
+    for (var key in _loadingPromises) {
+        delete _loadingPromises[key];
+    }
+    console.log('🧹 Load cache cleared');
 };
 
 // ===========================================
 // 启动
 // ===========================================
 async function boot() {
-    console.log("🚀 Loader V4.2 starting (core + progress)");
+    console.log("🚀 Loader V4.3 starting (core + progress + path detection)");
     console.log("📦 Loading " + CORE_ENGINES.length + " core modules...");
+
+    var startTime = Date.now();
 
     var results = await Promise.all(CORE_ENGINES.map(function(src) {
         return loadScript(src);
@@ -61,7 +155,9 @@ async function boot() {
     var loaded = results.filter(function(r) { return r.status === "ok" || r.status === "cached"; });
     var missing = results.filter(function(r) { return r.status === "missing"; });
 
-    console.log("✅ " + loaded.length + "/" + CORE_ENGINES.length + " core modules loaded");
+    var elapsed = Date.now() - startTime;
+
+    console.log("✅ " + loaded.length + "/" + CORE_ENGINES.length + " core modules loaded (" + elapsed + "ms)");
 
     window.__ENGINE_STATUS__ = {
         loaded: loaded.map(function(r) { return r.file; }),
@@ -81,7 +177,7 @@ async function boot() {
                 timestamp: Date.now()
             }
         }));
-        console.log("✅ System ready");
+        console.log("✅ System ready (" + elapsed + "ms)");
         console.log("📌 Other modules load on demand via LawAIApp.require()");
     }, 200);
 }
@@ -97,4 +193,4 @@ if (document.readyState === "complete" || document.readyState === "interactive")
     });
 }
 
-console.log("🚀 Loader V4.2 ready");
+console.log("🚀 Loader V4.3 ready (cache + on-demand + path detection)");
