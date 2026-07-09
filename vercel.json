@@ -1,0 +1,10 @@
+{
+  "rewrites": [
+    {
+      "source": "/pages/(.*)",
+      "destination": "/pages/$1"
+    }
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false
+}
