@@ -1,57 +1,110 @@
 // ===========================================
-// skillWorkMatchingEngine.js (主协调器)
+// skillWorkMatchingEngine.js
+// AI 技能到工作匹配引擎（Phase 67 升级版）
 // ===========================================
+
+window.LawAIApp = window.LawAIApp || {};
+
 LawAIApp.SkillWorkMatchingEngine = {
-  init() {
-    // 当新证书生成时，自动生成任务匹配
-    LawAIApp.EventBus.on('SkillCertified', (credential) => {
-      LawAIApp.SkillTaskMatcher.generateMatches();
-    });
+    _initialized: false,
 
-    // 任务完成时更新劳动力数据
-    LawAIApp.EventBus.on('WorkTaskCompleted', (task) => {
-      LawAIApp.WorkforceSimulationEngine.updateAfterTask(task);
-      // 检查是否需要生成新任务
-      const availableTasks = LawAIApp.TaskGenerationEngine.getAvailableTasks();
-      if (availableTasks.length < 3) {
-        const matches = LawAIApp.SkillTaskMatcher.generateMatches();
-        if (matches.length > 0) {
-          LawAIApp.TaskGenerationEngine.generateTask(matches[0]);
+    init: function() {
+        if (this._initialized) return;
+        this._initialized = true;
+
+        console.log('🔗 Skill-Work Matching Engine initializing...');
+
+        // 监听证书生成
+        LawAIApp.EventBus?.on?.('SkillCertified', function() {
+            try {
+                if (LawAIApp.SkillTaskMatcher && typeof LawAIApp.SkillTaskMatcher.generateMatches === 'function') {
+                    LawAIApp.SkillTaskMatcher.generateMatches();
+                }
+            } catch (e) {}
+        });
+
+        // 监听任务完成
+        LawAIApp.EventBus?.on?.('WorkTaskCompleted', function(task) {
+            try {
+                if (LawAIApp.WorkforceSimulationEngine && typeof LawAIApp.WorkforceSimulationEngine.updateAfterTask === 'function') {
+                    LawAIApp.WorkforceSimulationEngine.updateAfterTask(task);
+                }
+
+                // 检查是否需要生成新任务
+                var availableTasks = LawAIApp.TaskGenerationEngine?.getAvailableTasks?.() || [];
+                if (availableTasks.length < 3) {
+                    var matches = LawAIApp.SkillTaskMatcher?.generateMatches?.() || [];
+                    if (matches.length > 0 && LawAIApp.TaskGenerationEngine && typeof LawAIApp.TaskGenerationEngine.generateTask === 'function') {
+                        LawAIApp.TaskGenerationEngine.generateTask(matches[0]);
+                    }
+                }
+            } catch (e) {}
+        });
+
+        // 定期刷新匹配
+        setInterval(function() {
+            try {
+                var certs = LawAIApp.SkillValidationEngine?.getCertificates?.() || [];
+                if (certs.length > 0) {
+                    if (LawAIApp.SkillTaskMatcher && typeof LawAIApp.SkillTaskMatcher.generateMatches === 'function') {
+                        LawAIApp.SkillTaskMatcher.generateMatches();
+                    }
+                }
+            } catch (e) {}
+        }, 600000); // 10分钟
+
+        console.log('✅ Skill-to-Work Matching Engine activated.');
+    },
+
+    getJobBoard: function() {
+        try {
+            if (LawAIApp.TaskGenerationEngine && typeof LawAIApp.TaskGenerationEngine.getAvailableTasks === 'function') {
+                return LawAIApp.TaskGenerationEngine.getAvailableTasks();
+            }
+        } catch (e) {}
+        return LawAIApp.WorkAssignmentEngine?.getAvailableTasks?.() || [];
+    },
+
+    acceptJob: function(taskId) {
+        if (LawAIApp.WorkAssignmentEngine && typeof LawAIApp.WorkAssignmentEngine.acceptAndStartTask === 'function') {
+            return LawAIApp.WorkAssignmentEngine.acceptAndStartTask(taskId);
         }
-      }
-    });
+        return null;
+    },
 
-    // 定期刷新匹配 (仅当证书存在时)
-    setInterval(() => {
-      const certs = LawAIApp.SkillValidationEngine?.getCertificates();
-      if (certs && certs.length > 0) {
-        LawAIApp.SkillTaskMatcher.generateMatches();
-      }
-    }, 60000 * 10); // 每10分钟刷新一次
+    submitWork: function(taskId, performance) {
+        if (LawAIApp.WorkAssignmentEngine && typeof LawAIApp.WorkAssignmentEngine.completeTask === 'function') {
+            return LawAIApp.WorkAssignmentEngine.completeTask(taskId, performance);
+        }
+        return null;
+    },
 
-    console.log('Skill-to-Work Matching Engine activated.');
-  },
+    getWorkStats: function() {
+        try {
+            if (LawAIApp.WorkforceSimulationEngine && typeof LawAIApp.WorkforceSimulationEngine.getProductivityReport === 'function') {
+                return LawAIApp.WorkforceSimulationEngine.getProductivityReport();
+            }
+        } catch (e) {}
+        return {
+            totalTasks: 0,
+            completed: 0,
+            productivity: 0
+        };
+    },
 
-  // 用户接口：获取当前可接的任务列表
-  getJobBoard() {
-    return LawAIApp.TaskGenerationEngine.getAvailableTasks();
-  },
-
-  // 接受并开始工作
-  acceptJob(taskId) {
-    return LawAIApp.WorkAssignmentEngine.acceptAndStartTask(taskId);
-  },
-
-  // 提交工作成果
-  submitWork(taskId, performance) {
-    return LawAIApp.WorkAssignmentEngine.completeTask(taskId, performance);
-  },
-
-  // 查看工作统计
-  getWorkStats() {
-    return LawAIApp.WorkforceSimulationEngine.getProductivityReport();
-  }
+    getStatus: function() {
+        return {
+            initialized: this._initialized,
+            jobBoard: this.getJobBoard().length
+        };
+    }
 };
 
 // 自动初始化
-setTimeout(() => LawAIApp.SkillWorkMatchingEngine.init(), 1000);
+setTimeout(function() {
+    if (LawAIApp.SkillWorkMatchingEngine && typeof LawAIApp.SkillWorkMatchingEngine.init === 'function') {
+        LawAIApp.SkillWorkMatchingEngine.init();
+    }
+}, 1000);
+
+console.log('🔗 SkillWorkMatchingEngine V2.0 ready');
