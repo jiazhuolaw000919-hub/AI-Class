@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Law AI Academy - Lesson</title>
-    <link rel="stylesheet" href="../css/lesson.css">
-    <link rel="stylesheet" href="../css/main.css">
-    <link rel="stylesheet" href="../css/components.css">
+    <link rel="stylesheet" href="/css/lesson.css">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/components.css">
     <style>
         body {
             margin: 0;
@@ -20,7 +20,6 @@
             max-width: 1000px;
             margin: 0 auto;
         }
-        /* Loading 占位 */
         .lesson-loading {
             display: flex;
             flex-direction: column;
@@ -43,32 +42,25 @@
     </style>
 </head>
 <body>
-    <!-- 渲染容器 -->
     <div id="app"></div>
 
-    <!-- 加载核心 JS -->
-    <script src="../js/loader.js"></script>
-    <script src="../js/app.js"></script>
-    <script src="../js/views/lessonView.js"></script>
-    <script src="../js/router.js"></script>
+    <!-- 使用绝对路径 /js/ -->
+    <script src="/js/loader.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="/js/views/lessonView.js"></script>
+    <script src="/js/router.js"></script>
 
     <script>
-        // ============================================================
-        //  Lesson 页面独立渲染逻辑
-        // ============================================================
         (function() {
             console.log('📄 Lesson page loaded');
 
-            // 获取 URL 参数中的 lessonId
             function getLessonIdFromURL() {
                 var params = new URLSearchParams(window.location.search);
                 var id = params.get('lessonId') || params.get('id') || params.get('day');
                 if (id) return id;
-                // 如果没有参数，从 URL 路径提取
                 var path = window.location.pathname;
                 var match = path.match(/lesson[\/-]?(day-?\d+)/i);
-                if (match) return match[1];
-                return null;
+                return match ? match[1] : null;
             }
 
             var lessonId = getLessonIdFromURL() || 'day-1';
@@ -76,22 +68,16 @@
 
             function renderLesson() {
                 var app = document.getElementById('app');
-                if (!app) {
-                    console.warn('⚠️ #app not found');
-                    return;
-                }
+                if (!app) return;
 
-                // 检查 LessonView 是否可用
                 if (LawAIApp.Views?.LessonView && typeof LawAIApp.Views.LessonView.render === 'function') {
                     app.innerHTML = '';
                     LawAIApp.Views.LessonView.render(lessonId, app);
                     console.log('✅ Lesson rendered:', lessonId);
                 } else if (LawAIApp.LessonView && typeof LawAIApp.LessonView.render === 'function') {
-                    // 兼容旧版本
                     app.innerHTML = '';
                     LawAIApp.LessonView.render(lessonId, app);
                 } else {
-                    // 显示加载占位
                     app.innerHTML = `
                         <div class="lesson-loading">
                             <div class="spinner"></div>
@@ -99,7 +85,6 @@
                             <p style="font-size:12px;color:#64748b;">Lesson: ${lessonId}</p>
                         </div>
                     `;
-                    // 重试
                     var retries = 0;
                     var maxRetries = 5;
                     var retryInterval = setInterval(function() {
@@ -111,7 +96,6 @@
                             console.log('✅ Lesson retry succeeded');
                         } else if (retries >= maxRetries) {
                             clearInterval(retryInterval);
-                            console.warn('⚠️ LessonView not available after retries');
                             app.innerHTML = `
                                 <div style="text-align:center;padding:40px;color:#94a3b8;">
                                     <h3>📖 Lesson Not Available</h3>
@@ -124,18 +108,14 @@
                 }
             }
 
-            // 等待 DOM 和 SYSTEM_READY
             function waitForReady() {
                 if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                    // 如果 LawAIApp 已就绪，直接渲染
                     if (window.LawAIApp?.SystemComposer?.initialized) {
                         renderLesson();
                     } else {
-                        // 监听 SYSTEM_READY
                         document.addEventListener('SYSTEM_READY', function() {
                             setTimeout(renderLesson, 300);
                         });
-                        // 备用：2秒后强制渲染
                         setTimeout(renderLesson, 2000);
                     }
                 } else {
