@@ -82,10 +82,18 @@ LawAIApp.Router = {
             }).join('&');
             path += '?' + query;
         }
-        if (!options.replace) {
-            window.history.pushState({ page: page, params: params }, '', path);
+
+        // 如果当前路径已经是 /pages/academy.html，不要重复添加
+        var currentPath = window.location.pathname;
+        if (page === 'academy' && currentPath.includes('/pages/academy.html')) {
+            // 不改变 URL，防止重复
+            console.log('📌 Already on academy page, skipping URL update');
         } else {
-            window.history.replaceState({ page: page, params: params }, '', path);
+            if (!options.replace) {
+                window.history.pushState({ page: page, params: params }, '', path);
+            } else {
+                window.history.replaceState({ page: page, params: params }, '', path);
+            }
         }
 
         LawAIApp.EventBus?.emit?.('RouteChanged', { page: page, params: params });
@@ -98,14 +106,25 @@ LawAIApp.Router = {
         var app = document.getElementById('app');
 
         // ============================================================
-        //  Academy 路由（修复版）
+        //  Academy 路由（修复版 - 支持 /pages/academy.html）
         // ============================================================
-        if (page === 'academy') {
+        if (page === 'academy' || page === 'academy.html' || page === 'pages') {
+            // 检查当前路径是否已经是 /pages/academy.html
+            var currentPath = window.location.pathname;
+            if (currentPath.includes('/pages/academy.html')) {
+                console.log('📌 Detected /pages/academy.html, rendering Academy');
+            }
+
             if (app) {
                 // 检查 AcademyAIView 是否可用
                 if (LawAIApp.Views?.AcademyAIView && typeof LawAIApp.Views.AcademyAIView.render === 'function') {
                     app.innerHTML = '';
                     LawAIApp.Views.AcademyAIView.render(app);
+                    console.log('✅ Academy rendered via View');
+                } else if (LawAIApp.AcademyAIView && typeof LawAIApp.AcademyAIView.render === 'function') {
+                    app.innerHTML = '';
+                    LawAIApp.AcademyAIView.render(app);
+                    console.log('✅ Academy rendered via AcademyAIView');
                 } else {
                     // 显示加载占位
                     app.innerHTML = `
@@ -140,7 +159,7 @@ LawAIApp.Router = {
                     }, 500);
                 }
             }
-            this.currentPage = page;
+            this.currentPage = 'academy';
             return;
         }
 
@@ -422,66 +441,22 @@ LawAIApp.Router = {
     },
 
     /**
-     * 更新导航高亮
-     */
-    updateNav: function(activePage) {
-        document.querySelectorAll('.nav-item').forEach(function(btn) {
-            btn.classList.toggle('active', btn.dataset.page === activePage);
-        });
-        this._renderBreadcrumb();
-    },
-
-    /**
-     * 返回上一页
-     */
-    goBack: function() {
-        if (this._breadcrumbStack.length > 1) {
-            this._breadcrumbStack.pop();
-            var prev = this._breadcrumbStack[this._breadcrumbStack.length - 1];
-            if (prev) {
-                this.navigate(prev.page, prev.params || {}, { replace: true });
-                return;
-            }
-        }
-        this.goHome();
-    },
-
-    /**
-     * 返回首页
-     */
-    goHome: function() {
-        this.navigate('dashboard', {}, { replace: true });
-    },
-
-    /**
-     * 获取当前路径
-     */
-    getCurrentPath: function() {
-        return '/' + this.currentPage;
-    },
-
-    /**
-     * 获取历史
-     */
-    getHistory: function() {
-        return this._breadcrumbStack.slice();
-    },
-
-    /**
-     * 清除缓存
-     */
-    clearCache: function() {
-        this._pageCache = {};
-        this._breadcrumbStack = [];
-        var oldBreadcrumb = document.getElementById('breadcrumb-nav');
-        if (oldBreadcrumb) oldBreadcrumb.remove();
-        console.log('🧹 Router cache cleared');
-    },
-
-    /**
-     * 从路径获取页面
+     * 从路径获取页面名（增强版：支持 /pages/academy.html）
      */
     _getPageFromPath: function(path) {
+        // 如果是 /pages/academy.html 或 /pages/lesson.html
+        if (path.includes('/pages/')) {
+            var parts = path.split('/pages/');
+            var file = parts[parts.length - 1];
+            if (file === 'academy.html') return 'academy';
+            if (file === 'lesson.html') return 'lesson';
+            // 其他文件如 academy-dashboard 等
+            var pageName = file.replace('.html', '');
+            if (this.pages.indexOf(pageName) !== -1) return pageName;
+            // 如果文件是 pages 本身
+            if (file === 'pages') return null;
+        }
+
         var segments = path.split('/').filter(function(s) { return s; });
         if (segments.length === 0) return 'dashboard';
         var page = segments[0];
@@ -598,6 +573,53 @@ LawAIApp.Router = {
      */
     _rerunPageScripts: function(page) {
         // 预留
+    },
+
+    /**
+     * 返回上一页
+     */
+    goBack: function() {
+        if (this._breadcrumbStack.length > 1) {
+            this._breadcrumbStack.pop();
+            var prev = this._breadcrumbStack[this._breadcrumbStack.length - 1];
+            if (prev) {
+                this.navigate(prev.page, prev.params || {}, { replace: true });
+                return;
+            }
+        }
+        this.goHome();
+    },
+
+    /**
+     * 返回首页
+     */
+    goHome: function() {
+        this.navigate('dashboard', {}, { replace: true });
+    },
+
+    /**
+     * 获取当前路径
+     */
+    getCurrentPath: function() {
+        return '/' + this.currentPage;
+    },
+
+    /**
+     * 获取历史
+     */
+    getHistory: function() {
+        return this._breadcrumbStack.slice();
+    },
+
+    /**
+     * 清除缓存
+     */
+    clearCache: function() {
+        this._pageCache = {};
+        this._breadcrumbStack = [];
+        var oldBreadcrumb = document.getElementById('breadcrumb-nav');
+        if (oldBreadcrumb) oldBreadcrumb.remove();
+        console.log('🧹 Router cache cleared');
     }
 };
 
@@ -618,4 +640,4 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     });
 }
 
-console.log('🧭 Router V3.0 ready');
+console.log('🧭 Router V4.0 ready (supports /pages/academy.html)');
