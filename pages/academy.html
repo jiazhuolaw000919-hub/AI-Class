@@ -11,49 +11,97 @@
 <body>
     <div id="app"></div>
 
-    <!-- 设置根路径，让 loader.js 知道从哪里加载 -->
+    <!-- ========================================== -->
+    <!-- 方案：直接从根目录加载所有核心 JS        -->
+    <!-- ========================================== -->
     <script>
-        window.__ROOT_PATH__ = '/';
-        console.log('📂 Root path set to:', window.__ROOT_PATH__);
+        // 手动加载核心引擎
+        var coreFiles = [
+            'storageEngine.js',
+            'eventBus.js',
+            'profileEngine.js',
+            'progressEngine.js',
+            'systemComposer.js',
+            'app.js',
+            'academyAIView.js',
+            'router.js'
+        ];
+
+        var loadedCount = 0;
+        var totalFiles = coreFiles.length;
+
+        function loadNextScript(index) {
+            if (index >= totalFiles) {
+                console.log('✅ All core files loaded');
+                // 所有文件加载完成后，渲染页面
+                if (window.LawAIApp?.Views?.AcademyAIView) {
+                    var app = document.getElementById('app');
+                    if (app) {
+                        app.innerHTML = '';
+                        window.LawAIApp.Views.AcademyAIView.render(app);
+                    }
+                }
+                return;
+            }
+
+            var src = '/js/' + coreFiles[index];
+            console.log('📦 Loading:', src);
+
+            var script = document.createElement('script');
+            script.src = src;
+            script.onload = function() {
+                loadedCount++;
+                console.log('✅ Loaded (' + loadedCount + '/' + totalFiles + '):', coreFiles[index]);
+                loadNextScript(index + 1);
+            };
+            script.onerror = function() {
+                console.warn('⚠️ Failed to load:', src);
+                // 尝试备用路径
+                var fallbackSrc = '../js/' + coreFiles[index];
+                console.log('🔄 Trying fallback:', fallbackSrc);
+                var fallbackScript = document.createElement('script');
+                fallbackScript.src = fallbackSrc;
+                fallbackScript.onload = function() {
+                    loadedCount++;
+                    console.log('✅ Loaded (' + loadedCount + '/' + totalFiles + '):', coreFiles[index]);
+                    loadNextScript(index + 1);
+                };
+                fallbackScript.onerror = function() {
+                    console.warn('⚠️ Fallback failed for:', coreFiles[index]);
+                    loadedCount++;
+                    loadNextScript(index + 1);
+                };
+                document.head.appendChild(fallbackScript);
+            };
+            document.head.appendChild(script);
+        }
+
+        // 开始加载
+        console.log('🚀 Manually loading core files for Academy page...');
+        loadNextScript(0);
     </script>
 
-    <!-- 使用绝对路径加载 loader.js -->
-    <script src="/js/loader.js"></script>
-    <script src="/js/app.js"></script>
-    <script src="/js/academyAIView.js"></script>
-    <script src="/js/router.js"></script>
-
+    <!-- 备用：如果上面的加载失败，用这个兜底 -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('📄 Academy page loaded');
-            
-            function renderAcademy() {
-                var app = document.getElementById('app');
-                if (!app) return;
-                
+        // 5秒后检查是否渲染成功
+        setTimeout(function() {
+            var app = document.getElementById('app');
+            if (app && app.innerHTML.trim() === '') {
+                console.warn('⚠️ Fallback: forcing Academy render...');
                 if (window.LawAIApp?.Views?.AcademyAIView) {
                     app.innerHTML = '';
                     window.LawAIApp.Views.AcademyAIView.render(app);
-                    console.log('✅ Academy rendered');
                 } else {
-                    console.warn('⚠️ AcademyAIView not ready, retrying...');
-                    setTimeout(renderAcademy, 500);
+                    app.innerHTML = `
+                        <div style="padding:40px;text-align:center;color:#94a3b8;">
+                            <h3>🏛️ Academy</h3>
+                            <p>Loading... Please refresh if empty.</p>
+                            <button onclick="location.reload()" style="margin-top:16px;padding:8px 24px;background:#4a9eff;border:none;border-radius:8px;color:white;cursor:pointer;">🔄 Refresh</button>
+                        </div>
+                    `;
                 }
             }
-            
-            if (window.LawAIApp?.Views?.AcademyAIView) {
-                var app = document.getElementById('app');
-                if (app) {
-                    app.innerHTML = '';
-                    window.LawAIApp.Views.AcademyAIView.render(app);
-                }
-            } else {
-                document.addEventListener('SYSTEM_READY', function() {
-                    setTimeout(renderAcademy, 300);
-                });
-                setTimeout(renderAcademy, 3000);
-            }
-        });
+        }, 5000);
     </script>
 </body>
 </html>
