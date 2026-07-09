@@ -111,4 +111,56 @@ LawAIApp.WorkAssignmentEngine = {
 
             LawAIApp.EventBus?.emit?.('WorkTaskCompleted', task);
             console.log('✅ Task completed:', taskId);
-            return task
+            return task;
+
+        } catch (err) {
+            console.warn('⚠️ completeTask failed:', err);
+            return null;
+        }
+    },
+
+    getAvailableTasks: function() {
+        try {
+            var tasks = LawAIApp.StorageEngine?.get?.('generated_tasks') || [];
+            return tasks.filter(function(t) { return t.status === 'available'; });
+        } catch (e) {
+            return [];
+        }
+    },
+
+    getInProgressTasks: function() {
+        try {
+            var tasks = LawAIApp.StorageEngine?.get?.('generated_tasks') || [];
+            return tasks.filter(function(t) { return t.status === 'in_progress'; });
+        } catch (e) {
+            return [];
+        }
+    },
+
+    getCompletedTasks: function() {
+        try {
+            var tasks = LawAIApp.StorageEngine?.get?.('generated_tasks') || [];
+            return tasks.filter(function(t) { return t.status === 'completed'; });
+        } catch (e) {
+            return [];
+        }
+    },
+
+    getStatus: function() {
+        return {
+            initialized: this._initialized,
+            available: this.getAvailableTasks().length,
+            inProgress: this.getInProgressTasks().length,
+            completed: this.getCompletedTasks().length
+        };
+    }
+};
+
+// 自动初始化
+setTimeout(function() {
+    if (LawAIApp.WorkAssignmentEngine && typeof LawAIApp.WorkAssignmentEngine.init === 'function') {
+        LawAIApp.WorkAssignmentEngine.init();
+    }
+}, 500);
+
+console.log('📋 WorkAssignmentEngine V2.0 ready');
