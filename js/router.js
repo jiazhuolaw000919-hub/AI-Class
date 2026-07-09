@@ -1,6 +1,7 @@
 // ===========================================
 // router.js – Phase 60 升级版（Season 2 完结）
 // Season 1.5 升级：增加页面缓存 + 面包屑导航
+// 支持 /pages/academy.html 路径
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -86,7 +87,6 @@ LawAIApp.Router = {
         // 如果当前路径已经是 /pages/academy.html，不要重复添加
         var currentPath = window.location.pathname;
         if (page === 'academy' && currentPath.includes('/pages/academy.html')) {
-            // 不改变 URL，防止重复
             console.log('📌 Already on academy page, skipping URL update');
         } else {
             if (!options.replace) {
@@ -106,17 +106,15 @@ LawAIApp.Router = {
         var app = document.getElementById('app');
 
         // ============================================================
-        //  Academy 路由（修复版 - 支持 /pages/academy.html）
+        //  Academy 路由（支持 /pages/academy.html）
         // ============================================================
         if (page === 'academy' || page === 'academy.html' || page === 'pages') {
-            // 检查当前路径是否已经是 /pages/academy.html
             var currentPath = window.location.pathname;
             if (currentPath.includes('/pages/academy.html')) {
                 console.log('📌 Detected /pages/academy.html, rendering Academy');
             }
 
             if (app) {
-                // 检查 AcademyAIView 是否可用
                 if (LawAIApp.Views?.AcademyAIView && typeof LawAIApp.Views.AcademyAIView.render === 'function') {
                     app.innerHTML = '';
                     LawAIApp.Views.AcademyAIView.render(app);
@@ -126,7 +124,6 @@ LawAIApp.Router = {
                     LawAIApp.AcademyAIView.render(app);
                     console.log('✅ Academy rendered via AcademyAIView');
                 } else {
-                    // 显示加载占位
                     app.innerHTML = `
                         <div style="padding:40px;text-align:center;color:#94a3b8;">
                             <h3>🏛️ Academy</h3>
@@ -135,7 +132,6 @@ LawAIApp.Router = {
                             <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
                         </div>
                     `;
-                    // 尝试重新加载（最多重试 3 次）
                     var retries = 0;
                     var maxRetries = 3;
                     var retryInterval = setInterval(function() {
@@ -397,7 +393,6 @@ LawAIApp.Router = {
 
         var template = document.getElementById('template-' + page);
         if (!template) {
-            // 不再报错，显示友好的占位
             console.log('📄 Page: ' + page + ' (no template, using fallback)');
             if (app) {
                 app.innerHTML = `
@@ -441,7 +436,24 @@ LawAIApp.Router = {
     },
 
     /**
-     * 从路径获取页面名（增强版：支持 /pages/academy.html）
+     * 更新导航高亮 + 面包屑
+     */
+    updateNav: function(activePage) {
+        // 更新导航高亮
+        document.querySelectorAll('.nav-item').forEach(function(btn) {
+            var page = btn.dataset.page;
+            if (page === activePage) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        // 渲染面包屑
+        this._renderBreadcrumb();
+    },
+
+    /**
+     * 从路径获取页面名（支持 /pages/academy.html）
      */
     _getPageFromPath: function(path) {
         // 如果是 /pages/academy.html 或 /pages/lesson.html
@@ -450,10 +462,8 @@ LawAIApp.Router = {
             var file = parts[parts.length - 1];
             if (file === 'academy.html') return 'academy';
             if (file === 'lesson.html') return 'lesson';
-            // 其他文件如 academy-dashboard 等
             var pageName = file.replace('.html', '');
             if (this.pages.indexOf(pageName) !== -1) return pageName;
-            // 如果文件是 pages 本身
             if (file === 'pages') return null;
         }
 
@@ -640,4 +650,4 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     });
 }
 
-console.log('🧭 Router V4.0 ready (supports /pages/academy.html)');
+console.log('🧭 Router V4.1 ready (supports /pages/academy.html)');
