@@ -7,7 +7,15 @@ window.LawAIApp = window.LawAIApp || {};
 LawAIApp.Views = LawAIApp.Views || {};
 
 LawAIApp.Views.AcademyAIView = {
-    render: function() {
+    render: function(container) {
+        // 灵活支持多种容器
+        var app = container || document.getElementById('app') || document.getElementById('academy-content') || document.getElementById('law-runtime-root');
+        
+        if (!app) {
+            console.warn('⚠️ AcademyAIView: No container found');
+            return;
+        }
+
         var academy = LawAIApp.AcademyAIData?.academy || {
             name: 'AI Fundamentals',
             icon: '🤖',
@@ -59,7 +67,7 @@ LawAIApp.Views.AcademyAIView = {
         var html = `
             <div class="academy-page" style="max-width:1000px;margin:0 auto;padding:16px 20px 40px;color:#e2e8f0;">
                 <!-- Back button -->
-                <button class="back-btn" onclick="LawAIApp.Router?.goBack ? LawAIApp.Router.goBack() : history.back()" style="background:rgba(255,255,255,0.06);border:none;color:#4a9eff;padding:10px 16px;border-radius:10px;cursor:pointer;margin-bottom:16px;display:flex;align-items:center;gap:8px;font-size:14px;">
+                <button class="back-btn" onclick="if(window.LawAIApp?.Router?.goBack){LawAIApp.Router.goBack();}else if(window.history?.back){window.history.back();}else{alert('Back');}" style="background:rgba(255,255,255,0.06);border:none;color:#4a9eff;padding:10px 16px;border-radius:10px;cursor:pointer;margin-bottom:16px;display:flex;align-items:center;gap:8px;font-size:14px;">
                     ← Back to Academies
                 </button>
 
@@ -96,11 +104,11 @@ LawAIApp.Views.AcademyAIView = {
 
                 <!-- Quick Access Buttons -->
                 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
-                    <button class="quick-btn" onclick="LawAIApp.Router?.navigate ? LawAIApp.Router.navigate('course-ai-fundamentals') : alert('Courses')" style="padding:8px 16px;background:rgba(74,158,255,0.12);border:1px solid rgba(74,158,255,0.15);border-radius:8px;color:#4a9eff;cursor:pointer;">📖 Courses</button>
-                    <button class="quick-btn" onclick="LawAIApp.Router?.navigate ? LawAIApp.Router.navigate('learning-hub') : alert('Learning Hub')" style="padding:8px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;cursor:pointer;">📚 Learning Hub</button>
-                    <button class="quick-btn" onclick="LawAIApp.Router?.navigate ? LawAIApp.Router.navigate('knowledge-capture') : alert('Notes')" style="padding:8px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;cursor:pointer;">📓 My Notes</button>
-                    <button class="quick-btn" onclick="LawAIApp.Router?.navigate ? LawAIApp.Router.navigate('adaptive-memory') : alert('Memory')" style="padding:8px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;cursor:pointer;">🧠 Memory</button>
-                    <button class="quick-btn" onclick="LawAIApp.Router?.navigate ? LawAIApp.Router.navigate('intelligence') : alert('Intelligence')" style="padding:8px 16px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.15);border-radius:8px;color:#8b5cf6;cursor:pointer;">🧠 Intelligence</button>
+                    <button class="quick-btn" onclick="if(window.LawAIApp?.Router?.navigate){LawAIApp.Router.navigate('course-ai-fundamentals');}else{alert('Courses');}" style="padding:8px 16px;background:rgba(74,158,255,0.12);border:1px solid rgba(74,158,255,0.15);border-radius:8px;color:#4a9eff;cursor:pointer;">📖 Courses</button>
+                    <button class="quick-btn" onclick="if(window.LawAIApp?.Router?.navigate){LawAIApp.Router.navigate('learning-hub');}else{alert('Learning Hub');}" style="padding:8px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;cursor:pointer;">📚 Learning Hub</button>
+                    <button class="quick-btn" onclick="if(window.LawAIApp?.Router?.navigate){LawAIApp.Router.navigate('knowledge-capture');}else{alert('Notes');}" style="padding:8px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;cursor:pointer;">📓 My Notes</button>
+                    <button class="quick-btn" onclick="if(window.LawAIApp?.Router?.navigate){LawAIApp.Router.navigate('adaptive-memory');}else{alert('Memory');}" style="padding:8px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;cursor:pointer;">🧠 Memory</button>
+                    <button class="quick-btn" onclick="if(window.LawAIApp?.Router?.navigate){LawAIApp.Router.navigate('intelligence');}else{alert('Intelligence');}" style="padding:8px 16px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.15);border-radius:8px;color:#8b5cf6;cursor:pointer;">🧠 Intelligence</button>
                 </div>
 
                 ${completed === 0 ? `
@@ -108,15 +116,26 @@ LawAIApp.Views.AcademyAIView = {
                         <div style="font-size:48px;">👋</div>
                         <h3 style="color:#e2e8f0;">Welcome to ${academy.name || 'AI Academy'}!</h3>
                         <p style="color:#94a3b8;">Start your first lesson and begin your AI journey.</p>
-                        <button onclick="LawAIApp.Router?.navigate ? LawAIApp.Router.navigate('lesson-detail', {lessonId: 'day-1'}) : alert('Start')" style="margin-top:12px;padding:10px 28px;background:#4a9eff;border:none;border-radius:10px;color:white;font-size:14px;font-weight:600;cursor:pointer;">📖 Start Learning</button>
+                        <button onclick="if(window.LawAIApp?.Router?.navigate){LawAIApp.Router.navigate('lesson-detail', {lessonId: 'day-1'});}else{alert('Start');}" style="margin-top:12px;padding:10px 28px;background:#4a9eff;border:none;border-radius:10px;color:white;font-size:14px;font-weight:600;cursor:pointer;">📖 Start Learning</button>
                     </div>
                 ` : ''}
             </div>
         `;
 
-        var app = document.getElementById('app');
-        if (app) app.innerHTML = html;
+        app.innerHTML = html;
     }
 };
 
-console.log('🏛️ AcademyAIView V2.0 ready');
+// 如果页面加载完成后 AcademyAIView 还没渲染，自动渲染
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(function() {
+        if (LawAIApp.Views?.AcademyAIView) {
+            var container = document.getElementById('academy-content') || document.getElementById('app');
+            if (container && container.innerHTML.trim() === '') {
+                LawAIApp.Views.AcademyAIView.render(container);
+            }
+        }
+    }, 500);
+}
+
+console.log('🏛️ AcademyAIView V3.0 ready');
