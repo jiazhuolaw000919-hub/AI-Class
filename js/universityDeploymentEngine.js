@@ -1,43 +1,86 @@
 // ===========================================
 // universityDeploymentEngine.js
-// 大学部署引擎：初始化并启动一所或多所AI大学
+// AI 大学部署引擎：初始化并启动AI大学（Phase 74 升级版）
 // ===========================================
+
+window.LawAIApp = window.LawAIApp || {};
+
 LawAIApp.UniversityDeploymentEngine = {
-  deployedUniversities: [],
+    _initialized: false,
+    _universities: [],
 
-  // 部署一所大学
-  deployUniversity(name, faculties = null) {
-    const university = {
-      id: `uni_${Date.now()}`,
-      name: name || 'Law AI University',
-      established: new Date().toISOString(),
-      status: 'active'
-    };
+    init: function() {
+        if (this._initialized) return;
+        this._initialized = true;
+        console.log('[UniversityDeploy] Engine initialized.');
+        return this;
+    },
 
-    // 如果未提供学院列表，则使用默认轨道
-    if (!faculties) {
-      // 确保大学OS核心已初始化
-      if (LawAIApp.AIFacultyManager.getFaculties().length === 0) {
-        LawAIApp.UniversityOSCore.init();
-      }
-      university.faculties = LawAIApp.AIFacultyManager.getFaculties();
-    } else {
-      faculties.forEach(f => LawAIApp.AIFacultyManager.createFaculty(f));
-      university.faculties = faculties;
+    deployUniversity: function(name, faculties) {
+        faculties = faculties || null;
+        var university = {
+            id: 'uni_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            name: name || 'Law AI University',
+            established: new Date().toISOString(),
+            status: 'active',
+            faculties: faculties || []
+        };
+
+        this._universities.push(university);
+
+        console.log('[UniversityDeploy] University deployed:', university.name);
+        LawAIApp.EventBus?.emit?.('UniversityDeployed', university);
+        return university;
+    },
+
+    launchDefaultUniversity: function() {
+        console.log('[UniversityDeploy] Launching default university...');
+
+        var defaultFaculties = [
+            { name: 'AI & Machine Learning', departments: ['Core AI', 'Prompt Engineering', 'Neural Networks'] },
+            { name: 'Software Engineering', departments: ['Programming', 'Data Structures', 'Algorithms'] },
+            { name: 'Business & Productivity', departments: ['Strategy', 'Automation', 'Workflow'] }
+        ];
+
+        var uni = this.deployUniversity('Law AI University', defaultFaculties);
+
+        // 触发大学启动事件
+        setTimeout(function() {
+            LawAIApp.EventBus?.emit?.('UniversityReady', { universityId: uni.id });
+        }, 500);
+
+        return uni;
+    },
+
+    getUniversities: function() {
+        return this._universities;
+    },
+
+    getUniversity: function(id) {
+        for (var i = 0; i < this._universities.length; i++) {
+            if (this._universities[i].id === id) {
+                return this._universities[i];
+            }
+        }
+        return null;
+    },
+
+    getStatus: function() {
+        return {
+            initialized: this._initialized,
+            totalUniversities: this._universities.length,
+            universities: this._universities.map(function(u) {
+                return { id: u.id, name: u.name, status: u.status };
+            })
+        };
     }
-
-    this.deployedUniversities.push(university);
-    LawAIApp.EventBus.emit('UniversityDeployed', { university });
-    return university;
-  },
-
-  // 获取所有已部署的大学
-  getUniversities() {
-    return this.deployedUniversities;
-  },
-
-  // 启动默认大学
-  launchDefaultUniversity() {
-    return this.deployUniversity('Law AI Academy University');
-  }
 };
+
+// 自动初始化
+setTimeout(function() {
+    if (LawAIApp.UniversityDeploymentEngine && typeof LawAIApp.UniversityDeploymentEngine.init === 'function') {
+        LawAIApp.UniversityDeploymentEngine.init();
+    }
+}, 500);
+
+console.log('[UniversityDeploy] UniversityDeploymentEngine V2.0 ready');
