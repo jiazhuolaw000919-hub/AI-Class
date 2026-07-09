@@ -19,26 +19,7 @@ var _loadCache = {};
 var _loadingPromises = {};
 
 // ===========================================
-// 获取正确的脚本路径
-// ===========================================
-function getScriptPath(src) {
-    // 优先使用全局根路径
-    if (window.__ROOT_PATH__) {
-        return window.__ROOT_PATH__ + 'js/' + src;
-    }
-    
-    // 检查当前页面是否在 pages/ 子目录下
-    var path = window.location.pathname;
-    var isInPages = path.includes('/pages/');
-    
-    if (isInPages) {
-        return '../js/' + src;
-    }
-    return 'js/' + src;
-}
-
-// ===========================================
-// 加载脚本（带缓存 + 路径适配）
+// 加载脚本（使用绝对路径）
 // ===========================================
 function loadScript(src) {
     if (_loadCache[src]) {
@@ -50,7 +31,8 @@ function loadScript(src) {
     }
 
     var promise = new Promise(function(resolve) {
-        var path = getScriptPath(src);
+        // 直接使用绝对路径 /js/
+        var path = '/js/' + src;
         
         var existing = document.querySelector('script[src="' + path + '"]');
         if (existing) {
@@ -69,36 +51,7 @@ function loadScript(src) {
 
         script.onerror = function() {
             console.warn("⚠️ Failed to load:", src, "from", path);
-            
-            // 尝试备用路径
-            var fallbackPath = (path.startsWith('../') ? 'js/' : '../js/') + src;
-            if (fallbackPath !== path) {
-                console.log('🔄 Retrying with fallback path:', fallbackPath);
-                var fallbackScript = document.createElement("script");
-                fallbackScript.src = fallbackPath;
-                fallbackScript.onload = function() {
-                    _loadCache[src] = true;
-                    resolve({ file: src, status: "ok" });
-                };
-                fallbackScript.onerror = function() {
-                    resolve({ file: src, status: "missing" });
-                };
-                document.head.appendChild(fallbackScript);
-            } else {
-                // 最后尝试绝对路径
-                var absolutePath = '/js/' + src;
-                console.log('🔄 Trying absolute path:', absolutePath);
-                var absoluteScript = document.createElement("script");
-                absoluteScript.src = absolutePath;
-                absoluteScript.onload = function() {
-                    _loadCache[src] = true;
-                    resolve({ file: src, status: "ok" });
-                };
-                absoluteScript.onerror = function() {
-                    resolve({ file: src, status: "missing" });
-                };
-                document.head.appendChild(absoluteScript);
-            }
+            resolve({ file: src, status: "missing" });
         };
 
         document.head.appendChild(script);
@@ -155,7 +108,7 @@ LawAIApp.clearLoadCache = function() {
 // 启动
 // ===========================================
 async function boot() {
-    console.log("🚀 Loader V4.4 starting (core + progress + path detection)");
+    console.log("🚀 Loader V4.5 starting (absolute paths)");
     console.log("📦 Loading " + CORE_ENGINES.length + " core modules...");
 
     var startTime = Date.now();
@@ -205,4 +158,4 @@ if (document.readyState === "complete" || document.readyState === "interactive")
     });
 }
 
-console.log("🚀 Loader V4.4 ready");
+console.log("🚀 Loader V4.5 ready (absolute paths)");
