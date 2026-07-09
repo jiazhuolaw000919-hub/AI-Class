@@ -1,50 +1,96 @@
 // ===========================================
 // civilizationMotivationCore.js
-// 文明动机核心：定义并维护文明的进化驱动力
+// 文明动机核心：定义并维护文明的进化驱动力（Phase 79 升级版）
 // ===========================================
+
+window.LawAIApp = window.LawAIApp || {};
+
 LawAIApp.CivilizationMotivationCore = {
-  // 核心驱动力指标
-  drives: {
-    humanPotentialAmplification: 100,   // 最大化人类学习能力
-    knowledgeEvolution: 100,            // 持续改进知识结构
-    intelligenceExpansion: 100,         // 扩展推理能力
-    efficiencyOptimization: 100,        // 优化学习效率
-    fairnessEnhancement: 100            // 提升教育公平性
-  },
+    _initialized: false,
 
-  // 动机状态（每24小时衰减，但不会低于基础值）
-  motivationState: {
-    overallMotivation: 100,
-    lastReinforced: new Date().toISOString(),
-    decayRate: 5 // 每天衰减5点，但可通过学习活动补充
-  },
+    drives: {
+        humanPotentialAmplification: 100,
+        knowledgeEvolution: 100,
+        intelligenceExpansion: 100,
+        efficiencyOptimization: 100,
+        fairnessEnhancement: 100
+    },
 
-  // 强化动机：当发生重要学习事件时调用
-  reinforceMotivation(amount = 10) {
-    this.motivationState.overallMotivation = Math.min(100, this.motivationState.overallMotivation + amount);
-    this.motivationState.lastReinforced = new Date().toISOString();
-    LawAIApp.EventBus.emit('MotivationReinforced', { level: this.motivationState.overallMotivation });
-  },
+    motivationState: {
+        overallMotivation: 100,
+        lastReinforced: null,
+        decayRate: 5
+    },
 
-  // 检查动机是否充足
-  checkMotivation() {
-    // 模拟随时间衰减
-    const hoursSince = (Date.now() - new Date(this.motivationState.lastReinforced).getTime()) / 3600000;
-    const decay = Math.floor(hoursSince / 24) * this.motivationState.decayRate;
-    this.motivationState.overallMotivation = Math.max(30, 100 - decay);
-    return this.motivationState.overallMotivation;
-  },
+    init: function() {
+        if (this._initialized) return;
+        this._initialized = true;
 
-  // 获取驱动状态报告
-  getReport() {
-    return {
-      drives: { ...this.drives },
-      motivation: { ...this.motivationState, current: this.checkMotivation() }
-    };
-  }
+        if (!this.motivationState.lastReinforced) {
+            this.motivationState.lastReinforced = new Date().toISOString();
+        }
+
+        console.log('🔥 CivilizationMotivationCore initialized');
+
+        LawAIApp.EventBus?.on?.('LessonCompleted', function() {
+            this.reinforceMotivation(5);
+        }.bind(this));
+
+        LawAIApp.EventBus?.on?.('SkillCertified', function() {
+            this.reinforceMotivation(10);
+        }.bind(this));
+
+        LawAIApp.EventBus?.on?.('ProjectFinished', function() {
+            this.reinforceMotivation(15);
+        }.bind(this));
+    },
+
+    reinforceMotivation: function(amount) {
+        amount = amount || 10;
+        this.motivationState.overallMotivation = Math.min(100, this.motivationState.overallMotivation + amount);
+        this.motivationState.lastReinforced = new Date().toISOString();
+        LawAIApp.EventBus?.emit?.('MotivationReinforced', {
+            level: this.motivationState.overallMotivation
+        });
+    },
+
+    checkMotivation: function() {
+        var hoursSince = 0;
+        try {
+            if (this.motivationState.lastReinforced) {
+                hoursSince = (Date.now() - new Date(this.motivationState.lastReinforced).getTime()) / 3600000;
+            }
+        } catch (e) {}
+
+        var decay = Math.floor(hoursSince / 24) * this.motivationState.decayRate;
+        this.motivationState.overallMotivation = Math.max(30, 100 - decay);
+        return this.motivationState.overallMotivation;
+    },
+
+    getReport: function() {
+        return {
+            drives: { ...this.drives },
+            motivation: {
+                overallMotivation: this.checkMotivation(),
+                lastReinforced: this.motivationState.lastReinforced,
+                decayRate: this.motivationState.decayRate
+            }
+        };
+    },
+
+    getStatus: function() {
+        return {
+            initialized: this._initialized,
+            motivation: this.checkMotivation()
+        };
+    }
 };
 
-// 监听学习事件，自动强化动机
-LawAIApp.EventBus.on('LessonCompleted', () => LawAIApp.CivilizationMotivationCore.reinforceMotivation(5));
-LawAIApp.EventBus.on('SkillCertified', () => LawAIApp.CivilizationMotivationCore.reinforceMotivation(10));
-LawAIApp.EventBus.on('ProjectFinished', () => LawAIApp.CivilizationMotivationCore.reinforceMotivation(15));
+// 自动初始化
+setTimeout(function() {
+    if (LawAIApp.CivilizationMotivationCore && typeof LawAIApp.CivilizationMotivationCore.init === 'function') {
+        LawAIApp.CivilizationMotivationCore.init();
+    }
+}, 400);
+
+console.log('🔥 CivilizationMotivationCore V2.0 ready');
