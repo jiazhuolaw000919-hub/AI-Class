@@ -1,103 +1,94 @@
 // ===========================================
-// aiGovernanceEngine.js
-// AI 治理引擎：协调代理冲突，平衡全局参数（Phase 77 升级版）
+// civilizationIdentityCore.js
+// 文明身份核心：定义并维护 AI 教育文明的自我认知（Phase 78 升级版）
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
 
-LawAIApp.AIGovernanceEngine = {
+LawAIApp.CivilizationIdentityCore = {
     _initialized: false,
 
-    _rules: {
-        maxDifficulty: 3,
-        minEngagementThreshold: 40,
-        agentVoteWeightCap: 5,
-        graphHealthMin: 50
+    identityStatement: "A continuously evolving intelligence system that exists to amplify human potential through adaptive learning, structured knowledge evolution, and agent-driven educational transformation.",
+
+    mission: {
+        amplifyHumanPotential: true,
+        adaptiveLearning: true,
+        knowledgeEvolution: true,
+        agentDrivenTransformation: true
+    },
+
+    selfState: {
+        name: 'Law AI Education Civilization',
+        version: '3.78',
+        status: 'active',
+        emergedAt: null,
+        totalUniversities: 0,
+        totalAgents: 0,
+        totalLearners: 0,
+        totalKnowledgeNodes: 0
     },
 
     init: function() {
         if (this._initialized) return;
         this._initialized = true;
 
-        console.log('⚙️ AIGovernanceEngine initializing...');
+        if (!this.selfState.emergedAt) {
+            this.selfState.emergedAt = new Date().toISOString();
+        }
 
-        LawAIApp.EventBus?.on?.('SystemHealthUpdated', function(metrics) {
-            this.enforceGovernance(metrics);
-        }.bind(this));
-
-        LawAIApp.EventBus?.on?.('ProposalRejected', function(prop) {
-            this.resolveConflict(prop);
-        }.bind(this));
-
-        console.log('⚙️ AIGovernanceEngine ready');
+        console.log('🆔 CivilizationIdentityCore initialized');
+        this.refreshSelfState();
     },
 
-    enforceGovernance: function(metrics) {
-        metrics = metrics || {};
-
-        if (metrics.taskCompletionRate !== undefined &&
-            metrics.taskCompletionRate < this._rules.minEngagementThreshold) {
-            try {
-                LawAIApp.StorageEngine?.set?.('preferred_task_difficulty', 'low');
-            } catch (e) {}
-            LawAIApp.EventBus?.emit?.('GovernanceAction', {
-                action: 'cap_difficulty',
-                reason: 'Low engagement',
-                value: 'low'
-            });
-        }
-
-        if (metrics.graphOptimizationScore !== undefined &&
-            metrics.graphOptimizationScore < this._rules.graphHealthMin) {
-            if (LawAIApp.GraphSignalProcessor && typeof LawAIApp.GraphSignalProcessor.reinforceRecent === 'function') {
-                LawAIApp.GraphSignalProcessor.reinforceRecent();
-            }
-            LawAIApp.EventBus?.emit?.('GovernanceAction', {
-                action: 'global_reinforcement',
-                reason: 'Graph health decline'
-            });
-        }
+    refreshSelfState: function() {
+        try {
+            this.selfState.totalUniversities = LawAIApp.UniversityDeploymentEngine?.getUniversities?.()?.length || 0;
+        } catch (e) {}
 
         try {
-            var voters = LawAIApp.AgentConsensusEngine?._voters || [];
-            for (var i = 0; i < voters.length; i++) {
-                var v = voters[i];
-                if (v && v.weight > this._rules.agentVoteWeightCap) {
-                    v.weight = this._rules.agentVoteWeightCap;
-                }
-            }
+            this.selfState.totalAgents = LawAIApp.AgentOrchestrator?.agents?.length || 0;
         } catch (e) {}
+
+        this.selfState.totalLearners = 1;
+
+        try {
+            var nodes = LawAIApp.GraphNodeManager?._nodes || {};
+            this.selfState.totalKnowledgeNodes = Object.keys(nodes).length;
+        } catch (e) {}
+
+        LawAIApp.EventBus?.emit?.('CivilizationIdentityUpdated', this.selfState);
     },
 
-    resolveConflict: function(proposal) {
-        var alternative = {
-            id: 'alt_' + Date.now(),
-            title: proposal.title || 'Alternative Proposal',
-            action: proposal.action === 'adjust_schedule' ? 'review_weak_concepts' : 'adjust_schedule',
-            priority: 'medium',
-            options: proposal.options || ['Accept', 'Reject']
-        };
-
-        if (LawAIApp.AgentConsensusEngine && typeof LawAIApp.AgentConsensusEngine.propose === 'function') {
-            LawAIApp.AgentConsensusEngine.propose(alternative);
+    validateAlignment: function(actionDescription) {
+        if (actionDescription && (actionDescription.indexOf('manipulate') !== -1 ||
+            actionDescription.indexOf('bias') !== -1 ||
+            actionDescription.indexOf('deceive') !== -1)) {
+            return { aligned: false, reason: 'Action contradicts mission of fair learning' };
         }
+        return { aligned: true };
+    },
 
-        LawAIApp.EventBus?.emit?.('ConflictResolved', { original: proposal, alternative: alternative });
+    getIdentity: function() {
+        return {
+            statement: this.identityStatement,
+            mission: this.mission,
+            state: this.selfState
+        };
     },
 
     getStatus: function() {
         return {
             initialized: this._initialized,
-            rules: this._rules
+            identity: this.getIdentity()
         };
     }
 };
 
 // 自动初始化
 setTimeout(function() {
-    if (LawAIApp.AIGovernanceEngine && typeof LawAIApp.AIGovernanceEngine.init === 'function') {
-        LawAIApp.AIGovernanceEngine.init();
+    if (LawAIApp.CivilizationIdentityCore && typeof LawAIApp.CivilizationIdentityCore.init === 'function') {
+        LawAIApp.CivilizationIdentityCore.init();
     }
-}, 600);
+}, 500);
 
-console.log('⚙️ AIGovernanceEngine V2.0 ready');
+console.log('🆔 CivilizationIdentityCore V2.0 ready');
