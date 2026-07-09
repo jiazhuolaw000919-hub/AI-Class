@@ -97,14 +97,74 @@ LawAIApp.Router = {
     loadPage: function(page) {
         var app = document.getElementById('app');
 
-        // ===== 使用现有视图（如果存在） =====
-        if (page === 'academy-dashboard' && LawAIApp.AcademyAIView) {
-            if (app) { app.innerHTML = ''; }
-            LawAIApp.AcademyAIView.render();
+        // ============================================================
+        //  Academy 路由（修复版）
+        // ============================================================
+        if (page === 'academy') {
+            if (app) {
+                // 检查 AcademyAIView 是否可用
+                if (LawAIApp.Views?.AcademyAIView && typeof LawAIApp.Views.AcademyAIView.render === 'function') {
+                    app.innerHTML = '';
+                    LawAIApp.Views.AcademyAIView.render(app);
+                } else {
+                    // 显示加载占位
+                    app.innerHTML = `
+                        <div style="padding:40px;text-align:center;color:#94a3b8;">
+                            <h3>🏛️ Academy</h3>
+                            <p>Loading academy content...</p>
+                            <div style="margin-top:20px;width:30px;height:30px;border:3px solid rgba(255,255,255,0.06);border-top-color:#4a9eff;border-radius:50%;animation:spin 1s linear infinite;display:inline-block;"></div>
+                            <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+                        </div>
+                    `;
+                    // 尝试重新加载（最多重试 3 次）
+                    var retries = 0;
+                    var maxRetries = 3;
+                    var retryInterval = setInterval(function() {
+                        retries++;
+                        if (LawAIApp.Views?.AcademyAIView && typeof LawAIApp.Views.AcademyAIView.render === 'function') {
+                            clearInterval(retryInterval);
+                            app.innerHTML = '';
+                            LawAIApp.Views.AcademyAIView.render(app);
+                            console.log('✅ Academy retry succeeded');
+                        } else if (retries >= maxRetries) {
+                            clearInterval(retryInterval);
+                            console.warn('⚠️ AcademyAIView not available after retries');
+                            app.innerHTML = `
+                                <div style="padding:40px;text-align:center;color:#94a3b8;">
+                                    <h3>🏛️ Academy</h3>
+                                    <p>Academy content is loading. Please refresh if empty.</p>
+                                    <button onclick="location.reload()" style="margin-top:16px;padding:8px 24px;background:#4a9eff;border:none;border-radius:8px;color:white;cursor:pointer;">🔄 Refresh</button>
+                                </div>
+                            `;
+                        }
+                    }, 500);
+                }
+            }
             this.currentPage = page;
             return;
         }
 
+        // ============================================================
+        //  academy-dashboard（兼容旧路由）
+        // ============================================================
+        if (page === 'academy-dashboard') {
+            if (app) {
+                app.innerHTML = '';
+                if (LawAIApp.Views?.AcademyAIView && typeof LawAIApp.Views.AcademyAIView.render === 'function') {
+                    LawAIApp.Views.AcademyAIView.render(app);
+                } else if (LawAIApp.AcademyAIView && typeof LawAIApp.AcademyAIView.render === 'function') {
+                    LawAIApp.AcademyAIView.render();
+                } else {
+                    app.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;"><h3>🤖 AI Foundation</h3><p>Loading...</p></div>';
+                }
+            }
+            this.currentPage = page;
+            return;
+        }
+
+        // ============================================================
+        //  course-ai-fundamentals
+        // ============================================================
         if (page === 'course-ai-fundamentals' && LawAIApp.CourseAIFundamentalsView) {
             if (app) { app.innerHTML = ''; }
             LawAIApp.CourseAIFundamentalsView.render();
@@ -112,6 +172,9 @@ LawAIApp.Router = {
             return;
         }
 
+        // ============================================================
+        //  module
+        // ============================================================
         if (page === 'module' && LawAIApp.ModuleView) {
             if (app) { app.innerHTML = ''; }
             LawAIApp.ModuleView.render(this.currentParams.moduleId);
@@ -119,6 +182,9 @@ LawAIApp.Router = {
             return;
         }
 
+        // ============================================================
+        //  lesson-detail
+        // ============================================================
         if (page === 'lesson-detail' && LawAIApp.Views && LawAIApp.Views.LessonView) {
             if (app) { app.innerHTML = ''; }
             LawAIApp.Views.LessonView.render(this.currentParams.lessonId, app);
@@ -126,6 +192,9 @@ LawAIApp.Router = {
             return;
         }
 
+        // ============================================================
+        //  practice
+        // ============================================================
         if (page === 'practice' && LawAIApp.PracticeView) {
             if (app) { app.innerHTML = ''; }
             LawAIApp.PracticeView.render(this.currentParams.practiceId);
@@ -133,6 +202,9 @@ LawAIApp.Router = {
             return;
         }
 
+        // ============================================================
+        //  quiz-dashboard
+        // ============================================================
         if (page === 'quiz-dashboard' && LawAIApp.QuizInsightDashboard) {
             if (app) { app.innerHTML = ''; }
             LawAIApp.QuizInsightDashboard.render(this.currentParams.moduleId);
@@ -140,6 +212,9 @@ LawAIApp.Router = {
             return;
         }
 
+        // ============================================================
+        //  smart-project
+        // ============================================================
         if (page === 'smart-project' && LawAIApp.SmartProjectView) {
             if (app) { app.innerHTML = ''; }
             LawAIApp.SmartProjectView.render(this.currentParams.projectId);
@@ -147,6 +222,9 @@ LawAIApp.Router = {
             return;
         }
 
+        // ============================================================
+        //  learning-hub
+        // ============================================================
         if (page === 'learning-hub' && LawAIApp.LearningHub) {
             if (app) { app.innerHTML = ''; }
             LawAIApp.LearningHub.render();
@@ -154,6 +232,9 @@ LawAIApp.Router = {
             return;
         }
 
+        // ============================================================
+        //  knowledge-capture
+        // ============================================================
         if (page === 'knowledge-capture' && LawAIApp.KnowledgeDashboard) {
             if (app) { app.innerHTML = ''; }
             LawAIApp.KnowledgeDashboard.render();
@@ -161,6 +242,9 @@ LawAIApp.Router = {
             return;
         }
 
+        // ============================================================
+        //  knowledge-editor
+        // ============================================================
         if (page === 'knowledge-editor' && LawAIApp.KnowledgeEditor) {
             if (app) { app.innerHTML = ''; }
             LawAIApp.KnowledgeEditor.render(this.currentParams);
@@ -168,6 +252,9 @@ LawAIApp.Router = {
             return;
         }
 
+        // ============================================================
+        //  knowledge-favorites
+        // ============================================================
         if (page === 'knowledge-favorites') {
             if (app) {
                 app.innerHTML = '<div class="page"><button class="back-btn" onclick="LawAIApp.Router.navigate(\'knowledge-capture\')">← Back</button><h2>⭐ Favorites</h2><div id="fav-list"></div></div>';
@@ -187,12 +274,18 @@ LawAIApp.Router = {
             return;
         }
 
+        // ============================================================
+        //  knowledge-export
+        // ============================================================
         if (page === 'knowledge-export' && LawAIApp.KnowledgeExport) {
             LawAIApp.KnowledgeExport.exportAll();
             this.navigate('knowledge-capture');
             return;
         }
 
+        // ============================================================
+        //  adaptive-memory
+        // ============================================================
         if (page === 'adaptive-memory' && LawAIApp.MemoryDashboard) {
             if (app) { app.innerHTML = ''; }
             LawAIApp.MemoryDashboard.render();
@@ -200,6 +293,9 @@ LawAIApp.Router = {
             return;
         }
 
+        // ============================================================
+        //  intelligence
+        // ============================================================
         if (page === 'intelligence' && LawAIApp.IntelligenceEngine) {
             if (app) { app.innerHTML = ''; }
             LawAIApp.IntelligenceEngine.renderDashboard();
@@ -207,6 +303,9 @@ LawAIApp.Router = {
             return;
         }
 
+        // ============================================================
+        //  mentor-brain
+        // ============================================================
         if (page === 'mentor-brain' && LawAIApp.MentorBrain) {
             if (app) { app.innerHTML = ''; }
             LawAIApp.MentorBrain.renderDashboard();
@@ -214,6 +313,9 @@ LawAIApp.Router = {
             return;
         }
 
+        // ============================================================
+        //  conversations
+        // ============================================================
         if (page === 'conversations' && LawAIApp.ConversationUI) {
             if (app) { app.innerHTML = ''; }
             LawAIApp.ConversationUI.render();
@@ -221,6 +323,9 @@ LawAIApp.Router = {
             return;
         }
 
+        // ============================================================
+        //  planner
+        // ============================================================
         if (page === 'planner' && LawAIApp.PlannerDashboard) {
             if (app) { app.innerHTML = ''; }
             LawAIApp.PlannerDashboard.render();
@@ -228,6 +333,9 @@ LawAIApp.Router = {
             return;
         }
 
+        // ============================================================
+        //  goal-intelligence
+        // ============================================================
         if (page === 'goal-intelligence' && LawAIApp.GoalDashboard) {
             if (app) { app.innerHTML = ''; }
             LawAIApp.GoalDashboard.render();
@@ -235,6 +343,9 @@ LawAIApp.Router = {
             return;
         }
 
+        // ============================================================
+        //  command-center
+        // ============================================================
         if (page === 'command-center' && LawAIApp.CommandCenter) {
             if (app) { app.innerHTML = ''; }
             LawAIApp.CommandCenter.render();
@@ -242,6 +353,9 @@ LawAIApp.Router = {
             return;
         }
 
+        // ============================================================
+        //  career-showcase
+        // ============================================================
         if (page === 'career-showcase' && LawAIApp.ShowcaseDashboard) {
             if (app) { app.innerHTML = ''; }
             LawAIApp.ShowcaseDashboard.render();
@@ -249,7 +363,9 @@ LawAIApp.Router = {
             return;
         }
 
-        // ===== 模板页面 =====
+        // ============================================================
+        //  模板页面（原有逻辑）
+        // ============================================================
         var cacheKey = this._getCacheKey(page, this.currentParams);
         if (this._pageCache[cacheKey]) {
             if (app) {
@@ -286,7 +402,6 @@ LawAIApp.Router = {
         else if (page === 'tools' && LawAIApp.Tools) LawAIApp.Tools.render?.();
         else if (page === 'prompt' && LawAIApp.Prompt) LawAIApp.Prompt.render?.();
         else if (page === 'lesson' && LawAIApp.LessonPage) LawAIApp.LessonPage.render(this.currentParams);
-        else if (page === 'academy' && LawAIApp.AcademyPage) LawAIApp.AcademyPage.render();
 
         // 缓存页面（非动态页面）
         setTimeout(function() {
@@ -496,4 +611,4 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     });
 }
 
-console.log('🧭 Router V2.0 ready');
+console.log('🧭 Router V3.0 ready');
