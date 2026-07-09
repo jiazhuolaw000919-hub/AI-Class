@@ -1,152 +1,114 @@
-// moduleView.js (升级版：集成实践任务列表 + Quiz 入口 + 项目入口 + Learning Hub / Notes / Adaptive Memory 入口)
-LawAIApp.ModuleView = {
-  render(moduleId) {
-    const module = LawAIApp.ModuleData.getById(moduleId);
-    if (!module) {
-      document.getElementById('app').innerHTML = '<p>Module not found.</p>';
-      return;
-    }
+// ===========================================
+// moduleView.js
+// 智能学习模块系统 - 模块仪表盘（Season 2 Phase 43 升级版）
+// ===========================================
 
-    const progress = LawAIApp.ModuleProgress.get(moduleId);
-    const totalLessons = module.estimatedLessons;
-    const completedLessons = progress.completedLessons.length;
-    const lessonPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
-    const moduleCompleted = LawAIApp.ModuleProgress.isCompleted(moduleId);
-    const courseId = module.courseId;
+window.LawAIApp = window.LawAIApp || {};
+LawAIApp.Views = LawAIApp.Views || {};
 
-    const html = `
-      <div class="page">
-        <button class="back-btn" onclick="LawAIApp.Router.navigate('course-ai-fundamentals')" style="background:var(--card); border:none; color:var(--text); padding:0.5rem 1rem; border-radius:8px; cursor:pointer; margin-bottom:1rem; display:flex; align-items:center; gap:0.3rem; font-size:0.85rem;">
-          ← Back to Course
-        </button>
+LawAIApp.Views.ModuleView = {
+    render: function(moduleId) {
+        var app = document.getElementById('app');
+        if (!app) return;
 
-        <div class="continue-card" style="background: linear-gradient(135deg, ${module.themeColor || '#3b82f6'}, #6366f1);">
-          <h2>${module.icon} ${module.name}</h2>
-          <p>${module.description}</p>
-          <div style="display:flex; gap:1rem; margin-top:0.5rem; font-size:0.85rem;">
-            <span>⏱️ ${module.estimatedMinutes} min</span>
-            <span>⭐ ${module.estimatedXP} XP</span>
-            <span>📊 ${module.difficulty}</span>
-          </div>
-        </div>
-
-        <!-- Progress -->
-        <div class="widget-card" style="margin:1rem 0;">
-          <h3>Module Progress</h3>
-          <div style="display:flex; justify-content:space-between;">
-            <span>Lessons: ${completedLessons}/${totalLessons}</span>
-            <span>${lessonPercent}%</span>
-          </div>
-          <div class="progress-bar"><div class="progress-fill" style="width:${lessonPercent}%"></div></div>
-          <div style="margin-top:0.5rem;">
-            <span>Practice: ${progress.practiceCompleted ? '✅' : '⬜'}</span> |
-            <span>Quiz: ${progress.quizCompleted ? '✅' : '⬜'}</span> |
-            <span>Reflection: ${progress.reflectionCompleted ? '✅' : '⬜'}</span>
-          </div>
-          <!-- 实践任务列表 -->
-          <div style="margin-top:0.8rem;">
-            ${(() => {
-              const practices = LawAIApp.PracticeData.getPracticesByModule(moduleId);
-              if (practices.length === 0) return '<p style="color:var(--text-secondary); font-size:0.9rem;">No practice tasks yet.</p>';
-              return practices.map(p => `
-                <div class="lesson-item" style="justify-content:space-between; padding:0.5rem 0.8rem; cursor:pointer;" onclick="LawAIApp.Router.navigate('practice', { practiceId: '${p.practiceId}' })">
-                  <div>
-                    <strong>${p.title}</strong>
-                    <small style="color:var(--text-secondary); display:block;">⏱️ ${p.estimatedMinutes} min · ⭐ ${p.estimatedXP} XP</small>
-                  </div>
-                  <span>${LawAIApp.PracticeProgress.isCompleted(moduleId, p.practiceId) ? '✅' : '▶️'}</span>
-                </div>
-              `).join('');
-            })()}
-          </div>
-
-          <!-- Quiz Section -->
-          <div style="margin-top:1rem;">
-            <h4>📝 Quiz</h4>
-            ${progress.quizCompleted ? 
-              `<p>✅ Quiz completed (Score: ${progress.quizScore || 'N/A'}%)</p>
-               <button class="quick-btn" onclick="LawAIApp.Router.navigate('quiz-dashboard', { moduleId: '${moduleId}' })">📊 View Insights</button>` :
-              `<button class="quick-btn" id="take-quiz-btn">📝 Take Quiz</button>`
+        // 获取模块数据
+        var moduleData = null;
+        try {
+            if (LawAIApp.ModuleData && typeof LawAIApp.ModuleData.getById === 'function') {
+                moduleData = LawAIApp.ModuleData.getById(moduleId);
             }
-          </div>
+        } catch (e) {}
 
-          <!-- Projects Section -->
-          <div style="margin-top:1rem;">
-            <h4>🚀 Projects</h4>
-            ${(() => {
-              const projects = LawAIApp.SmartProjectData.getProjectsByModule(moduleId);
-              if (projects.length === 0) return '<p style="color:var(--text-secondary); font-size:0.9rem;">No projects for this module yet.</p>';
-              return projects.map(p => `
-                <div class="lesson-item" style="justify-content:space-between; padding:0.5rem 0.8rem; cursor:pointer;" onclick="LawAIApp.Router.navigate('smart-project', { projectId: '${p.projectId}' })">
-                  <div>
-                    <strong>${p.title}</strong>
-                    <small style="color:var(--text-secondary); display:block;">⏱️ ${p.estimatedHours}h · ⭐ ${p.estimatedXP} XP</small>
-                  </div>
-                  <span>▶️</span>
-                </div>
-              `).join('');
-            })()}
-          </div>
+        if (!moduleData) {
+            // 内置默认模块数据
+            var moduleMap = {
+                'module_1': { id: 'module_1', name: 'AI Foundations', icon: '🏛️', description: 'Learn the basics of AI.', estimatedMinutes: 120, estimatedXP: 200, difficulty: 'Beginner', themeColor: '#3b82f6', courseId: 'course_ai_fundamentals', estimatedLessons: 10, learningObjectives: ['Understand AI history', 'Learn key AI concepts'] },
+                'module_2': { id: 'module_2', name: 'Prompt Engineering', icon: '✍️', description: 'Master the art of crafting prompts.', estimatedMinutes: 120, estimatedXP: 250, difficulty: 'Beginner', themeColor: '#8b5cf6', courseId: 'course_ai_fundamentals', estimatedLessons: 10, learningObjectives: ['Design effective prompts', 'Optimize prompt results'] },
+                'module_3': { id: 'module_3', name: 'AI Tools', icon: '🛠️', description: 'Explore leading AI tools.', estimatedMinutes: 120, estimatedXP: 250, difficulty: 'Intermediate', themeColor: '#f59e0b', courseId: 'course_ai_fundamentals', estimatedLessons: 10, learningObjectives: ['Use AI tools effectively', 'Integrate AI into workflow'] },
+                'module_4': { id: 'module_4', name: 'Coding with AI', icon: '💻', description: 'Learn to code with AI assistance.', estimatedMinutes: 120, estimatedXP: 300, difficulty: 'Intermediate', themeColor: '#22c55e', courseId: 'course_ai_fundamentals', estimatedLessons: 10, learningObjectives: ['Write code with AI', 'Debug with AI'] },
+                'module_5': { id: 'module_5', name: 'AI Development', icon: '🤖', description: 'Build AI-powered applications.', estimatedMinutes: 120, estimatedXP: 350, difficulty: 'Advanced', themeColor: '#f97316', courseId: 'course_ai_fundamentals', estimatedLessons: 10, learningObjectives: ['Build AI apps', 'Deploy AI solutions'] }
+            };
+            moduleData = moduleMap[moduleId] || moduleMap['module_1'];
+        }
 
-          ${moduleCompleted ? '<p style="margin-top:0.5rem;">🎉 Module Completed!</p>' : ''}
-        </div>
-
-        <!-- Learning Objectives -->
-        <div class="section-card">
-          <h3>🎯 Learning Objectives</h3>
-          <ul>${module.learningObjectives.map(obj => `<li>${obj}</li>`).join('')}</ul>
-        </div>
-
-        <!-- Dynamic Lessons list -->
-        <div class="section-card">
-          <h3>📖 Lessons</h3>
-          ${(() => {
-            const lessons = LawAIApp.LessonData.getLessonsByModule(moduleId);
-            if (!lessons || lessons.length === 0) {
-              return '<p style="color:var(--text-secondary);">No lessons yet.</p>';
+        // 获取进度
+        var progress = { completedLessons: [], practiceCompleted: false, quizCompleted: false, reflectionCompleted: false };
+        try {
+            if (LawAIApp.ModuleProgress && typeof LawAIApp.ModuleProgress.get === 'function') {
+                progress = LawAIApp.ModuleProgress.get(moduleId) || progress;
             }
-            const prog = LawAIApp.ModuleProgress.get(moduleId);
-            return lessons.map(les => `
-              <div class="lesson-item" style="justify-content:space-between; padding:0.8rem; cursor:pointer;" onclick="LawAIApp.Router.navigate('lesson-detail', { lessonId: '${les.lessonId}' })">
-                <div>
-                  <strong>${les.order}. ${les.title}</strong>
-                  <small style="color:var(--text-secondary); display:block;">⏱️ ${les.estimatedMinutes} min · ⭐ ${les.estimatedXP} XP</small>
+        } catch (e) {}
+
+        var totalLessons = moduleData.estimatedLessons || 10;
+        var completedLessons = progress.completedLessons?.length || 0;
+        var lessonPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+        var moduleCompleted = completedLessons >= totalLessons;
+
+        var html = `
+            <div style="max-width:800px;margin:0 auto;padding:16px 20px 40px;color:#e2e8f0;">
+                <button class="back-btn" onclick="LawAIApp.Router?.goBack ? LawAIApp.Router.goBack() : history.back()" style="background:rgba(255,255,255,0.06);border:none;color:#4a9eff;padding:10px 16px;border-radius:10px;cursor:pointer;margin-bottom:16px;display:flex;align-items:center;gap:8px;font-size:14px;">
+                    ← Back to Course
+                </button>
+
+                <div style="background:linear-gradient(135deg, ${moduleData.themeColor || '#3b82f6'}, #6366f1);padding:24px;border-radius:16px;color:white;margin-bottom:16px;">
+                    <h2 style="margin:0 0 4px;font-size:20px;font-weight:700;">${moduleData.icon || '📦'} ${moduleData.name}</h2>
+                    <p style="margin:0 0 8px;opacity:0.9;">${moduleData.description || 'Learn key concepts.'}</p>
+                    <div style="display:flex;gap:16px;font-size:13px;opacity:0.85;flex-wrap:wrap;">
+                        <span>⏱️ ${moduleData.estimatedMinutes || 120} min</span>
+                        <span>⭐ ${moduleData.estimatedXP || 200} XP</span>
+                        <span>📊 ${moduleData.difficulty || 'Beginner'}</span>
+                    </div>
                 </div>
-                <span>${prog.completedLessons.includes(les.lessonId) ? '✅' : '▶️'}</span>
-              </div>
-            `).join('');
-          })()}
-        </div>
 
-        <!-- 🆕 快捷入口：Learning Hub、My Notes、Adaptive Memory -->
-        <div style="margin-top:1rem; display:flex; flex-direction:column; gap:0.5rem;">
-          <div style="text-align:center;">
-            <button class="quick-btn" onclick="LawAIApp.Router.navigate('learning-hub')">📚 Browse Learning Hub</button>
-          </div>
-          <div style="text-align:center;">
-            <button class="quick-btn" onclick="LawAIApp.Router.navigate('knowledge-capture')">📓 My Notes</button>
-          </div>
-          <div style="text-align:center;">
-            <button class="quick-btn" onclick="LawAIApp.Router.navigate('adaptive-memory')">🧠 Adaptive Memory</button>
-          </div>
-        </div>
+                <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px 18px;border:1px solid rgba(255,255,255,0.06);margin-bottom:16px;">
+                    <h3 style="margin:0 0 8px;font-size:14px;color:#94a3b8;font-weight:400;">Module Progress</h3>
+                    <div style="display:flex;justify-content:space-between;font-size:14px;">
+                        <span>Lessons: ${completedLessons}/${totalLessons}</span>
+                        <span>${lessonPercent}%</span>
+                    </div>
+                    <div style="width:100%;height:4px;background:rgba(255,255,255,0.06);border-radius:10px;overflow:hidden;margin-top:4px;">
+                        <div style="width:${lessonPercent}%;height:100%;background:linear-gradient(90deg,#4a9eff,#7c3aed);border-radius:10px;"></div>
+                    </div>
+                    <div style="margin-top:8px;font-size:13px;color:#94a3b8;">
+                        <span>Practice: ${progress.practiceCompleted ? '✅' : '⬜'}</span> |
+                        <span>Quiz: ${progress.quizCompleted ? '✅' : '⬜'}</span> |
+                        <span>Reflection: ${progress.reflectionCompleted ? '✅' : '⬜'}</span>
+                    </div>
+                    ${moduleCompleted ? '<p style="margin-top:8px;color:#22c55e;">🎉 Module Completed!</p>' : ''}
+                </div>
 
-        <!-- Navigation -->
-        <div class="lesson-nav" style="display:flex; justify-content:space-between; margin-top:1rem;">
-          <button class="quick-btn" onclick="alert('Previous module')">← Previous</button>
-          <button class="quick-btn" onclick="alert('Next module')">Next →</button>
-        </div>
-      </div>
-    `;
-    document.getElementById('app').innerHTML = html;
+                <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px 18px;border:1px solid rgba(255,255,255,0.06);margin-bottom:12px;">
+                    <h3 style="margin:0 0 8px;font-size:14px;color:#94a3b8;font-weight:400;">📖 Lessons</h3>
+                    ${Array.from({length: Math.min(totalLessons, 10)}, function(_, i) {
+                        var lessonId = 'day-' + (i + 1 + (parseInt(moduleId.replace('module_', '')) - 1) * 10);
+                        var isCompleted = progress.completedLessons?.indexOf(lessonId) !== -1;
+                        return `
+                            <div style="display:flex;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,0.02);border-radius:8px;margin-bottom:4px;cursor:pointer;" onclick="LawAIApp.Router?.navigate ? LawAIApp.Router.navigate('lesson-detail', {lessonId: '${lessonId}'}) : alert('${lessonId}')">
+                                <div>
+                                    <strong>${i+1}. Lesson ${i+1}</strong>
+                                    <small style="color:#94a3b8;display:block;">⏱️ 10 min · ⭐ 20 XP</small>
+                                </div>
+                                <span>${isCompleted ? '✅' : '▶️'}</span>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
 
-    // 绑定 Take Quiz 按钮事件
-    const takeQuizBtn = document.getElementById('take-quiz-btn');
-    if (takeQuizBtn) {
-      takeQuizBtn.addEventListener('click', () => {
-        LawAIApp.ModuleProgress.completeQuiz(moduleId, 85);
-        LawAIApp.Router.navigate('quiz-dashboard', { moduleId: moduleId });
-      });
+                <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+                    <button onclick="LawAIApp.Router?.navigate ? LawAIApp.Router.navigate('learning-hub') : alert('Learning Hub')" style="padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;cursor:pointer;">📚 Browse Learning Hub</button>
+                    <button onclick="LawAIApp.Router?.navigate ? LawAIApp.Router.navigate('knowledge-capture') : alert('Notes')" style="padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;cursor:pointer;">📓 My Notes</button>
+                    <button onclick="LawAIApp.Router?.navigate ? LawAIApp.Router.navigate('adaptive-memory') : alert('Memory')" style="padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;cursor:pointer;">🧠 Adaptive Memory</button>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;margin-top:16px;gap:12px;">
+                    <button onclick="alert('Previous module')" style="flex:1;padding:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#94a3b8;cursor:pointer;">← Previous</button>
+                    <button onclick="alert('Next module')" style="flex:1;padding:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#94a3b8;cursor:pointer;">Next →</button>
+                </div>
+            </div>
+        `;
+
+        app.innerHTML = html;
     }
-  }
 };
+
+console.log('📦 ModuleView V2.0 ready');
