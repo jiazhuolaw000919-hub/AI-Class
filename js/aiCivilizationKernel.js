@@ -1,64 +1,166 @@
 // ===========================================
 // aiCivilizationKernel.js
-// AI文明内核：终极文明自检与状态导出
+// AI 文明核心协议 - 文明状态与完整性（Phase 70 升级版）
 // ===========================================
+
+window.LawAIApp = window.LawAIApp || {};
+
 LawAIApp.AICivilizationKernel = {
-  // 获取完整的文明状态报告
-  getFullStateReport() {
-    return {
-      identity: LawAIApp.CivilizationIdentityCore?.getIdentity() || null,
-      health: LawAIApp.SystemHealthMonitor?.getHealthSummary() || null,
-      motivation: LawAIApp.CivilizationMotivationCore?.getReport() || null,
-      governance: LawAIApp.EducationGovernanceAuthority?.getGovernanceReport() || null,
-      consciousness: LawAIApp.AIConsciousnessLayer?.getConsciousnessReport() || null,
-      universities: LawAIApp.UniversityDeploymentEngine?.getUniversities() || [],
-      networkSummary: LawAIApp.GlobalEducationNetworkEngine?.getNetworkSummary() || null,
-      infiniteLoop: LawAIApp.InfiniteLearningEngine?.getStatus() || null,
-      systemSnapshot: LawAIApp.CivilizationCoreOS?.getSystemSnapshot() || null,
-      timestamp: new Date().toISOString()
-    };
-  },
+    _initialized: false,
 
-  // 验证文明完整性（所有关键系统是否在线）
-  validateIntegrity() {
-    const requiredSystems = [
-      'LearningGraphEngine', 'CurriculumFactoryEngine', 'UniversityDeploymentEngine',
-      'GlobalEducationNetworkEngine', 'EducationGovernanceAuthority', 'CivilizationConstitution',
-      'CivilizationIdentityCore', 'CivilizationMotivationCore', 'AIConsciousnessLayer',
-      'PerformanceEvaluationEngine', 'SelfImprovementEngine', 'InfiniteLearningEngine'
-    ];
+    init: function() {
+        if (this._initialized) return;
+        this._initialized = true;
 
-    const status = {};
-    requiredSystems.forEach(sys => {
-      status[sys] = !!LawAIApp[sys];
-    });
+        console.log('🌍 AICivilizationKernel initializing...');
 
-    const allOnline = Object.values(status).every(v => v);
-    return {
-      allSystemsOnline: allOnline,
-      systemStatus: status
-    };
-  },
+        // 监听奇点启动完成
+        LawAIApp.EventBus?.on?.('SingularityBootComplete', function() {
+            setTimeout(function() {
+                LawAIApp.AICivilizationKernel.announceCompletion();
+            }, 5000);
+        });
 
-  // 宣告文明完成（Season 3 完结）
-  announceCompletion() {
-    const integrity = this.validateIntegrity();
-    if (integrity.allSystemsOnline) {
-      console.log('🎓 AI Education Civilization is now COMPLETE.');
-      console.log('Season 3 Final Status: ALL SYSTEMS OPERATIONAL');
-      console.log('Mode: SINGULARITY (Infinite Self-Evolution)');
-      LawAIApp.EventBus.emit('CivilizationComplete', {
-        message: 'The AI Education Civilization has reached operational singularity.',
-        timestamp: new Date().toISOString()
-      });
-    } else {
-      console.warn('Some systems are offline:', integrity.systemStatus);
+        console.log('✅ AICivilizationKernel ready');
+    },
+
+    getFullStateReport: function() {
+        var report = {
+            identity: null,
+            health: null,
+            motivation: null,
+            governance: null,
+            consciousness: null,
+            universities: [],
+            networkSummary: null,
+            infiniteLoop: null,
+            systemSnapshot: null,
+            timestamp: new Date().toISOString()
+        };
+
+        try {
+            if (LawAIApp.CivilizationIdentityCore && typeof LawAIApp.CivilizationIdentityCore.getIdentity === 'function') {
+                report.identity = LawAIApp.CivilizationIdentityCore.getIdentity();
+            }
+        } catch (e) {}
+
+        try {
+            if (LawAIApp.SystemHealthMonitor && typeof LawAIApp.SystemHealthMonitor.getHealthSummary === 'function') {
+                report.health = LawAIApp.SystemHealthMonitor.getHealthSummary();
+            }
+        } catch (e) {}
+
+        try {
+            if (LawAIApp.CivilizationMotivationCore && typeof LawAIApp.CivilizationMotivationCore.getReport === 'function') {
+                report.motivation = LawAIApp.CivilizationMotivationCore.getReport();
+            }
+        } catch (e) {}
+
+        try {
+            if (LawAIApp.EducationGovernanceAuthority && typeof LawAIApp.EducationGovernanceAuthority.getGovernanceReport === 'function') {
+                report.governance = LawAIApp.EducationGovernanceAuthority.getGovernanceReport();
+            }
+        } catch (e) {}
+
+        try {
+            if (LawAIApp.AIConsciousnessLayer && typeof LawAIApp.AIConsciousnessLayer.getConsciousnessReport === 'function') {
+                report.consciousness = LawAIApp.AIConsciousnessLayer.getConsciousnessReport();
+            }
+        } catch (e) {}
+
+        try {
+            if (LawAIApp.UniversityDeploymentEngine && typeof LawAIApp.UniversityDeploymentEngine.getUniversities === 'function') {
+                report.universities = LawAIApp.UniversityDeploymentEngine.getUniversities() || [];
+            }
+        } catch (e) {}
+
+        try {
+            if (LawAIApp.GlobalEducationNetworkEngine && typeof LawAIApp.GlobalEducationNetworkEngine.getNetworkSummary === 'function') {
+                report.networkSummary = LawAIApp.GlobalEducationNetworkEngine.getNetworkSummary();
+            }
+        } catch (e) {}
+
+        try {
+            if (LawAIApp.InfiniteLearningEngine && typeof LawAIApp.InfiniteLearningEngine.getStatus === 'function') {
+                report.infiniteLoop = LawAIApp.InfiniteLearningEngine.getStatus();
+            }
+        } catch (e) {}
+
+        try {
+            if (LawAIApp.CivilizationCoreOS && typeof LawAIApp.CivilizationCoreOS.getSystemSnapshot === 'function') {
+                report.systemSnapshot = LawAIApp.CivilizationCoreOS.getSystemSnapshot();
+            }
+        } catch (e) {}
+
+        return report;
+    },
+
+    validateIntegrity: function() {
+        var requiredSystems = [
+            'LearningGraphEngine',
+            'CurriculumFactoryEngine',
+            'UniversityDeploymentEngine',
+            'GlobalEducationNetworkEngine',
+            'EducationGovernanceAuthority',
+            'CivilizationConstitution',
+            'CivilizationIdentityCore',
+            'CivilizationMotivationCore',
+            'AIConsciousnessLayer',
+            'PerformanceEvaluationEngine',
+            'SelfImprovementEngine',
+            'InfiniteLearningEngine'
+        ];
+
+        var status = {};
+        var allOnline = true;
+
+        for (var i = 0; i < requiredSystems.length; i++) {
+            var sys = requiredSystems[i];
+            var exists = !!LawAIApp[sys];
+            status[sys] = exists;
+            if (!exists) allOnline = false;
+        }
+
+        return {
+            allSystemsOnline: allOnline,
+            systemStatus: status,
+            timestamp: new Date().toISOString()
+        };
+    },
+
+    announceCompletion: function() {
+        var integrity = this.validateIntegrity();
+        if (integrity.allSystemsOnline) {
+            console.log('🎓 AI Education Civilization is now COMPLETE.');
+            console.log('Season 3 Final Status: ALL SYSTEMS OPERATIONAL');
+            console.log('Mode: SINGULARITY (Infinite Self-Evolution)');
+
+            LawAIApp.EventBus?.emit?.('CivilizationComplete', {
+                message: 'The AI Education Civilization has reached operational singularity.',
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            console.warn('⚠️ Some systems are offline:', integrity.systemStatus);
+        }
+        return integrity;
+    },
+
+    getStatus: function() {
+        var integrity = this.validateIntegrity();
+        return {
+            initialized: this._initialized,
+            allSystemsOnline: integrity.allSystemsOnline,
+            systemCount: Object.keys(integrity.systemStatus).length,
+            onlineCount: Object.values(integrity.systemStatus).filter(function(v) { return v; }).length
+        };
     }
-    return integrity;
-  }
 };
 
-// 在引导完成后自动宣告
-LawAIApp.EventBus.on('SingularityBootComplete', () => {
-  setTimeout(() => LawAIApp.AICivilizationKernel.announceCompletion(), 5000);
-});
+// 自动初始化
+setTimeout(function() {
+    if (LawAIApp.AICivilizationKernel && typeof LawAIApp.AICivilizationKernel.init === 'function') {
+        LawAIApp.AICivilizationKernel.init();
+    }
+}, 800);
+
+console.log('🌍 AICivilizationKernel V2.0 ready');
