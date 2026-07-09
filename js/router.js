@@ -103,7 +103,8 @@ LawAIApp.Router = {
      * 加载页面
      */
     loadPage: function(page) {
-        var app = document.getElementById('app');
+        // 🔧 修复：同时支持 #app 和 #law-runtime-root
+        var app = document.getElementById('app') || document.getElementById('law-runtime-root');
 
         // ============================================================
         //  Academy 路由（支持 /pages/academy.html）
@@ -572,7 +573,8 @@ LawAIApp.Router = {
 
         breadcrumb.innerHTML = html;
 
-        var app = document.getElementById('app');
+        // 🔧 修复：同时支持 #app 和 #law-runtime-root
+        var app = document.getElementById('app') || document.getElementById('law-runtime-root');
         if (app && app.parentNode) {
             app.parentNode.insertBefore(breadcrumb, app);
         }
