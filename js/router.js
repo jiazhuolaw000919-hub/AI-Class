@@ -378,9 +378,16 @@ LawAIApp.Router = {
 
         var template = document.getElementById('template-' + page);
         if (!template) {
-            console.warn('⚠️ Template not found:', page);
+            // 不再报错，显示友好的占位
+            console.log('📄 Page: ' + page + ' (no template, using fallback)');
             if (app) {
-                app.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;"><h3>Page Not Found</h3><p>' + page + '</p></div>';
+                app.innerHTML = `
+                    <div style="padding:40px;text-align:center;color:#94a3b8;">
+                        <h3>📄 ${page.charAt(0).toUpperCase() + page.slice(1)}</h3>
+                        <p>Content is being prepared.</p>
+                        <button onclick="LawAIApp.Router.goHome()" style="margin-top:16px;padding:8px 24px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#e2e8f0;cursor:pointer;">🏠 Go Home</button>
+                    </div>
+                `;
             }
             this.currentPage = page;
             return;
