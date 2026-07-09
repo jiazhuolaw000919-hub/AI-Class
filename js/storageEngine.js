@@ -1,5 +1,11 @@
 // storageEngine.js
 // 统一 LocalStorage 操作，方便未来切换为 Supabase 或 IndexedDB
+
+// ============================================================
+// 🛡️ 保险杠：确保 LawAIApp 全局对象存在（防止加载顺序报错）
+// ============================================================
+window.LawAIApp = window.LawAIApp || {};
+
 LawAIApp.StorageEngine = {
   prefix: 'lawai_',
 
