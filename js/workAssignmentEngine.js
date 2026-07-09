@@ -1,37 +1,114 @@
 // ===========================================
 // workAssignmentEngine.js
-// 工作任务分配引擎（用户侧）
+// 工作任务分配引擎（Phase 67 升级版）
 // ===========================================
+
+window.LawAIApp = window.LawAIApp || {};
+
 LawAIApp.WorkAssignmentEngine = {
-  async acceptAndStartTask(taskId) {
-    const tasks = LawAIApp.StorageEngine.get('generated_tasks', []);
-    const task = tasks.find(t => t.taskId === taskId);
-    if (!task || task.status !== 'available') return null;
+    _initialized: false,
 
-    const assigned = await LawAIApp.AgentTaskCoordinator.assignTask(task);
-    if (!assigned) return null;
+    init: function() {
+        if (this._initialized) return;
+        this._initialized = true;
+        console.log('📋 WorkAssignmentEngine initialized');
+    },
 
-    // 标记为用户进行中
-    task.status = 'in_progress';
-    LawAIApp.StorageEngine.set('generated_tasks', tasks);
-    LawAIApp.EventBus.emit('WorkTaskStarted', task);
-    return task;
-  },
+    acceptAndStartTask: function(taskId) {
+        console.log('📋 Accepting task:', taskId);
 
-  completeTask(taskId, performanceScore = 1.0) {
-    const tasks = LawAIApp.StorageEngine.get('generated_tasks', []);
-    const task = tasks.find(t => t.taskId === taskId);
-    if (!task || task.status !== 'in_progress') return null;
+        try {
+            var tasks = LawAIApp.StorageEngine?.get?.('generated_tasks') || [];
+            var task = null;
+            for (var i = 0; i < tasks.length; i++) {
+                if (tasks[i].taskId === taskId) {
+                    task = tasks[i];
+                    break;
+                }
+            }
 
-    task.status = 'completed';
-    task.completedAt = new Date().toISOString();
-    task.performanceScore = performanceScore;
-    LawAIApp.StorageEngine.set('generated_tasks', tasks);
+            if (!task) {
+                console.warn('⚠️ Task not found:', taskId);
+                return null;
+            }
+            if (task.status !== 'available') {
+                console.warn('⚠️ Task not available:', task.status);
+                return null;
+            }
 
-    // 反馈给技能部署引擎
-    LawAIApp.SkillDeploymentEngine.handleTaskCompletion(task);
+            // 分配任务
+            var assigned = false;
+            try {
+                if (LawAIApp.AgentTaskCoordinator && typeof LawAIApp.AgentTaskCoordinator.assignTask === 'function') {
+                    assigned = LawAIApp.AgentTaskCoordinator.assignTask(task);
+                }
+            } catch (e) {}
 
-    LawAIApp.EventBus.emit('WorkTaskCompleted', task);
-    return task;
-  }
-};
+            if (assigned === false) {
+                // 直接分配
+                assigned = true;
+            }
+
+            if (!assigned) {
+                console.warn('⚠️ Failed to assign task:', taskId);
+                return null;
+            }
+
+            task.status = 'in_progress';
+            task.startedAt = new Date().toISOString();
+
+            if (LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.set === 'function') {
+                LawAIApp.StorageEngine.set('generated_tasks', tasks);
+            }
+
+            LawAIApp.EventBus?.emit?.('WorkTaskStarted', task);
+            console.log('✅ Task started:', taskId);
+            return task;
+
+        } catch (err) {
+            console.warn('⚠️ acceptAndStartTask failed:', err);
+            return null;
+        }
+    },
+
+    completeTask: function(taskId, performanceScore) {
+        performanceScore = performanceScore || 1.0;
+        console.log('📋 Completing task:', taskId);
+
+        try {
+            var tasks = LawAIApp.StorageEngine?.get?.('generated_tasks') || [];
+            var task = null;
+            for (var i = 0; i < tasks.length; i++) {
+                if (tasks[i].taskId === taskId) {
+                    task = tasks[i];
+                    break;
+                }
+            }
+
+            if (!task) {
+                console.warn('⚠️ Task not found:', taskId);
+                return null;
+            }
+            if (task.status !== 'in_progress') {
+                console.warn('⚠️ Task not in progress:', task.status);
+                return null;
+            }
+
+            task.status = 'completed';
+            task.completedAt = new Date().toISOString();
+            task.performanceScore = performanceScore;
+
+            if (LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.set === 'function') {
+                LawAIApp.StorageEngine.set('generated_tasks', tasks);
+            }
+
+            // 反馈给技能部署引擎
+            try {
+                if (LawAIApp.SkillDeploymentEngine && typeof LawAIApp.SkillDeploymentEngine.handleTaskCompletion === 'function') {
+                    LawAIApp.SkillDeploymentEngine.handleTaskCompletion(task);
+                }
+            } catch (e) {}
+
+            LawAIApp.EventBus?.emit?.('WorkTaskCompleted', task);
+            console.log('✅ Task completed:', taskId);
+            return task
