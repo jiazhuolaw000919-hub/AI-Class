@@ -84,7 +84,6 @@ LawAIApp.Router = {
             path += '?' + query;
         }
 
-        // 如果当前路径已经是 /pages/academy.html，不要重复添加
         var currentPath = window.location.pathname;
         if (page === 'academy' && currentPath.includes('/pages/academy.html')) {
             console.log('📌 Already on academy page, skipping URL update');
@@ -103,11 +102,10 @@ LawAIApp.Router = {
      * 加载页面
      */
     loadPage: function(page) {
-        // 🔧 修复：同时支持 #app 和 #law-runtime-root
         var app = document.getElementById('app') || document.getElementById('law-runtime-root');
 
         // ============================================================
-        //  Academy 路由（支持 /pages/academy.html）
+        //  Academy 路由
         // ============================================================
         if (page === 'academy' || page === 'academy.html' || page === 'pages') {
             var currentPath = window.location.pathname;
@@ -161,7 +159,7 @@ LawAIApp.Router = {
         }
 
         // ============================================================
-        //  academy-dashboard（兼容旧路由）
+        //  academy-dashboard
         // ============================================================
         if (page === 'academy-dashboard') {
             if (app) {
@@ -380,7 +378,38 @@ LawAIApp.Router = {
         }
 
         // ============================================================
-        //  模板页面（原有逻辑）
+        //  🔧 修复：动态页面（先尝试 render 函数，再走 template 兜底）
+        // ============================================================
+        var pageRenderers = {
+            'dashboard': LawAIApp.Dashboard,
+            'learning': LawAIApp.Learning,
+            'calendar': LawAIApp.Calendar,
+            'notes': LawAIApp.Notes,
+            'settings': LawAIApp.Settings,
+            'tools': LawAIApp.Tools,
+            'prompt': LawAIApp.Prompt,
+            'lesson': LawAIApp.LessonPage
+        };
+
+        var renderer = pageRenderers[page];
+        if (renderer && typeof renderer.render === 'function') {
+            if (app) app.innerHTML = '';
+            renderer.render(this.currentParams);
+            this.currentPage = page;
+            // 缓存
+            setTimeout(function() {
+                if (page !== 'lesson' && page !== 'lesson-detail' && page !== 'module') {
+                    var currentHTML = document.getElementById('app')?.innerHTML || document.getElementById('law-runtime-root')?.innerHTML;
+                    if (currentHTML) {
+                        this._pageCache[this._getCacheKey(page, this.currentParams)] = currentHTML;
+                    }
+                }
+            }.bind(this), 100);
+            return;
+        }
+
+        // ============================================================
+        //  模板页面（fallback）
         // ============================================================
         var cacheKey = this._getCacheKey(page, this.currentParams);
         if (this._pageCache[cacheKey]) {
@@ -415,20 +444,10 @@ LawAIApp.Router = {
         }
         this.currentPage = page;
 
-        // 页面初始化
-        if (page === 'dashboard' && LawAIApp.Dashboard) LawAIApp.Dashboard.render();
-        else if (page === 'learning' && LawAIApp.Learning) LawAIApp.Learning.render();
-        else if (page === 'calendar' && LawAIApp.Calendar) LawAIApp.Calendar.render();
-        else if (page === 'notes' && LawAIApp.Notes) LawAIApp.Notes.render();
-        else if (page === 'settings' && LawAIApp.Settings) LawAIApp.Settings.render();
-        else if (page === 'tools' && LawAIApp.Tools) LawAIApp.Tools.render?.();
-        else if (page === 'prompt' && LawAIApp.Prompt) LawAIApp.Prompt.render?.();
-        else if (page === 'lesson' && LawAIApp.LessonPage) LawAIApp.LessonPage.render(this.currentParams);
-
-        // 缓存页面（非动态页面）
+        // 缓存
         setTimeout(function() {
             if (page !== 'lesson' && page !== 'lesson-detail' && page !== 'module') {
-                var currentHTML = document.getElementById('app')?.innerHTML;
+                var currentHTML = document.getElementById('app')?.innerHTML || document.getElementById('law-runtime-root')?.innerHTML;
                 if (currentHTML) {
                     this._pageCache[cacheKey] = currentHTML;
                 }
@@ -440,7 +459,6 @@ LawAIApp.Router = {
      * 更新导航高亮 + 面包屑
      */
     updateNav: function(activePage) {
-        // 更新导航高亮
         document.querySelectorAll('.nav-item').forEach(function(btn) {
             var page = btn.dataset.page;
             if (page === activePage) {
@@ -449,15 +467,13 @@ LawAIApp.Router = {
                 btn.classList.remove('active');
             }
         });
-        // 渲染面包屑
         this._renderBreadcrumb();
     },
 
     /**
-     * 从路径获取页面名（支持 /pages/academy.html）
+     * 从路径获取页面名
      */
     _getPageFromPath: function(path) {
-        // 如果是 /pages/academy.html 或 /pages/lesson.html
         if (path.includes('/pages/')) {
             var parts = path.split('/pages/');
             var file = parts[parts.length - 1];
@@ -573,7 +589,6 @@ LawAIApp.Router = {
 
         breadcrumb.innerHTML = html;
 
-        // 🔧 修复：同时支持 #app 和 #law-runtime-root
         var app = document.getElementById('app') || document.getElementById('law-runtime-root');
         if (app && app.parentNode) {
             app.parentNode.insertBefore(breadcrumb, app);
@@ -583,9 +598,7 @@ LawAIApp.Router = {
     /**
      * 重新运行页面脚本
      */
-    _rerunPageScripts: function(page) {
-        // 预留
-    },
+    _rerunPageScripts: function(page) {},
 
     /**
      * 返回上一页
@@ -652,4 +665,4 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     });
 }
 
-console.log('🧭 Router V4.1 ready (supports /pages/academy.html)');
+console.log('🧭 Router V4.2 ready (fixed dynamic page render)');
