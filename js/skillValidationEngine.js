@@ -1,43 +1,97 @@
 // ===========================================
-// PHASE 66-06: skillValidationEngine.js
-// 主引擎：技能验证与证书网络
+// skillValidationEngine.js
+// 技能验证引擎 - 主入口（Phase 66 升级版）
 // ===========================================
+
+window.LawAIApp = window.LawAIApp || {};
+
 LawAIApp.SkillValidationEngine = {
-  async init() {
-    // 在关键学习事件后自动验证技能
-    LawAIApp.EventBus.on('ProjectFinished', async (data) => {
-      if (data.skills) {
-        data.skills.forEach(async (skillName) => {
-          const skillId = `skill_${skillName.toLowerCase().replace(/\s/g, '_')}`;
-          await LawAIApp.CertificationGenerator.certifySkill(skillId);
+    _initialized: false,
+
+    init: function() {
+        if (this._initialized) return;
+        this._initialized = true;
+
+        console.log('🔬 SkillValidationEngine initializing...');
+
+        // 监听项目完成
+        LawAIApp.EventBus?.on?.('ProjectFinished', function(data) {
+            var skills = data.skills || [];
+            if (skills.length > 0) {
+                for (var i = 0; i < skills.length; i++) {
+                    var skillName = skills[i];
+                    var skillId = 'skill_' + skillName.toLowerCase().replace(/\s/g, '_');
+                    setTimeout(function(sid) {
+                        LawAIApp.SkillValidationEngine.validateAndCertify(sid);
+                    }, 500, skillId);
+                }
+            }
         });
-      }
-    });
 
-    LawAIApp.EventBus.on('QuizCompleted', async (data) => {
-      // 简单处理：对当前模块相关的技能进行验证
-      const skills = LawAIApp.SkillTracker?.getAllSkills() || [];
-      for (const skill of skills.slice(0, 2)) { // 仅验证前两个
-        await LawAIApp.CertificationGenerator.certifySkill(skill.skillId);
-      }
-    });
+        // 监听测验完成
+        LawAIApp.EventBus?.on?.('QuizCompleted', function() {
+            var skills = [];
+            try {
+                if (LawAIApp.SkillTracker && typeof LawAIApp.SkillTracker.getAllSkills === 'function') {
+                    skills = LawAIApp.SkillTracker.getAllSkills() || [];
+                }
+            } catch (e) {}
 
-    console.log('Skill Validation Network activated.');
-  },
+            for (var i = 0; i < Math.min(skills.length, 2); i++) {
+                if (skills[i] && skills[i].skillId) {
+                    setTimeout(function(sid) {
+                        LawAIApp.SkillValidationEngine.validateAndCertify(sid);
+                    }, 500, skills[i].skillId);
+                }
+            }
+        });
 
-  // 对外接口：手动验证技能
-  async validateAndCertify(skillId) {
-    return LawAIApp.CertificationGenerator.certifySkill(skillId);
-  },
+        console.log('✅ Skill Validation Network activated.');
+    },
 
-  getCertificates() {
-    return LawAIApp.CertificationGenerator.getAllCertificates();
-  },
+    validateAndCertify: async function(skillId) {
+        console.log('🔬 Validating and certifying skill:', skillId);
+        try {
+            if (LawAIApp.CertificationGenerator && typeof LawAIApp.CertificationGenerator.certifySkill === 'function') {
+                return await LawAIApp.CertificationGenerator.certifySkill(skillId);
+            }
+        } catch (e) {
+            console.warn('⚠️ Certification failed:', e);
+        }
+        return null;
+    },
 
-  exportSkillCredential(skillId) {
-    return LawAIApp.SkillTrustLayer.exportCredential(skillId);
-  }
+    getCertificates: function() {
+        try {
+            if (LawAIApp.CertificationGenerator && typeof LawAIApp.CertificationGenerator.getAllCertificates === 'function') {
+                return LawAIApp.CertificationGenerator.getAllCertificates();
+            }
+        } catch (e) {}
+        return [];
+    },
+
+    exportSkillCredential: function(skillId) {
+        try {
+            if (LawAIApp.SkillTrustLayer && typeof LawAIApp.SkillTrustLayer.exportCredential === 'function') {
+                return LawAIApp.SkillTrustLayer.exportCredential(skillId);
+            }
+        } catch (e) {}
+        return null;
+    },
+
+    getStatus: function() {
+        return {
+            initialized: this._initialized,
+            certificates: this.getCertificates().length
+        };
+    }
 };
 
 // 自动初始化
-setTimeout(() => LawAIApp.SkillValidationEngine.init(), 800);
+setTimeout(function() {
+    if (LawAIApp.SkillValidationEngine && typeof LawAIApp.SkillValidationEngine.init === 'function') {
+        LawAIApp.SkillValidationEngine.init();
+    }
+}, 800);
+
+console.log('🔬 SkillValidationEngine V2.0 ready');
