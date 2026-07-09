@@ -19,7 +19,33 @@ var _loadCache = {};
 var _loadingPromises = {};
 
 // ===========================================
-// 加载脚本（使用绝对路径）
+// 获取当前脚本的目录路径
+// ===========================================
+function getBasePath() {
+    // 获取当前执行脚本的路径
+    var scripts = document.getElementsByTagName('script');
+    var currentScript = scripts[scripts.length - 1];
+    var src = currentScript.src || '';
+    
+    // 如果 src 包含 /js/loader.js，提取基础路径
+    var match = src.match(/^(.*)\/js\/loader\.js/);
+    if (match) {
+        return match[1] + '/js/';
+    }
+    
+    // 备用：使用当前页面的路径
+    var path = window.location.pathname;
+    if (path.includes('/pages/')) {
+        return '/js/';
+    }
+    return 'js/';
+}
+
+var BASE_PATH = getBasePath();
+console.log('📂 Loader base path:', BASE_PATH);
+
+// ===========================================
+// 加载脚本
 // ===========================================
 function loadScript(src) {
     if (_loadCache[src]) {
@@ -31,8 +57,7 @@ function loadScript(src) {
     }
 
     var promise = new Promise(function(resolve) {
-        // 直接使用绝对路径 /js/
-        var path = '/js/' + src;
+        var path = BASE_PATH + src;
         
         var existing = document.querySelector('script[src="' + path + '"]');
         if (existing) {
@@ -51,7 +76,16 @@ function loadScript(src) {
 
         script.onerror = function() {
             console.warn("⚠️ Failed to load:", src, "from", path);
-            resolve({ file: src, status: "missing" });
+            
+            // 尝试备用路径
+            var fallbackPaths = [
+                '/js/' + src,
+                '../js/' + src,
+                'js/' + src
+            ];
+            
+            var tried = 0;
+            tryNext(fallbackPaths, tried, resolve, src);
         };
 
         document.head.appendChild(script);
@@ -59,6 +93,27 @@ function loadScript(src) {
 
     _loadingPromises[src] = promise;
     return promise;
+}
+
+function tryNext(paths, index, resolve, src) {
+    if (index >= paths.length) {
+        resolve({ file: src, status: "missing" });
+        return;
+    }
+    
+    var path = paths[index];
+    console.log('🔄 Trying fallback:', path);
+    
+    var script = document.createElement("script");
+    script.src = path;
+    script.onload = function() {
+        _loadCache[src] = true;
+        resolve({ file: src, status: "ok" });
+    };
+    script.onerror = function() {
+        tryNext(paths, index + 1, resolve, src);
+    };
+    document.head.appendChild(script);
 }
 
 // ===========================================
@@ -108,7 +163,8 @@ LawAIApp.clearLoadCache = function() {
 // 启动
 // ===========================================
 async function boot() {
-    console.log("🚀 Loader V4.5 starting (absolute paths)");
+    console.log("🚀 Loader V4.6 starting (auto-detecting path)");
+    console.log("📂 Base path:", BASE_PATH);
     console.log("📦 Loading " + CORE_ENGINES.length + " core modules...");
 
     var startTime = Date.now();
@@ -134,7 +190,6 @@ async function boot() {
 
     window.LawAIApp.bootStatus = window.__ENGINE_STATUS__;
 
-    // 触发系统就绪
     setTimeout(function() {
         window.dispatchEvent(new CustomEvent("SYSTEM_READY", {
             detail: {
@@ -158,4 +213,4 @@ if (document.readyState === "complete" || document.readyState === "interactive")
     });
 }
 
-console.log("🚀 Loader V4.5 ready (absolute paths)");
+console.log("🚀 Loader V4.6 ready (auto-detecting path)");
