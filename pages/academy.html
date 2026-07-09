@@ -9,21 +9,24 @@
     <link rel="stylesheet" href="/css/components.css">
 </head>
 <body>
-    <!-- 渲染容器 -->
     <div id="app"></div>
 
-    <!-- 加载核心 JS（使用绝对路径 /js/） -->
+    <!-- 设置根路径，让 loader.js 知道从哪里加载 -->
+    <script>
+        window.__ROOT_PATH__ = '/';
+        console.log('📂 Root path set to:', window.__ROOT_PATH__);
+    </script>
+
+    <!-- 使用绝对路径加载 loader.js -->
     <script src="/js/loader.js"></script>
     <script src="/js/app.js"></script>
     <script src="/js/academyAIView.js"></script>
     <script src="/js/router.js"></script>
 
     <script>
-        // 等待 DOM 加载完成后渲染 Academy 页面
         document.addEventListener('DOMContentLoaded', function() {
             console.log('📄 Academy page loaded');
             
-            // 等待 LawAIApp 就绪
             function renderAcademy() {
                 var app = document.getElementById('app');
                 if (!app) return;
@@ -38,7 +41,6 @@
                 }
             }
             
-            // 如果 AcademyAIView 已经存在，直接渲染
             if (window.LawAIApp?.Views?.AcademyAIView) {
                 var app = document.getElementById('app');
                 if (app) {
@@ -46,12 +48,9 @@
                     window.LawAIApp.Views.AcademyAIView.render(app);
                 }
             } else {
-                // 监听 SYSTEM_READY 事件
                 document.addEventListener('SYSTEM_READY', function() {
                     setTimeout(renderAcademy, 300);
                 });
-                
-                // 备用：3秒后强制渲染
                 setTimeout(renderAcademy, 3000);
             }
         });
