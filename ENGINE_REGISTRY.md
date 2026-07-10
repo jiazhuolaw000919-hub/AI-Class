@@ -36,8 +36,9 @@ REGISTRY SUMMARY
 | ENG-007 | PracticeEngine | Core Logic | 🟢 Canon Locked | 2.0.0 |
 | ENG-008 | ReflectionEngine | Core Logic | 🟢 Canon Locked | 1.0.0 |
 | ENG-009 | AIMentorEngine | AI Layer | 🟢 Canon Locked | 1.0.0 |
+| ENG-010 | ExperienceEngine | UI Layer | 🟢 Canon Locked | 1.0.0 |
 
-**Total Registered Engines:** 9
+**Total Registered Engines:** 10
 
 **Status Breakdown:**
 - 🟢 Canon Locked: 9
