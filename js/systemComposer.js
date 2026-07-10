@@ -517,12 +517,42 @@ LawAIApp.SystemComposer = {
         var diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
         var diffMin = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
+        // ===== 🔥 动态问候 + 鼓励语 =====
+        function getGreeting() {
+            var hour = new Date().getHours();
+            if (hour < 12) return '🌅 Good morning';
+            if (hour < 17) return '☀️ Good afternoon';
+            if (hour < 21) return '🌇 Good evening';
+            return '🌙 Good night';
+        }
+
+        var greeting = getGreeting();
+        var encouragement = '';
+        if (completedList.length > 0) {
+            if (completedList.length >= 365) {
+                encouragement = '🏆 You\'re a legend!';
+            } else if (streak >= 30) {
+                encouragement = '🔥 ' + streak + ' days streak! Amazing!';
+            } else if (streak >= 7) {
+                encouragement = '💪 ' + streak + ' days streak! Keep going!';
+            } else if (completedList.length >= 10) {
+                encouragement = '🌟 You\'ve completed ' + completedList.length + ' lessons!';
+            } else if (completedList.length > 0) {
+                encouragement = '🌱 Every journey begins with a single step.';
+            }
+        }
+
         var mentorMsg = isDemo ? '🌟 Complete your first lesson to unlock personalized guidance!' :
                         (completedList.length >= 365 ? '🏆 You\'ve mastered all 365 lessons! Incredible!' :
                         (completionPercent < 30 ? '🌱 Keep building your foundation. Consistency is key!' :
                         (completionPercent < 60 ? '📈 You\'re making great progress! Keep it up!' :
                         (completionPercent < 90 ? '💪 Almost there! Finish strong!' :
                         '🎯 You\'re so close to the finish line!'))));
+
+        var fullMentorMsg = greeting + '! ' + mentorMsg;
+        if (encouragement) {
+            fullMentorMsg += ' ' + encouragement;
+        }
 
         var skills = this._getSkillMastery(completedList, isDemo);
         var skillsHtml = skills.map(function(s) {
@@ -624,7 +654,7 @@ LawAIApp.SystemComposer = {
         }.bind(this)).join('');
 
         // ============================================================
-        // 完整 HTML（保持你的原版，只更新版本号）
+        // 完整 HTML
         // ============================================================
         this.root.innerHTML = `
         <div id="systemComposerRoot" style="
@@ -685,7 +715,7 @@ LawAIApp.SystemComposer = {
                         gap:12px;
                     ">
                         <span style="font-size:24px;">🧠</span>
-                        <span style="font-size:14px;color:#e2e8f0;flex:1;">${mentorMsg}</span>
+                        <span style="font-size:14px;color:#e2e8f0;flex:1;">${fullMentorMsg}</span>
                     </div>
 
                     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">
@@ -723,7 +753,12 @@ LawAIApp.SystemComposer = {
                         </div>
                         <p style="margin:0 0 10px 0;color:#94a3b8;font-size:13px;">${isDemo ? 'Complete your first lesson to unlock content!' : nextSummary}</p>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            <a href="${isDemo ? '/pages/academy.html' : '/pages/lesson.html'}" style="padding:8px 20px;background:#4a9eff;border-radius:8px;color:white;font-size:13px;font-weight:600;text-decoration:none;">${isDemo ? '📖 Start' : '📖 Continue'}</a>
+                            ${(function() {
+                                var nextDay = completedList.length >= 365 ? 365 : Math.min(day + 1, 365);
+                                var lessonLink = isDemo ? '/pages/academy.html' : '/pages/lesson.html?day=' + nextDay;
+                                var btnText = isDemo ? '📖 Start' : (completedList.length >= 365 ? '🎉 Review' : '📖 Continue');
+                                return '<a href="' + lessonLink + '" style="padding:8px 20px;background:#4a9eff;border-radius:8px;color:white;font-size:13px;font-weight:600;text-decoration:none;">' + btnText + '</a>';
+                            })()}
                             <button onclick="if(LawAIApp.Toast) LawAIApp.Toast.info('✏️ Practice coming soon!')" style="padding:8px 20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#94a3b8;font-size:13px;cursor:pointer;">✏️ Practice</button>
                         </div>
                     </div>
@@ -755,7 +790,7 @@ LawAIApp.SystemComposer = {
             </div>
 
             <nav style="position:fixed;bottom:0;left:0;right:0;background:rgba(20,20,40,0.92);backdrop-filter:blur(12px);border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-around;padding:6px 0 12px;z-index:100;">
-                <a href="#" class="nav-item active" data-tab="home" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#4a9eff;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">🏠</span><span>Home</span></a>
+                <a href="/" class="nav-item" data-tab="home" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#4a9eff;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">🏠</span><span>Home</span></a>
                 <a href="/pages/academy.html" class="nav-item" data-tab="academy" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">📚</span><span>Academy</span></a>
                 <a href="#" class="nav-item" data-tab="calendar" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">📅</span><span>Calendar</span></a>
                 <a href="#" class="nav-item" data-tab="notes" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">📝</span><span>Notes</span></a>
@@ -818,15 +853,21 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 导航守卫（保留原功能）
+    // 🔥 导航守卫（修复：Home 和 Academy 真正跳转）
     // ============================================================
     _setupNavGuard: function() {
         var navItems = document.querySelectorAll('.nav-item');
+        var self = this;
         navItems.forEach(function(item) {
-            item.removeEventListener('click', this._navClickHandler);
-            item.addEventListener('click', this._navClickHandler = function(e) {
+            item.removeEventListener('click', self._navClickHandler);
+            item.addEventListener('click', self._navClickHandler = function(e) {
                 var tab = this.getAttribute('data-tab');
-                if (tab === 'home' || tab === 'academy') {
+                if (tab === 'home') {
+                    window.location.href = '/';
+                    return;
+                }
+                if (tab === 'academy') {
+                    window.location.href = '/pages/academy.html';
                     return;
                 }
                 e.preventDefault();
