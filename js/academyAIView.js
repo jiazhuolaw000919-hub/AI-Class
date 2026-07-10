@@ -1,6 +1,6 @@
 // ===========================================
 // academyAIView.js
-// AI 基础学院 - Campus Edition (Phase 2)
+// AI 基础学院 - Campus Edition (Phase 2) + Navigation (Phase 6)
 // "Academy is Campus. Not a webpage."
 // ===========================================
 
@@ -26,19 +26,16 @@ LawAIApp.Views.AcademyAIView = {
         }
 
         this._rendered = true;
-        console.log('🏛️ AcademyAIView V6.0 rendering (Campus Edition)...');
+        console.log('🏛️ AcademyAIView V6.1 rendering (Campus Edition + Navigation)...');
 
-        // 获取数据
         var academy = this._getAcademyData();
         var progress = this._getProgressData();
         var recommendations = this._getRecommendations();
         var schools = this._getSchools();
         var courses = this._getCourses();
 
-        // 立即渲染核心内容
         app.innerHTML = this._buildCoreHTML(academy, progress, recommendations, schools, courses);
 
-        // 延迟渲染次要内容
         var self = this;
         setTimeout(function() {
             self._renderDeferredContent(app, academy, progress, recommendations, schools, courses);
@@ -157,7 +154,6 @@ LawAIApp.Views.AcademyAIView = {
         var total = progress.total || 365;
         var completed = progress.completed || 0;
 
-        // 生成课程列表（基于进度）
         var categories = ['Foundation', 'Prompt Engineering', 'AI Tools', 'AI Development', 'Projects', 'AI Business'];
         var icons = ['🏛️', '✍️', '🛠️', '💻', '🚀', '💼'];
 
@@ -198,8 +194,30 @@ LawAIApp.Views.AcademyAIView = {
     },
 
     _getContinueLink: function(lessonId) {
+        // 🔥 Phase 6: 使用 Router 的智能继续
+        if (LawAIApp.Router && typeof LawAIApp.Router.getContinueLink === 'function') {
+            return LawAIApp.Router.getContinueLink();
+        }
         if (!lessonId) lessonId = 'day-1';
         return '/pages/lesson.html?day=' + lessonId.replace('day-', '');
+    },
+
+    _getContinueTitle: function() {
+        // 🔥 Phase 6: 使用 Router 的智能继续标题
+        if (LawAIApp.Router && typeof LawAIApp.Router.getContinueTitle === 'function') {
+            return LawAIApp.Router.getContinueTitle();
+        }
+        var progress = this._getProgressData();
+        return this._getLessonTitle(progress.completed + 1);
+    },
+
+    _getContinueDescription: function() {
+        // 🔥 Phase 6: 使用 Router 的智能继续描述
+        if (LawAIApp.Router && typeof LawAIApp.Router.getContinueDescription === 'function') {
+            return LawAIApp.Router.getContinueDescription();
+        }
+        var progress = this._getProgressData();
+        return this._getLessonSummary(progress.completed + 1);
     },
 
     _getLessonTitle: function(day) {
@@ -243,12 +261,14 @@ LawAIApp.Views.AcademyAIView = {
     },
 
     // ============================================================
-    // 🔥 Campus Core HTML — Academy 即校园
+    // 🔥 Campus Core HTML
     // ============================================================
 
     _buildCoreHTML: function(academy, progress, recommendations, schools, courses) {
         var nextLesson = this._getNextLesson();
         var continueLink = this._getContinueLink(nextLesson);
+        var continueTitle = this._getContinueTitle();
+        var continueDesc = this._getContinueDescription();
         var greeting = this._getGreeting(progress);
         var isComplete = progress.completed >= 365;
 
@@ -261,9 +281,10 @@ LawAIApp.Views.AcademyAIView = {
         var completedCount = progress.completed || 0;
         var totalCount = progress.total || 365;
         var lessonCountDisplay = completedCount + '/' + totalCount;
-
-        // 当前阶段
         var stage = this._getCurrentStage(progress.completed || 0);
+
+        var actionText = isComplete ? '🎉 Review' : '📖 Continue →';
+        var subtitleText = isComplete ? 'You\'ve mastered everything!' : continueDesc;
 
         return `
         <div class="academy-campus" style="
@@ -273,9 +294,7 @@ LawAIApp.Views.AcademyAIView = {
             color: #e2e8f0;
             font-family: 'Inter', -apple-system, sans-serif;
         ">
-            <!-- ========================================================== -->
-            <!-- 🏛️ Campus Banner —— Academy 的身份标识 -->
-            <!-- ========================================================== -->
+            <!-- 🏛️ Campus Banner -->
             <div id="campus-banner" style="
                 background: linear-gradient(145deg, ${academy.themeColor || '#1a2a4a'}, ${academy.themeColor ? academy.themeColor + '88' : '#2a1a4a'});
                 border-radius: 24px;
@@ -285,27 +304,13 @@ LawAIApp.Views.AcademyAIView = {
                 overflow: hidden;
                 animation: campusFade 0.5s ease;
             ">
-                <!-- 装饰大图标 -->
-                <div style="
-                    position: absolute;
-                    right: -20px;
-                    bottom: -40px;
-                    font-size: 160px;
-                    opacity: 0.06;
-                    pointer-events: none;
-                    z-index: 0;
-                ">${academy.icon || '🏛️'}</div>
-
+                <div style="position:absolute;right:-20px;bottom:-40px;font-size:160px;opacity:0.06;pointer-events:none;z-index:0;">${academy.icon || '🏛️'}</div>
                 <div style="position:relative;z-index:1;">
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap;">
                         <span style="font-size:32px;">${academy.icon || '🏛️'}</span>
                         <div>
-                            <h1 style="margin:0;font-size:24px;font-weight:700;letter-spacing:-0.3px;color:white;">
-                                ${academy.name || 'AI Academy'}
-                            </h1>
-                            <p style="margin:0;font-size:13px;opacity:0.7;max-width:480px;">
-                                ${academy.description || 'Master Artificial Intelligence from the ground up.'}
-                            </p>
+                            <h1 style="margin:0;font-size:24px;font-weight:700;letter-spacing:-0.3px;color:white;">${academy.name || 'AI Academy'}</h1>
+                            <p style="margin:0;font-size:13px;opacity:0.7;max-width:480px;">${academy.description || 'Master Artificial Intelligence from the ground up.'}</p>
                         </div>
                         <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
                             <span style="font-size:10px;background:rgba(255,255,255,0.12);padding:3px 12px;border-radius:100px;color:white;">${academy.difficulty || 'Beginner'}</span>
@@ -313,8 +318,6 @@ LawAIApp.Views.AcademyAIView = {
                             <span style="font-size:10px;background:rgba(255,255,255,0.08);padding:3px 12px;border-radius:100px;color:white;">👥 ${academy.students || '1.2k+'}</span>
                         </div>
                     </div>
-
-                    <!-- 进度条 + 统计 -->
                     <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
                         <div style="flex:1;min-width:120px;">
                             <div style="display:flex;justify-content:space-between;font-size:11px;opacity:0.6;margin-bottom:3px;">
@@ -336,9 +339,7 @@ LawAIApp.Views.AcademyAIView = {
                 </div>
             </div>
 
-            <!-- ========================================================== -->
-            <!-- 🚀 Continue Learning —— 最显眼的行动点 -->
-            <!-- ========================================================== -->
+            <!-- 🚀 Continue Learning（智能） -->
             <a href="${continueLink}" id="academy-continue" style="
                 display: block;
                 background: linear-gradient(135deg, #4a9eff, #6366f1);
@@ -357,62 +358,27 @@ LawAIApp.Views.AcademyAIView = {
                         <div style="font-size:11px;font-weight:500;opacity:0.7;letter-spacing:0.5px;text-transform:uppercase;">
                             ${isComplete ? '🎉 Complete' : 'Next Lesson'}
                         </div>
-                        <div style="font-size:17px;font-weight:600;margin:1px 0;line-height:1.2;">
-                            ${this._getLessonTitle(progress.completed + 1)}
-                        </div>
-                        <div style="font-size:13px;opacity:0.8;">
-                            ${isComplete ? 'You\'ve mastered everything!' : this._getLessonSummary(progress.completed + 1)}
-                        </div>
+                        <div style="font-size:17px;font-weight:600;margin:1px 0;line-height:1.2;">${continueTitle}</div>
+                        <div style="font-size:13px;opacity:0.8;">${subtitleText}</div>
                     </div>
-                    <div style="
-                        padding: 8px 24px;
-                        background: rgba(255,255,255,0.12);
-                        border-radius: 100px;
-                        font-size: 14px;
-                        font-weight: 600;
-                        backdrop-filter: blur(4px);
-                        white-space: nowrap;
-                        border: 1px solid rgba(255,255,255,0.06);
-                    ">${isComplete ? '🎉 Review' : '📖 Continue'} →</div>
+                    <div style="padding:8px 24px;background:rgba(255,255,255,0.12);border-radius:100px;font-size:14px;font-weight:600;backdrop-filter:blur(4px);white-space:nowrap;border:1px solid rgba(255,255,255,0.06);">${actionText}</div>
                 </div>
             </a>
 
-            <!-- ========================================================== -->
-            <!-- 📚 Course Grid —— 课程是校园的核心 -->
-            <!-- ========================================================== -->
-            <div style="margin-bottom: 20px;">
+            <!-- 📚 Course Grid -->
+            <div style="margin-bottom:20px;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
                     <h2 style="margin:0;font-size:16px;font-weight:600;color:#e2e8f0;">📚 Learning Tracks</h2>
                     <span style="font-size:12px;color:#64748b;">${completedCount}/${totalCount} lessons</span>
                 </div>
-                <div id="course-grid" style="
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 12px;
-                    min-height: 200px;
-                ">
+                <div id="course-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;min-height:200px;">
                     ${this._buildCourseCards(courses)}
                 </div>
             </div>
 
-            <!-- ========================================================== -->
-            <!-- 🔮 Explore More —— 延迟加载 -->
-            <!-- ========================================================== -->
-            <div id="academy-deferred" style="
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 16px;
-                min-height: 120px;
-                opacity: 0.5;
-                transition: opacity 0.4s ease;
-            ">
-                <!-- 推荐路径骨架 -->
-                <div id="recommendations-placeholder" style="
-                    background: rgba(255,255,255,0.02);
-                    border-radius: 16px;
-                    padding: 14px 16px;
-                    border: 1px solid rgba(255,255,255,0.04);
-                ">
+            <!-- 🔮 Explore More -->
+            <div id="academy-deferred" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;min-height:120px;opacity:0.5;transition:opacity 0.4s ease;">
+                <div id="recommendations-placeholder" style="background:rgba(255,255,255,0.02);border-radius:16px;padding:14px 16px;border:1px solid rgba(255,255,255,0.04);">
                     <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
                         <span style="font-size:14px;">🌟</span>
                         <span style="font-size:12px;color:#94a3b8;font-weight:400;">Recommended</span>
@@ -426,14 +392,7 @@ LawAIApp.Views.AcademyAIView = {
                         `;
                     }).join('')}
                 </div>
-
-                <!-- 探索学院骨架 -->
-                <div id="schools-placeholder" style="
-                    background: rgba(255,255,255,0.02);
-                    border-radius: 16px;
-                    padding: 14px 16px;
-                    border: 1px solid rgba(255,255,255,0.04);
-                ">
+                <div id="schools-placeholder" style="background:rgba(255,255,255,0.02);border-radius:16px;padding:14px 16px;border:1px solid rgba(255,255,255,0.04);">
                     <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
                         <span style="font-size:14px;">🏛️</span>
                         <span style="font-size:12px;color:#94a3b8;font-weight:400;">Explore Schools</span>
@@ -459,9 +418,7 @@ LawAIApp.Views.AcademyAIView = {
                     from { opacity: 0; transform: translateY(12px); }
                     to { opacity: 1; transform: translateY(0); }
                 }
-                .course-card {
-                    animation: cardFadeIn 0.4s ease;
-                }
+                .course-card { animation: cardFadeIn 0.4s ease; }
                 .course-card:nth-child(2) { animation-delay: 0.04s; }
                 .course-card:nth-child(3) { animation-delay: 0.08s; }
                 .course-card:nth-child(4) { animation-delay: 0.12s; }
@@ -472,14 +429,10 @@ LawAIApp.Views.AcademyAIView = {
                     #academy-deferred { grid-template-columns: 1fr; }
                 }
             </style>
-
         </div>
         `;
     },
 
-    /**
-     * 构建课程卡片
-     */
     _buildCourseCards: function(courses) {
         return courses.map(function(course) {
             var isLocked = course.locked || false;
@@ -499,11 +452,7 @@ LawAIApp.Views.AcademyAIView = {
                 position: relative;
                 overflow: hidden;
             " ${!isLocked ? `onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='rgba(74,158,255,0.2)'" onmouseout="this.style.transform='translateY(0)';this.style.borderColor='rgba(255,255,255,0.04)'" onclick="LawAIApp.Router?.navigate('lesson-detail', {lessonId: 'day-${course.completed + 1}'})"` : ''}>
-                <!-- 锁图标 -->
-                ${isLocked ? `
-                <div style="position:absolute;top:10px;right:12px;font-size:14px;opacity:0.4;">🔒</div>
-                ` : ''}
-
+                ${isLocked ? `<div style="position:absolute;top:10px;right:12px;font-size:14px;opacity:0.4;">🔒</div>` : ''}
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
                     <span style="font-size:20px;">${course.icon || '📖'}</span>
                     <div style="flex:1;min-width:0;">
@@ -511,13 +460,11 @@ LawAIApp.Views.AcademyAIView = {
                         <div style="font-size:10px;color:#64748b;">${course.description}</div>
                     </div>
                 </div>
-
                 <div style="display:flex;gap:8px;font-size:10px;color:#64748b;flex-wrap:wrap;margin-bottom:6px;">
                     <span>📊 <span style="color:${difficultyColor};">${course.difficulty}</span></span>
                     <span>⏱️ ${course.estimatedHours}h</span>
                     ${course.completed > 0 ? `<span style="color:#22c55e;">✅ ${course.completed}/${course.total}</span>` : ''}
                 </div>
-
                 <div style="height:2px;background:rgba(255,255,255,0.06);border-radius:100px;overflow:hidden;">
                     <div style="width:${course.progress}%;height:100%;background:${progressColor};border-radius:100px;transition:width 0.6s ease;"></div>
                 </div>
@@ -530,9 +477,6 @@ LawAIApp.Views.AcademyAIView = {
         }).join('');
     },
 
-    /**
-     * 获取当前阶段
-     */
     _getCurrentStage: function(completed) {
         if (completed >= 365) return 'Master';
         if (completed >= 300) return 'AI Business';
@@ -543,9 +487,6 @@ LawAIApp.Views.AcademyAIView = {
         return 'Foundation';
     },
 
-    /**
-     * 延迟渲染次要内容
-     */
     _renderDeferredContent: function(app, academy, progress, recommendations, schools, courses) {
         if (this._deferredRendered) return;
         this._deferredRendered = true;
@@ -553,64 +494,30 @@ LawAIApp.Views.AcademyAIView = {
         var container = document.getElementById('academy-deferred');
         if (!container) return;
 
-        console.log('📊 Academy: Rendering deferred content (Campus Edition)...');
+        console.log('📊 Academy: Rendering deferred content...');
 
-        // ============================================================
-        // 推荐路径
-        // ============================================================
         var recsHtml = recommendations.slice(0, 3).map(function(rec, index) {
             var lessonId = rec.id || 'day-' + (index + 1);
             var dayNum = lessonId.replace('day-', '');
             var link = '/pages/lesson.html?day=' + dayNum;
             var delay = index * 0.06;
             return `
-                <div style="
-                    display:flex;
-                    align-items:center;
-                    gap:8px;
-                    padding:4px 0;
-                    border-bottom:${index < 2 ? '1px solid rgba(255,255,255,0.03)' : 'none'};
-                    animation:fadeIn 0.4s ease ${delay}s;
-                ">
+                <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:${index < 2 ? '1px solid rgba(255,255,255,0.03)' : 'none'};animation:fadeIn 0.4s ease ${delay}s;">
                     <span style="font-size:14px;">${rec.icon || '📖'}</span>
                     <div style="flex:1;min-width:0;">
                         <div style="font-size:12px;font-weight:500;color:#e2e8f0;">${rec.title || 'Lesson'}</div>
                         <div style="font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${rec.description || 'Continue your learning journey.'}</div>
                     </div>
-                    <a href="${link}" style="
-                        padding:3px 12px;
-                        background:rgba(74,158,255,0.08);
-                        border-radius:100px;
-                        color:#4a9eff;
-                        font-size:10px;
-                        text-decoration:none;
-                        transition:all 0.2s;
-                    " onmouseover="this.style.background='rgba(74,158,255,0.15)'" onmouseout="this.style.background='rgba(74,158,255,0.08)'">
-                        Start
-                    </a>
+                    <a href="${link}" style="padding:3px 12px;background:rgba(74,158,255,0.08);border-radius:100px;color:#4a9eff;font-size:10px;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.background='rgba(74,158,255,0.15)'" onmouseout="this.style.background='rgba(74,158,255,0.08)'">Start</a>
                 </div>
             `;
         }).join('');
 
-        // ============================================================
-        // 探索学院
-        // ============================================================
         var schoolsHtml = schools.slice(0, 3).map(function(school, index) {
             var isActive = school.status === 'active' || school.status === 'available';
             var delay = 0.1 + index * 0.06;
             return `
-                <div style="
-                    display:inline-flex;
-                    align-items:center;
-                    gap:4px;
-                    padding:4px 12px 4px 8px;
-                    background: ${isActive ? 'rgba(74,158,255,0.06)' : 'rgba(255,255,255,0.02)'};
-                    border-radius: 100px;
-                    border: 1px solid ${isActive ? 'rgba(74,158,255,0.08)' : 'rgba(255,255,255,0.03)'};
-                    animation:fadeIn 0.4s ease ${delay}s;
-                    cursor: ${isActive ? 'pointer' : 'default'};
-                    transition: all 0.2s;
-                " onclick="if(${isActive} && '${school.id}' === 'school-ai'){window.location.href='/pages/academy.html'}">
+                <div style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px 4px 8px;background:${isActive ? 'rgba(74,158,255,0.06)' : 'rgba(255,255,255,0.02)'};border-radius:100px;border:1px solid ${isActive ? 'rgba(74,158,255,0.08)' : 'rgba(255,255,255,0.03)'};animation:fadeIn 0.4s ease ${delay}s;cursor:${isActive ? 'pointer' : 'default'};transition:all 0.2s;" onclick="if(${isActive} && '${school.id}' === 'school-ai'){window.location.href='/pages/academy.html'}">
                     <span style="font-size:12px;">${school.icon || '🏛️'}</span>
                     <span style="font-size:11px;font-weight:500;color:#e2e8f0;">${school.name || 'School'}</span>
                     ${isActive ? '<span style="font-size:7px;color:#22c55e;">●</span>' : '<span style="font-size:7px;color:#64748b;">soon</span>'}
@@ -618,31 +525,15 @@ LawAIApp.Views.AcademyAIView = {
             `;
         }).join('');
 
-        // ============================================================
-        // 完整延迟内容
-        // ============================================================
         var deferredHtml = `
-            <!-- 推荐路径 -->
-            <div style="
-                background:rgba(255,255,255,0.02);
-                border-radius:16px;
-                padding:14px 16px;
-                border:1px solid rgba(255,255,255,0.04);
-            ">
+            <div style="background:rgba(255,255,255,0.02);border-radius:16px;padding:14px 16px;border:1px solid rgba(255,255,255,0.04);">
                 <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
                     <span style="font-size:14px;">🌟</span>
                     <span style="font-size:12px;color:#94a3b8;font-weight:400;">Recommended for you</span>
                 </div>
                 ${recsHtml || '<div style="color:#64748b;font-size:12px;padding:8px 0;">Complete lessons to get recommendations.</div>'}
             </div>
-
-            <!-- 探索学院 -->
-            <div style="
-                background:rgba(255,255,255,0.02);
-                border-radius:16px;
-                padding:14px 16px;
-                border:1px solid rgba(255,255,255,0.04);
-            ">
+            <div style="background:rgba(255,255,255,0.02);border-radius:16px;padding:14px 16px;border:1px solid rgba(255,255,255,0.04);">
                 <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
                     <span style="font-size:14px;">🏛️</span>
                     <span style="font-size:12px;color:#94a3b8;font-weight:400;">Explore Schools</span>
@@ -656,7 +547,6 @@ LawAIApp.Views.AcademyAIView = {
         container.innerHTML = deferredHtml;
         container.style.opacity = '1';
 
-        // 注入 fadeIn 样式
         var style = document.createElement('style');
         style.textContent = `
             @keyframes fadeIn {
@@ -667,8 +557,8 @@ LawAIApp.Views.AcademyAIView = {
         container.appendChild(style);
 
         LawAIApp.EventBus?.emit?.('AcademyDeferredRendered', { timestamp: Date.now() });
-        console.log('✅ Academy deferred content rendered (Campus Edition)');
+        console.log('✅ Academy deferred content rendered');
     }
 };
 
-console.log('🏛️ AcademyAIView V6.0 ready (Campus Edition)');
+console.log('🏛️ AcademyAIView V6.1 ready (Campus Edition + Navigation)');
