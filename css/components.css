@@ -1,138 +1,441 @@
-/* components.css - 可复用组件样式（骨架屏、空状态等） */
-.skeleton-card {
-  background: linear-gradient(90deg, var(--card) 25%, rgba(255,255,255,0.05) 50%, var(--card) 75%);
-  background-size: 200px 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: var(--radius);
-  padding: 1rem;
-  margin: 0.5rem 0;
+/* ================================================================
+   components.css – 统一组件系统
+   所有组件共享一套设计语言
+   ================================================================ */
+
+/* ==========================================================
+   卡片系统
+   ========================================================== */
+
+.card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg) var(--space-xl);
+    transition: var(--transition-normal);
 }
+
+.card:hover {
+    background: var(--color-bg-card-hover);
+    border-color: var(--color-border-hover);
+}
+
+.card-clickable {
+    cursor: pointer;
+}
+
+.card-clickable:active {
+    transform: scale(0.98);
+}
+
+.card-elevated {
+    background: var(--color-bg-elevated);
+}
+
+.card-elevated:hover {
+    background: var(--color-bg-elevated-hover);
+}
+
+/* 卡片尺寸变体 */
+.card-sm {
+    padding: var(--space-sm) var(--space-md);
+}
+.card-lg {
+    padding: var(--space-2xl) var(--space-3xl);
+}
+
+/* 卡片无边框（用于嵌套） */
+.card-flat {
+    border: none;
+    background: none;
+}
+
+/* ==========================================================
+   按钮系统
+   ========================================================== */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2xs);
+    padding: var(--space-xs) var(--space-xl);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: var(--transition-normal);
+    text-decoration: none;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.btn:active {
+    transform: scale(0.96);
+}
+
+/* 按钮尺寸 */
+.btn-sm {
+    padding: var(--space-3xs) var(--space-lg);
+    font-size: var(--font-size-xs);
+    border-radius: var(--radius-xs);
+}
+.btn-lg {
+    padding: var(--space-sm) var(--space-3xl);
+    font-size: var(--font-size-md);
+    border-radius: var(--radius-md);
+}
+.btn-xl {
+    padding: var(--space-md) var(--space-4xl);
+    font-size: var(--font-size-lg);
+    border-radius: var(--radius-lg);
+}
+
+/* 按钮变体 */
+.btn-primary {
+    background: var(--gradient-action);
+    color: var(--color-text-inverse);
+    box-shadow: var(--shadow-glow-sm);
+}
+.btn-primary:hover {
+    box-shadow: var(--shadow-glow-md);
+    transform: translateY(-1px);
+}
+
+.btn-success {
+    background: var(--gradient-success);
+    color: var(--color-text-inverse);
+    box-shadow: var(--shadow-glow-success);
+}
+.btn-success:hover {
+    box-shadow: 0 8px 32px rgba(34, 197, 94, 0.25);
+    transform: translateY(-1px);
+}
+
+.btn-ghost {
+    background: var(--color-bg-elevated);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border-light);
+}
+.btn-ghost:hover {
+    background: var(--color-bg-elevated-hover);
+    color: var(--color-text-primary);
+    border-color: var(--color-border-hover);
+}
+
+.btn-ghost-primary {
+    background: rgba(74, 158, 255, 0.08);
+    color: var(--color-brand-primary);
+    border: 1px solid rgba(74, 158, 255, 0.08);
+}
+.btn-ghost-primary:hover {
+    background: rgba(74, 158, 255, 0.15);
+    border-color: rgba(74, 158, 255, 0.15);
+}
+
+.btn-ghost-success {
+    background: rgba(34, 197, 94, 0.08);
+    color: var(--color-success);
+    border: 1px solid rgba(34, 197, 94, 0.08);
+}
+.btn-ghost-success:hover {
+    background: rgba(34, 197, 94, 0.15);
+    border-color: rgba(34, 197, 94, 0.15);
+}
+
+.btn-icon {
+    padding: var(--space-xs);
+    border-radius: var(--radius-full);
+    min-width: 36px;
+    min-height: 36px;
+}
+.btn-icon.btn-sm {
+    min-width: 28px;
+    min-height: 28px;
+    padding: var(--space-3xs);
+}
+
+.btn:disabled,
+.btn-disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* ==========================================================
+   输入系统
+   ========================================================== */
+
+.input {
+    width: 100%;
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-xs);
+    color: var(--color-text-primary);
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    transition: var(--transition-fast);
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--color-brand-primary);
+    box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.1);
+}
+
+.input::placeholder {
+    color: var(--color-text-tertiary);
+}
+
+.input-sm {
+    padding: var(--space-2xs) var(--space-sm);
+    font-size: var(--font-size-xs);
+}
+.input-lg {
+    padding: var(--space-md) var(--space-xl);
+    font-size: var(--font-size-md);
+}
+
+.textarea {
+    min-height: 60px;
+    resize: vertical;
+    font-family: var(--font-family);
+    line-height: var(--line-height-normal);
+}
+
+/* ==========================================================
+   徽章系统
+   ========================================================== */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3xs);
+    padding: var(--space-3xs) var(--space-sm);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.2px;
+    border: 1px solid transparent;
+}
+
+.badge-primary {
+    background: rgba(74, 158, 255, 0.1);
+    color: var(--color-brand-primary);
+    border-color: rgba(74, 158, 255, 0.06);
+}
+.badge-success {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--color-success);
+    border-color: rgba(34, 197, 94, 0.06);
+}
+.badge-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--color-warning);
+    border-color: rgba(245, 158, 11, 0.06);
+}
+.badge-purple {
+    background: rgba(139, 92, 246, 0.1);
+    color: var(--color-purple);
+    border-color: rgba(139, 92, 246, 0.06);
+}
+.badge-ghost {
+    background: var(--color-bg-elevated);
+    color: var(--color-text-secondary);
+    border-color: var(--color-border-light);
+}
+.badge-inverse {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--color-text-inverse);
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ==========================================================
+   进度条
+   ========================================================== */
+
+.progress {
+    height: 3px;
+    background: var(--color-border-default);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width var(--duration-slower) var(--ease-smooth);
+    background: var(--gradient-action);
+}
+
+.progress-fill-success {
+    background: var(--gradient-success);
+}
+.progress-fill-warning {
+    background: var(--gradient-warning);
+}
+
+.progress-sm {
+    height: 2px;
+}
+.progress-lg {
+    height: 5px;
+}
+
+/* ==========================================================
+   分割线
+   ========================================================== */
+
+.divider {
+    border: none;
+    border-top: 1px solid var(--color-border-light);
+    margin: var(--space-xl) 0;
+}
+.divider-vertical {
+    border: none;
+    border-left: 1px solid var(--color-border-light);
+    height: 24px;
+    width: 0;
+    display: inline-block;
+    margin: 0 var(--space-sm);
+}
+
+/* ==========================================================
+   骨架屏
+   ========================================================== */
+
+.skeleton {
+    background: var(--color-bg-elevated);
+    border-radius: var(--radius-xs);
+    animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeletonPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.skeleton-text {
+    height: 12px;
+    border-radius: var(--radius-2xs);
+}
+.skeleton-text-sm {
+    height: 8px;
+}
+.skeleton-text-lg {
+    height: 20px;
+}
+.skeleton-card {
+    height: 120px;
+    border-radius: var(--radius-md);
+}
+
+/* ==========================================================
+   空状态
+   ========================================================== */
 
 .empty-state {
-  text-align: center;
-  padding: 2rem;
-  opacity: 0.7;
-  transition: opacity 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: var(--space-3xl) var(--space-2xl);
+    gap: var(--space-md);
 }
 
-.empty-state:hover {
-  opacity: 1;
+.empty-state-icon {
+    font-size: 48px;
+    opacity: 0.6;
 }
 
-.loading-spinner {
-  text-align: center;
-  padding: 2rem;
+.empty-state-title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
 }
+
+.empty-state-description {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    max-width: 400px;
+    line-height: var(--line-height-normal);
+}
+
+/* ==========================================================
+   Toast 通知
+   ========================================================== */
 
 .toast-container {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    max-width: 380px;
+    pointer-events: none;
 }
 
-/* 按钮通用按压反馈 */
-button:active {
-  transform: scale(0.96);
-  transition: transform 0.1s;
+.toast {
+    padding: var(--space-md) var(--space-xl);
+    background: rgba(12, 18, 30, 0.92);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    box-shadow: var(--shadow-lg);
+    pointer-events: auto;
+    animation: toastIn var(--duration-slow) var(--ease-spring);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
 }
 
-/* 返回按钮 */
-.back-btn {
-  transition: opacity 0.2s;
+.toast-success {
+    border-color: rgba(34, 197, 94, 0.2);
 }
-.back-btn:hover {
-  opacity: 0.8;
+.toast-success .toast-icon {
+    color: var(--color-success);
 }
-
-/* ========== Phase 46 仪表盘样式 ========== */
-.hero-card {
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-  border-radius: 24px;
-  padding: 2rem 1.5rem;
-  color: white;
-  text-align: center;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 16px 32px rgba(59,130,246,0.3);
+.toast-error {
+    border-color: rgba(239, 68, 68, 0.2);
 }
-
-.gauge-container {
-  display: flex;
-  justify-content: center;
-  margin: 1rem 0;
+.toast-error .toast-icon {
+    color: var(--color-danger);
 }
-
-.dashboard-card {
-  background: var(--card);
-  border-radius: 20px;
-  padding: 1.2rem;
-  margin-bottom: 1rem;
-  box-shadow: var(--shadow);
-  animation: cardSlideUp 0.4s ease forwards;
-  opacity: 0;
+.toast-info {
+    border-color: rgba(74, 158, 255, 0.2);
+}
+.toast-info .toast-icon {
+    color: var(--color-brand-primary);
+}
+.toast-warning {
+    border-color: rgba(245, 158, 11, 0.2);
+}
+.toast-warning .toast-icon {
+    color: var(--color-warning);
 }
 
-.heat-cell {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 0.75rem;
-  color: white;
-  cursor: pointer;
-  transition: transform 0.2s;
+.toast-content {
+    flex: 1;
 }
-.heat-cell:hover {
-  transform: scale(1.15);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+.toast-title {
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
 }
-.heat-cell.correct { background: #22c55e; }
-.heat-cell.guessed { background: #f59e0b; }
-.heat-cell.incorrect { background: #ef4444; }
-
-.confidence-grid {
-  display: flex;
-  gap: 0.8rem;
-  justify-content: center;
-  text-align: center;
-}
-.confidence-item {
-  background: rgba(255,255,255,0.05);
-  border-radius: 12px;
-  padding: 1rem;
-  flex: 1;
+.toast-message {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
 }
 
-.strength-card, .weakness-card {
-  background: var(--card);
-  border-radius: 16px;
-  padding: 1rem;
-  border-left: 4px solid;
-}
-.strength-card { border-color: var(--success); }
-.weakness-card { border-color: var(--warning); }
-
-.mentor-card {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-  background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(59,130,246,0.2));
-  border: 1px solid rgba(139,92,246,0.3);
-}
-
-.recommendation-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.pulse-btn {
-  animation: pulse 2s infinite;
-}
-
-.share-section {
-  text-align: center;
-  padding: 1.5rem;
-  background: var(--glass);
-  border-radius: 16px;
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
 }
