@@ -46,7 +46,7 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ===== 顶部 Header ===== */
+        /* ===== 顶部 Header（无 nav bar） ===== */
         .lesson-header {
             display: flex;
             justify-content: space-between;
@@ -227,7 +227,6 @@
             }
 
             var lessonId = getLessonIdFromURL() || 'day-1';
-            // 提取纯数字
             var dayNumber = lessonId.replace('day-', '').replace('day', '');
             console.log('📖 Loading lesson:', lessonId, 'day:', dayNumber);
 
@@ -284,13 +283,12 @@
             }
 
             // ==========================================================
-            // 渲染 Lesson Header
+            // 渲染 Lesson Header（无 nav bar）
             // ==========================================================
             function renderHeader() {
                 var app = document.getElementById('app');
                 if (!app) return;
 
-                // 如果已经有 header，不重复添加
                 if (document.getElementById('lesson-header')) return;
 
                 var dateTime = getFormattedDateTime();
@@ -315,7 +313,6 @@
                     </div>
                 `;
 
-                // 插入到 #app 的第一个子元素位置
                 app.insertBefore(header, app.firstChild);
                 console.log('✅ Lesson header rendered');
             }
@@ -327,13 +324,9 @@
                 var app = document.getElementById('app');
                 if (!app) return;
 
-                // 清空 app
                 app.innerHTML = '';
-
-                // 先渲染 Header
                 renderHeader();
 
-                // 再渲染 Lesson 内容
                 var contentContainer = document.createElement('div');
                 contentContainer.id = 'lesson-content';
                 app.appendChild(contentContainer);
@@ -352,7 +345,6 @@
                     return;
                 }
 
-                // 如果视图还没加载
                 contentContainer.innerHTML = `
                     <div class="lesson-loading">
                         <div class="spinner"></div>
