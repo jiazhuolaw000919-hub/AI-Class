@@ -14,39 +14,10 @@
     <link rel="stylesheet" href="/css/theme.css">
     <style>
         * { box-sizing: border-box; }
-        body { 
-            margin: 0; 
-            background: #0b1220; 
-            color: #e2e8f0; 
-            font-family: 'Inter', -apple-system, sans-serif; 
-        }
-        #app { 
-            min-height: 100vh; 
-            padding: 20px 20px 90px; 
-            max-width: 1000px; 
-            margin: 0 auto; 
-        }
-        .lesson-loading { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            min-height: 60vh; 
-            color: #94a3b8; 
-            text-align: center; 
-        }
-        .lesson-loading .spinner { 
-            width: 40px; 
-            height: 40px; 
-            border: 3px solid rgba(74,158,255,0.15); 
-            border-top-color: #4a9eff; 
-            border-radius: 50%; 
-            animation: spin 0.8s linear infinite; 
-            margin-bottom: 16px; 
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        body { margin: 0; background: #0b1220; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; }
+        #app { min-height: 100vh; padding: 20px 20px 90px; max-width: 1000px; margin: 0 auto; }
+        #breadcrumb-nav, .back-header { display: none !important; }
 
-        /* ===== 顶部 Header（无 nav bar） ===== */
         .lesson-header {
             display: flex;
             justify-content: space-between;
@@ -57,11 +28,7 @@
             flex-wrap: wrap;
             gap: 12px;
         }
-        .lesson-header .left {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
+        .lesson-header .left { display: flex; align-items: center; gap: 14px; }
         .lesson-header .left .back-btn {
             display: flex;
             align-items: center;
@@ -83,7 +50,6 @@
             color: #e2e8f0;
         }
         .lesson-header .left .back-btn span { font-size: 16px; }
-
         .lesson-header .center {
             display: flex;
             align-items: center;
@@ -108,25 +74,73 @@
             padding: 2px 12px;
             border-radius: 20px;
         }
-
         .lesson-header .right {
             display: flex;
             flex-direction: column;
             align-items: flex-end;
             gap: 2px;
         }
-        .lesson-header .right .date {
-            font-size: 14px;
-            font-weight: 500;
-            color: #e2e8f0;
-        }
-        .lesson-header .right .time {
-            font-size: 12px;
-            color: #64748b;
-            font-variant-numeric: tabular-nums;
-        }
+        .lesson-header .right .date { font-size: 14px; font-weight: 500; color: #e2e8f0; }
+        .lesson-header .right .time { font-size: 12px; color: #64748b; font-variant-numeric: tabular-nums; }
 
-        /* ===== 底部导航 ===== */
+        .lesson-content {
+            animation: fadeIn 0.4s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .lesson-content .title {
+            font-size: 26px;
+            font-weight: 700;
+            color: #e2e8f0;
+            margin: 0 0 8px;
+            line-height: 1.2;
+        }
+        .lesson-content .subtitle {
+            font-size: 16px;
+            color: #94a3b8;
+            margin: 0 0 20px;
+            line-height: 1.5;
+        }
+        .lesson-content .section {
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 14px;
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+        .lesson-content .section h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin: 0 0 8px;
+        }
+        .lesson-content .section ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #94a3b8;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .lesson-content .section ul li { list-style-type: disc; }
+        .lesson-content .complete-btn {
+            display: inline-block;
+            padding: 12px 32px;
+            background: #4a9eff;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+            font-family: inherit;
+        }
+        .lesson-content .complete-btn:hover { background: #3b8be8; transform: scale(1.02); }
+        .lesson-content .complete-btn:active { transform: scale(0.97); }
+
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -152,12 +166,14 @@
             cursor: pointer;
             transition: color 0.2s;
             padding: 2px 12px;
+            background: none;
+            border: none;
+            font-family: inherit;
         }
         .bottom-nav a:hover { color: #94a3b8; }
         .bottom-nav a.active { color: #4a9eff; }
         .bottom-nav a span:first-child { font-size: 18px; }
 
-        /* ===== 响应式 ===== */
         @media (max-width: 600px) {
             .lesson-header { flex-direction: column; align-items: stretch; gap: 10px; }
             .lesson-header .left { justify-content: flex-start; }
@@ -166,41 +182,23 @@
             .lesson-header .right { align-items: center; flex-direction: row; justify-content: space-between; width: 100%; }
             .lesson-header .right .date { font-size: 13px; }
             .lesson-header .right .time { font-size: 11px; }
-        }
-        @media (max-width: 400px) {
-            .lesson-header .center .day-label { font-size: 13px; }
-            .lesson-header .center .day-number { font-size: 13px; }
-            .lesson-header .left .back-btn { font-size: 12px; padding: 6px 12px; }
+            .lesson-content .title { font-size: 20px; }
         }
     </style>
 </head>
 <body>
     <div id="app"></div>
 
-    <!-- ========================================================== -->
-    <!-- 底部导航（固定）                                           -->
-    <!-- ========================================================== -->
+    <!-- ===== 底部导航 ===== -->
     <nav class="bottom-nav">
-        <a href="/" class="nav-item" data-tab="home">
-            <span>🏠</span><span>Home</span>
-        </a>
-        <a href="/pages/academy.html" class="nav-item" data-tab="academy">
-            <span>📚</span><span>Academy</span>
-        </a>
-        <a href="#" class="nav-item" data-tab="calendar">
-            <span>📅</span><span>Calendar</span>
-        </a>
-        <a href="#" class="nav-item" data-tab="notes">
-            <span>📝</span><span>Notes</span>
-        </a>
-        <a href="#" class="nav-item" data-tab="settings">
-            <span>⚙️</span><span>Settings</span>
-        </a>
+        <a href="/" class="nav-item" data-tab="home"><span>🏠</span><span>Home</span></a>
+        <a href="/pages/academy.html" class="nav-item" data-tab="academy"><span>📚</span><span>Academy</span></a>
+        <a href="#" class="nav-item" data-tab="calendar"><span>📅</span><span>Calendar</span></a>
+        <a href="#" class="nav-item" data-tab="notes"><span>📝</span><span>Notes</span></a>
+        <a href="#" class="nav-item" data-tab="settings"><span>⚙️</span><span>Settings</span></a>
     </nav>
 
-    <!-- ========================================================== -->
-    <!-- 脚本加载                                                  -->
-    <!-- ========================================================== -->
+    <!-- ===== 脚本 ===== -->
     <script src="/js/storageEngine.js"></script>
     <script src="/js/eventBus.js"></script>
     <script src="/js/profileEngine.js"></script>
@@ -212,95 +210,49 @@
 
     <script>
         (function() {
-            console.log('📄 Lesson page loaded');
+            console.log('📄 Lesson page loaded (JS-driven)');
 
-            // ==========================================================
-            // 获取 Lesson ID
-            // ==========================================================
             function getLessonIdFromURL() {
                 var params = new URLSearchParams(window.location.search);
-                var id = params.get('lessonId') || params.get('id') || params.get('day');
-                if (id) return id;
-                var path = window.location.pathname;
-                var match = path.match(/lesson[\/-]?(day-?\d+)/i);
-                return match ? match[1] : null;
+                return params.get('lessonId') || params.get('id') || params.get('day') || null;
             }
 
             var lessonId = getLessonIdFromURL() || 'day-1';
-            var dayNumber = lessonId.replace('day-', '').replace('day', '');
-            console.log('📖 Loading lesson:', lessonId, 'day:', dayNumber);
+            console.log('📖 Loading lesson:', lessonId);
 
-            // ==========================================================
-            // 格式化日期时间
-            // ==========================================================
-            function getFormattedDateTime() {
-                var now = new Date();
-                var options = { 
-                    year: 'numeric', 
-                    month: 'short', 
-                    day: 'numeric',
-                    weekday: 'short'
-                };
-                var dateStr = now.toLocaleDateString('en-US', options);
-                var timeStr = now.toLocaleTimeString('en-US', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    hour12: true 
-                });
-                return { date: dateStr, time: timeStr };
-            }
-
-            // ==========================================================
-            // 底部导航点击处理
-            // ==========================================================
+            // ===== 导航 =====
             function setupNav() {
                 document.querySelectorAll('.nav-item').forEach(function(item) {
                     item.addEventListener('click', function(e) {
                         var tab = this.dataset.tab;
-                        
-                        if (tab === 'home') {
-                            window.location.href = '/';
-                            return;
-                        }
-                        if (tab === 'academy') {
-                            window.location.href = '/pages/academy.html';
-                            return;
-                        }
-                        
+                        if (tab === 'home') { window.location.href = '/'; return; }
+                        if (tab === 'academy') { window.location.href = '/pages/academy.html'; return; }
                         e.preventDefault();
-                        var tabNames = {
-                            'calendar': '📅 Calendar',
-                            'notes': '📝 Notes',
-                            'settings': '⚙️ Settings'
-                        };
-                        if (window.LawAIApp?.Toast && typeof LawAIApp.Toast.info === 'function') {
-                            LawAIApp.Toast.info(tabNames[tab] + ' coming soon! 🚧');
-                        } else {
-                            alert(tabNames[tab] + ' coming soon! 🚧');
-                        }
+                        var names = { 'calendar': '📅 Calendar', 'notes': '📝 Notes', 'settings': '⚙️ Settings' };
+                        if (window.LawAIApp?.Toast?.info) LawAIApp.Toast.info(names[tab] + ' coming soon! 🚧');
+                        else alert(names[tab] + ' coming soon! 🚧');
                     });
                 });
             }
 
-            // ==========================================================
-            // 渲染 Lesson Header（无 nav bar）
-            // ==========================================================
-            function renderHeader() {
-                var app = document.getElementById('app');
-                if (!app) return;
+            // ===== 格式化时间 =====
+            function getFormattedDateTime() {
+                var now = new Date();
+                var dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' });
+                var timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                return { date: dateStr, time: timeStr };
+            }
 
+            // ===== 渲染 Header =====
+            function renderHeader(app, dayNumber) {
                 if (document.getElementById('lesson-header')) return;
-
-                var dateTime = getFormattedDateTime();
-
+                var dt = getFormattedDateTime();
                 var header = document.createElement('div');
                 header.id = 'lesson-header';
                 header.className = 'lesson-header';
                 header.innerHTML = `
                     <div class="left">
-                        <button class="back-btn" onclick="window.history.back()">
-                            <span>←</span> Back
-                        </button>
+                        <button class="back-btn" onclick="window.history.back()"><span>←</span> Back</button>
                     </div>
                     <div class="center">
                         <span class="icon">📖</span>
@@ -308,66 +260,118 @@
                         <span class="day-number">${dayNumber}</span>
                     </div>
                     <div class="right">
-                        <span class="date">${dateTime.date}</span>
-                        <span class="time">${dateTime.time}</span>
+                        <span class="date">${dt.date}</span>
+                        <span class="time">${dt.time}</span>
                     </div>
                 `;
-
                 app.insertBefore(header, app.firstChild);
-                console.log('✅ Lesson header rendered');
             }
 
-            // ==========================================================
-            // 渲染 Lesson 内容
-            // ==========================================================
+            // ===== 🚀 核心：用 JS 驱动渲染 Lesson =====
             function renderLesson() {
                 var app = document.getElementById('app');
                 if (!app) return;
 
+                // 清空并渲染 Header
                 app.innerHTML = '';
-                renderHeader();
+                var dayNumber = lessonId.replace('day-', '').replace('day', '');
+                renderHeader(app, dayNumber);
 
-                var contentContainer = document.createElement('div');
-                contentContainer.id = 'lesson-content';
-                app.appendChild(contentContainer);
+                // 内容容器
+                var container = document.createElement('div');
+                container.id = 'lesson-content';
+                container.className = 'lesson-content';
+                app.appendChild(container);
 
+                // ===== 尝试从 LessonView 渲染 =====
                 if (window.LawAIApp?.Views?.LessonView && 
                     typeof window.LawAIApp.Views.LessonView.render === 'function') {
-                    window.LawAIApp.Views.LessonView.render(lessonId, contentContainer);
+                    window.LawAIApp.Views.LessonView.render(lessonId, container);
                     console.log('✅ Lesson rendered via Views.LessonView');
                     return;
                 }
 
                 if (window.LawAIApp?.LessonView && 
                     typeof window.LawAIApp.LessonView.render === 'function') {
-                    window.LawAIApp.LessonView.render(lessonId, contentContainer);
+                    window.LawAIApp.LessonView.render(lessonId, container);
                     console.log('✅ Lesson rendered via LessonView');
                     return;
                 }
 
-                contentContainer.innerHTML = `
-                    <div class="lesson-loading">
-                        <div class="spinner"></div>
-                        <p>Loading lesson...</p>
-                        <p style="font-size:12px;color:#64748b;">Lesson: ${lessonId}</p>
+                // ===== 如果 LessonView 不存在，用 LessonEngine 数据 =====
+                var lessonData = null;
+                if (window.LawAIApp?.LessonEngine && 
+                    typeof window.LawAIApp.LessonEngine.getLessonByDay === 'function') {
+                    var dayNum = parseInt(dayNumber);
+                    if (!isNaN(dayNum)) {
+                        lessonData = LawAIApp.LessonEngine.getLessonByDay(dayNum);
+                    }
+                }
+
+                if (lessonData) {
+                    // 用 Engine 数据渲染
+                    container.innerHTML = `
+                        <h1 class="title">${lessonData.title || 'Lesson ' + dayNumber}</h1>
+                        <p class="subtitle">${lessonData.subtitle || lessonData.summary || 'Continue building your AI knowledge.'}</p>
+                        ${lessonData.objectives ? `
+                        <div class="section">
+                            <h3>🎯 Learning Objectives</h3>
+                            <ul>${lessonData.objectives.map(function(o) { return '<li>' + o + '</li>'; }).join('')}</ul>
+                        </div>` : ''}
+                        ${lessonData.topics ? `
+                        <div class="section">
+                            <h3>📚 Topics Covered</h3>
+                            <ul>${lessonData.topics.map(function(t) { return '<li>' + t + '</li>'; }).join('')}</ul>
+                        </div>` : ''}
+                        ${lessonData.resources ? `
+                        <div class="section">
+                            <h3>📖 Resources</h3>
+                            <ul>${lessonData.resources.map(function(r) { return '<li>' + r + '</li>'; }).join('')}</ul>
+                        </div>` : ''}
+                        <button class="complete-btn" onclick="window.markLessonComplete('${lessonId}')">✅ Mark Complete</button>
+                    `;
+                    console.log('✅ Lesson rendered via LessonEngine data');
+                    return;
+                }
+
+                // ===== 最终 Fallback：显示示例内容（提示需要添加数据） =====
+                container.innerHTML = `
+                    <div style="text-align:center;padding:40px 20px;color:#94a3b8;">
+                        <div style="font-size:48px;margin-bottom:16px;">📖</div>
+                        <h2 style="color:#e2e8f0;font-size:20px;">Lesson ${dayNumber}</h2>
+                        <p>No content loaded yet.</p>
+                        <p style="font-size:13px;color:#64748b;margin-top:8px;">
+                            Add data to <code>LessonEngine</code> or <code>lessonView.js</code>
+                        </p>
+                        <button class="complete-btn" style="margin-top:20px;" onclick="window.markLessonComplete('${lessonId}')">✅ Mark Complete</button>
                     </div>
                 `;
-                console.warn('⚠️ LessonView not ready, retrying...');
-                setTimeout(renderLesson, 500);
+                console.warn('⚠️ No lesson data found, showing fallback');
             }
 
-            // ==========================================================
-            // 等待就绪
-            // ==========================================================
+            // ===== 标记完成 =====
+            window.markLessonComplete = function(id) {
+                var dayNum = id.replace('day-', '').replace('day', '');
+                if (window.LawAIApp?.Toast?.success) {
+                    LawAIApp.Toast.success('✅ Day ' + dayNum + ' completed! +20 XP');
+                } else {
+                    alert('✅ Day ' + dayNum + ' completed! +20 XP');
+                }
+                try {
+                    if (window.LawAIApp?.ProgressEngine?.completeLesson) {
+                        LawAIApp.ProgressEngine.completeLesson(id);
+                    }
+                } catch (e) { console.warn('Progress save failed:', e); }
+            };
+
+            // ===== 启动 =====
             function waitForReady() {
                 if (document.readyState === 'complete' || document.readyState === 'interactive') {
                     setupNav();
-                    if (window.LawAIApp?.Views?.LessonView || window.LawAIApp?.LessonView) {
+                    if (window.LawAIApp?.Views?.LessonView || window.LawAIApp?.LessonView || window.LawAIApp?.LessonEngine) {
                         renderLesson();
                     } else {
-                        document.addEventListener('SYSTEM_READY', function() {
-                            setTimeout(renderLesson, 300);
-                        });
+                        document.addEventListener('SYSTEM_READY', function() { setTimeout(renderLesson, 300); });
                         setTimeout(renderLesson, 3000);
                     }
                 } else {
