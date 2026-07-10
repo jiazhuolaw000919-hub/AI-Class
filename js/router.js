@@ -2,7 +2,7 @@
 // router.js – Phase 60 升级版（Season 2 完结）
 // Season 1.5 升级：增加页面缓存 + 面包屑导航
 // 支持 /pages/academy.html 路径
-// V4.3 修复：goBack 增强 + popstate 完善 + lesson 路由支持
+// V4.4 修复：goHome 和 goBack 增强，避免页面刷新
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -23,6 +23,7 @@ LawAIApp.Router = {
     _breadcrumbStack: [],
     _initialized: false,
     _popstateHandling: false,
+    _isNavigating: false,
 
     /**
      * 初始化路由
@@ -31,7 +32,7 @@ LawAIApp.Router = {
         if (this._initialized) return;
         this._initialized = true;
 
-        console.log('🧭 Router V4.3 initialized');
+        console.log('🧭 Router V4.4 initialized');
 
         // 监听导航点击
         document.querySelectorAll('.nav-item').forEach(function(btn) {
@@ -44,37 +45,41 @@ LawAIApp.Router = {
             });
         });
 
-        // 监听浏览器后退/前进（增强版）
+        // 监听浏览器后退/前进
         window.addEventListener('popstate', function(e) {
-            if (this._popstateHandling) return;
+            if (this._popstateHandling || this._isNavigating) return;
             this._popstateHandling = true;
 
             console.log('🔙 popstate triggered:', e.state);
             
-            // 如果有 state，直接使用
             if (e.state && e.state.page) {
                 this.navigate(e.state.page, e.state.params || {}, { replace: true, fromPopstate: true });
                 this._popstateHandling = false;
                 return;
             }
 
-            // 否则从 URL 解析
             var path = window.location.pathname;
             var page = this._getPageFromPath(path);
             if (page) {
                 this.navigate(page, {}, { replace: true, fromPopstate: true });
             } else {
-                // 如果解析不到，回首页
                 this.goHome();
             }
             this._popstateHandling = false;
         }.bind(this));
 
-        // 加载默认页面（根据当前 URL）
+        // 加载默认页面
         var currentPath = window.location.pathname;
         var initialPage = this._getPageFromPath(currentPath);
         
         if (initialPage) {
+            // 如果是特殊页面，初始化面包屑栈
+            if (initialPage === 'academy' || initialPage === 'lesson') {
+                this._breadcrumbStack = [
+                    { page: 'dashboard', title: '📊 Dashboard', params: {} }
+                ];
+                this._pushBreadcrumb(initialPage, {});
+            }
             this.loadPage(initialPage);
             this.updateNav(initialPage);
         } else {
@@ -90,13 +95,21 @@ LawAIApp.Router = {
         options = options || {};
         params = params || {};
 
-        // 如果是 popstate 触发的，不重复压栈
-        var fromPopstate = options.fromPopstate || false;
-
-        if (page === this.currentPage && JSON.stringify(params) === JSON.stringify(this.currentParams) && !options.force) {
+        if (this._isNavigating) {
+            console.log('⏳ Already navigating, skipping');
             return;
         }
 
+        // 如果是 popstate 触发的，不重复压栈
+        var fromPopstate = options.fromPopstate || false;
+
+        // 检查是否真的需要导航
+        if (page === this.currentPage && JSON.stringify(params) === JSON.stringify(this.currentParams) && !options.force) {
+            console.log('📌 Already on this page, skipping');
+            return;
+        }
+
+        this._isNavigating = true;
         this.currentParams = params;
 
         // 只有非 popstate 和非 replace 才压面包屑
@@ -104,6 +117,25 @@ LawAIApp.Router = {
             this._pushBreadcrumb(page, params);
         }
 
+        // 特殊页面：使用 window.location.href 跳转
+        if (page === 'academy' || page === 'academy.html') {
+            console.log('📌 Navigating to Academy page');
+            this.currentPage = 'academy';
+            this._isNavigating = false;
+            window.location.href = '/pages/academy.html';
+            return;
+        }
+
+        if (page === 'lesson' || page === 'lesson.html') {
+            var day = params.day || params.lessonId || '1';
+            console.log('📌 Navigating to Lesson page: day', day);
+            this.currentPage = 'lesson';
+            this._isNavigating = false;
+            window.location.href = '/pages/lesson.html?day=' + day;
+            return;
+        }
+
+        // 普通页面：使用 SPA 渲染
         this.loadPage(page);
         this.updateNav(page);
 
@@ -111,33 +143,28 @@ LawAIApp.Router = {
         var path = this._buildPath(page, params);
         var currentPath = window.location.pathname;
 
-        // 如果当前已经在 /pages/academy.html，不重复更新
-        if (page === 'academy' && currentPath.includes('/pages/academy.html')) {
-            console.log('📌 Already on academy page, skipping URL update');
-        } else if (page === 'lesson' && currentPath.includes('/pages/lesson.html')) {
-            console.log('📌 Already on lesson page, skipping URL update');
-        } else {
-            if (!fromPopstate) {
-                if (!options.replace) {
-                    window.history.pushState({ page: page, params: params }, '', path);
-                    console.log('📌 pushState:', path);
-                } else {
-                    window.history.replaceState({ page: page, params: params }, '', path);
-                    console.log('📌 replaceState:', path);
-                }
+        if (!fromPopstate) {
+            if (!options.replace) {
+                window.history.pushState({ page: page, params: params }, '', path);
+                console.log('📌 pushState:', path);
+            } else {
+                window.history.replaceState({ page: page, params: params }, '', path);
+                console.log('📌 replaceState:', path);
             }
         }
 
         LawAIApp.EventBus?.emit?.('RouteChanged', { page: page, params: params });
+        this._isNavigating = false;
     },
 
     /**
      * 构建路径
      */
     _buildPath: function(page, params) {
-        // 如果是特殊页面，返回真实 HTML 路径
-        if (page === 'academy') return '/pages/academy.html';
-        if (page === 'lesson') {
+        if (page === 'academy' || page === 'academy.html') {
+            return '/pages/academy.html';
+        }
+        if (page === 'lesson' || page === 'lesson.html') {
             var day = params.day || params.lessonId || '1';
             return '/pages/lesson.html?day=' + day;
         }
@@ -217,12 +244,6 @@ LawAIApp.Router = {
         // ============================================================
         if (page === 'lesson' || page === 'lesson.html') {
             var day = this.currentParams.day || this.currentParams.lessonId || '1';
-            // 如果当前不在 lesson 页面，跳转
-            if (!window.location.pathname.includes('/pages/lesson.html')) {
-                window.location.href = '/pages/lesson.html?day=' + day;
-                return;
-            }
-            // 如果已经在 lesson 页面，用视图渲染
             if (app) {
                 if (LawAIApp.Views?.LessonView && typeof LawAIApp.Views.LessonView.render === 'function') {
                     app.innerHTML = '';
@@ -691,23 +712,27 @@ LawAIApp.Router = {
 
     /**
      * 🔧 返回上一页（增强版）
-     * 优先使用面包屑栈，其次用浏览器历史，最后回首页
      */
     goBack: function() {
-        console.log('🔙 goBack called, breadcrumb stack length:', this._breadcrumbStack.length);
+        console.log('🔙 goBack called, breadcrumb stack:', this._breadcrumbStack.map(function(b) { return b.page; }));
         
-        // 如果面包屑栈有历史，用面包屑
+        // 如果面包屑栈有多个元素，用面包屑
         if (this._breadcrumbStack.length > 1) {
             this._breadcrumbStack.pop();
             var prev = this._breadcrumbStack[this._breadcrumbStack.length - 1];
             if (prev) {
                 console.log('📌 Going back to:', prev.page);
+                // 如果是特殊页面，用 window.location.href
+                if (prev.page === 'academy' || prev.page === 'lesson') {
+                    window.location.href = this._buildPath(prev.page, prev.params || {});
+                    return;
+                }
                 this.navigate(prev.page, prev.params || {}, { replace: true });
                 return;
             }
         }
         
-        // 如果当前在 academy 或 lesson 页面，尝试回首页
+        // 如果当前在 academy 或 lesson 页面，直接回首页
         if (this.currentPage === 'academy' || this.currentPage === 'lesson') {
             console.log('📌 On special page, going home');
             this.goHome();
@@ -727,15 +752,19 @@ LawAIApp.Router = {
     },
 
     /**
-     * 返回首页
+     * 🔧 返回首页（增强版：不刷新页面）
      */
     goHome: function() {
-        console.log('🏠 goHome called');
-        // 如果当前在 /pages/ 下，跳转到根目录
+        console.log('🏠 goHome called, current page:', this.currentPage);
+        
+        // 如果当前在 /pages/ 下，跳转到根目录（用 replace 避免历史堆积）
         if (window.location.pathname.includes('/pages/')) {
-            window.location.href = '/';
+            console.log('📌 On /pages/ path, redirecting to /');
+            window.location.replace('/');
             return;
         }
+        
+        // 使用 navigate 回到 dashboard（replace 避免历史堆积）
         this.navigate('dashboard', {}, { replace: true });
     },
 
@@ -782,4 +811,4 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     });
 }
 
-console.log('🧭 Router V4.3 ready (fixed goBack + lesson routing + popstate)');
+console.log('🧭 Router V4.4 ready (fixed goHome + goBack with proper history management)');
