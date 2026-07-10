@@ -1,46 +1,132 @@
-/* animation.css - 所有动画关键帧 */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+/* ================================================================
+   animations.css – 统一动效库
+   所有动画共享一组时长和缓动
+   ================================================================ */
+
+/* ==========================================================
+   页面入场
+   ========================================================== */
+
+@keyframes pageEnter {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+.page-enter {
+    animation: pageEnter var(--duration-normal) var(--ease-out) forwards;
 }
+.page-enter-fast {
+    animation: pageEnter var(--duration-fast) var(--ease-out) forwards;
+}
+.page-enter-slow {
+    animation: pageEnter var(--duration-slow) var(--ease-out) forwards;
+}
+
+/* ==========================================================
+   淡入
+   ========================================================== */
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+.fade-in {
+    animation: fadeIn var(--duration-normal) var(--ease-smooth);
+}
+.fade-in-fast {
+    animation: fadeIn var(--duration-fast) var(--ease-smooth);
+}
+.fade-in-slow {
+    animation: fadeIn var(--duration-slow) var(--ease-smooth);
+}
+
+/* ==========================================================
+   上滑淡入
+   ========================================================== */
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.slide-up {
+    animation: slideUp var(--duration-normal) var(--ease-spring);
+}
+.slide-up-fast {
+    animation: slideUp var(--duration-fast) var(--ease-spring);
+}
+.slide-up-slow {
+    animation: slideUp var(--duration-slow) var(--ease-spring);
+}
+
+/* ==========================================================
+   缩放淡入
+   ========================================================== */
+
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+.scale-in {
+    animation: scaleIn var(--duration-normal) var(--ease-spring);
+}
+
+/* ==========================================================
+   脉动（骨架屏）
+   ========================================================== */
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
 }
+.pulse {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+.pulse-fast {
+    animation: pulse 1s ease-in-out infinite;
+}
+.pulse-slow {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* ==========================================================
+   旋转
+   ========================================================== */
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+    to { transform: rotate(360deg); }
+}
+.spin {
+    animation: spin 1s linear infinite;
+}
+.spin-slow {
+    animation: spin 2s linear infinite;
 }
 
-@keyframes shimmer {
-  0% { background-position: -200px 0; }
-  100% { background-position: calc(200px + 100%) 0; }
+/* ==========================================================
+   庆祝
+   ========================================================== */
+
+@keyframes celebratePop {
+    0% { opacity: 0; transform: scale(0.8) rotate(-5deg); }
+    50% { opacity: 1; transform: scale(1.1) rotate(2deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.celebrate {
+    animation: celebratePop var(--duration-slower) var(--ease-spring);
 }
 
-@keyframes slideInRight {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
+/* ==========================================================
+   交错入场（用于卡片列表）
+   ========================================================== */
 
-/* ========== Phase 46 仪表盘新增动画 ========== */
-@keyframes scorePop {
-  0% { transform: scale(0.8); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+.stagger > * {
+    animation: slideUp var(--duration-normal) var(--ease-spring) both;
 }
-
-@keyframes cardSlideUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes heatPulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); }
-}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 40ms; }
+.stagger > *:nth-child(3) { animation-delay: 80ms; }
+.stagger > *:nth-child(4) { animation-delay: 120ms; }
+.stagger > *:nth-child(5) { animation-delay: 160ms; }
+.stagger > *:nth-child(6) { animation-delay: 200ms; }
+.stagger > *:nth-child(7) { animation-delay: 240ms; }
+.stagger > *:nth-child(8) { animation-delay: 280ms; }
