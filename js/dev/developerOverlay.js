@@ -17,7 +17,7 @@ LawAIApp.DevTools.DeveloperOverlay = {
     init: function() {
         // 监听键盘快捷键
         document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.shiftKey && (e.key === 'K' || e.key === 'l')) {
+            if (e.ctrlKey && e.shiftKey && (e.key === 'K' || e.key === 'k')) {
                 e.preventDefault();
                 this.toggle();
             }
