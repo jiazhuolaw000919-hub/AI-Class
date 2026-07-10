@@ -36,12 +36,17 @@ REGISTRY SUMMARY
 | ENG-007 | PracticeEngine | Core Logic | 🟢 Canon Locked | 2.0.0 |
 | ENG-008 | ReflectionEngine | Core Logic | 🟢 Canon Locked | 1.0.0 |
 | ENG-009 | AIMentorEngine | AI Layer | 🟢 Canon Locked | 1.0.0 |
-| ENG-010 | ExperienceEngine | UI Layer | 🟢 Canon Locked | 1.0.0 |
+| ENG-010 | ExperienceEngine | UI Layer | 🟢 Canon Locked | 2.0.0 |
+| ENG-011 | SchoolEngine | Core Logic | 🟢 Canon Locked | 1.0.0 |
+| ENG-012 | AcademicRecordEngine | Core Logic | 🟢 Canon Locked | 1.0.0 |
+| ENG-013 | CertificateEngine | Core Logic | 🟢 Canon Locked | 1.0.0 |
+| ENG-014 | CareerEngine | Core Logic | 🟢 Canon Locked | 1.0.0 |
+| ENG-015 | CommunityEngine | Core Logic | 🟢 Canon Locked | 1.0.0 |
 
-**Total Registered Engines:** 10
+**Total Registered Engines:** 15
 
 **Status Breakdown:**
-- 🟢 Canon Locked: 10
+- 🟢 Canon Locked: 15
 - 🟡 Verification Required: 0
 - 🔴 Missing: 0
 - ⚫ Deprecated: 0
@@ -96,6 +101,11 @@ ENGINE REGISTRATION DETAILS
 | PracticeEngine | Core Logic |
 | ReflectionEngine | Core Logic |
 | SystemComposer | UI Layer |
+| SchoolEngine | Core Logic |
+| AcademicRecordEngine | Core Logic |
+| CertificateEngine | Core Logic |
+| CareerEngine | Core Logic |
+| CommunityEngine | Core Logic |
 
 ### Canonical Events
 
@@ -162,6 +172,11 @@ ENGINE REGISTRATION DETAILS
 | PracticeEngine | Core Logic |
 | SystemComposer | UI Layer |
 | Router | System |
+| SchoolEngine | Core Logic |
+| AcademicRecordEngine | Core Logic |
+| CertificateEngine | Core Logic |
+| CareerEngine | Core Logic |
+| CommunityEngine | Core Logic |
 
 ### Canonical Events
 
@@ -175,6 +190,15 @@ ENGINE REGISTRATION DETAILS
 | ReviewCompleted | MemoryEngine | `{ lessonId, performance }` | Review completion |
 | PracticeCompleted | PracticeEngine | `{ practice, feedback, correct }` | Practice completion |
 | ReflectionSaved | ReflectionEngine | `{ userId, lessonId }` | Reflection saved |
+| SchoolRegistered | SchoolEngine | `{ school }` | School registered |
+| SchoolActivated | SchoolEngine | `{ schoolId, school }` | School activated |
+| RecordAdded | AcademicRecordEngine | `{ record }` | Record added |
+| CertificateGenerated | CertificateEngine | `{ certificate }` | Certificate generated |
+| CareerGoalSet | CareerEngine | `{ goal }` | Career goal set |
+| MilestoneAdded | CareerEngine | `{ milestone }` | Milestone added |
+| GroupCreated | CommunityEngine | `{ group }` | Group created |
+| GroupJoined | CommunityEngine | `{ groupId, userId }` | User joined group |
+| MessagePosted | CommunityEngine | `{ message }` | Message posted |
 
 ---
 
@@ -232,6 +256,9 @@ ENGINE REGISTRATION DETAILS
 | SystemComposer | UI Layer |
 | LessonView | UI Layer |
 | AcademyView | UI Layer |
+| SchoolEngine | Core Logic |
+| AcademicRecordEngine | Core Logic |
+| CareerEngine | Core Logic |
 
 ### Canonical Events
 
@@ -241,6 +268,7 @@ ENGINE REGISTRATION DETAILS
 |-------|---------|-------------|
 | `LessonCompleted` | `{ lessonId, xpGain }` | Lesson completed |
 | `ProgressUpdated` | `{ lessonId, progress }` | Progress updated |
+| `LevelUp` | `{ level }` | Level up |
 
 ---
 
@@ -285,6 +313,7 @@ ENGINE REGISTRATION DETAILS
 | SystemComposer | UI Layer |
 | LessonView | UI Layer |
 | PracticeEngine | Core Logic |
+| SchoolEngine | Core Logic |
 
 ---
 
@@ -384,92 +413,3 @@ ENGINE REGISTRATION DETAILS
   nextReview: '2026-01-08T00:00:00.000Z',
   reviewCount: 0
 }
-
----
-
-## ENG-010: ExperienceEngine
-
-| Property | Value |
-|----------|-------|
-| **Engine ID** | ENG-010 |
-| **Engine Name** | ExperienceEngine |
-| **Architecture Layer** | UI Layer |
-| **Purpose** | Owns the user experience layer of the platform. Manages micro-interactions, celebrations, themes, and focus mode. Creates emotional engagement and makes learning feel rewarding. |
-| **Owner Domain** | User Experience & Engagement |
-| **Recovery Status** | 🟢 Canon Locked |
-| **Version** | 2.0.0 |
-
-### Canonical API
-
-| Method | Description | Returns |
-|--------|-------------|---------|
-| `init()` | Initialize the engine | void |
-| `getExperienceLevel()` | Get current XP total | number |
-| `getExperienceProgress()` | Get XP progress toward next milestone | { level, nextMilestone, progress } |
-| `addXP(amount)` | Add XP and return new total | number |
-| `getXP()` | Get current XP (alias) | number |
-| `renderCelebration(message)` | Render full-page celebration | void |
-| `getStatus()` | Get engine status | Status object |
-
-### Canonical Storage
-
-| Key | Format | Schema Version | Description |
-|-----|--------|----------------|-------------|
-| `lawai_experience_level` | JSON number | 1.0.0 | Cumulative experience points (0-1000) |
-
-### Dependencies
-
-| Dependency | Type | Description |
-|------------|------|-------------|
-| StorageEngine | Optional | For persistent storage |
-| EventBus | Optional | For listening to events and emitting milestones |
-| Router | Optional | For navigation in celebration view |
-
-### Consumers
-
-| Consumer | Layer |
-|----------|-------|
-| SystemComposer | UI Layer |
-| LessonView | UI Layer |
-
-### Canonical Events
-
-#### Emitted Events
-
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `ExperienceMilestone` | `{ level, milestone, oldLevel }` | Emitted when a milestone is reached |
-
-#### Consumed Events
-
-| Event | Source | Payload | Description |
-|-------|--------|---------|-------------|
-| `LessonCompleted` | ProgressEngine | `{ lessonId, xpGain }` | Adds +5 XP |
-| `PracticeCompleted` | PracticeEngine | `{ practice, feedback, correct }` | Adds +3 XP (correct) or +1 XP |
-| `ProjectFinished` | ProjectEngine | `{}` | Adds +15 XP |
-| `LevelUp` | ProgressEngine | `{ level }` | Adds +10 XP |
-
-### XP Milestones
-
-| Milestone | Reward |
-|-----------|--------|
-| 100 XP | 🎯 First milestone |
-| 250 XP | ⭐ Dedicated learner |
-| 500 XP | 🔥 Halfway to master |
-| 750 XP | 🏆 Advanced learner |
-| 1000 XP | 👑 XP Champion |
-
-### Future Extension
-
-- More milestones beyond 1000 XP
-- XP multipliers for streaks
-- Achievement system integration
-- Celebration effects (confetti, animations)
-- Theme integration for celebrations
-- Sound effects for milestones
-
-### Notes
-
-- XP is cumulative and never resets
-- Milestones are checked on every XP addition
-- Celebration view uses Router for navigation
