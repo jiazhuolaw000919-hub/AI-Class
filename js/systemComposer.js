@@ -3,7 +3,7 @@
 // LAYER: UI Layer
 // DOMAIN: System Composition & UI Rendering
 // RECOVERY STATUS: 🟢 Canon Locked
-// VERSION: 5.1.0 - Dashboard WOW Recovery
+// VERSION: 5.2.0 - Instant Runtime (Phase 0.1)
 // ================================================================
 //
 // PURPOSE
@@ -69,7 +69,7 @@ LawAIApp.SystemComposer = {
     // ENGINE METADATA
     // ============================================================
     _engineName: 'SystemComposer',
-    _engineVersion: '5.1.0',
+    _engineVersion: '5.2.0',
     _recoveryStatus: '🟢 Canon Locked',
     _layer: 'UI Layer',
     _domain: 'System Composition & UI Rendering',
@@ -89,6 +89,7 @@ LawAIApp.SystemComposer = {
     _recoveryAttempts: 0,
     _maxRecoveryAttempts: 3,
     _deferredRendered: false,
+    _panelsRegistered: false,
 
     // ============================================================
     // 2. DOM Cache（一次性查询）
@@ -204,7 +205,7 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 7. Init
+    // 7. Init — 只做一件事：立即渲染
     // ============================================================
     init: function(boot) {
         boot = boot || {};
@@ -239,6 +240,7 @@ LawAIApp.SystemComposer = {
                 this.root = existingRoot;
             } else {
                 if (this.root.id === "law-runtime-root") {
+                    // 🔥 关键：立即渲染，不等待任何东西
                     this._renderMainUI();
                 } else {
                     console.warn("⚠️ Root element is not 'law-runtime-root', using fallback");
@@ -247,18 +249,22 @@ LawAIApp.SystemComposer = {
                 this._cacheDOM();
             }
 
-            // 注册面板（保留所有现有面板）
-            this.panels = {
-                learning: function() { this.mountLearning(); }.bind(this),
-                workspace: function() { this.mountWorkspace(); }.bind(this),
-                runtime: function() { this.mountRuntime(); }.bind(this),
-                modules: function() { this.mountRuntimeModules(); }.bind(this)
-            };
+            // 🔥 面板注册延迟到首屏渲染后（不阻塞）
+            this._schedulePanelRegistration();
 
-            this.refresh();
+            // 🔥 刷新延迟到首屏渲染后（不阻塞）
+            var self = this;
+            setTimeout(function() {
+                self.refresh();
+                console.log("✅ SystemComposer panels refreshed (after render)");
+            }, 300);
+
+            // 通知 mounted（但延迟一下，确保 UI 已经显示）
+            setTimeout(function() {
+                self._notifyMounted();
+            }, 100);
 
             console.log("✅ SystemComposer V" + this.version + " initialized successfully");
-            this._notifyMounted();
 
         } catch (err) {
             console.error("❌ SystemComposer init failed:", err);
@@ -266,6 +272,27 @@ LawAIApp.SystemComposer = {
         } finally {
             this._mounting = false;
         }
+    },
+
+    /**
+     * 🔥 延迟注册面板（不阻塞首屏）
+     */
+    _schedulePanelRegistration: function() {
+        if (this._panelsRegistered) return;
+        this._panelsRegistered = true;
+
+        // 使用 requestIdleCallback 或 setTimeout 延迟注册
+        var scheduleFn = window.requestIdleCallback || function(cb) { setTimeout(cb, 200); };
+        
+        scheduleFn(function() {
+            this.panels = {
+                learning: function() { this.mountLearning(); }.bind(this),
+                workspace: function() { this.mountWorkspace(); }.bind(this),
+                runtime: function() { this.mountRuntime(); }.bind(this),
+                modules: function() { this.mountRuntimeModules(); }.bind(this)
+            };
+            console.log('📌 Panels registered (deferred)');
+        }.bind(this));
     },
 
     // ============================================================
@@ -301,6 +328,7 @@ LawAIApp.SystemComposer = {
         this._dirtyPanels.clear();
         this._renderScheduled = false;
         this._deferredRendered = false;
+        this._panelsRegistered = false;
         console.log("🧩 SystemComposer destroyed");
     },
 
@@ -322,15 +350,18 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 11. 数据获取方法
+    // 11. 数据获取方法（纯函数，不依赖引擎状态）
     // ============================================================
 
     _getState: function() {
+        // 🔥 直接使用 fallback 数据，不等待任何引擎
+        // 这样首屏渲染完全不受引擎加载影响
         var state = {};
         var completedList = [];
         var hasProgress = false;
 
         try {
+            // 尝试从 ProgressEngine 获取，但不阻塞
             if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.getState === 'function') {
                 state = LawAIApp.ProgressEngine.getState();
                 completedList = state.completedLessons || [];
@@ -351,7 +382,7 @@ LawAIApp.SystemComposer = {
                 hasProgress = completedList.length > 0;
             }
         } catch (err) {
-            console.warn('⚠️ Failed to get progress state:', err);
+            // 静默失败，使用 fallback
         }
 
         if (!hasProgress) {
@@ -520,7 +551,7 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 12. 🔥 Dashboard WOW Recovery - 核心渲染
+    // 12. 🔥 Instant Render — 立即渲染，零等待
     // ============================================================
 
     _renderMainUI: function() {
@@ -531,7 +562,7 @@ LawAIApp.SystemComposer = {
         }
 
         // ============================================================
-        // 1. 获取所有数据
+        // 1. 获取所有数据（纯函数，不阻塞）
         // ============================================================
         var data = this._getState();
         var isDemo = data.isDemo;
@@ -609,7 +640,7 @@ LawAIApp.SystemComposer = {
         var btnText = isDemo ? '📖 Start' : (completedList.length >= 365 ? '🎉 Review' : '📖 Continue');
 
         // ============================================================
-        // 2. 构建 WOW Dashboard HTML
+        // 2. 构建 WOW Dashboard HTML（纯字符串，零依赖）
         // ============================================================
         var coreHTML = `
         <div id="systemComposerRoot" style="
@@ -945,14 +976,14 @@ LawAIApp.SystemComposer = {
         `;
 
         // ============================================================
-        // 3. 立即渲染
+        // 3. 立即渲染（零等待）
         // ============================================================
         this.root.innerHTML = coreHTML;
         this._setupNavGuard();
         this._deferredRendered = false;
 
         // ============================================================
-        // 4. 延迟渲染次要内容（200ms 后）
+        // 4. 延迟渲染次要内容（200ms 后，不阻塞首屏）
         // ============================================================
         var self = this;
         setTimeout(function() {
@@ -1165,7 +1196,7 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 15. 原有 Panel 方法
+    // 15. 原有 Panel 方法（保留，但延迟注册）
     // ============================================================
     mountLearning: function() {
         var el = this.getDOM('learning');
@@ -1218,7 +1249,8 @@ LawAIApp.SystemComposer = {
             maxRecoveryAttempts: this._maxRecoveryAttempts,
             rootExists: !!this.root,
             domCacheSize: Object.keys(this.cache).length,
-            deferredRendered: this._deferredRendered
+            deferredRendered: this._deferredRendered,
+            panelsRegistered: this._panelsRegistered
         };
     },
 
