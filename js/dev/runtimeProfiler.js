@@ -1,7 +1,6 @@
 // ================================================================
-// runtimeProfiler.js – Runtime Profiler V1.0.0
-// 测量启动性能、引擎加载时间、渲染时间
-// 开发者工具，不影响用户体验
+// runtimeProfiler.js – Runtime Profiler V1.1.0
+// 自动采集所有运行时数据，无需手动打点
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -19,9 +18,18 @@ LawAIApp.DevTools.RuntimeProfiler = {
     _renderCounts: {
         dashboard: 0,
         academy: 0,
-        lesson: 0
+        lesson: 0,
+        settings: 0,
+        profile: 0
     },
     _startTime: 0,
+    _frozen: false,
+    _totalTime: 0,
+    _engines: {},
+    _engineOrder: [],
+    _pendingPromises: 0,
+    _completedPromises: 0,
+    _rejectedPromises: 0,
 
     /**
      * 启动 Profiler
@@ -29,13 +37,168 @@ LawAIApp.DevTools.RuntimeProfiler = {
     init: function() {
         if (!this._enabled) return;
         this._startTime = performance.now();
+        this._frozen = false;
         this.mark('profiler_init');
-        console.log('📊 RuntimeProfiler initialized');
+        console.log('📊 RuntimeProfiler V1.1.0 initialized');
+    },
+
+    // ============================================================
+    // ⏱️ STARTUP TIMER — 启动计时器
+    // ============================================================
+
+    /**
+     * 冻结启动计时（在启动完成时调用）
+     */
+    freeze: function() {
+        if (this._frozen) return;
+        this._frozen = true;
+        this._totalTime = Math.round(performance.now() - this._startTime);
+        this.mark('profiler_frozen');
+        console.log('📊 RuntimeProfiler frozen at', this._totalTime + 'ms');
     },
 
     /**
-     * 标记一个时间点
+     * 获取总启动时间（冻结后返回固定值）
      */
+    getTotalTime: function() {
+        if (this._frozen) {
+            return this._totalTime;
+        }
+        return Math.round(performance.now() - this._startTime);
+    },
+
+    // ============================================================
+    // 🏷️ ENGINE REGISTRATION — 引擎自动注册
+    // ============================================================
+
+    /**
+     * 注册一个引擎
+     */
+    registerEngine: function(name, startTime) {
+        if (!this._enabled) return;
+        if (this._engines[name]) {
+            // 如果已存在，更新时间
+            this._engines[name].lastSeen = Date.now();
+            return;
+        }
+        this._engines[name] = {
+            name: name,
+            registeredAt: startTime || performance.now(),
+            lastSeen: Date.now(),
+            duration: 0
+        };
+        this._engineOrder.push(name);
+        console.log('📊 Engine registered:', name);
+    },
+
+    /**
+     * 记录引擎加载完成
+     */
+    engineLoaded: function(name, endTime) {
+        if (!this._enabled) return;
+        if (this._engines[name]) {
+            var start = this._engines[name].registeredAt;
+            this._engines[name].duration = Math.round((endTime || performance.now()) - start);
+            this._engines[name].loaded = true;
+            this.measure(
+                'engine_' + name,
+                'engine_start_' + name,
+                'engine_end_' + name
+            );
+        }
+    },
+
+    /**
+     * 获取所有引擎数据
+     */
+    getEngines: function() {
+        var result = {};
+        for (var name in this._engines) {
+            result[name] = this._engines[name].duration || 0;
+        }
+        return result;
+    },
+
+    /**
+     * 获取引擎加载顺序
+     */
+    getEngineOrder: function() {
+        return this._engineOrder.slice();
+    },
+
+    // ============================================================
+    // 💾 STORAGE INSTRUMENTATION — 存储自动计数
+    // ============================================================
+
+    recordStorageRead: function() {
+        if (!this._enabled) return;
+        this._storageReads++;
+    },
+
+    recordStorageWrite: function() {
+        if (!this._enabled) return;
+        this._storageWrites++;
+    },
+
+    // ============================================================
+    // 📡 EVENT INSTRUMENTATION — 事件自动计数
+    // ============================================================
+
+    recordEventRegistration: function(eventName) {
+        if (!this._enabled) return;
+        this._eventBusListeners++;
+        if (!this._eventBusEvents[eventName]) {
+            this._eventBusEvents[eventName] = { listeners: 0, emitted: 0 };
+        }
+        this._eventBusEvents[eventName].listeners++;
+    },
+
+    recordEventEmission: function(eventName) {
+        if (!this._enabled) return;
+        if (!this._eventBusEvents[eventName]) {
+            this._eventBusEvents[eventName] = { listeners: 0, emitted: 0 };
+        }
+        this._eventBusEvents[eventName].emitted++;
+    },
+
+    // ============================================================
+    // 🔄 RENDER INSTRUMENTATION — 渲染自动计数
+    // ============================================================
+
+    recordRender: function(page) {
+        if (!this._enabled) return;
+        if (this._renderCounts[page] !== undefined) {
+            this._renderCounts[page]++;
+        } else {
+            this._renderCounts[page] = 1;
+        }
+    },
+
+    // ============================================================
+    // 📦 PROMISE INSTRUMENTATION — Promise 追踪
+    // ============================================================
+
+    recordPromisePending: function() {
+        if (!this._enabled) return;
+        this._pendingPromises++;
+    },
+
+    recordPromiseCompleted: function() {
+        if (!this._enabled) return;
+        this._pendingPromises--;
+        this._completedPromises++;
+    },
+
+    recordPromiseRejected: function() {
+        if (!this._enabled) return;
+        this._pendingPromises--;
+        this._rejectedPromises++;
+    },
+
+    // ============================================================
+    // 📍 MARK & MEASURE — 标记和测量（保留）
+    // ============================================================
+
     mark: function(name, data) {
         if (!this._enabled) return;
         var mark = {
@@ -48,15 +211,25 @@ LawAIApp.DevTools.RuntimeProfiler = {
         return mark;
     },
 
-    /**
-     * 测量两个标记之间的时间
-     */
     measure: function(name, startMark, endMark) {
         if (!this._enabled) return;
         var start = this._marks[startMark];
         var end = this._marks[endMark];
         if (!start || !end) {
-            console.warn('⚠️ Profiler: Mark not found', startMark, endMark);
+            // 尝试用引擎数据补充
+            if (name.startsWith('engine_')) {
+                var engineName = name.replace('engine_', '');
+                if (this._engines[engineName]) {
+                    var duration = this._engines[engineName].duration;
+                    this._measures[name] = {
+                        start: startMark,
+                        end: endMark,
+                        duration: duration,
+                        engine: engineName
+                    };
+                    return duration;
+                }
+            }
             return;
         }
         var duration = end.timestamp - start.timestamp;
@@ -68,63 +241,10 @@ LawAIApp.DevTools.RuntimeProfiler = {
         return duration;
     },
 
-    /**
-     * 记录引擎加载时间
-     */
-    recordEngine: function(name, startTime, endTime) {
-        if (!this._enabled) return;
-        var duration = endTime - startTime;
-        this._measures['engine_' + name] = {
-            start: 'engine_' + name + '_start',
-            end: 'engine_' + name + '_end',
-            duration: Math.round(duration),
-            engine: name
-        };
-        return duration;
-    },
+    // ============================================================
+    // 📊 DATA COLLECTION — 数据收集
+    // ============================================================
 
-    /**
-     * 记录存储操作
-     */
-    recordStorageRead: function() {
-        if (!this._enabled) return;
-        this._storageReads++;
-    },
-
-    recordStorageWrite: function() {
-        if (!this._enabled) return;
-        this._storageWrites++;
-    },
-
-    /**
-     * 记录事件
-     */
-    recordEvent: function(eventName) {
-        if (!this._enabled) return;
-        if (!this._eventBusEvents[eventName]) {
-            this._eventBusEvents[eventName] = 0;
-        }
-        this._eventBusEvents[eventName]++;
-    },
-
-    recordListener: function() {
-        if (!this._enabled) return;
-        this._eventBusListeners++;
-    },
-
-    /**
-     * 记录渲染
-     */
-    recordRender: function(page) {
-        if (!this._enabled) return;
-        if (this._renderCounts[page] !== undefined) {
-            this._renderCounts[page]++;
-        }
-    },
-
-    /**
-     * 获取所有测量数据
-     */
     getData: function() {
         return {
             marks: this._marks,
@@ -135,12 +255,18 @@ LawAIApp.DevTools.RuntimeProfiler = {
             eventBusEvents: this._eventBusEvents,
             eventBusListeners: this._eventBusListeners,
             renderCounts: this._renderCounts,
-            totalTime: Math.round(performance.now() - this._startTime)
+            totalTime: this.getTotalTime(),
+            engines: this._engines,
+            engineOrder: this._engineOrder,
+            pendingPromises: this._pendingPromises,
+            completedPromises: this._completedPromises,
+            rejectedPromises: this._rejectedPromises,
+            frozen: this._frozen
         };
     },
 
     /**
-     * 生成报告（由 RuntimeReport 调用）
+     * 生成报告数据（由 RuntimeReport 调用）
      */
     getReportData: function() {
         var data = this.getData();
@@ -148,21 +274,19 @@ LawAIApp.DevTools.RuntimeProfiler = {
         var totalDuration = 0;
 
         // 提取引擎时间
-        for (var key in data.measures) {
-            if (key.startsWith('engine_')) {
-                var engineName = key.replace('engine_', '');
-                engines[engineName] = data.measures[key].duration;
-                totalDuration += data.measures[key].duration;
-            }
+        for (var name in data.engines) {
+            var eng = data.engines[name];
+            engines[name] = eng.duration || 0;
+            totalDuration += eng.duration || 0;
         }
 
         // 找出最慢的引擎
         var slowest = null;
         var slowestTime = 0;
-        for (var name in engines) {
-            if (engines[name] > slowestTime) {
-                slowestTime = engines[name];
-                slowest = name;
+        for (var n in engines) {
+            if (engines[n] > slowestTime) {
+                slowestTime = engines[n];
+                slowest = n;
             }
         }
 
@@ -174,7 +298,6 @@ LawAIApp.DevTools.RuntimeProfiler = {
             background: 0
         };
 
-        // 从 timeline 中提取阶段时间
         var timeline = data.timeline;
         for (var i = 0; i < timeline.length - 1; i++) {
             var current = timeline[i];
@@ -193,6 +316,12 @@ LawAIApp.DevTools.RuntimeProfiler = {
             }
         }
 
+        // 总事件数
+        var totalEvents = 0;
+        for (var ev in data.eventBusEvents) {
+            totalEvents += data.eventBusEvents[ev].emitted || 0;
+        }
+
         return {
             totalTime: data.totalTime,
             engines: engines,
@@ -202,7 +331,11 @@ LawAIApp.DevTools.RuntimeProfiler = {
             storageReads: data.storageReads,
             storageWrites: data.storageWrites,
             eventBusEvents: data.eventBusEvents,
-            renderCounts: data.renderCounts
+            eventBusListeners: data.eventBusListeners,
+            totalEvents: totalEvents,
+            renderCounts: data.renderCounts,
+            engineOrder: data.engineOrder,
+            frozen: data.frozen
         };
     },
 
@@ -220,9 +353,18 @@ LawAIApp.DevTools.RuntimeProfiler = {
         this._renderCounts = {
             dashboard: 0,
             academy: 0,
-            lesson: 0
+            lesson: 0,
+            settings: 0,
+            profile: 0
         };
         this._startTime = performance.now();
+        this._frozen = false;
+        this._totalTime = 0;
+        this._engines = {};
+        this._engineOrder = [];
+        this._pendingPromises = 0;
+        this._completedPromises = 0;
+        this._rejectedPromises = 0;
         this.mark('profiler_reset');
         console.log('📊 RuntimeProfiler reset');
     },
@@ -246,4 +388,4 @@ if (LawAIApp.DevTools) {
     LawAIApp.DevTools.RuntimeProfiler.init();
 }
 
-console.log('📊 RuntimeProfiler V1.0.0 ready');
+console.log('📊 RuntimeProfiler V1.1.0 ready');
