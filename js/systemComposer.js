@@ -3,7 +3,7 @@
 // LAYER: UI Layer
 // DOMAIN: System Composition & UI Rendering
 // RECOVERY STATUS: 🟢 Canon Locked
-// VERSION: 5.0.1
+// VERSION: 5.0.2 - Dashboard Recovery (Progressive Rendering)
 // ================================================================
 //
 // PURPOSE
@@ -26,7 +26,6 @@
 //   getDOM(key)                            -> HTMLElement | null
 //   getStatus()                            -> Status object
 //   isReady()                              -> boolean
-//   getStatus()                            -> object
 //
 // DEPENDENCIES
 // ================================================================
@@ -70,7 +69,7 @@ LawAIApp.SystemComposer = {
     // ENGINE METADATA
     // ============================================================
     _engineName: 'SystemComposer',
-    _engineVersion: '5.0.1',
+    _engineVersion: '5.0.2',
     _recoveryStatus: '🟢 Canon Locked',
     _layer: 'UI Layer',
     _domain: 'System Composition & UI Rendering',
@@ -89,6 +88,7 @@ LawAIApp.SystemComposer = {
     _dirtyPanels: new Set(),
     _recoveryAttempts: 0,
     _maxRecoveryAttempts: 3,
+    _deferredRendered: false,
 
     // ============================================================
     // 2. DOM Cache（一次性查询）
@@ -152,7 +152,6 @@ LawAIApp.SystemComposer = {
 
         console.log("🎨 Processing render queue, panels:", Array.from(this._dirtyPanels));
 
-        // 按注册顺序渲染
         var sortedPanels = Array.from(this._dirtyPanels);
         sortedPanels.forEach(function(name) {
             this._renderPanel(name);
@@ -177,7 +176,6 @@ LawAIApp.SystemComposer = {
             this._recoveryAttempts = 0;
         } catch (err) {
             console.warn('⚠️ Panel "' + name + '" render failed:', err);
-            // 继续渲染其他面板，不中断
         }
     },
 
@@ -193,7 +191,6 @@ LawAIApp.SystemComposer = {
         this._recoveryAttempts++;
         console.log('🔄 Recovery attempt ' + this._recoveryAttempts);
 
-        // 重新渲染所有面板
         Object.keys(this.panels).forEach(function(name) {
             this._dirtyPanels.add(name);
         }.bind(this));
@@ -303,6 +300,7 @@ LawAIApp.SystemComposer = {
         this._mountedNotified = false;
         this._dirtyPanels.clear();
         this._renderScheduled = false;
+        this._deferredRendered = false;
         console.log("🧩 SystemComposer destroyed");
     },
 
@@ -324,7 +322,7 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 11. 原有 UI 渲染（100% 保留，一行不改）
+    // 11. 原有数据获取方法（保留）
     // ============================================================
 
     _getState: function() {
@@ -521,6 +519,10 @@ LawAIApp.SystemComposer = {
         return { nodes: nodes, edges: edges };
     },
 
+    // ============================================================
+    // 12. 🔥 Dashboard Recovery - Progressive Rendering
+    // ============================================================
+
     _renderMainUI: function() {
         if (!this.root) return;
         if (document.getElementById("systemComposerRoot")) {
@@ -529,9 +531,8 @@ LawAIApp.SystemComposer = {
         }
 
         // ============================================================
-        // 以下为完整 UI 渲染（保持你的原版 HTML，一行不改）
+        // 1. 获取所有数据（和原来一样）
         // ============================================================
-
         var data = this._getState();
         var isDemo = data.isDemo;
         var state = data.state;
@@ -544,7 +545,6 @@ LawAIApp.SystemComposer = {
         var completionPercent = Math.round(state.completionPercent || 0);
         var currentStage = state.currentStage || 'Foundation';
         var remainingLessons = state.remainingLessons || 365;
-        var today = new Date();
 
         var nextTitle = this._getNextLessonTitle(day);
         var nextSummary = this._getNextLessonSummary(day);
@@ -582,7 +582,7 @@ LawAIApp.SystemComposer = {
         var diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
         var diffMin = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
-        // ===== 🔥 动态问候 + 鼓励语 =====
+        // ===== 动态问候 =====
         function getGreeting() {
             var hour = new Date().getHours();
             if (hour < 12) return '🌅 Good morning';
@@ -619,6 +619,230 @@ LawAIApp.SystemComposer = {
             fullMentorMsg += ' ' + encouragement;
         }
 
+        // ============================================================
+        // 2. 构建核心 HTML（立即显示）
+        // ============================================================
+        var coreHTML = `
+        <div id="systemComposerRoot" style="
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0b1220 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        ">
+            <div style="padding-bottom: 90px;">
+
+                <header style="background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.08);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:22px;">🚀</span>
+                        <h1 style="margin:0;font-size:18px;font-weight:700;background:linear-gradient(90deg,#4a9eff,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Law AI Academy</h1>
+                        <span style="font-size:10px;background:rgba(74,158,255,0.2);color:#4a9eff;padding:2px 8px;border-radius:12px;">v${this.version}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:#94a3b8;">
+                        <span>🎯 Day ${day}</span>
+                        <span>⭐ ${xp}</span>
+                        <span>🔥 ${level}</span>
+                    </div>
+                </header>
+
+                <main style="max-width:1000px;margin:0 auto;padding:16px 16px 20px;">
+
+                    <!-- ===== 核心区：Today's Goals ===== -->
+                    <div style="
+                        background:linear-gradient(135deg,rgba(74,158,255,0.12),rgba(124,58,237,0.12));
+                        border-radius:14px;
+                        padding:18px 20px;
+                        border:1px solid rgba(74,158,255,0.15);
+                        margin-bottom:16px;
+                        animation:fadeIn 0.3s ease;
+                    ">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                            <span style="font-size:13px;color:#94a3b8;">🎯 Today's Goals</span>
+                            <span style="font-size:13px;color:#4a9eff;font-weight:600;">${completedGoals}/${totalGoals}</span>
+                        </div>
+                        <div style="display:flex;gap:4px;margin-bottom:10px;">
+                            ${goalProgressHtml}
+                        </div>
+                        ${goalsHtml}
+                        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:#64748b;">
+                            <span>⏰ ${diffHrs}h ${diffMin}m remaining today</span>
+                            <span>${goalPercent}% complete</span>
+                        </div>
+                    </div>
+
+                    <!-- ===== 核心区：AI Mentor ===== -->
+                    <div style="
+                        background:rgba(74,158,255,0.08);
+                        border-radius:12px;
+                        padding:14px 18px;
+                        border:1px solid rgba(74,158,255,0.12);
+                        margin-bottom:16px;
+                        display:flex;
+                        align-items:center;
+                        gap:12px;
+                        animation:fadeIn 0.3s ease 0.05s;
+                    ">
+                        <span style="font-size:24px;">🧠</span>
+                        <span style="font-size:14px;color:#e2e8f0;flex:1;">${fullMentorMsg}</span>
+                    </div>
+
+                    <!-- ===== 核心区：Stats ===== -->
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;animation:fadeIn 0.3s ease 0.1s;">
+                        <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(255,255,255,0.04);">
+                            <div style="font-size:22px;color:#4a9eff;">${level}</div>
+                            <div style="font-size:10px;color:#64748b;">Level</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(255,255,255,0.04);">
+                            <div style="font-size:22px;color:#fbbf24;">${xp}</div>
+                            <div style="font-size:10px;color:#64748b;">XP</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(255,255,255,0.04);">
+                            <div style="font-size:22px;color:#f97316;">${streak}</div>
+                            <div style="font-size:10px;color:#64748b;">Streak</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(255,255,255,0.04);">
+                            <div style="font-size:22px;color:#8b5cf6;">${completionPercent}%</div>
+                            <div style="font-size:10px;color:#64748b;">Progress</div>
+                        </div>
+                    </div>
+
+                    <!-- ===== 核心区：Continue Learning ===== -->
+                    ${(completedList.length >= 365) ? `
+                    <div style="background:linear-gradient(135deg,rgba(74,158,255,0.15),rgba(124,58,237,0.15));border-radius:14px;padding:24px;text-align:center;border:1px solid rgba(74,158,255,0.15);margin-bottom:16px;animation:fadeIn 0.3s ease 0.15s;">
+                        <div style="font-size:36px;">🎉</div>
+                        <h3 style="margin:4px 0;font-size:18px;">All 365 Lessons Complete!</h3>
+                        <p style="color:#94a3b8;font-size:13px;">You've mastered the entire curriculum! 🏆</p>
+                        <a href="/pages/academy.html" style="display:inline-block;margin-top:10px;padding:8px 24px;background:#4a9eff;border-radius:8px;color:white;font-size:13px;font-weight:600;text-decoration:none;">🏛️ Explore Advanced</a>
+                    </div>
+                    ` : `
+                    <div style="background:rgba(255,255,255,0.03);border-radius:14px;padding:16px 18px;border:1px solid rgba(255,255,255,0.06);margin-bottom:16px;animation:fadeIn 0.3s ease 0.15s;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                            <span style="font-size:20px;">📖</span>
+                            <span style="font-size:14px;font-weight:600;">${nextTitle}</span>
+                            <span style="margin-left:auto;font-size:10px;background:rgba(74,158,255,0.12);color:#4a9eff;padding:2px 10px;border-radius:12px;">Day ${Math.min(day + 1, 365)}</span>
+                        </div>
+                        <p style="margin:0 0 10px 0;color:#94a3b8;font-size:13px;">${isDemo ? 'Complete your first lesson to unlock content!' : nextSummary}</p>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            ${(function() {
+                                var nextDay = completedList.length >= 365 ? 365 : Math.min(day + 1, 365);
+                                var lessonLink = isDemo ? '/pages/academy.html' : '/pages/lesson.html?day=' + nextDay;
+                                var btnText = isDemo ? '📖 Start' : (completedList.length >= 365 ? '🎉 Review' : '📖 Continue');
+                                return '<a href="' + lessonLink + '" style="padding:8px 20px;background:#4a9eff;border-radius:8px;color:white;font-size:13px;font-weight:600;text-decoration:none;">' + btnText + '</a>';
+                            })()}
+                            <button onclick="if(LawAIApp.Toast) LawAIApp.Toast.info('✏️ Practice coming soon!')" style="padding:8px 20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#94a3b8;font-size:13px;cursor:pointer;">✏️ Practice</button>
+                        </div>
+                    </div>
+                    `}
+
+                    <!-- ===== 延迟区：Skill Mastery + Knowledge Graph ===== -->
+                    <div id="deferred-dashboard-content" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;min-height:180px;">
+                        <!-- Skill Mastery 骨架 -->
+                        <div id="skill-mastery-placeholder" style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px 16px;border:1px solid rgba(255,255,255,0.04);">
+                            <h4 style="margin:0 0 8px 0;color:#94a3b8;font-size:12px;font-weight:400;">🧠 Skill Mastery</h4>
+                            <div style="padding:8px 0;">
+                                <div style="display:flex;align-items:center;gap:6px;padding:3px 0;">
+                                    <span style="font-size:14px;">🏛️</span>
+                                    <span style="font-size:10px;color:#64748b;width:50px;">Loading...</span>
+                                    <div style="flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;">
+                                        <div style="width:30%;height:100%;background:#4a9eff;border-radius:10px;animation:pulse 1.5s infinite;"></div>
+                                    </div>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:6px;padding:3px 0;">
+                                    <span style="font-size:14px;">✍️</span>
+                                    <span style="font-size:10px;color:#64748b;width:50px;">Loading...</span>
+                                    <div style="flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;">
+                                        <div style="width:40%;height:100%;background:#8b5cf6;border-radius:10px;animation:pulse 1.5s infinite 0.2s;"></div>
+                                    </div>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:6px;padding:3px 0;">
+                                    <span style="font-size:14px;">🛠️</span>
+                                    <span style="font-size:10px;color:#64748b;width:50px;">Loading...</span>
+                                    <div style="flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;">
+                                        <div style="width:50%;height:100%;background:#f59e0b;border-radius:10px;animation:pulse 1.5s infinite 0.4s;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Knowledge Graph 骨架 -->
+                        <div id="knowledge-graph-placeholder" style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px 16px;border:1px solid rgba(255,255,255,0.04);">
+                            <h4 style="margin:0 0 8px 0;color:#94a3b8;font-size:12px;font-weight:400;">🔗 Knowledge Graph</h4>
+                            <div style="height:70px;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:12px;">
+                                <span style="animation:pulse 1.5s infinite;">Loading graph...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ===== 面板（隐藏） ===== -->
+                    <div id="learningPanel" style="display:none;"></div>
+                    <div id="workspacePanel" style="display:none;"></div>
+                    <div id="runtimePanel" style="display:none;"></div>
+                    <div id="modulePanel" style="display:none;"></div>
+
+                    <style>
+                        @keyframes fadeIn {
+                            from { opacity: 0; transform: translateY(6px); }
+                            to { opacity: 1; transform: translateY(0); }
+                        }
+                        @keyframes pulse {
+                            0%, 100% { opacity: 1; }
+                            50% { opacity: 0.4; }
+                        }
+                    </style>
+
+                </main>
+            </div>
+
+            <!-- ===== 底部导航 ===== -->
+            <nav style="position:fixed;bottom:0;left:0;right:0;background:rgba(20,20,40,0.92);backdrop-filter:blur(12px);border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-around;padding:6px 0 12px;z-index:100;">
+                <a href="/" class="nav-item" data-tab="home" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#4a9eff;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">🏠</span><span>Home</span></a>
+                <a href="/pages/academy.html" class="nav-item" data-tab="academy" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">📚</span><span>Academy</span></a>
+                <a href="#" class="nav-item" data-tab="calendar" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">📅</span><span>Calendar</span></a>
+                <a href="#" class="nav-item" data-tab="notes" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">📝</span><span>Notes</span></a>
+                <a href="#" class="nav-item" data-tab="settings" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">⚙️</span><span>Settings</span></a>
+            </nav>
+
+            <style>
+                .nav-item:hover { color: #94a3b8 !important; }
+                .nav-item.active { color: #4a9eff !important; }
+                @media (max-width: 480px) {
+                    .nav-item span:last-child { font-size: 8px; }
+                    #systemComposerRoot div[style*="display:grid;grid-template-columns:1fr 1fr"] {
+                        grid-template-columns: 1fr !important;
+                    }
+                    #systemComposerRoot div[style*="display:grid;grid-template-columns:repeat(4,1fr)"] {
+                        grid-template-columns: repeat(2,1fr) !important;
+                    }
+                }
+            </style>
+        </div>
+        `;
+
+        // ============================================================
+        // 3. 立即渲染核心内容
+        // ============================================================
+        this.root.innerHTML = coreHTML;
+        this._setupNavGuard();
+        this._deferredRendered = false;
+
+        // ============================================================
+        // 4. 延迟渲染次要内容（150ms 后）
+        // ============================================================
+        var self = this;
+        setTimeout(function() {
+            self._renderDeferredContent(data, completedList, isDemo);
+        }, 150);
+    },
+
+    /**
+     * 延迟渲染 Skill Mastery + Knowledge Graph
+     */
+    _renderDeferredContent: function(data, completedList, isDemo) {
+        if (this._deferredRendered) return;
+        this._deferredRendered = true;
+
         var skills = this._getSkillMastery(completedList, isDemo);
         var skillsHtml = skills.map(function(s) {
             var level = s.level;
@@ -628,7 +852,7 @@ LawAIApp.SystemComposer = {
                     <span style="font-size:14px;">${s.icon}</span>
                     <span style="font-size:10px;color:#94a3b8;width:50px;">${s.name}</span>
                     <div style="flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;">
-                        <div style="width:${level}%;height:100%;background:${color};border-radius:10px;"></div>
+                        <div style="width:${level}%;height:100%;background:${color};border-radius:10px;transition:width 0.6s ease;"></div>
                     </div>
                     <span style="font-size:10px;color:#64748b;width:28px;text-align:right;">${level}%</span>
                 </div>
@@ -696,190 +920,44 @@ LawAIApp.SystemComposer = {
                     <span>${nodes.length} nodes</span>
                 </div>
             `;
-        }
-
-        var recentLessons = [];
-        if (completedList.length > 0) {
-            var copy = completedList.slice();
-            recentLessons = copy.reverse().slice(0, 3);
         } else {
-            recentLessons = ['day-1', 'day-2', 'day-3'];
+            graphHtml = '<div style="color:#64748b;font-size:12px;text-align:center;padding:12px 0;">Complete lessons to build your knowledge graph!</div>';
         }
 
-        var recentHtml = recentLessons.map(function(id) {
-            var title = this._getLessonTitle(id);
-            var isPlaceholder = (id === 'day-1' && !data.hasProgress);
-            return `
-                <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:4px;border-left:3px solid ${isPlaceholder ? '#64748b' : '#22c55e'};opacity:${isPlaceholder ? 0.6 : 1};">
-                    <span style="font-size:14px;">${isPlaceholder ? '📖' : '✅'}</span>
-                    <span style="font-size:13px;color:#e2e8f0;">${title}</span>
-                    <span style="margin-left:auto;font-size:10px;color:#64748b;">${isPlaceholder ? 'Start' : 'Done'}</span>
+        var skillHtml = `
+            <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px 16px;border:1px solid rgba(255,255,255,0.04);">
+                <h4 style="margin:0 0 8px 0;color:#94a3b8;font-size:12px;font-weight:400;">🧠 Skill Mastery</h4>
+                ${skillsHtml}
+                <div style="font-size:8px;color:#64748b;margin-top:4px;text-align:right;">
+                    ${isDemo ? 'Complete lessons to unlock skills!' : 'Based on completed lessons'}
                 </div>
-            `;
-        }.bind(this)).join('');
-
-        // ============================================================
-        // 完整 HTML
-        // ============================================================
-        this.root.innerHTML = `
-        <div id="systemComposerRoot" style="
-            min-height: 100vh;
-            background: linear-gradient(135deg, #0b1220 0%, #1a1a2e 50%, #16213e 100%);
-            color: #ffffff;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            padding: 0;
-            margin: 0;
-            box-sizing: border-box;
-        ">
-            <div style="padding-bottom: 90px;">
-
-                <header style="background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.08);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="font-size:22px;">🚀</span>
-                        <h1 style="margin:0;font-size:18px;font-weight:700;background:linear-gradient(90deg,#4a9eff,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Law AI Academy</h1>
-                        <span style="font-size:10px;background:rgba(74,158,255,0.2);color:#4a9eff;padding:2px 8px;border-radius:12px;">v${this.version}</span>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:#94a3b8;">
-                        <span>🎯 Day ${day}</span>
-                        <span>⭐ ${xp}</span>
-                        <span>🔥 ${level}</span>
-                    </div>
-                </header>
-
-                <main style="max-width:1000px;margin:0 auto;padding:16px 16px 20px;">
-
-                    <div style="
-                        background:linear-gradient(135deg,rgba(74,158,255,0.12),rgba(124,58,237,0.12));
-                        border-radius:14px;
-                        padding:18px 20px;
-                        border:1px solid rgba(74,158,255,0.15);
-                        margin-bottom:16px;
-                    ">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                            <span style="font-size:13px;color:#94a3b8;">🎯 Today's Goals</span>
-                            <span style="font-size:13px;color:#4a9eff;font-weight:600;">${completedGoals}/${totalGoals}</span>
-                        </div>
-                        <div style="display:flex;gap:4px;margin-bottom:10px;">
-                            ${goalProgressHtml}
-                        </div>
-                        ${goalsHtml}
-                        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:#64748b;">
-                            <span>⏰ ${diffHrs}h ${diffMin}m remaining today</span>
-                            <span>${goalPercent}% complete</span>
-                        </div>
-                    </div>
-
-                    <div style="
-                        background:rgba(74,158,255,0.08);
-                        border-radius:12px;
-                        padding:14px 18px;
-                        border:1px solid rgba(74,158,255,0.12);
-                        margin-bottom:16px;
-                        display:flex;
-                        align-items:center;
-                        gap:12px;
-                    ">
-                        <span style="font-size:24px;">🧠</span>
-                        <span style="font-size:14px;color:#e2e8f0;flex:1;">${fullMentorMsg}</span>
-                    </div>
-
-                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">
-                        <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(255,255,255,0.04);">
-                            <div style="font-size:22px;color:#4a9eff;">${level}</div>
-                            <div style="font-size:10px;color:#64748b;">Level</div>
-                        </div>
-                        <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(255,255,255,0.04);">
-                            <div style="font-size:22px;color:#fbbf24;">${xp}</div>
-                            <div style="font-size:10px;color:#64748b;">XP</div>
-                        </div>
-                        <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(255,255,255,0.04);">
-                            <div style="font-size:22px;color:#f97316;">${streak}</div>
-                            <div style="font-size:10px;color:#64748b;">Streak</div>
-                        </div>
-                        <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;text-align:center;border:1px solid rgba(255,255,255,0.04);">
-                            <div style="font-size:22px;color:#8b5cf6;">${completionPercent}%</div>
-                            <div style="font-size:10px;color:#64748b;">Progress</div>
-                        </div>
-                    </div>
-
-                    ${(completedList.length >= 365) ? `
-                    <div style="background:linear-gradient(135deg,rgba(74,158,255,0.15),rgba(124,58,237,0.15));border-radius:14px;padding:24px;text-align:center;border:1px solid rgba(74,158,255,0.15);margin-bottom:16px;">
-                        <div style="font-size:36px;">🎉</div>
-                        <h3 style="margin:4px 0;font-size:18px;">All 365 Lessons Complete!</h3>
-                        <p style="color:#94a3b8;font-size:13px;">You've mastered the entire curriculum! 🏆</p>
-                        <a href="/pages/academy.html" style="display:inline-block;margin-top:10px;padding:8px 24px;background:#4a9eff;border-radius:8px;color:white;font-size:13px;font-weight:600;text-decoration:none;">🏛️ Explore Advanced</a>
-                    </div>
-                    ` : `
-                    <div style="background:rgba(255,255,255,0.03);border-radius:14px;padding:16px 18px;border:1px solid rgba(255,255,255,0.06);margin-bottom:16px;">
-                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-                            <span style="font-size:20px;">📖</span>
-                            <span style="font-size:14px;font-weight:600;">${nextTitle}</span>
-                            <span style="margin-left:auto;font-size:10px;background:rgba(74,158,255,0.12);color:#4a9eff;padding:2px 10px;border-radius:12px;">Day ${Math.min(day + 1, 365)}</span>
-                        </div>
-                        <p style="margin:0 0 10px 0;color:#94a3b8;font-size:13px;">${isDemo ? 'Complete your first lesson to unlock content!' : nextSummary}</p>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            ${(function() {
-                                var nextDay = completedList.length >= 365 ? 365 : Math.min(day + 1, 365);
-                                var lessonLink = isDemo ? '/pages/academy.html' : '/pages/lesson.html?day=' + nextDay;
-                                var btnText = isDemo ? '📖 Start' : (completedList.length >= 365 ? '🎉 Review' : '📖 Continue');
-                                return '<a href="' + lessonLink + '" style="padding:8px 20px;background:#4a9eff;border-radius:8px;color:white;font-size:13px;font-weight:600;text-decoration:none;">' + btnText + '</a>';
-                            })()}
-                            <button onclick="if(LawAIApp.Toast) LawAIApp.Toast.info('✏️ Practice coming soon!')" style="padding:8px 20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#94a3b8;font-size:13px;cursor:pointer;">✏️ Practice</button>
-                        </div>
-                    </div>
-                    `}
-
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-
-                        <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px 16px;border:1px solid rgba(255,255,255,0.04);">
-                            <h4 style="margin:0 0 8px 0;color:#94a3b8;font-size:12px;font-weight:400;">🧠 Skill Mastery</h4>
-                            ${skillsHtml}
-                            <div style="font-size:8px;color:#64748b;margin-top:4px;text-align:right;">
-                                ${isDemo ? 'Complete lessons to unlock skills!' : 'Based on completed lessons'}
-                            </div>
-                        </div>
-
-                        <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px 16px;border:1px solid rgba(255,255,255,0.04);">
-                            <h4 style="margin:0 0 8px 0;color:#94a3b8;font-size:12px;font-weight:400;">🔗 Knowledge Graph</h4>
-                            ${graphHtml || '<div style="color:#64748b;font-size:12px;text-align:center;padding:12px 0;">Complete lessons to build your knowledge graph!</div>'}
-                        </div>
-
-                    </div>
-
-                    <div id="learningPanel" style="display:none;"></div>
-                    <div id="workspacePanel" style="display:none;"></div>
-                    <div id="runtimePanel" style="display:none;"></div>
-                    <div id="modulePanel" style="display:none;"></div>
-
-                </main>
             </div>
-
-            <nav style="position:fixed;bottom:0;left:0;right:0;background:rgba(20,20,40,0.92);backdrop-filter:blur(12px);border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-around;padding:6px 0 12px;z-index:100;">
-                <a href="/" class="nav-item" data-tab="home" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#4a9eff;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">🏠</span><span>Home</span></a>
-                <a href="/pages/academy.html" class="nav-item" data-tab="academy" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">📚</span><span>Academy</span></a>
-                <a href="#" class="nav-item" data-tab="calendar" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">📅</span><span>Calendar</span></a>
-                <a href="#" class="nav-item" data-tab="notes" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">📝</span><span>Notes</span></a>
-                <a href="#" class="nav-item" data-tab="settings" style="display:flex;flex-direction:column;align-items:center;gap:1px;color:#64748b;text-decoration:none;font-size:9px;font-weight:500;"><span style="font-size:18px;">⚙️</span><span>Settings</span></a>
-            </nav>
-
-            <style>
-                .nav-item:hover { color: #94a3b8 !important; }
-                .nav-item.active { color: #4a9eff !important; }
-                @media (max-width: 480px) {
-                    .nav-item span:last-child { font-size: 8px; }
-                    #systemComposerRoot div[style*="display:grid;grid-template-columns:1fr 1fr"] {
-                        grid-template-columns: 1fr !important;
-                    }
-                    #systemComposerRoot div[style*="display:grid;grid-template-columns:repeat(4,1fr)"] {
-                        grid-template-columns: repeat(2,1fr) !important;
-                    }
-                }
-            </style>
-        </div>
         `;
 
-        this._setupNavGuard();
+        var graphContainerHtml = `
+            <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px 16px;border:1px solid rgba(255,255,255,0.04);">
+                <h4 style="margin:0 0 8px 0;color:#94a3b8;font-size:12px;font-weight:400;">🔗 Knowledge Graph</h4>
+                ${graphHtml}
+            </div>
+        `;
+
+        // 查找并替换占位内容
+        var container = document.getElementById('deferred-dashboard-content');
+        if (container) {
+            container.innerHTML = skillHtml + graphContainerHtml;
+            // 触发过渡动画
+            var children = container.children;
+            for (var i = 0; i < children.length; i++) {
+                children[i].style.animation = 'fadeIn 0.4s ease ' + (i * 0.1) + 's';
+            }
+        }
+
+        console.log('📊 Deferred content rendered (Skill Mastery + Knowledge Graph)');
     },
+
+    // ============================================================
+    // 13. Fallback UI 方法（保留）
+    // ============================================================
 
     _renderMinimalUI: function() {
         if (!this.root) return;
@@ -918,7 +996,7 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 🔥 导航守卫（修复：Home 和 Academy 真正跳转）
+    // 14. 导航守卫（修复：Home 和 Academy 真正跳转）
     // ============================================================
     _setupNavGuard: function() {
         var navItems = document.querySelectorAll('.nav-item');
@@ -958,7 +1036,7 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 原有 Panel 方法（保留）
+    // 15. 原有 Panel 方法（保留）
     // ============================================================
     mountLearning: function() {
         var el = this.getDOM('learning');
@@ -991,7 +1069,7 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // ENGINE STATUS
+    // 16. ENGINE STATUS
     // ============================================================
     getStatus: function() {
         var allPanels = Object.keys(this.panels);
@@ -1010,12 +1088,13 @@ LawAIApp.SystemComposer = {
             recoveryAttempts: this._recoveryAttempts,
             maxRecoveryAttempts: this._maxRecoveryAttempts,
             rootExists: !!this.root,
-            domCacheSize: Object.keys(this.cache).length
+            domCacheSize: Object.keys(this.cache).length,
+            deferredRendered: this._deferredRendered
         };
     },
 
     // ============================================================
-    // IS READY
+    // 17. IS READY
     // ============================================================
     isReady: function() {
         return this.initialized && this._mountedNotified;
