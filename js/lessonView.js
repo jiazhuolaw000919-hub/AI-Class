@@ -1,7 +1,7 @@
 // ===========================================
 // lessonView.js
-// 课程视图 - 完整课程展示 + Profiler (Phase P.1)
-// V3.0 - 整合 MemoryEngine + PracticeEngine + ReflectionEngine
+// 课程视图 - Classroom Edition (Phase 3)
+// "The learner should forget they are using a website."
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -12,11 +12,10 @@ LawAIApp.Views.LessonView = {
     _lessonId: null,
     _lesson: null,
     _currentPractice: null,
+    _isFocused: false,
 
     /**
-     * 渲染课程视图
-     * @param {string} lessonId - 课程ID
-     * @param {HTMLElement|string} container - 容器元素
+     * 渲染课程视图 — Classroom Edition
      */
     render: function(lessonId, container) {
         this._lessonId = lessonId;
@@ -29,7 +28,7 @@ LawAIApp.Views.LessonView = {
             return;
         }
 
-        // 🔥 Profiler: 记录 Lesson 渲染
+        // 记录渲染
         if (LawAIApp.DevTools?.RuntimeProfiler) {
             LawAIApp.DevTools.RuntimeProfiler.recordRender('lesson');
         }
@@ -45,9 +44,10 @@ LawAIApp.Views.LessonView = {
         }
     },
 
-    /**
-     * 加载课程数据（支持多种 day 格式）
-     */
+    // ============================================================
+    // 数据加载
+    // ============================================================
+
     _loadLesson: function(lessonId) {
         var day = parseInt(lessonId.replace('day-', '').replace('day', ''));
         if (isNaN(day)) {
@@ -100,36 +100,31 @@ LawAIApp.Views.LessonView = {
         };
     },
 
-    /**
-     * 显示骨架
-     */
-    _showSkeleton: function() {
-        if (LawAIApp.LoadingStates && typeof LawAIApp.LoadingStates.getSkeleton === 'function') {
-            this._container.innerHTML = LawAIApp.LoadingStates.getSkeleton('lesson');
-        } else {
-            this._container.innerHTML = `
-                <div class="skeleton-lesson" style="padding:24px;max-width:800px;margin:0 auto;">
-                    <div style="height:28px;width:60%;background:rgba(255,255,255,0.06);border-radius:8px;margin-bottom:16px;animation:pulse 1.5s infinite;"></div>
-                    <div style="height:120px;background:rgba(255,255,255,0.04);border-radius:12px;margin-bottom:16px;animation:pulse 1.5s infinite 0.2s;"></div>
-                    <div style="height:80px;background:rgba(255,255,255,0.03);border-radius:12px;margin-bottom:16px;animation:pulse 1.5s infinite 0.4s;"></div>
-                    <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
-                        <div style="height:60px;background:rgba(255,255,255,0.03);border-radius:12px;animation:pulse 1.5s infinite 0.6s;"></div>
-                        <div style="height:60px;background:rgba(255,255,255,0.03);border-radius:12px;animation:pulse 1.5s infinite 0.8s;"></div>
-                    </div>
-                    <style>
-                        @keyframes pulse {
-                            0%, 100% { opacity: 1; }
-                            50% { opacity: 0.4; }
-                        }
-                    </style>
-                </div>
-            `;
-        }
+    _getLessonTitle: function(day) {
+        try {
+            if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
+                var lesson = LawAIApp.LessonEngine.getLessonByDay(day);
+                if (lesson && lesson.title) return lesson.title;
+            }
+        } catch (e) {}
+        return 'Day ' + day;
     },
 
-    /**
-     * 检查课程是否完成
-     */
+    _getLessonSummary: function(day) {
+        try {
+            if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
+                var lesson = LawAIApp.LessonEngine.getLessonByDay(day);
+                if (lesson && lesson.summary) return lesson.summary;
+                if (lesson && lesson.subtitle) return lesson.subtitle;
+            }
+        } catch (e) {}
+        return 'Continue your learning journey.';
+    },
+
+    // ============================================================
+    // 状态检查
+    // ============================================================
+
     _isLessonCompleted: function(lessonId) {
         try {
             if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.isLessonCompleted === 'function') {
@@ -145,9 +140,6 @@ LawAIApp.Views.LessonView = {
         return false;
     },
 
-    /**
-     * 检查是否需要复习
-     */
     _needsReview: function(lessonId) {
         try {
             if (LawAIApp.MemoryEngine && typeof LawAIApp.MemoryEngine.getMemoryStrength === 'function') {
@@ -158,9 +150,6 @@ LawAIApp.Views.LessonView = {
         return false;
     },
 
-    /**
-     * 获取记忆强度
-     */
     _getMemoryStrength: function(lessonId) {
         try {
             if (LawAIApp.MemoryEngine && typeof LawAIApp.MemoryEngine.getMemoryStrength === 'function') {
@@ -170,285 +159,451 @@ LawAIApp.Views.LessonView = {
         return null;
     },
 
-    /**
-     * 渲染课程内容
-     */
+    _getProgress: function() {
+        try {
+            if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.getProgress === 'function') {
+                return LawAIApp.ProgressEngine.getProgress();
+            }
+        } catch (e) {}
+        return { completedLessons: [], totalLessons: 365 };
+    },
+
+    // ============================================================
+    // 骨架
+    // ============================================================
+
+    _showSkeleton: function() {
+        if (LawAIApp.LoadingStates && typeof LawAIApp.LoadingStates.getSkeleton === 'function') {
+            this._container.innerHTML = LawAIApp.LoadingStates.getSkeleton('lesson');
+        } else {
+            this._container.innerHTML = `
+                <div class="skeleton-lesson" style="
+                    padding: 24px 20px;
+                    max-width: 740px;
+                    margin: 0 auto;
+                    animation: lessonFade 0.3s ease;
+                ">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                        <div style="height:24px;width:80px;background:rgba(255,255,255,0.04);border-radius:6px;animation:pulse 1.5s infinite;"></div>
+                        <div style="height:20px;width:120px;background:rgba(255,255,255,0.03);border-radius:6px;animation:pulse 1.5s infinite 0.2s;"></div>
+                    </div>
+                    <div style="height:32px;width:70%;background:rgba(255,255,255,0.06);border-radius:8px;margin-bottom:12px;animation:pulse 1.5s infinite 0.3s;"></div>
+                    <div style="height:16px;width:90%;background:rgba(255,255,255,0.03);border-radius:4px;margin-bottom:6px;animation:pulse 1.5s infinite 0.4s;"></div>
+                    <div style="height:16px;width:80%;background:rgba(255,255,255,0.03);border-radius:4px;margin-bottom:6px;animation:pulse 1.5s infinite 0.5s;"></div>
+                    <div style="height:16px;width:60%;background:rgba(255,255,255,0.03);border-radius:4px;margin-bottom:20px;animation:pulse 1.5s infinite 0.6s;"></div>
+                    <div style="height:100px;background:rgba(255,255,255,0.03);border-radius:12px;margin-bottom:16px;animation:pulse 1.5s infinite 0.7s;"></div>
+                    <div style="height:80px;background:rgba(255,255,255,0.02);border-radius:12px;margin-bottom:16px;animation:pulse 1.5s infinite 0.8s;"></div>
+                    <div style="height:48px;width:60%;background:rgba(74,158,255,0.08);border-radius:10px;margin:8px auto 0;animation:pulse 1.5s infinite 0.9s;"></div>
+                    <style>
+                        @keyframes pulse {
+                            0%, 100% { opacity: 1; }
+                            50% { opacity: 0.3; }
+                        }
+                        @keyframes lessonFade {
+                            from { opacity: 0; transform: translateY(8px); }
+                            to { opacity: 1; transform: translateY(0); }
+                        }
+                    </style>
+                </div>
+            `;
+        }
+    },
+
+    // ============================================================
+    // 🔥 Classroom Content — 核心学习体验
+    // ============================================================
+
     _renderContent: function(lesson) {
         var completed = this._isLessonCompleted(lesson.lessonId);
         var needsReview = this._needsReview(lesson.lessonId);
         var memoryStrength = this._getMemoryStrength(lesson.lessonId);
-
-        var memoryStrengthHtml = '';
-        if (memoryStrength !== null) {
-            var strengthColor = memoryStrength >= 70 ? '#22c55e' : memoryStrength >= 40 ? '#f59e0b' : '#ef4444';
-            memoryStrengthHtml = `
-                <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#94a3b8;">
-                    <span>🧠 Memory: <span style="color:${strengthColor};font-weight:600;">${Math.round(memoryStrength)}%</span></span>
-                    <div style="flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;width:60px;">
-                        <div style="width:${memoryStrength}%;height:100%;background:${strengthColor};border-radius:10px;"></div>
-                    </div>
-                </div>
-            `;
-        }
+        var progress = this._getProgress();
+        var completedCount = progress.completedLessons?.length || 0;
+        var totalCount = progress.totalLessons || 365;
+        var dayNum = parseInt(lesson.lessonId.replace('day-', '')) || 1;
 
         var html = `
-            <div class="lesson-container" style="
-                max-width: 800px;
-                margin: 0 auto;
-                padding: 16px 20px 40px;
-                color: #e2e8f0;
+        <div class="lesson-classroom" style="
+            max-width: 740px;
+            margin: 0 auto;
+            padding: 8px 0 40px;
+            color: #e2e8f0;
+            font-family: 'Inter', -apple-system, sans-serif;
+            animation: lessonFade 0.3s ease;
+        ">
+            <!-- ========================================================== -->
+            <!-- 🔙 Navigation Bar — 极简导航 -->
+            <!-- ========================================================== -->
+            <div style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 0 16px;
+                border-bottom: 1px solid rgba(255,255,255,0.04);
+                margin-bottom: 20px;
+                flex-wrap: wrap;
+                gap: 8px;
             ">
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-                    <button onclick="LawAIApp.Router?.goBack ? LawAIApp.Router.goBack() : history.back()" style="
-                        background:none;
-                        border:none;
-                        color:#4a9eff;
-                        font-size:14px;
-                        cursor:pointer;
-                        padding:4px 8px;
-                    ">← Back</button>
-                    <span style="color:#64748b;font-size:13px;">
-                        ${lesson.moduleId || 'Academy'} / ${lesson.title || lesson.lessonId}
-                    </span>
-                    ${memoryStrengthHtml}
-                </div>
+                <!-- 返回 -->
+                <button onclick="LawAIApp.Router?.goBack ? LawAIApp.Router.goBack() : history.back()" style="
+                    background: rgba(255,255,255,0.04);
+                    border: 1px solid rgba(255,255,255,0.04);
+                    border-radius: 8px;
+                    color: #94a3b8;
+                    padding: 6px 14px;
+                    font-size: 12px;
+                    cursor: pointer;
+                    font-family: inherit;
+                    transition: all 0.2s;
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                " onmouseover="this.style.background='rgba(255,255,255,0.08)';this.style.color='#e2e8f0'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.color='#94a3b8'">
+                    ← Back
+                </button>
 
-                <div style="
-                    background: linear-gradient(135deg, #1a2a4a, #2a1a4a);
-                    padding: 24px;
-                    border-radius: 16px;
-                    margin-bottom: 20px;
-                    border: 1px solid rgba(255,255,255,0.06);
-                ">
-                    <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:#94a3b8;margin-bottom:8px;">
-                        <span>📊 ${lesson.difficulty || 'Beginner'}</span>
-                        <span>⏱️ ${lesson.estimatedMinutes || 10} min</span>
-                        <span>⭐ ${lesson.estimatedXP || 20} XP</span>
-                        ${completed ? '<span style="color:#22c55e;">✅ Completed</span>' : ''}
-                        ${needsReview ? '<span style="color:#f59e0b;">🔄 Review Recommended</span>' : ''}
-                    </div>
-                    <h2 style="margin:0 0 8px;font-size:24px;font-weight:700;">${lesson.title || lesson.lessonId}</h2>
-                    <p style="margin:0;color:#94a3b8;font-size:14px;">${lesson.description || 'Continue building your AI knowledge.'}</p>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
-                        ${(lesson.tags || []).map(function(tag) {
-                            return '<span style="background:rgba(74,158,255,0.15);color:#4a9eff;padding:2px 10px;border-radius:12px;font-size:11px;">' + tag + '</span>';
-                        }).join('')}
-                    </div>
-                </div>
-
-                <div style="
-                    background:rgba(255,255,255,0.03);
-                    border-radius:12px;
-                    padding:16px 20px;
-                    margin-bottom:16px;
-                    border:1px solid rgba(255,255,255,0.06);
-                ">
-                    <h3 style="margin:0 0 4px;font-size:14px;color:#94a3b8;">🎯 Learning Objective</h3>
-                    <p style="margin:0;font-size:14px;">Understand the core idea behind "${lesson.shortTitle || lesson.title}".</p>
-                </div>
-
-                <div style="
-                    background:rgba(255,255,255,0.03);
-                    border-radius:12px;
-                    padding:16px 20px;
-                    margin-bottom:16px;
-                    border:1px solid rgba(255,255,255,0.06);
-                ">
-                    <h3 style="margin:0 0 4px;font-size:14px;color:#94a3b8;">📖 Main Content</h3>
-                    <p style="margin:0;font-size:14px;color:#94a3b8;">${lesson.summary || 'Lesson content will be displayed here.'}</p>
-                </div>
-
-                <div style="
-                    background:rgba(74,158,255,0.05);
-                    border-radius:12px;
-                    padding:16px 20px;
-                    margin-bottom:16px;
-                    border:1px solid rgba(74,158,255,0.1);
-                ">
-                    <h3 style="margin:0 0 4px;font-size:14px;color:#4a9eff;">🤖 AI Summary</h3>
-                    <p style="margin:0;font-size:14px;">${lesson.summary || 'This lesson introduces key concepts in ' + (lesson.category || 'AI') + '. Focus on understanding the core principles.'}</p>
-                </div>
-
-                <div style="
-                    background:rgba(139,92,246,0.05);
-                    border-radius:12px;
-                    padding:16px 20px;
-                    margin-bottom:16px;
-                    border:1px solid rgba(139,92,246,0.1);
-                ">
-                    <h3 style="margin:0 0 4px;font-size:14px;color:#8b5cf6;">🧠 Memory Hook</h3>
-                    <p style="margin:0;font-size:14px;">Remember: ${(lesson.keywords || []).join(', ') || 'Key concepts from this lesson'}</p>
-                </div>
-
-                <div style="
-                    background:rgba(251,191,36,0.05);
-                    border-radius:12px;
-                    padding:16px 20px;
-                    margin-bottom:16px;
-                    border:1px solid rgba(251,191,36,0.1);
-                ">
-                    <h3 style="margin:0 0 4px;font-size:14px;color:#f59e0b;">💭 Reflection</h3>
-                    <p style="margin:0;font-size:13px;color:#94a3b8;">What is one AI example you encountered today that relates to this lesson?</p>
-                    <textarea id="reflection-textarea" style="
-                        width:100%;
-                        margin-top:8px;
-                        padding:10px;
-                        background:rgba(255,255,255,0.05);
-                        border:1px solid rgba(255,255,255,0.08);
-                        border-radius:8px;
-                        color:#e2e8f0;
-                        font-size:13px;
-                        resize:vertical;
-                        min-height:60px;
-                        font-family:inherit;
-                    " placeholder="Write your reflection here..."></textarea>
-                    <button onclick="LawAIApp.Views.LessonView.saveReflection()" style="
-                        margin-top:8px;
-                        padding:6px 18px;
-                        background:rgba(251,191,36,0.15);
-                        border:1px solid rgba(251,191,36,0.2);
-                        border-radius:8px;
-                        color:#f59e0b;
-                        font-size:12px;
-                        cursor:pointer;
-                        transition:all 0.2s;
-                    " onmouseover="this.style.background='rgba(251,191,36,0.25)'" onmouseout="this.style.background='rgba(251,191,36,0.15)'">
-                        💾 Save Reflection
-                    </button>
-                </div>
-
-                <div style="
-                    background:rgba(34,197,94,0.05);
-                    border-radius:12px;
-                    padding:16px 20px;
-                    margin-bottom:16px;
-                    border:1px solid rgba(34,197,94,0.1);
-                ">
-                    <h3 style="margin:0 0 4px;font-size:14px;color:#22c55e;">✏️ Practice</h3>
-                    <p style="margin:0;font-size:13px;color:#94a3b8;" id="practice-description">
-                        Click "Start Practice" to test your knowledge.
-                    </p>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-                        <button onclick="LawAIApp.Views.LessonView.startPractice()" style="
-                            padding:8px 20px;
-                            background:#22c55e;
-                            border:none;
-                            border-radius:8px;
-                            color:white;
-                            font-size:13px;
-                            font-weight:500;
-                            cursor:pointer;
-                            transition:all 0.2s;
-                        " onmouseover="this.style.background='#16a34a'" onmouseout="this.style.background='#22c55e'">
-                            🚀 Start Practice
-                        </button>
-                        <button onclick="LawAIApp.Views.LessonView.submitPractice()" style="
-                            padding:8px 20px;
-                            background:rgba(255,255,255,0.06);
-                            border:1px solid rgba(255,255,255,0.08);
-                            border-radius:8px;
-                            color:#94a3b8;
-                            font-size:13px;
-                            cursor:pointer;
-                            transition:all 0.2s;
-                        " onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">
-                            📤 Submit Answer
-                        </button>
-                    </div>
-                    <div id="practice-feedback" style="margin-top:8px;font-size:13px;color:#94a3b8;"></div>
-                    <input type="text" id="practice-answer" style="
-                        width:100%;
-                        margin-top:8px;
-                        padding:10px;
-                        background:rgba(255,255,255,0.05);
-                        border:1px solid rgba(255,255,255,0.08);
-                        border-radius:8px;
-                        color:#e2e8f0;
-                        font-size:13px;
-                        font-family:inherit;
-                    " placeholder="Type your answer here...">
-                </div>
-
-                ${completed && needsReview ? `
-                <div style="
-                    background:rgba(245,158,11,0.05);
-                    border-radius:12px;
-                    padding:16px 20px;
-                    margin-bottom:16px;
-                    border:1px solid rgba(245,158,11,0.1);
-                ">
-                    <h3 style="margin:0 0 4px;font-size:14px;color:#f59e0b;">🔄 Review</h3>
-                    <p style="margin:0;font-size:13px;color:#94a3b8;">Time to review this lesson to strengthen your memory.</p>
-                    <button onclick="LawAIApp.Views.LessonView.startReview()" style="
-                        margin-top:8px;
-                        padding:8px 20px;
-                        background:#f59e0b;
-                        border:none;
-                        border-radius:8px;
-                        color:white;
-                        font-size:13px;
-                        font-weight:500;
-                        cursor:pointer;
-                        transition:all 0.2s;
-                    " onmouseover="this.style.background='#d97706'" onmouseout="this.style.background='#f59e0b'">
-                        🔄 Start Review
-                    </button>
-                    <div id="review-feedback" style="margin-top:8px;font-size:13px;color:#94a3b8;"></div>
-                </div>
-                ` : ''}
-
-                ${!completed ? `
-                    <button onclick="LawAIApp.Views.LessonView.completeLesson('${lesson.lessonId}')" style="
-                        width:100%;
-                        padding:14px;
-                        background:#22c55e;
-                        border:none;
-                        border-radius:12px;
-                        color:white;
-                        font-size:16px;
-                        font-weight:600;
-                        cursor:pointer;
-                        transition:transform 0.2s;
-                        margin-top:8px;
-                    " onmouseover="this.style.transform='scale(1.01)'" onmouseout="this.style.transform='scale(1)'">
-                        ✅ Complete Lesson
-                    </button>
-                ` : `
-                    <div style="
-                        text-align:center;
-                        padding:16px;
-                        background:rgba(34,197,94,0.1);
-                        border-radius:12px;
-                        border:1px solid rgba(34,197,94,0.2);
-                        margin-top:8px;
-                    ">
-                        🎉 You have completed this lesson!
-                    </div>
-                `}
-
-                <div style="display:flex;justify-content:space-between;margin-top:16px;gap:12px;">
-                    <button onclick="LawAIApp.Views.LessonView.previousLesson()" style="
-                        flex:1;
-                        padding:10px;
-                        background:rgba(255,255,255,0.05);
-                        border:1px solid rgba(255,255,255,0.08);
-                        border-radius:10px;
-                        color:#94a3b8;
-                        font-size:14px;
-                        cursor:pointer;
-                    ">⬅️ Previous</button>
-                    <button onclick="LawAIApp.Views.LessonView.nextLesson()" style="
-                        flex:1;
-                        padding:10px;
-                        background:rgba(255,255,255,0.05);
-                        border:1px solid rgba(255,255,255,0.08);
-                        border-radius:10px;
-                        color:#94a3b8;
-                        font-size:14px;
-                        cursor:pointer;
-                    ">Next ➡️</button>
+                <!-- 进度指示器 -->
+                <div style="display:flex;align-items:center;gap:10px;font-size:11px;color:#64748b;">
+                    <span>${completedCount}/${totalCount}</span>
+                    <span style="opacity:0.3;">·</span>
+                    <span>${Math.round((completedCount / totalCount) * 100)}%</span>
+                    ${completed ? '<span style="color:#22c55e;font-size:10px;">✅ Done</span>' : ''}
                 </div>
             </div>
+
+            <!-- ========================================================== -->
+            <!-- 📖 Lesson Content — 专注阅读体验 -->
+            <!-- ========================================================== -->
+
+            <!-- 标题区 -->
+            <div style="margin-bottom: 16px;">
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                    font-size: 11px;
+                    color: #64748b;
+                    margin-bottom: 6px;
+                ">
+                    <span>📖 Day ${dayNum}</span>
+                    <span style="opacity:0.3;">·</span>
+                    <span>${lesson.difficulty || 'Beginner'}</span>
+                    <span style="opacity:0.3;">·</span>
+                    <span>${lesson.estimatedMinutes || 10} min</span>
+                    <span style="opacity:0.3;">·</span>
+                    <span>⭐ ${lesson.estimatedXP || 20} XP</span>
+                    ${memoryStrength !== null ? `
+                        <span style="opacity:0.3;">·</span>
+                        <span style="color:${memoryStrength >= 70 ? '#22c55e' : memoryStrength >= 40 ? '#f59e0b' : '#ef4444'};">🧠 ${Math.round(memoryStrength)}%</span>
+                    ` : ''}
+                </div>
+                <h1 style="
+                    margin: 0;
+                    font-size: 26px;
+                    font-weight: 700;
+                    letter-spacing: -0.3px;
+                    line-height: 1.2;
+                    color: #e2e8f0;
+                ">${lesson.title || lesson.lessonId}</h1>
+                <p style="
+                    margin: 6px 0 0;
+                    font-size: 15px;
+                    color: #94a3b8;
+                    line-height: 1.5;
+                ">${lesson.description || 'Continue building your AI knowledge.'}</p>
+                ${(lesson.tags || []).length > 0 ? `
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+                        ${(lesson.tags || []).map(function(tag) {
+                            return '<span style="background:rgba(74,158,255,0.08);color:#4a9eff;padding:1px 10px;border-radius:100px;font-size:10px;">' + tag + '</span>';
+                        }).join('')}
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- 学习目标 -->
+            <div style="
+                background: rgba(74,158,255,0.04);
+                border-radius: 12px;
+                padding: 14px 18px;
+                margin-bottom: 16px;
+                border-left: 3px solid #4a9eff;
+            ">
+                <div style="font-size:11px;color:#4a9eff;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:2px;">
+                    🎯 Objective
+                </div>
+                <p style="margin:0;font-size:14px;color:#e2e8f0;line-height:1.5;">
+                    ${lesson.summary || lesson.subtitle || 'Understand the core concepts of this lesson.'}
+                </p>
+            </div>
+
+            <!-- 主内容 -->
+            <div style="
+                background: rgba(255,255,255,0.02);
+                border-radius: 12px;
+                padding: 16px 18px;
+                margin-bottom: 16px;
+                border: 1px solid rgba(255,255,255,0.04);
+                line-height: 1.7;
+                font-size: 15px;
+                color: #e2e8f0;
+            ">
+                <p style="margin:0;">${lesson.summary || 'Lesson content will be displayed here. Focus on understanding the core principles and how they apply to real-world scenarios.'}</p>
+            </div>
+
+            <!-- AI 摘要（优雅折叠式） -->
+            <div style="
+                background: rgba(139,92,246,0.04);
+                border-radius: 12px;
+                padding: 12px 16px;
+                margin-bottom: 16px;
+                border: 1px solid rgba(139,92,246,0.06);
+            ">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+                    <span style="font-size:14px;">🤖</span>
+                    <span style="font-size:11px;color:#8b5cf6;font-weight:500;">AI Insight</span>
+                </div>
+                <p style="margin:0;font-size:13px;color:#94a3b8;line-height:1.6;">
+                    ${lesson.summary || 'Focus on the core concepts and how they connect to what you already know.'}
+                </p>
+            </div>
+
+            <!-- 记忆钩子 -->
+            <div style="
+                background: rgba(251,191,36,0.04);
+                border-radius: 12px;
+                padding: 10px 16px;
+                margin-bottom: 16px;
+                border: 1px solid rgba(251,191,36,0.06);
+            ">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:14px;">🧠</span>
+                    <span style="font-size:11px;color:#f59e0b;font-weight:500;">Remember</span>
+                </div>
+                <p style="margin:2px 0 0;font-size:13px;color:#94a3b8;line-height:1.5;">
+                    ${(lesson.keywords || []).join(', ') || 'Key concepts from this lesson'}
+                </p>
+            </div>
+
+            <!-- 💭 反思（轻量） -->
+            <div style="
+                background: rgba(255,255,255,0.02);
+                border-radius: 12px;
+                padding: 12px 16px;
+                margin-bottom: 16px;
+                border: 1px solid rgba(255,255,255,0.04);
+            ">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                    <span style="font-size:14px;">💭</span>
+                    <span style="font-size:11px;color:#64748b;font-weight:400;">Quick reflection</span>
+                </div>
+                <textarea id="reflection-textarea" style="
+                    width:100%;
+                    padding:8px 10px;
+                    background:rgba(255,255,255,0.03);
+                    border:1px solid rgba(255,255,255,0.06);
+                    border-radius:8px;
+                    color:#e2e8f0;
+                    font-size:13px;
+                    resize:vertical;
+                    min-height:40px;
+                    font-family:inherit;
+                    transition:border 0.2s;
+                " placeholder="What stood out to you in this lesson?" onfocus="this.style.borderColor='rgba(74,158,255,0.3)'" onblur="this.style.borderColor='rgba(255,255,255,0.06)'"></textarea>
+                <button onclick="LawAIApp.Views.LessonView.saveReflection()" style="
+                    margin-top:4px;
+                    padding:3px 12px;
+                    background:rgba(255,255,255,0.04);
+                    border:1px solid rgba(255,255,255,0.06);
+                    border-radius:6px;
+                    color:#64748b;
+                    font-size:10px;
+                    cursor:pointer;
+                    font-family:inherit;
+                    transition:all 0.2s;
+                " onmouseover="this.style.background='rgba(255,255,255,0.08)';this.style.color='#e2e8f0'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.color='#64748b'">
+                    💾 Save
+                </button>
+            </div>
+
+            <!-- ✏️ Practice（轻量） -->
+            <div style="
+                background: rgba(34,197,94,0.04);
+                border-radius: 12px;
+                padding: 12px 16px;
+                margin-bottom: 16px;
+                border: 1px solid rgba(34,197,94,0.06);
+            ">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                    <span style="font-size:14px;">✏️</span>
+                    <span style="font-size:11px;color:#22c55e;font-weight:400;">Practice</span>
+                </div>
+                <p style="margin:0 0 6px;font-size:12px;color:#94a3b8;" id="practice-description">
+                    Test your understanding.
+                </p>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button onclick="LawAIApp.Views.LessonView.startPractice()" style="
+                        padding:4px 14px;
+                        background:rgba(34,197,94,0.1);
+                        border:1px solid rgba(34,197,94,0.1);
+                        border-radius:6px;
+                        color:#22c55e;
+                        font-size:11px;
+                        cursor:pointer;
+                        font-family:inherit;
+                        transition:all 0.2s;
+                    " onmouseover="this.style.background='rgba(34,197,94,0.2)'" onmouseout="this.style.background='rgba(34,197,94,0.1)'">
+                        Start
+                    </button>
+                    <button onclick="LawAIApp.Views.LessonView.submitPractice()" style="
+                        padding:4px 14px;
+                        background:rgba(255,255,255,0.04);
+                        border:1px solid rgba(255,255,255,0.06);
+                        border-radius:6px;
+                        color:#64748b;
+                        font-size:11px;
+                        cursor:pointer;
+                        font-family:inherit;
+                        transition:all 0.2s;
+                    " onmouseover="this.style.background='rgba(255,255,255,0.08)';this.style.color='#e2e8f0'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.color='#64748b'">
+                        Submit
+                    </button>
+                </div>
+                <div id="practice-feedback" style="margin-top:4px;font-size:11px;color:#94a3b8;"></div>
+                <input type="text" id="practice-answer" style="
+                    width:100%;
+                    margin-top:4px;
+                    padding:6px 10px;
+                    background:rgba(255,255,255,0.03);
+                    border:1px solid rgba(255,255,255,0.06);
+                    border-radius:6px;
+                    color:#e2e8f0;
+                    font-size:12px;
+                    font-family:inherit;
+                    transition:border 0.2s;
+                " placeholder="Type your answer..." onfocus="this.style.borderColor='rgba(74,158,255,0.3)'" onblur="this.style.borderColor='rgba(255,255,255,0.06)'">
+            </div>
+
+            <!-- 🔄 Review（如果已完成且需要复习） -->
+            ${completed && needsReview ? `
+            <div style="
+                background: rgba(245,158,11,0.04);
+                border-radius: 12px;
+                padding: 10px 16px;
+                margin-bottom: 16px;
+                border: 1px solid rgba(245,158,11,0.06);
+                display:flex;
+                align-items:center;
+                justify-content:space-between;
+                flex-wrap:wrap;
+                gap:8px;
+            ">
+                <div>
+                    <span style="font-size:12px;color:#f59e0b;">🔄 Review recommended</span>
+                    <span style="font-size:11px;color:#94a3b8;display:block;">Strengthen your memory of this lesson.</span>
+                </div>
+                <button onclick="LawAIApp.Views.LessonView.startReview()" style="
+                    padding:4px 14px;
+                    background:rgba(245,158,11,0.1);
+                    border:1px solid rgba(245,158,11,0.15);
+                    border-radius:6px;
+                    color:#f59e0b;
+                    font-size:11px;
+                    cursor:pointer;
+                    font-family:inherit;
+                    transition:all 0.2s;
+                " onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.1)'">
+                    Start Review
+                </button>
+                <div id="review-feedback" style="width:100%;font-size:11px;color:#94a3b8;"></div>
+            </div>
+            ` : ''}
+
+            <!-- ========================================================== -->
+            <!-- ✅ 完成按钮（主要行动点） -->
+            <!-- ========================================================== -->
+            ${!completed ? `
+            <button onclick="LawAIApp.Views.LessonView.completeLesson('${lesson.lessonId}')" style="
+                width:100%;
+                padding: 14px;
+                background: linear-gradient(135deg, #22c55e, #16a34a);
+                border: none;
+                border-radius: 12px;
+                color: white;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                font-family: inherit;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 24px rgba(34,197,94,0.15);
+            " onmouseover="this.style.transform='scale(1.01)';this.style.boxShadow='0 8px 40px rgba(34,197,94,0.25)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 24px rgba(34,197,94,0.15)'">
+                ✅ Complete Lesson
+            </button>
+            ` : `
+            <div style="
+                text-align:center;
+                padding: 12px;
+                background: rgba(34,197,94,0.06);
+                border-radius: 12px;
+                border: 1px solid rgba(34,197,94,0.08);
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                gap:8px;
+            ">
+                <span style="font-size:18px;">🎉</span>
+                <span style="font-size:14px;color:#22c55e;font-weight:500;">Lesson completed!</span>
+                ${memoryStrength !== null ? `<span style="font-size:11px;color:#64748b;">🧠 ${Math.round(memoryStrength)}% memory strength</span>` : ''}
+            </div>
+            `}
+
+            <!-- ========================================================== -->
+            <!-- 导航 — 上一课/下一课 -->
+            <!-- ========================================================== -->
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                gap:10px;
+                margin-top:16px;
+            ">
+                <button onclick="LawAIApp.Views.LessonView.previousLesson()" style="
+                    flex:1;
+                    padding:8px;
+                    background:rgba(255,255,255,0.03);
+                    border:1px solid rgba(255,255,255,0.04);
+                    border-radius:10px;
+                    color:#64748b;
+                    font-size:12px;
+                    cursor:pointer;
+                    font-family:inherit;
+                    transition:all 0.2s;
+                " onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#e2e8f0'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.color='#64748b'">
+                    ⬅️ Previous
+                </button>
+                <button onclick="LawAIApp.Views.LessonView.nextLesson()" style="
+                    flex:1;
+                    padding:8px;
+                    background:rgba(255,255,255,0.03);
+                    border:1px solid rgba(255,255,255,0.04);
+                    border-radius:10px;
+                    color:#64748b;
+                    font-size:12px;
+                    cursor:pointer;
+                    font-family:inherit;
+                    transition:all 0.2s;
+                " onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#e2e8f0'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.color='#64748b'">
+                    Next ➡️
+                </button>
+            </div>
+
+            <style>
+                @keyframes lessonFade {
+                    from { opacity: 0; transform: translateY(8px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            </style>
+
+        </div>
         `;
 
         this._container.innerHTML = html;
@@ -457,9 +612,10 @@ LawAIApp.Views.LessonView = {
         }
     },
 
-    /**
-     * 未找到课程
-     */
+    // ============================================================
+    // 未找到课程
+    // ============================================================
+
     _renderNotFound: function(lessonId) {
         this._container.innerHTML = `
             <div style="
@@ -471,6 +627,7 @@ LawAIApp.Views.LessonView = {
                 color:#94a3b8;
                 text-align:center;
                 min-height:300px;
+                animation:lessonFade 0.3s ease;
             ">
                 <div style="font-size:48px;margin-bottom:16px;">🔍</div>
                 <h3 style="color:#e2e8f0;margin:0 0 8px;">Lesson Not Found</h3>
@@ -483,24 +640,32 @@ LawAIApp.Views.LessonView = {
                     color:white;
                     font-size:14px;
                     cursor:pointer;
+                    font-family:inherit;
                 ">🏠 Go Home</button>
+                <style>
+                    @keyframes lessonFade {
+                        from { opacity: 0; transform: translateY(8px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+                </style>
             </div>
         `;
     },
 
-    /**
-     * 完成课程
-     */
+    // ============================================================
+    // 核心 Actions
+    // ============================================================
+
     completeLesson: function(lessonId) {
         try {
             if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.completeLesson === 'function') {
                 var result = LawAIApp.ProgressEngine.completeLesson(lessonId);
                 if (result) {
                     var xpGain = result.xpGain || 20;
+                    // 微完成效果
+                    this._showCompletionEffect();
                     if (LawAIApp.Toast && typeof LawAIApp.Toast.success === 'function') {
-                        LawAIApp.Toast.success('🎉 Lesson completed! +' + xpGain + ' XP');
-                    } else {
-                        alert('🎉 Lesson completed! +' + xpGain + ' XP');
+                        LawAIApp.Toast.success('✅ Lesson completed! +' + xpGain + ' XP');
                     }
                     this.render(lessonId, this._container);
                     LawAIApp.EventBus?.emit?.('LessonCompleted', { lessonId: lessonId });
@@ -509,8 +674,6 @@ LawAIApp.Views.LessonView = {
                 console.warn('⚠️ ProgressEngine.completeLesson not available');
                 if (LawAIApp.Toast?.warning) {
                     LawAIApp.Toast.warning('ProgressEngine not available');
-                } else {
-                    alert('ProgressEngine not available');
                 }
             }
         } catch (err) {
@@ -522,15 +685,48 @@ LawAIApp.Views.LessonView = {
     },
 
     /**
-     * 保存反思
+     * 微完成效果 — 不打扰，但有反馈
      */
+    _showCompletionEffect: function() {
+        var container = this._container;
+        if (!container) return;
+
+        // 简单粒子效果
+        var emojis = ['✨', '⭐', '🌟'];
+        for (var i = 0; i < 6; i++) {
+            var el = document.createElement('div');
+            el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            el.style.cssText = `
+                position: fixed;
+                font-size: ${16 + Math.random() * 20}px;
+                left: ${20 + Math.random() * 60}%;
+                top: ${30 + Math.random() * 40}%;
+                pointer-events: none;
+                z-index: 9999;
+                opacity: 1;
+                transition: all 1.2s ease-out;
+                transform: translateY(0) scale(1);
+            `;
+            document.body.appendChild(el);
+
+            setTimeout(function(elem) {
+                elem.style.transform = `translateY(-${60 + Math.random() * 80}px) scale(1.4)`;
+                elem.style.opacity = '0';
+            }, 50, el);
+
+            setTimeout(function(elem) {
+                if (elem.parentNode) elem.parentNode.removeChild(elem);
+            }, 1500, el);
+        }
+    },
+
     saveReflection: function() {
         var textarea = document.getElementById('reflection-textarea');
         if (!textarea) return;
         var reflection = textarea.value.trim();
         if (!reflection) {
             if (LawAIApp.Toast?.info) {
-                LawAIApp.Toast.info('Please write something before saving.');
+                LawAIApp.Toast.info('Write a quick reflection first.');
             }
             return;
         }
@@ -542,26 +738,21 @@ LawAIApp.Views.LessonView = {
             if (LawAIApp.ReflectionEngine && typeof LawAIApp.ReflectionEngine.saveReflection === 'function') {
                 LawAIApp.ReflectionEngine.saveReflection(userId, lessonId, reflection);
                 if (LawAIApp.Toast?.success) {
-                    LawAIApp.Toast.success('💭 Reflection saved!');
+                    LawAIApp.Toast.success('💭 Reflection saved');
                 }
                 textarea.value = '';
+                textarea.style.borderColor = 'rgba(34,197,94,0.3)';
+                setTimeout(function() {
+                    textarea.style.borderColor = 'rgba(255,255,255,0.06)';
+                }, 2000);
             } else {
                 console.warn('⚠️ ReflectionEngine not available');
-                if (LawAIApp.Toast?.warning) {
-                    LawAIApp.Toast.warning('ReflectionEngine not available');
-                }
             }
         } catch (err) {
             console.error('Save reflection error:', err);
-            if (LawAIApp.Toast?.error) {
-                LawAIApp.Toast.error('Failed to save reflection');
-            }
         }
     },
 
-    /**
-     * 开始练习
-     */
     startPractice: function() {
         var lessonId = this._lessonId;
         var type = 'mini_exercise';
@@ -577,34 +768,29 @@ LawAIApp.Views.LessonView = {
                 var descEl = document.getElementById('practice-description');
                 if (descEl) {
                     descEl.textContent = practice.description;
+                    descEl.style.color = '#4a9eff';
                 }
                 var feedbackEl = document.getElementById('practice-feedback');
                 if (feedbackEl) {
-                    feedbackEl.textContent = '✏️ Practice started! Type your answer and click Submit.';
+                    feedbackEl.textContent = '✏️ Practice started. Type your answer and submit.';
                     feedbackEl.style.color = '#4a9eff';
                 }
                 if (LawAIApp.Toast?.info) {
-                    LawAIApp.Toast.info('✏️ Practice started!');
+                    LawAIApp.Toast.info('✏️ Practice started');
                 }
             }
         } catch (err) {
             console.error('Start practice error:', err);
-            if (LawAIApp.Toast?.error) {
-                LawAIApp.Toast.error('Failed to start practice');
-            }
         }
     },
 
-    /**
-     * 提交练习答案
-     */
     submitPractice: function() {
         var input = document.getElementById('practice-answer');
         if (!input) return;
         var answer = input.value.trim();
         if (!answer) {
             if (LawAIApp.Toast?.info) {
-                LawAIApp.Toast.info('Please write your answer first.');
+                LawAIApp.Toast.info('Write your answer first.');
             }
             return;
         }
@@ -619,7 +805,7 @@ LawAIApp.Views.LessonView = {
                         feedbackEl.style.color = result.correct ? '#22c55e' : '#ef4444';
                     }
                     if (LawAIApp.Toast?.success) {
-                        LawAIApp.Toast.success(result.correct ? '✅ Great job!' : 'Keep practicing!');
+                        LawAIApp.Toast.success(result.correct ? '✅ Correct!' : 'Keep practicing');
                     }
                     input.value = '';
                     
@@ -633,15 +819,9 @@ LawAIApp.Views.LessonView = {
             }
         } catch (err) {
             console.error('Submit practice error:', err);
-            if (LawAIApp.Toast?.error) {
-                LawAIApp.Toast.error('Failed to submit practice');
-            }
         }
     },
 
-    /**
-     * 开始复习
-     */
     startReview: function() {
         var lessonId = this._lessonId;
 
@@ -656,23 +836,21 @@ LawAIApp.Views.LessonView = {
                     feedbackEl.style.color = '#22c55e';
                 }
                 if (LawAIApp.Toast?.success) {
-                    LawAIApp.Toast.success('🔄 Review completed! Memory strengthened.');
+                    LawAIApp.Toast.success('🔄 Review completed!');
                 }
                 setTimeout(function() {
                     this.render(lessonId, this._container);
-                }.bind(this), 1000);
+                }.bind(this), 800);
             }
         } catch (err) {
             console.error('Start review error:', err);
-            if (LawAIApp.Toast?.error) {
-                LawAIApp.Toast.error('Failed to complete review');
-            }
         }
     },
 
-    /**
-     * 上一课
-     */
+    // ============================================================
+    // 导航
+    // ============================================================
+
     previousLesson: function() {
         if (this._lessonId) {
             var day = parseInt(this._lessonId.replace('day-', ''));
@@ -686,13 +864,12 @@ LawAIApp.Views.LessonView = {
         }
     },
 
-    /**
-     * 下一课
-     */
     nextLesson: function() {
         if (this._lessonId) {
             var day = parseInt(this._lessonId.replace('day-', ''));
-            if (day < 365) {
+            var progress = this._getProgress();
+            var total = progress.totalLessons || 365;
+            if (day < total) {
                 this.render('day-' + (day + 1), this._container);
             } else {
                 if (LawAIApp.Toast?.info) {
@@ -702,9 +879,6 @@ LawAIApp.Views.LessonView = {
         }
     },
 
-    /**
-     * 练习模式（保留兼容）
-     */
     goPractice: function(lessonId) {
         if (LawAIApp.Toast?.info) {
             LawAIApp.Toast.info('✏️ Practice mode coming soon!');
@@ -712,4 +886,4 @@ LawAIApp.Views.LessonView = {
     }
 };
 
-console.log('📖 LessonView V3.0 ready (Profiler)');
+console.log('📖 LessonView V4.0 ready (Classroom Edition)');
