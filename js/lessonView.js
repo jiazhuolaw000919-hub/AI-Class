@@ -1,6 +1,6 @@
 // ===========================================
 // lessonView.js
-// 课程视图 - Classroom Edition (Phase 3)
+// 课程视图 - Classroom Edition (Phase 3) + Navigation Enhancement (Phase 6)
 // "The learner should forget they are using a website."
 // ===========================================
 
@@ -169,6 +169,98 @@ LawAIApp.Views.LessonView = {
     },
 
     // ============================================================
+    // 🔥 Phase 6: 课程导航增强
+    // ============================================================
+
+    /**
+     * 获取课程导航信息（智能导航）
+     */
+    _getLessonNavigation: function(currentDay) {
+        var progress = this._getProgress();
+        var completed = progress.completedLessons || [];
+        var total = progress.totalLessons || 365;
+        var currentIndex = completed.indexOf('day-' + currentDay);
+        
+        var isCompleted = currentIndex !== -1;
+        
+        // 找下一课（未完成的第一课）
+        var nextDay = currentDay + 1;
+        while (nextDay <= total && completed.indexOf('day-' + nextDay) !== -1) {
+            nextDay++;
+        }
+        if (nextDay > total) nextDay = total;
+        
+        // 找上一课（已完成的最后一课）
+        var prevDay = currentDay - 1;
+        while (prevDay >= 1 && completed.indexOf('day-' + prevDay) === -1) {
+            prevDay--;
+        }
+        if (prevDay < 1) prevDay = 1;
+        
+        return {
+            currentDay: currentDay,
+            isCompleted: isCompleted,
+            nextDay: nextDay,
+            prevDay: prevDay,
+            completedCount: completed.length,
+            totalCount: total,
+            progressPercent: Math.round((completed.length / total) * 100)
+        };
+    },
+
+    /**
+     * 智能继续 — 从当前课程继续到下一课
+     */
+    continueFromLesson: function() {
+        if (this._lessonId) {
+            var day = parseInt(this._lessonId.replace('day-', ''));
+            var nav = this._getLessonNavigation(day);
+            if (nav.isCompleted && nav.nextDay > day) {
+                this.render('day-' + nav.nextDay, this._container);
+            } else if (!nav.isCompleted) {
+                // 当前课程还没完成，继续当前
+                if (LawAIApp.Toast?.info) {
+                    LawAIApp.Toast.info('📖 Complete this lesson first!');
+                }
+            } else {
+                if (LawAIApp.Toast?.info) {
+                    LawAIApp.Toast.info('🎉 All lessons completed!');
+                }
+            }
+        }
+    },
+
+    /**
+     * 获取下一课标题（用于 Continue Learning）
+     */
+    getNextLessonTitle: function() {
+        if (this._lessonId) {
+            var day = parseInt(this._lessonId.replace('day-', ''));
+            var nav = this._getLessonNavigation(day);
+            if (nav.isCompleted && nav.nextDay > day) {
+                return this._getLessonTitle(nav.nextDay);
+            }
+            return this._lesson?.title || this._getLessonTitle(day);
+        }
+        return 'Continue Learning';
+    },
+
+    /**
+     * 获取下一课链接
+     */
+    getNextLessonLink: function() {
+        if (this._lessonId) {
+            var day = parseInt(this._lessonId.replace('day-', ''));
+            var nav = this._getLessonNavigation(day);
+            if (nav.isCompleted && nav.nextDay > day) {
+                return '/pages/lesson.html?day=' + nav.nextDay;
+            }
+            return '/pages/lesson.html?day=' + day;
+        }
+        return '/pages/lesson.html?day=1';
+    },
+
+    // ============================================================
     // 骨架
     // ============================================================
 
@@ -222,6 +314,11 @@ LawAIApp.Views.LessonView = {
         var totalCount = progress.totalLessons || 365;
         var dayNum = parseInt(lesson.lessonId.replace('day-', '')) || 1;
 
+        // 🔥 Phase 6: 获取课程导航信息
+        var nav = this._getLessonNavigation(dayNum);
+        var hasNext = nav.nextDay > dayNum;
+        var hasPrev = nav.prevDay < dayNum;
+
         var html = `
         <div class="lesson-classroom" style="
             max-width: 740px;
@@ -232,7 +329,7 @@ LawAIApp.Views.LessonView = {
             animation: lessonFade 0.3s ease;
         ">
             <!-- ========================================================== -->
-            <!-- 🔙 Navigation Bar — 极简导航 -->
+            <!-- 🔙 Navigation Bar — 极简导航（增强版） -->
             <!-- ========================================================== -->
             <div style="
                 display: flex;
@@ -262,12 +359,13 @@ LawAIApp.Views.LessonView = {
                     ← Back
                 </button>
 
-                <!-- 进度指示器 -->
-                <div style="display:flex;align-items:center;gap:10px;font-size:11px;color:#64748b;">
+                <!-- 进度指示器 + 导航信息 -->
+                <div style="display:flex;align-items:center;gap:10px;font-size:11px;color:#64748b;flex-wrap:wrap;">
                     <span>${completedCount}/${totalCount}</span>
                     <span style="opacity:0.3;">·</span>
                     <span>${Math.round((completedCount / totalCount) * 100)}%</span>
                     ${completed ? '<span style="color:#22c55e;font-size:10px;">✅ Done</span>' : ''}
+                    ${hasNext ? `<span style="opacity:0.3;">·</span><span style="color:#4a9eff;font-size:10px;">Next: Day ${nav.nextDay}</span>` : ''}
                 </div>
             </div>
 
@@ -351,7 +449,7 @@ LawAIApp.Views.LessonView = {
                 <p style="margin:0;">${lesson.summary || 'Lesson content will be displayed here. Focus on understanding the core principles and how they apply to real-world scenarios.'}</p>
             </div>
 
-            <!-- AI 摘要（优雅折叠式） -->
+            <!-- AI 摘要 -->
             <div style="
                 background: rgba(139,92,246,0.04);
                 border-radius: 12px;
@@ -385,7 +483,7 @@ LawAIApp.Views.LessonView = {
                 </p>
             </div>
 
-            <!-- 💭 反思（轻量） -->
+            <!-- 💭 反思 -->
             <div style="
                 background: rgba(255,255,255,0.02);
                 border-radius: 12px;
@@ -426,7 +524,7 @@ LawAIApp.Views.LessonView = {
                 </button>
             </div>
 
-            <!-- ✏️ Practice（轻量） -->
+            <!-- ✏️ Practice -->
             <div style="
                 background: rgba(34,197,94,0.04);
                 border-radius: 12px;
@@ -484,7 +582,7 @@ LawAIApp.Views.LessonView = {
                 " placeholder="Type your answer..." onfocus="this.style.borderColor='rgba(74,158,255,0.3)'" onblur="this.style.borderColor='rgba(255,255,255,0.06)'">
             </div>
 
-            <!-- 🔄 Review（如果已完成且需要复习） -->
+            <!-- 🔄 Review -->
             ${completed && needsReview ? `
             <div style="
                 background: rgba(245,158,11,0.04);
@@ -520,7 +618,7 @@ LawAIApp.Views.LessonView = {
             ` : ''}
 
             <!-- ========================================================== -->
-            <!-- ✅ 完成按钮（主要行动点） -->
+            <!-- ✅ 完成按钮 -->
             <!-- ========================================================== -->
             ${!completed ? `
             <button onclick="LawAIApp.Views.LessonView.completeLesson('${lesson.lessonId}')" style="
@@ -558,7 +656,7 @@ LawAIApp.Views.LessonView = {
             `}
 
             <!-- ========================================================== -->
-            <!-- 导航 — 上一课/下一课 -->
+            <!-- 🔥 Phase 6: 导航 — 智能上一课/下一课 -->
             <!-- ========================================================== -->
             <div style="
                 display:flex;
@@ -577,7 +675,8 @@ LawAIApp.Views.LessonView = {
                     cursor:pointer;
                     font-family:inherit;
                     transition:all 0.2s;
-                " onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#e2e8f0'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.color='#64748b'">
+                    ${!hasPrev ? 'opacity:0.3;cursor:default;' : ''}
+                " onmouseover="${hasPrev ? 'this.style.background=\'rgba(255,255,255,0.06)\';this.style.color=\'#e2e8f0\'' : ''}" onmouseout="${hasPrev ? 'this.style.background=\'rgba(255,255,255,0.03)\';this.style.color=\'#64748b\'' : ''}">
                     ⬅️ Previous
                 </button>
                 <button onclick="LawAIApp.Views.LessonView.nextLesson()" style="
@@ -591,7 +690,8 @@ LawAIApp.Views.LessonView = {
                     cursor:pointer;
                     font-family:inherit;
                     transition:all 0.2s;
-                " onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#e2e8f0'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.color='#64748b'">
+                    ${!hasNext ? 'opacity:0.3;cursor:default;' : ''}
+                " onmouseover="${hasNext ? 'this.style.background=\'rgba(255,255,255,0.06)\';this.style.color=\'#e2e8f0\'' : ''}" onmouseout="${hasNext ? 'this.style.background=\'rgba(255,255,255,0.03)\';this.style.color=\'#64748b\'' : ''}">
                     Next ➡️
                 </button>
             </div>
@@ -662,7 +762,6 @@ LawAIApp.Views.LessonView = {
                 var result = LawAIApp.ProgressEngine.completeLesson(lessonId);
                 if (result) {
                     var xpGain = result.xpGain || 20;
-                    // 微完成效果
                     this._showCompletionEffect();
                     if (LawAIApp.Toast && typeof LawAIApp.Toast.success === 'function') {
                         LawAIApp.Toast.success('✅ Lesson completed! +' + xpGain + ' XP');
@@ -685,13 +784,12 @@ LawAIApp.Views.LessonView = {
     },
 
     /**
-     * 微完成效果 — 不打扰，但有反馈
+     * 微完成效果
      */
     _showCompletionEffect: function() {
         var container = this._container;
         if (!container) return;
 
-        // 简单粒子效果
         var emojis = ['✨', '⭐', '🌟'];
         for (var i = 0; i < 6; i++) {
             var el = document.createElement('div');
@@ -848,14 +946,15 @@ LawAIApp.Views.LessonView = {
     },
 
     // ============================================================
-    // 导航
+    // 🔥 Phase 6: 智能导航
     // ============================================================
 
     previousLesson: function() {
         if (this._lessonId) {
             var day = parseInt(this._lessonId.replace('day-', ''));
-            if (day > 1) {
-                this.render('day-' + (day - 1), this._container);
+            var nav = this._getLessonNavigation(day);
+            if (nav.prevDay && nav.prevDay < day) {
+                this.render('day-' + nav.prevDay, this._container);
             } else {
                 if (LawAIApp.Toast?.info) {
                     LawAIApp.Toast.info('You\'re at the first lesson');
@@ -867,10 +966,9 @@ LawAIApp.Views.LessonView = {
     nextLesson: function() {
         if (this._lessonId) {
             var day = parseInt(this._lessonId.replace('day-', ''));
-            var progress = this._getProgress();
-            var total = progress.totalLessons || 365;
-            if (day < total) {
-                this.render('day-' + (day + 1), this._container);
+            var nav = this._getLessonNavigation(day);
+            if (nav.nextDay && nav.nextDay > day) {
+                this.render('day-' + nav.nextDay, this._container);
             } else {
                 if (LawAIApp.Toast?.info) {
                     LawAIApp.Toast.info('🎉 You\'ve completed all lessons!');
@@ -886,4 +984,4 @@ LawAIApp.Views.LessonView = {
     }
 };
 
-console.log('📖 LessonView V4.0 ready (Classroom Edition)');
+console.log('📖 LessonView V4.1 ready (Classroom Edition + Navigation)');
