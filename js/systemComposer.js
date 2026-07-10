@@ -3,7 +3,7 @@
 // LAYER: UI Layer
 // DOMAIN: System Composition & UI Rendering
 // RECOVERY STATUS: 🟢 Canon Locked
-// VERSION: 5.2.0 - Instant Runtime (Phase 0.1)
+// VERSION: 5.2.0 - Instant Runtime (Phase 0.1) + Profiler (Phase P)
 // ================================================================
 //
 // PURPOSE
@@ -561,6 +561,12 @@ LawAIApp.SystemComposer = {
             return;
         }
 
+        // 🔥 Profiler: 标记渲染开始
+        if (LawAIApp.DevTools?.RuntimeProfiler) {
+            LawAIApp.DevTools.RuntimeProfiler.mark('composer_render_start');
+            LawAIApp.DevTools.RuntimeProfiler.recordRender('dashboard');
+        }
+
         // ============================================================
         // 1. 获取所有数据（纯函数，不阻塞）
         // ============================================================
@@ -981,6 +987,16 @@ LawAIApp.SystemComposer = {
         this.root.innerHTML = coreHTML;
         this._setupNavGuard();
         this._deferredRendered = false;
+
+        // 🔥 Profiler: 标记渲染结束
+        if (LawAIApp.DevTools?.RuntimeProfiler) {
+            LawAIApp.DevTools.RuntimeProfiler.mark('composer_render_end');
+            LawAIApp.DevTools.RuntimeProfiler.measure(
+                'composer_render_duration',
+                'composer_render_start',
+                'composer_render_end'
+            );
+        }
 
         // ============================================================
         // 4. 延迟渲染次要内容（200ms 后，不阻塞首屏）
