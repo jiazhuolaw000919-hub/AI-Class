@@ -13,68 +13,120 @@
     <link rel="stylesheet" href="/css/responsive.css">
     <link rel="stylesheet" href="/css/theme.css">
     <style>
-        body { margin: 0; background: #0b1220; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; }
-        #app { min-height: 100vh; padding: 20px; max-width: 1000px; margin: 0 auto; padding-bottom: 80px; }
-        .lesson-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; color: #94a3b8; text-align: center; }
-        .lesson-loading .spinner { width: 40px; height: 40px; border: 3px solid rgba(74,158,255,0.15); border-top-color: #4a9eff; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; 
+            background: #0b1220; 
+            color: #e2e8f0; 
+            font-family: 'Inter', -apple-system, sans-serif; 
+        }
+        #app { 
+            min-height: 100vh; 
+            padding: 20px 20px 90px; 
+            max-width: 1000px; 
+            margin: 0 auto; 
+        }
+        .lesson-loading { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 60vh; 
+            color: #94a3b8; 
+            text-align: center; 
+        }
+        .lesson-loading .spinner { 
+            width: 40px; 
+            height: 40px; 
+            border: 3px solid rgba(74,158,255,0.15); 
+            border-top-color: #4a9eff; 
+            border-radius: 50%; 
+            animation: spin 0.8s linear infinite; 
+            margin-bottom: 16px; 
+        }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .content-back-bar {
+
+        /* ===== 顶部 Header ===== */
+        .lesson-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .lesson-header .left {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 12px 16px;
-            margin-bottom: 20px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.06);
-            flex-wrap: wrap;
+            gap: 14px;
         }
-        .content-back-bar .btn {
+        .lesson-header .left .back-btn {
             display: flex;
             align-items: center;
             gap: 6px;
-            padding: 8px 18px;
-            border-radius: 8px;
-            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 13px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
             text-decoration: none;
             font-family: inherit;
-            border: none;
-        }
-        .content-back-bar .btn-back {
-            background: rgba(74,158,255,0.1);
-            color: #4a9eff;
-            border: 1px solid rgba(74,158,255,0.15);
-        }
-        .content-back-bar .btn-back:hover {
-            background: rgba(74,158,255,0.2);
-            transform: scale(1.02);
-        }
-        .content-back-bar .btn-home {
-            background: rgba(255,255,255,0.04);
-            color: #94a3b8;
             border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.03);
+            color: #94a3b8;
         }
-        .content-back-bar .btn-home:hover {
+        .lesson-header .left .back-btn:hover {
             background: rgba(255,255,255,0.08);
             color: #e2e8f0;
         }
-        .content-back-bar .separator {
-            color: #475569;
+        .lesson-header .left .back-btn span { font-size: 16px; }
+
+        .lesson-header .center {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.04);
+            padding: 8px 20px;
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .lesson-header .center .icon { font-size: 20px; }
+        .lesson-header .center .day-label {
+            font-size: 15px;
+            font-weight: 600;
+            color: #e2e8f0;
+            letter-spacing: 0.3px;
+        }
+        .lesson-header .center .day-number {
+            font-size: 18px;
+            font-weight: 700;
+            color: #4a9eff;
+            background: rgba(74,158,255,0.12);
+            padding: 2px 12px;
+            border-radius: 20px;
+        }
+
+        .lesson-header .right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+        .lesson-header .right .date {
             font-size: 14px;
+            font-weight: 500;
+            color: #e2e8f0;
         }
-        .content-back-bar .page-title {
+        .lesson-header .right .time {
+            font-size: 12px;
             color: #64748b;
-            font-size: 13px;
-            margin-left: auto;
+            font-variant-numeric: tabular-nums;
         }
-        @media (max-width: 480px) {
-            .content-back-bar { padding: 10px 12px; gap: 6px; }
-            .content-back-bar .btn { font-size: 12px; padding: 6px 12px; }
-            .content-back-bar .page-title { font-size: 11px; }
-        }
+
+        /* ===== 底部导航 ===== */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -104,6 +156,22 @@
         .bottom-nav a:hover { color: #94a3b8; }
         .bottom-nav a.active { color: #4a9eff; }
         .bottom-nav a span:first-child { font-size: 18px; }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 600px) {
+            .lesson-header { flex-direction: column; align-items: stretch; gap: 10px; }
+            .lesson-header .left { justify-content: flex-start; }
+            .lesson-header .center { justify-content: center; padding: 6px 16px; }
+            .lesson-header .center .day-number { font-size: 15px; padding: 0 10px; }
+            .lesson-header .right { align-items: center; flex-direction: row; justify-content: space-between; width: 100%; }
+            .lesson-header .right .date { font-size: 13px; }
+            .lesson-header .right .time { font-size: 11px; }
+        }
+        @media (max-width: 400px) {
+            .lesson-header .center .day-label { font-size: 13px; }
+            .lesson-header .center .day-number { font-size: 13px; }
+            .lesson-header .left .back-btn { font-size: 12px; padding: 6px 12px; }
+        }
     </style>
 </head>
 <body>
@@ -147,6 +215,43 @@
             console.log('📄 Lesson page loaded');
 
             // ==========================================================
+            // 获取 Lesson ID
+            // ==========================================================
+            function getLessonIdFromURL() {
+                var params = new URLSearchParams(window.location.search);
+                var id = params.get('lessonId') || params.get('id') || params.get('day');
+                if (id) return id;
+                var path = window.location.pathname;
+                var match = path.match(/lesson[\/-]?(day-?\d+)/i);
+                return match ? match[1] : null;
+            }
+
+            var lessonId = getLessonIdFromURL() || 'day-1';
+            // 提取纯数字
+            var dayNumber = lessonId.replace('day-', '').replace('day', '');
+            console.log('📖 Loading lesson:', lessonId, 'day:', dayNumber);
+
+            // ==========================================================
+            // 格式化日期时间
+            // ==========================================================
+            function getFormattedDateTime() {
+                var now = new Date();
+                var options = { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric',
+                    weekday: 'short'
+                };
+                var dateStr = now.toLocaleDateString('en-US', options);
+                var timeStr = now.toLocaleTimeString('en-US', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: true 
+                });
+                return { date: dateStr, time: timeStr };
+            }
+
+            // ==========================================================
             // 底部导航点击处理
             // ==========================================================
             function setupNav() {
@@ -179,22 +284,44 @@
             }
 
             // ==========================================================
-            // 获取 Lesson ID
+            // 渲染 Lesson Header
             // ==========================================================
-            function getLessonIdFromURL() {
-                var params = new URLSearchParams(window.location.search);
-                var id = params.get('lessonId') || params.get('id') || params.get('day');
-                if (id) return id;
-                var path = window.location.pathname;
-                var match = path.match(/lesson[\/-]?(day-?\d+)/i);
-                return match ? match[1] : null;
+            function renderHeader() {
+                var app = document.getElementById('app');
+                if (!app) return;
+
+                // 如果已经有 header，不重复添加
+                if (document.getElementById('lesson-header')) return;
+
+                var dateTime = getFormattedDateTime();
+
+                var header = document.createElement('div');
+                header.id = 'lesson-header';
+                header.className = 'lesson-header';
+                header.innerHTML = `
+                    <div class="left">
+                        <button class="back-btn" onclick="window.history.back()">
+                            <span>←</span> Back
+                        </button>
+                    </div>
+                    <div class="center">
+                        <span class="icon">📖</span>
+                        <span class="day-label">Day</span>
+                        <span class="day-number">${dayNumber}</span>
+                    </div>
+                    <div class="right">
+                        <span class="date">${dateTime.date}</span>
+                        <span class="time">${dateTime.time}</span>
+                    </div>
+                `;
+
+                // 插入到 #app 的第一个子元素位置
+                app.insertBefore(header, app.firstChild);
+                console.log('✅ Lesson header rendered');
             }
 
-            var lessonId = getLessonIdFromURL() || 'day-1';
-            console.log('📖 Loading lesson:', lessonId);
-
             // ==========================================================
-            // 渲染 Lesson
+            // 渲染 Lesson 内容
             // ==========================================================
             function renderLesson() {
                 var app = document.getElementById('app');
@@ -203,22 +330,10 @@
                 // 清空 app
                 app.innerHTML = '';
 
-                // 添加返回栏
-                var backBar = document.createElement('div');
-                backBar.className = 'content-back-bar';
-                backBar.innerHTML = `
-                    <button class="btn btn-back" onclick="window.history.back()">
-                        <span style="font-size:16px;">←</span> Back
-                    </button>
-                    <span class="separator">|</span>
-                    <a href="/" class="btn btn-home">
-                        <span style="font-size:14px;">🏠</span> Dashboard
-                    </a>
-                    <span class="page-title">📖 Lesson ${lessonId}</span>
-                `;
-                app.appendChild(backBar);
+                // 先渲染 Header
+                renderHeader();
 
-                // 渲染 Lesson 内容
+                // 再渲染 Lesson 内容
                 var contentContainer = document.createElement('div');
                 contentContainer.id = 'lesson-content';
                 app.appendChild(contentContainer);
@@ -243,9 +358,6 @@
                         <div class="spinner"></div>
                         <p>Loading lesson...</p>
                         <p style="font-size:12px;color:#64748b;">Lesson: ${lessonId}</p>
-                        <p style="font-size:12px;color:#64748b;margin-top:8px;">
-                            <a href="/" style="color:#4a9eff;text-decoration:none;">← Back to Dashboard</a>
-                        </p>
                     </div>
                 `;
                 console.warn('⚠️ LessonView not ready, retrying...');
