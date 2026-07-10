@@ -1,146 +1,441 @@
-/* lesson.css - 每日学习页面 */
-.lesson-page {
-  padding: 1rem 1rem 2rem;
-  max-width: 700px;
-  margin: 0 auto;
-  animation: fadeIn 0.3s ease;
+/* ================================================================
+   lesson.css – Lesson 设计语言
+   ================================================================ */
+
+.lesson-container {
+    max-width: var(--max-width-reading);
+    margin: 0 auto;
+    padding: var(--space-xs) 0 var(--space-3xl);
 }
 
-.lesson-header {
-  background: linear-gradient(135deg, var(--primary), #6366f1);
-  border-radius: var(--radius);
-  padding: 1.5rem;
-  color: white;
-  margin-bottom: 1.5rem;
-}
-
-.lesson-header .day {
-  font-size: 0.9rem;
-  opacity: 0.85;
-}
-
-.lesson-header h2 {
-  margin: 0.3rem 0 0.8rem;
-}
-
-.lesson-header .badges {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.badge {
-  background: rgba(255,255,255,0.2);
-  padding: 0.2rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-}
-
-.section-card {
-  background: var(--card);
-  border-radius: var(--radius);
-  padding: 1.2rem;
-  margin-bottom: 1rem;
-  box-shadow: var(--shadow);
-  transition: var(--transition);
-}
-
-.section-card h3 {
-  margin-bottom: 0.8rem;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.official-links {
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-
-.official-btn {
-  background: var(--glass);
-  border: 1px solid rgba(255,255,255,0.1);
-  padding: 0.5rem 1rem;
-  border-radius: 10px;
-  color: var(--text);
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: var(--transition);
-}
-
-.official-btn:hover {
-  background: var(--primary);
-  border-color: var(--primary);
-}
-
-.summary-point, .key-point {
-  margin: 0.4rem 0;
-  font-size: 0.9rem;
-}
-
-.practice-box {
-  background: rgba(245,158,11,0.1);
-  border-left: 4px solid var(--warning);
-  padding: 1rem;
-  border-radius: 8px;
-}
-
-.quiz-question {
-  margin-bottom: 1rem;
-}
-
-.quiz-options label {
-  display: block;
-  padding: 0.4rem 0;
-  cursor: pointer;
-}
-
-.note-field {
-  width: 100%;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 10px;
-  padding: 0.7rem;
-  color: var(--text);
-  margin: 0.5rem 0;
-  resize: vertical;
-}
-
-.complete-btn {
-  background: var(--success);
-  color: white;
-  border: none;
-  border-radius: 14px;
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
-  font-weight: bold;
-  width: 100%;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin: 1.5rem 0;
-}
-
-.complete-btn:active {
-  transform: scale(0.97);
-}
+/* ==========================================================
+   导航
+   ========================================================== */
 
 .lesson-nav {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-xs) 0 var(--space-lg);
+    border-bottom: 1px solid var(--color-border-light);
+    margin-bottom: var(--space-xl);
+    flex-wrap: wrap;
+    gap: var(--space-xs);
 }
 
-.lesson-nav button {
-  background: var(--card);
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 12px;
-  color: var(--text);
-  cursor: pointer;
-  transition: var(--transition);
+.lesson-nav-back {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-xs);
+    color: var(--color-text-secondary);
+    padding: var(--space-3xs) var(--space-lg);
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: var(--transition-fast);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3xs);
 }
 
-.lesson-nav button:hover {
-  background: var(--primary);
+.lesson-nav-back:hover {
+    background: var(--color-bg-elevated-hover);
+    color: var(--color-text-primary);
+}
+
+.lesson-nav-progress {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+}
+
+.lesson-nav-next {
+    font-size: var(--font-size-xs);
+    color: var(--color-brand-primary);
+}
+
+/* ==========================================================
+   标题
+   ========================================================== */
+
+.lesson-header {
+    margin-bottom: var(--space-lg);
+}
+
+.lesson-header-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+    margin-bottom: var(--space-xs);
+}
+
+.lesson-header-meta-divider {
+    opacity: 0.3;
+}
+
+.lesson-header-title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: -0.3px;
+    line-height: var(--line-height-tight);
+    color: var(--color-text-primary);
+    margin: 0;
+}
+
+.lesson-header-desc {
+    font-size: var(--font-size-md);
+    color: var(--color-text-secondary);
+    line-height: var(--line-height-normal);
+    margin: var(--space-xs) 0 0;
+}
+
+.lesson-header-tags {
+    display: flex;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+    margin-top: var(--space-sm);
+}
+
+/* ==========================================================
+   内容区块
+   ========================================================== */
+
+.lesson-section {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg) var(--space-xl);
+    margin-bottom: var(--space-lg);
+    border: 1px solid var(--color-border-light);
+    line-height: var(--line-height-relaxed);
+    font-size: var(--font-size-md);
+    color: var(--color-text-primary);
+}
+
+.lesson-section-objective {
+    background: rgba(74, 158, 255, 0.04);
+    border-left: 3px solid var(--color-brand-primary);
+}
+
+.lesson-section-objective-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-brand-primary);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: var(--space-xs);
+}
+
+/* ==========================================================
+   AI Insight
+   ========================================================== */
+
+.lesson-insight {
+    background: rgba(139, 92, 246, 0.04);
+    border-radius: var(--radius-md);
+    padding: var(--space-md) var(--space-xl);
+    margin-bottom: var(--space-lg);
+    border: 1px solid rgba(139, 92, 246, 0.06);
+}
+
+.lesson-insight-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-xs);
+}
+
+.lesson-insight-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-purple);
+    font-weight: var(--font-weight-medium);
+}
+
+.lesson-insight-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: var(--line-height-normal);
+    margin: 0;
+}
+
+/* ==========================================================
+   记忆钩子
+   ========================================================== */
+
+.lesson-memory {
+    background: rgba(245, 158, 11, 0.04);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-xl);
+    margin-bottom: var(--space-lg);
+    border: 1px solid rgba(245, 158, 11, 0.06);
+}
+
+.lesson-memory-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.lesson-memory-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-warning);
+    font-weight: var(--font-weight-medium);
+}
+
+.lesson-memory-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: var(--line-height-normal);
+    margin: var(--space-xs) 0 0;
+}
+
+/* ==========================================================
+   反思
+   ========================================================== */
+
+.lesson-reflection {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-md);
+    padding: var(--space-md) var(--space-xl);
+    margin-bottom: var(--space-lg);
+    border: 1px solid var(--color-border-light);
+}
+
+.lesson-reflection-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-xs);
+}
+
+.lesson-reflection-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+}
+
+.lesson-reflection-textarea {
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-xs);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family);
+    resize: vertical;
+    min-height: 40px;
+    transition: var(--transition-fast);
+}
+
+.lesson-reflection-textarea:focus {
+    outline: none;
+    border-color: var(--color-brand-primary);
+}
+
+.lesson-reflection-save {
+    margin-top: var(--space-3xs);
+    padding: var(--space-3xs) var(--space-md);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-xs);
+    color: var(--color-text-tertiary);
+    font-size: var(--font-size-2xs);
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: var(--transition-fast);
+}
+
+.lesson-reflection-save:hover {
+    background: var(--color-bg-elevated-hover);
+    color: var(--color-text-primary);
+}
+
+/* ==========================================================
+   练习
+   ========================================================== */
+
+.lesson-practice {
+    background: rgba(34, 197, 94, 0.04);
+    border-radius: var(--radius-md);
+    padding: var(--space-md) var(--space-xl);
+    margin-bottom: var(--space-lg);
+    border: 1px solid rgba(34, 197, 94, 0.06);
+}
+
+.lesson-practice-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-xs);
+}
+
+.lesson-practice-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-success);
+}
+
+.lesson-practice-desc {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin: 0 0 var(--space-xs);
+}
+
+.lesson-practice-actions {
+    display: flex;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+}
+
+.lesson-practice-input {
+    width: 100%;
+    margin-top: var(--space-xs);
+    padding: var(--space-xs) var(--space-md);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-xs);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family);
+    transition: var(--transition-fast);
+}
+
+.lesson-practice-input:focus {
+    outline: none;
+    border-color: var(--color-brand-primary);
+}
+
+.lesson-practice-feedback {
+    margin-top: var(--space-xs);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+}
+
+/* ==========================================================
+   复习
+   ========================================================== */
+
+.lesson-review {
+    background: rgba(245, 158, 11, 0.04);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-xl);
+    margin-bottom: var(--space-lg);
+    border: 1px solid rgba(245, 158, 11, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+.lesson-review-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-warning);
+}
+
+.lesson-review-desc {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    display: block;
+}
+
+/* ==========================================================
+   完成按钮
+   ========================================================== */
+
+.lesson-complete-btn {
+    width: 100%;
+    padding: var(--space-lg);
+    background: var(--gradient-success);
+    border: none;
+    border-radius: var(--radius-lg);
+    color: var(--color-text-inverse);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: var(--transition-normal);
+    box-shadow: var(--shadow-glow-success);
+}
+
+.lesson-complete-btn:hover {
+    transform: scale(1.01);
+    box-shadow: 0 8px 40px rgba(34, 197, 94, 0.25);
+}
+
+.lesson-complete-btn:active {
+    transform: scale(0.97);
+}
+
+.lesson-completed {
+    text-align: center;
+    padding: var(--space-md);
+    background: rgba(34, 197, 94, 0.06);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(34, 197, 94, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+}
+
+/* ==========================================================
+   底部导航
+   ========================================================== */
+
+.lesson-nav-bottom {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin-top: var(--space-lg);
+}
+
+.lesson-nav-bottom-btn {
+    flex: 1;
+    padding: var(--space-sm);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    color: var(--color-text-tertiary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: var(--transition-fast);
+    text-align: center;
+}
+
+.lesson-nav-bottom-btn:hover {
+    background: var(--color-bg-elevated-hover);
+    color: var(--color-text-primary);
+}
+
+.lesson-nav-bottom-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* ==========================================================
+   响应式
+   ========================================================== */
+
+@media (max-width: 600px) {
+    .lesson-header-title {
+        font-size: var(--font-size-2xl);
+    }
+    .lesson-section {
+        padding: var(--space-lg);
+        font-size: var(--font-size-sm);
+    }
+    .lesson-nav {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-sm);
+    }
+    .lesson-nav-bottom {
+        flex-direction: column;
+    }
 }
