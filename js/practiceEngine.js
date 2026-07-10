@@ -1,523 +1,345 @@
+// ===========================================
+// practiceEngine.js
+// 练习引擎 - 知识转化为技能（Phase 23 完善版）
+// ===========================================
 // ================================================================
-// ENGINE: ExperienceEngine
-// LAYER: UI Layer
-// DOMAIN: User Experience & Engagement
+// ENGINE: PracticeEngine
+// LAYER: Core Logic Layer
+// DOMAIN: Practice & Skill Development
 // RECOVERY STATUS: 🟢 Canon Locked
-// VERSION: 1.0.0
+// VERSION: 2.0.0
 // ================================================================
 //
 // PURPOSE
 // ================================================================
-//   Owns the user experience layer of the platform.
-//   Manages micro-interactions, celebrations, themes, and focus mode.
-//   Creates emotional engagement and makes learning feel rewarding.
+//   Transforms knowledge into skill through practice exercises,
+//   challenges, and real-world tasks. Tracks mastery and provides
+//   adaptive difficulty. Implements the "Practice" phase of the
+//   Learning Loop.
 //
 // PUBLIC API
 // ================================================================
-//   celebrate(type, options)            -> void
-//   showXPGain(amount, element)         -> void
-//   setTheme(themeName)                 -> void
-//   getTheme()                          -> string
-//   toggleFocusMode()                   -> void
-//   isFocusMode()                       -> boolean
-//   getDailyGreeting(progress)          -> string
-//   showAchievement(name, icon)         -> void
-//   animateProgress(element, from, to)  -> void
-//   getStatus()                         -> Status object
+//   init()                                      -> void
+//   startPractice(lessonId, type)               -> Practice object
+//   completePractice(practice, userAnswer)      -> Result object
+//   getRecommendedType(lessonId)                -> string
+//   getHistoryByLesson(lessonId)                -> array
+//   getRecent(limit)                            -> array
+//   getAllHistory()                             -> array
+//   getMastery()                                -> object
+//   generateInteractivePractice(lessonTitle, type) -> Practice object
+//   checkAnswer(practice, selectedIndex)        -> Result object
+//   getStatus()                                 -> Status object
 //
-// THEMES
+// PRACTICE TYPES
 // ================================================================
-//   - dark     : Default dark theme
-//   - light    : Light theme
-//   - midnight : Deep blue theme
-//   - forest   : Green/nature theme
-//   - ocean    : Blue/calm theme
+//   - mini_exercise     : Short practice exercise
+//   - scenario_challenge : Scenario-based challenge
+//   - real_world_task   : Real-world application task
+//   - case_study        : Case study analysis
+//   - multiple_choice   : Multiple choice question
+//   - fill_blank        : Fill in the blank
 //
 // DEPENDENCIES
 // ================================================================
-//   - StorageEngine (optional) : For saving theme preference
+//   - StorageEngine (required) : For persistent storage
 //   - EventBus (optional)     : For emitting events
+//   - LessonEngine (optional) : For lesson data
 //
 // STORAGE
 // ================================================================
-//   - Key: 'lawai_experience_settings'
-//   - Format: JSON
-//   - Schema: { theme, focusMode, animations }
+//   - Key: 'lawai_practice_history'
+//   - Format: JSON array of practice records
+//   - Schema: { lessonId, practiceId, type, difficulty, correct, userAnswer, feedback, completedAt }
 //
 // EVENTS
 // ================================================================
 //   EMITTED:
-//   - 'ThemeChanged'      : When theme changes
-//     Payload: { theme }
-//   - 'FocusModeToggled'  : When focus mode toggles
-//     Payload: { enabled }
-//   - 'AchievementUnlocked' : When achievement is unlocked
-//     Payload: { name, icon }
+//   - 'PracticeStarted'    : When a practice session starts
+//     Payload: { practice }
+//   - 'PracticeCompleted'  : When a practice session completes
+//     Payload: { practice, feedback, correct }
+//
+// FUTURE COMPATIBILITY
+// ================================================================
+//   - New practice types can be added
+//   - Difficulty can be made adaptive
+//   - Mastery tracking can be per-skill
 //
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
 
-LawAIApp.ExperienceEngine = {
+LawAIApp.PracticeEngine = (function() {
     // ============================================================
     // ENGINE METADATA
     // ============================================================
-    _engineName: 'ExperienceEngine',
-    _engineVersion: '1.0.0',
-    _recoveryStatus: '🟢 Canon Locked',
-    _layer: 'UI Layer',
-    _domain: 'User Experience & Engagement',
+    var _engineName = 'PracticeEngine';
+    var _engineVersion = '2.0.0';
+    var _recoveryStatus = '🟢 Canon Locked';
+    var _layer = 'Core Logic Layer';
+    var _domain = 'Practice & Skill Development';
 
-    // ============================================================
-    // STATE
-    // ============================================================
-    _settings: {
-        theme: 'dark',
-        focusMode: false,
-        animations: true,
-        celebrations: true,
-        soundEnabled: false
-    },
+    var _initialized = false;
+    var _history = [];
 
-    _themes: {
-        dark: {
-            name: 'Dark',
-            background: '#0b1220',
-            surface: '#1a1a2e',
-            card: 'rgba(255,255,255,0.04)',
-            text: '#e2e8f0',
-            textMuted: '#94a3b8',
-            primary: '#4a9eff',
-            border: 'rgba(255,255,255,0.06)'
-        },
-        light: {
-            name: 'Light',
-            background: '#f8fafc',
-            surface: '#ffffff',
-            card: 'rgba(0,0,0,0.04)',
-            text: '#0b1220',
-            textMuted: '#64748b',
-            primary: '#4a9eff',
-            border: 'rgba(0,0,0,0.06)'
-        },
-        midnight: {
-            name: 'Midnight',
-            background: '#0f172a',
-            surface: '#1e293b',
-            card: 'rgba(255,255,255,0.04)',
-            text: '#e2e8f0',
-            textMuted: '#94a3b8',
-            primary: '#818cf8',
-            border: 'rgba(255,255,255,0.06)'
-        },
-        forest: {
-            name: 'Forest',
-            background: '#0a1f0a',
-            surface: '#162b16',
-            card: 'rgba(255,255,255,0.04)',
-            text: '#e2e8f0',
-            textMuted: '#94a3b8',
-            primary: '#22c55e',
-            border: 'rgba(255,255,255,0.06)'
-        },
-        ocean: {
-            name: 'Ocean',
-            background: '#0a1628',
-            surface: '#162a40',
-            card: 'rgba(255,255,255,0.04)',
-            text: '#e2e8f0',
-            textMuted: '#94a3b8',
-            primary: '#38bdf8',
-            border: 'rgba(255,255,255,0.06)'
-        }
-    },
-
-    // ============================================================
-    // PUBLIC API
-    // ============================================================
-
-    /**
-     * celebrate(type, options)
-     * 
-     * Triggers a celebration effect.
-     * 
-     * @param {string} type - 'lesson_complete' | 'streak_milestone' | 'achievement' | 'level_up'
-     * @param {Object} options - Additional options
-     */
-    celebrate: function(type, options) {
-        options = options || {};
+    // ===========================================
+    // 生成练习
+    // ===========================================
+    function generatePractice(lessonId, type) {
+        type = type || 'mini_exercise';
+        var lesson = null;
         
-        if (!this._settings.celebrations) return;
-
-        var effects = {
-            'lesson_complete': {
-                emojis: ['🎉', '⭐', '🌟', '✨', '🎊', '💪'],
-                count: 20,
-                duration: 2500
-            },
-            'streak_milestone': {
-                emojis: ['🔥', '💪', '🏆', '⭐', '🌟'],
-                count: 15,
-                duration: 2000
-            },
-            'achievement': {
-                emojis: ['🏆', '🎖️', '⭐', '🌟', '👑'],
-                count: 12,
-                duration: 2000
-            },
-            'level_up': {
-                emojis: ['⬆️', '⭐', '🌟', '🎉', '💪'],
-                count: 18,
-                duration: 2500
-            }
-        };
-
-        var effect = effects[type] || effects['achievement'];
-        var emojis = options.emojis || effect.emojis;
-        var count = options.count || effect.count;
-        var duration = options.duration || effect.duration;
-
-        this._createFloatingEmojis(emojis, count, duration);
-        
-        // 触发事件
-        LawAIApp.EventBus?.emit?.('CelebrationTriggered', { type: type, options: options });
-    },
-
-    /**
-     * showXPGain(amount, element)
-     * 
-     * Shows XP gain animation on an element.
-     * 
-     * @param {number} amount - XP amount to show
-     * @param {HTMLElement} element - Element to animate on
-     */
-    showXPGain: function(amount, element) {
-        if (!element) return;
-
-        var xpEl = document.createElement('div');
-        xpEl.style.cssText = `
-            position: absolute;
-            color: #fbbf24;
-            font-size: 18px;
-            font-weight: 700;
-            pointer-events: none;
-            z-index: 1000;
-            opacity: 1;
-            transition: all 1.5s ease-out;
-        `;
-        xpEl.textContent = '+' + amount + ' XP';
-
-        var rect = element.getBoundingClientRect();
-        xpEl.style.left = (rect.left + rect.width / 2 - 30) + 'px';
-        xpEl.style.top = (rect.top - 10) + 'px';
-
-        document.body.appendChild(xpEl);
-
-        requestAnimationFrame(function() {
-            xpEl.style.transform = 'translateY(-80px) scale(1.3)';
-            xpEl.style.opacity = '0';
-        });
-
-        setTimeout(function() {
-            if (xpEl.parentNode) xpEl.parentNode.removeChild(xpEl);
-        }, 2000);
-    },
-
-    /**
-     * setTheme(themeName)
-     * 
-     * Sets the current theme.
-     * 
-     * @param {string} themeName - 'dark' | 'light' | 'midnight' | 'forest' | 'ocean'
-     */
-    setTheme: function(themeName) {
-        var theme = this._themes[themeName];
-        if (!theme) {
-            console.warn('⚠️ Theme not found:', themeName);
-            return;
-        }
-
-        this._settings.theme = themeName;
-        this._applyTheme(theme);
-        this._saveSettings();
-
-        LawAIApp.EventBus?.emit?.('ThemeChanged', { theme: themeName });
-        console.log('🎨 Theme set to:', themeName);
-    },
-
-    /**
-     * getTheme()
-     * 
-     * @returns {string} Current theme name
-     */
-    getTheme: function() {
-        return this._settings.theme;
-    },
-
-    /**
-     * toggleFocusMode()
-     * 
-     * Toggles focus mode on/off.
-     */
-    toggleFocusMode: function() {
-        this._settings.focusMode = !this._settings.focusMode;
-        this._applyFocusMode(this._settings.focusMode);
-        this._saveSettings();
-
-        LawAIApp.EventBus?.emit?.('FocusModeToggled', { enabled: this._settings.focusMode });
-        
-        if (LawAIApp.Toast && typeof LawAIApp.Toast.info === 'function') {
-            LawAIApp.Toast.info(this._settings.focusMode ? '🧘 Focus Mode enabled' : 'Focus Mode disabled');
-        }
-    },
-
-    /**
-     * isFocusMode()
-     * 
-     * @returns {boolean} Whether focus mode is enabled
-     */
-    isFocusMode: function() {
-        return this._settings.focusMode;
-    },
-
-    /**
-     * getDailyGreeting(progress)
-     * 
-     * Gets a daily greeting based on time and progress.
-     * 
-     * @param {Object} progress - Progress object
-     * @returns {string} Personalized greeting
-     */
-    getDailyGreeting: function(progress) {
-        var hour = new Date().getHours();
-        var timeGreeting = hour < 12 ? '🌅 Good morning' : hour < 17 ? '☀️ Good afternoon' : '🌇 Good evening';
-
-        var completed = progress?.completedLessons?.length || 0;
-        var streak = progress?.streak || 0;
-
-        var name = 'Learner';
-
-        if (completed >= 365) {
-            return timeGreeting + ', ' + name + '! 🏆 You are a true master!';
-        }
-        if (streak >= 30) {
-            return timeGreeting + ', ' + name + '! 🔥 ' + streak + ' days! You\'re unstoppable!';
-        }
-        if (streak >= 7) {
-            return timeGreeting + ', ' + name + '! 💪 ' + streak + ' days streak! Keep going!';
-        }
-        if (completed >= 10) {
-            return timeGreeting + ', ' + name + '! 🌟 You\'ve completed ' + completed + ' lessons!';
-        }
-        if (completed > 0) {
-            return timeGreeting + ', ' + name + '! 📖 Ready for your next lesson?';
-        }
-        return timeGreeting + ', ' + name + '! 🚀 Ready to start your AI journey?';
-    },
-
-    /**
-     * showAchievement(name, icon)
-     * 
-     * Shows an achievement unlock notification.
-     * 
-     * @param {string} name - Achievement name
-     * @param {string} icon - Achievement icon
-     */
-    showAchievement: function(name, icon) {
-        if (!this._settings.celebrations) return;
-
-        var container = document.createElement('div');
-        container.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(20,20,40,0.95);
-            border: 1px solid rgba(74,158,255,0.2);
-            border-radius: 12px;
-            padding: 16px 24px;
-            color: #e2e8f0;
-            font-family: 'Inter', sans-serif;
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transform: translateX(120%);
-            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            max-width: 400px;
-        `;
-        container.innerHTML = `
-            <div style="font-size: 32px;">${icon || '🏆'}</div>
-            <div>
-                <div style="font-size: 12px; color: #94a3b8;">Achievement Unlocked!</div>
-                <div style="font-size: 16px; font-weight: 600;">${name}</div>
-            </div>
-        `;
-
-        document.body.appendChild(container);
-
-        // 进入动画
-        requestAnimationFrame(function() {
-            container.style.transform = 'translateX(0)';
-        });
-
-        // 3秒后淡出
-        setTimeout(function() {
-            container.style.transform = 'translateX(120%)';
-            setTimeout(function() {
-                if (container.parentNode) container.parentNode.removeChild(container);
-            }, 500);
-        }, 3500);
-
-        LawAIApp.EventBus?.emit?.('AchievementUnlocked', { name: name, icon: icon });
-    },
-
-    /**
-     * animateProgress(element, from, to)
-     * 
-     * Animates a progress bar from one value to another.
-     * 
-     * @param {HTMLElement} element - Progress bar element
-     * @param {number} from - Starting value (0-100)
-     * @param {number} to - Ending value (0-100)
-     */
-    animateProgress: function(element, from, to) {
-        if (!element) return;
-
-        from = from || 0;
-        to = to || 0;
-        var duration = 800;
-        var startTime = Date.now();
-
-        function update() {
-            var elapsed = Date.now() - startTime;
-            var progress = Math.min(elapsed / duration, 1);
-            var value = from + (to - from) * progress;
-            element.style.width = Math.round(value) + '%';
-            
-            if (progress < 1) {
-                requestAnimationFrame(update);
-            }
-        }
-
-        requestAnimationFrame(update);
-    },
-
-    // ============================================================
-    // ENGINE STATUS
-    // ============================================================
-    getStatus: function() {
-        return {
-            name: this._engineName,
-            version: this._engineVersion,
-            recoveryStatus: this._recoveryStatus,
-            layer: this._layer,
-            domain: this._domain,
-            currentTheme: this._settings.theme,
-            availableThemes: Object.keys(this._themes),
-            focusMode: this._settings.focusMode,
-            animations: this._settings.animations,
-            celebrations: this._settings.celebrations,
-            storageAvailable: !!(LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.get === 'function'),
-            eventBusAvailable: !!(LawAIApp.EventBus && typeof LawAIApp.EventBus.emit === 'function')
-        };
-    },
-
-    // ============================================================
-    // PRIVATE IMPLEMENTATION
-    // ============================================================
-
-    _createFloatingEmojis: function(emojis, count, duration) {
-        for (var i = 0; i < count; i++) {
-            var el = document.createElement('div');
-            var emoji = emojis[Math.floor(Math.random() * emojis.length)];
-            var size = 20 + Math.random() * 30;
-            var left = 10 + Math.random() * 80;
-            var delay = Math.random() * 0.5;
-
-            el.textContent = emoji;
-            el.style.cssText = `
-                position: fixed;
-                font-size: ${size}px;
-                left: ${left}%;
-                top: ${30 + Math.random() * 40}%;
-                pointer-events: none;
-                z-index: 9999;
-                opacity: 1;
-                transition: all ${duration / 1000}s ease-out;
-                transition-delay: ${delay}s;
-                transform: translateY(0) rotate(0deg) scale(1);
-            `;
-
-            document.body.appendChild(el);
-
-            setTimeout(function(elem) {
-                elem.style.transform = `translateY(-${150 + Math.random() * 150}px) rotate(${Math.random() * 360}deg) scale(1.5)`;
-                elem.style.opacity = '0';
-            }, delay * 1000, el);
-
-            setTimeout(function(elem) {
-                if (elem.parentNode) elem.parentNode.removeChild(elem);
-            }, duration + 500 + delay * 1000, el);
-        }
-    },
-
-    _applyTheme: function(theme) {
-        var root = document.documentElement;
-        root.style.setProperty('--bg-color', theme.background);
-        root.style.setProperty('--surface-color', theme.surface);
-        root.style.setProperty('--card-color', theme.card);
-        root.style.setProperty('--text-color', theme.text);
-        root.style.setProperty('--text-muted', theme.textMuted);
-        root.style.setProperty('--primary-color', theme.primary);
-        root.style.setProperty('--border-color', theme.border);
-    },
-
-    _applyFocusMode: function(enabled) {
-        var root = document.getElementById('law-runtime-root') || document.body;
-        if (enabled) {
-            root.classList.add('focus-mode');
-            // 隐藏非核心元素
-            var nav = document.querySelector('.bottom-nav');
-            if (nav) nav.style.display = 'none';
-        } else {
-            root.classList.remove('focus-mode');
-            var nav = document.querySelector('.bottom-nav');
-            if (nav) nav.style.display = '';
-        }
-    },
-
-    _saveSettings: function() {
         try {
-            if (LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.set === 'function') {
-                LawAIApp.StorageEngine.set('experience_settings', this._settings);
-            }
-        } catch (e) {}
-    },
-
-    _loadSettings: function() {
-        try {
-            if (LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.get === 'function') {
-                var saved = LawAIApp.StorageEngine.get('experience_settings');
-                if (saved) {
-                    this._settings = { ...this._settings, ...saved };
-                    // 应用主题
-                    this._applyTheme(this._themes[this._settings.theme] || this._themes.dark);
-                    if (this._settings.focusMode) {
-                        this._applyFocusMode(true);
-                    }
+            if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
+                var day = parseInt(lessonId.replace('day-', ''));
+                if (!isNaN(day)) {
+                    lesson = LawAIApp.LessonEngine.getLessonByDay(day);
                 }
             }
         } catch (e) {}
+
+        var title = lesson?.title || lessonId || 'Lesson';
+        var category = lesson?.category || 'General';
+
+        var practiceTypes = {
+            'mini_exercise': 'Practice: Summarize the key point of "' + title + '" in one sentence.',
+            'scenario_challenge': 'Challenge: How would you apply ' + category + ' in a real project?',
+            'real_world_task': 'Task: Use ' + category + ' to solve a problem you encounter daily.',
+            'case_study': 'Case Study: Analyze a business problem using ' + category + '.',
+            'multiple_choice': 'What is the main concept of "' + title + '"?',
+            'fill_blank': 'Complete the sentence: ' + category + ' is important because _______.'
+        };
+
+        var description = practiceTypes[type] || practiceTypes['mini_exercise'];
+        var isMultipleChoice = (type === 'multiple_choice');
+
+        return {
+            practiceId: 'practice_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            lessonId: lessonId,
+            type: type,
+            difficulty: 'medium',
+            description: description,
+            options: isMultipleChoice ? [
+                'Option A: Correct explanation of ' + category,
+                'Option B: Incorrect explanation',
+                'Option C: Partially correct explanation',
+                'Option D: Completely unrelated explanation'
+            ] : null,
+            correctIndex: isMultipleChoice ? 0 : null,
+            answer: null,
+            relatedLessons: [lessonId],
+            createdAt: new Date().toISOString()
+        };
     }
-};
 
-// ============================================================
-// AUTO-INIT
-// ============================================================
-setTimeout(function() {
-    LawAIApp.ExperienceEngine._loadSettings();
-    console.log('✨ ExperienceEngine initialized, theme:', LawAIApp.ExperienceEngine.getTheme());
-}, 200);
+    // ===========================================
+    // 开始练习
+    // ===========================================
+    function startPractice(lessonId, type) {
+        var practice = generatePractice(lessonId, type);
+        if (practice) {
+            LawAIApp.EventBus?.emit?.('PracticeStarted', { practice: practice });
+        }
+        return practice;
+    }
 
-console.log('✨ ExperienceEngine V1.0 ready');
+    // ===========================================
+    // 完成练习
+    // ===========================================
+    function completePractice(practice, userAnswer) {
+        if (!practice) return null;
+        
+        var isCorrect = false;
+        var feedback = 'Practice recorded.';
+
+        if (practice.type === 'multiple_choice' && practice.correctIndex !== null) {
+            isCorrect = (userAnswer === practice.correctIndex || 
+                        parseInt(userAnswer) === practice.correctIndex);
+            feedback = isCorrect ? '✅ Correct! Great job!' : '❌ Not quite. Review the lesson and try again.';
+        } else if (userAnswer && userAnswer.length > 5) {
+            isCorrect = true;
+            feedback = '✅ Good effort! Your answer has been recorded.';
+        } else {
+            feedback = '📝 Practice recorded. Try to provide more detail next time.';
+        }
+
+        // 保存历史
+        var record = {
+            lessonId: practice.lessonId,
+            practiceId: practice.practiceId,
+            type: practice.type,
+            difficulty: practice.difficulty,
+            correct: isCorrect,
+            userAnswer: userAnswer,
+            feedback: feedback,
+            completedAt: new Date().toISOString()
+        };
+        _history.push(record);
+        
+        // 保存到存储
+        try {
+            var stored = LawAIApp.StorageEngine?.get?.('practice_history') || [];
+            stored.push(record);
+            LawAIApp.StorageEngine?.set?.('practice_history', stored);
+        } catch (e) {}
+
+        // 更新技能掌握度
+        try {
+            var skillName = 'General';
+            if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
+                var day = parseInt(practice.lessonId.replace('day-', ''));
+                if (!isNaN(day)) {
+                    var lesson = LawAIApp.LessonEngine.getLessonByDay(day);
+                    if (lesson && lesson.category) skillName = lesson.category;
+                }
+            }
+            // 更新 MasteryEngine（如果存在）
+            if (LawAIApp.MasteryEngine && typeof LawAIApp.MasteryEngine.updateSkill === 'function') {
+                var progressGain = isCorrect ? 10 : 3;
+                var confidenceGain = isCorrect ? 15 : 5;
+                LawAIApp.MasteryEngine.updateSkill(skillName, progressGain, confidenceGain);
+            }
+        } catch (e) {}
+
+        LawAIApp.EventBus?.emit?.('PracticeCompleted', { practice: practice, feedback: feedback, correct: isCorrect });
+        return { correct: isCorrect, feedback: feedback };
+    }
+
+    // ===========================================
+    // 获取推荐
+    // ===========================================
+    function getRecommendedType(lessonId) {
+        try {
+            var history = getHistoryByLesson(lessonId);
+            if (history.length === 0) return 'mini_exercise';
+            var lastCorrect = history[history.length - 1].correct;
+            return lastCorrect ? 'scenario_challenge' : 'mini_exercise';
+        } catch (e) {
+            return 'mini_exercise';
+        }
+    }
+
+    function getHistoryByLesson(lessonId) {
+        try {
+            var stored = LawAIApp.StorageEngine?.get?.('practice_history') || [];
+            return stored.filter(function(r) { return r.lessonId === lessonId; });
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function getRecent(limit) {
+        limit = limit || 10;
+        try {
+            var stored = LawAIApp.StorageEngine?.get?.('practice_history') || [];
+            return stored.slice(-limit).reverse();
+        } catch (e) {
+            return _history.slice(-limit).reverse();
+        }
+    }
+
+    function getAllHistory() {
+        try {
+            return LawAIApp.StorageEngine?.get?.('practice_history') || _history;
+        } catch (e) {
+            return _history;
+        }
+    }
+
+    // ===========================================
+    // 交互式练习
+    // ===========================================
+    function generateInteractivePractice(lessonTitle, type) {
+        type = type || 'multiple_choice';
+        return {
+            type: type,
+            question: 'What is the main concept of "' + lessonTitle + '"?',
+            options: type === 'multiple_choice' ? [
+                'Option A: Correct answer',
+                'Option B: Incorrect answer',
+                'Option C: Incorrect answer',
+                'Option D: Incorrect answer'
+            ] : null,
+            correctIndex: 0,
+            explanation: 'This is the correct answer because it aligns with the core concept.'
+        };
+    }
+
+    function checkAnswer(practice, selectedIndex) {
+        if (!practice) return { isCorrect: false, explanation: 'Invalid practice' };
+        var isCorrect = selectedIndex === practice.correctIndex;
+        return {
+            isCorrect: isCorrect,
+            explanation: practice.explanation || (isCorrect ? 'Great job!' : 'Not quite. Review the lesson and try again.'),
+            feedback: isCorrect ? '✅ Correct!' : '❌ Not quite right.'
+        };
+    }
+
+    // ===========================================
+    // 掌握度
+    // ===========================================
+    function getMastery() {
+        var history = getAllHistory();
+        var mastery = {};
+        history.forEach(function(r) {
+            var key = r.lessonId || 'general';
+            if (!mastery[key]) mastery[key] = { correct: 0, total: 0 };
+            mastery[key].total++;
+            if (r.correct) mastery[key].correct++;
+        });
+        return mastery;
+    }
+
+    // ===========================================
+    // ENGINE STATUS
+    // ===========================================
+    function getStatus() {
+        var history = getAllHistory();
+        var totalPractices = history.length;
+        var correctPractices = 0;
+        history.forEach(function(r) {
+            if (r.correct) correctPractices++;
+        });
+        return {
+            name: _engineName,
+            version: _engineVersion,
+            recoveryStatus: _recoveryStatus,
+            layer: _layer,
+            domain: _domain,
+            initialized: _initialized,
+            totalPractices: totalPractices,
+            correctPractices: correctPractices,
+            accuracy: totalPractices > 0 ? Math.round((correctPractices / totalPractices) * 100) : 0,
+            storageAvailable: !!(LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.get === 'function'),
+            eventBusAvailable: !!(LawAIApp.EventBus && typeof LawAIApp.EventBus.emit === 'function')
+        };
+    }
+
+    // ===========================================
+    // 初始化
+    // ===========================================
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
+        console.log('✏️ PracticeEngine initialized');
+    }
+
+    setTimeout(init, 300);
+
+    return {
+        init: init,
+        startPractice: startPractice,
+        completePractice: completePractice,
+        getRecommendedType: getRecommendedType,
+        getMastery: getMastery,
+        getRecent: getRecent,
+        getHistory: getAllHistory,
+        getHistoryByLesson: getHistoryByLesson,
+        generateInteractivePractice: generateInteractivePractice,
+        checkAnswer: checkAnswer,
+        getStatus: getStatus
+    };
+})();
+
+console.log('✏️ PracticeEngine V2.0 ready');
