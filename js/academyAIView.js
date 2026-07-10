@@ -1,7 +1,7 @@
 // ===========================================
 // academyAIView.js
 // AI 基础学院 - 学院仪表盘（Season 1 体验恢复版）
-// V4.0 - Progressive Rendering | Visual Hierarchy | Campus Feel
+// V4.1 - 移除自动渲染，由 academy.html 控制
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -19,14 +19,15 @@ LawAIApp.Views.AcademyAIView = {
             return;
         }
 
+        // 🔥 如果已经渲染过，强制重新渲染（修复重复调用导致空白的问题）
         if (this._rendered) {
-            console.log('🔄 Academy already rendered, refreshing...');
-            this._refresh(app);
-            return;
+            console.log('🔄 Academy already rendered, forcing re-render...');
+            this._rendered = false;
+            this._deferredRendered = false;
         }
 
         this._rendered = true;
-        console.log('🏛️ AcademyAIView V4.0 rendering (progressive)...');
+        console.log('🏛️ AcademyAIView V4.1 rendering (progressive)...');
 
         // ============================================================
         // 1. 获取数据（所有引擎继续运行）
@@ -599,17 +600,7 @@ LawAIApp.Views.AcademyAIView = {
 };
 
 // ============================================================
-// 自动渲染
+// 🔥 移除自动渲染逻辑（由 academy.html 控制渲染时机）
 // ============================================================
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    setTimeout(function() {
-        if (LawAIApp.Views?.AcademyAIView) {
-            var container = document.getElementById('academy-content') || document.getElementById('app');
-            if (container && container.innerHTML.trim() === '') {
-                LawAIApp.Views.AcademyAIView.render(container);
-            }
-        }
-    }, 300);
-}
-
-console.log('🏛️ AcademyAIView V4.0 ready (Experience Restoration)');
+// 保留 console.log 让开发者知道引擎已加载
+console.log('🏛️ AcademyAIView V4.1 ready (rendering controlled by academy.html)');
