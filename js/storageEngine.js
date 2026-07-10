@@ -3,14 +3,15 @@
 // LAYER: Infrastructure Layer
 // DOMAIN: Persistent Storage Abstraction
 // RECOVERY STATUS: 🟢 Canon Locked
-// VERSION: 1.0.0
+// VERSION: 2.0.0
 // ================================================================
 //
 // PURPOSE
 // ================================================================
 //   Provides a unified abstraction layer for persistent storage.
-//   Currently uses localStorage, but designed for future migration
-//   to Supabase, IndexedDB, or cloud storage without changing API.
+//   Supports schema versioning, data migration, import/export,
+//   and backup/restore functionality.
+//   Currently uses localStorage, designed for future cloud migration.
 //
 // PUBLIC API
 // ================================================================
@@ -18,31 +19,34 @@
 //   set(key, value)                 -> boolean
 //   remove(key)                     -> void
 //   getAllKeys()                    -> array
+//   getWithSchema(key)              -> { data, schemaVersion }
+//   setWithSchema(key, data, version) -> boolean
+//   migrate(key, migrationFn)       -> boolean
+//   exportAll()                     -> string (JSON)
+//   importAll(jsonString)           -> boolean
+//   createBackup()                  -> string (JSON)
+//   restoreBackup(jsonString)       -> boolean
 //   getStatus()                     -> Status object
 //
 // DEPENDENCIES
 // ================================================================
 //   - None (standalone engine)
-//   - Uses browser localStorage as backend
-//   - Future backends can be swapped without API changes
 //
 // STORAGE
 // ================================================================
 //   - Prefix: 'lawai_'
-//   - All keys are prefixed to avoid collisions
-//   - Values are JSON-stringified
-//   - Example: 'lawai_progress' -> '{"completedLessons":[...]}'
+//   - Schema version tracking: 'lawai_meta_schema_versions'
 //
 // EVENTS
 // ================================================================
-//   - None (passive engine, no events emitted)
+//   - None (passive engine)
 //
 // FUTURE COMPATIBILITY
 // ================================================================
-//   - New backends can be added without changing public API
-//   - get() and set() signatures must remain stable
-//   - getAllKeys() must always return an array
-//   - Migration path: implement adapters for IndexedDB, Supabase
+//   - Support IndexedDB adapter
+//   - Support Supabase adapter
+//   - Cloud sync capabilities
+//   - Offline-first architecture
 //
 // ================================================================
 
@@ -53,21 +57,65 @@ LawAIApp.StorageEngine = {
     // ENGINE METADATA
     // ============================================================
     _engineName: 'StorageEngine',
-    _engineVersion: '1.0.0',
+    _engineVersion: '2.0.0',
     _recoveryStatus: '🟢 Canon Locked',
     _layer: 'Infrastructure Layer',
     _domain: 'Persistent Storage Abstraction',
 
     prefix: 'lawai_',
+    _schemaVersions: {},
+    _initialized: false,
 
     // ============================================================
-    // PUBLIC API
+    // INIT
+    // ============================================================
+    init: function() {
+        if (this._initialized) return;
+        this._initialized = true;
+        this._loadSchemaVersions();
+        console.log('💾 StorageEngine v' + this._engineVersion + ' initialized');
+        return this;
+    },
+
+    // ============================================================
+    // SCHEMA VERSION MANAGEMENT
+    // ============================================================
+    _getVersionKey: function() {
+        return this.prefix + 'meta_schema_versions';
+    },
+
+    _loadSchemaVersions: function() {
+        try {
+            var raw = localStorage.getItem(this._getVersionKey());
+            this._schemaVersions = raw ? JSON.parse(raw) : {};
+        } catch (e) {
+            this._schemaVersions = {};
+        }
+    },
+
+    _saveSchemaVersions: function() {
+        try {
+            localStorage.setItem(this._getVersionKey(), JSON.stringify(this._schemaVersions));
+        } catch (e) {}
+    },
+
+    getSchemaVersion: function(key) {
+        return this._schemaVersions[key] || null;
+    },
+
+    setSchemaVersion: function(key, version) {
+        this._schemaVersions[key] = version;
+        this._saveSchemaVersions();
+    },
+
+    // ============================================================
+    // CORE API
     // ============================================================
 
     get: function(key, defaultValue) {
         if (defaultValue === undefined) defaultValue = null;
         try {
-            const raw = localStorage.getItem(this.prefix + key);
+            var raw = localStorage.getItem(this.prefix + key);
             return raw !== null ? JSON.parse(raw) : defaultValue;
         } catch {
             return defaultValue;
@@ -87,7 +135,6 @@ LawAIApp.StorageEngine = {
         localStorage.removeItem(this.prefix + key);
     },
 
-    // 批量获取所有以某个前缀开头的键（用于收藏等）
     getAllKeys: function() {
         return Object.keys(localStorage)
             .filter(k => k.startsWith(this.prefix))
@@ -95,10 +142,138 @@ LawAIApp.StorageEngine = {
     },
 
     // ============================================================
-    // ENGINE STATUS
+    // SCHEMA-AWARE API
     // ============================================================
+
+    getWithSchema: function(key) {
+        var data = this.get(key, null);
+        var version = this.getSchemaVersion(key);
+        return {
+            data: data,
+            schemaVersion: version,
+            exists: data !== null
+        };
+    },
+
+    setWithSchema: function(key, data, version) {
+        var result = this.set(key, data);
+        if (result && version !== undefined) {
+            this.setSchemaVersion(key, version);
+        }
+        return result;
+    },
+
+    // ============================================================
+    // MIGRATION
+    // ============================================================
+
+    migrate: function(key, migrationFn) {
+        var current = this.getWithSchema(key);
+        if (!current.exists) {
+            console.warn('⚠️ No data found for migration:', key);
+            return false;
+        }
+
+        try {
+            var migrated = migrationFn(current.data, current.schemaVersion);
+            var newVersion = current.schemaVersion + 1;
+            this.setWithSchema(key, migrated, newVersion);
+            console.log('✅ Migration complete for', key, 'v' + current.schemaVersion + ' → v' + newVersion);
+            return true;
+        } catch (err) {
+            console.error('❌ Migration failed for', key, err);
+            return false;
+        }
+    },
+
+    // ============================================================
+    // BACKUP & RESTORE
+    // ============================================================
+
+    exportAll: function() {
+        var allData = {};
+        var keys = this.getAllKeys();
+        for (var i = 0; i < keys.length; i++) {
+            var key = keys[i];
+            if (key === 'meta_schema_versions') continue;
+            allData[key] = {
+                data: this.get(key, null),
+                schemaVersion: this.getSchemaVersion(key)
+            };
+        }
+
+        // Include schema versions
+        allData['_meta_schema_versions'] = {
+            data: this._schemaVersions,
+            schemaVersion: 1
+        };
+
+        return JSON.stringify({
+            exportedAt: new Date().toISOString(),
+            version: this._engineVersion,
+            data: allData
+        }, null, 2);
+    },
+
+    importAll: function(jsonString) {
+        try {
+            var backup = JSON.parse(jsonString);
+            if (!backup.data) {
+                console.error('❌ Invalid backup format');
+                return false;
+            }
+
+            var count = 0;
+            for (var key in backup.data) {
+                if (key === '_meta_schema_versions') {
+                    this._schemaVersions = backup.data[key].data || {};
+                    this._saveSchemaVersions();
+                    count++;
+                    continue;
+                }
+                var entry = backup.data[key];
+                if (entry.data !== undefined) {
+                    this.set(key, entry.data);
+                    if (entry.schemaVersion !== undefined) {
+                        this.setSchemaVersion(key, entry.schemaVersion);
+                    }
+                    count++;
+                }
+            }
+
+            console.log('✅ Imported ' + count + ' keys from backup');
+            return true;
+        } catch (err) {
+            console.error('❌ Import failed:', err);
+            return false;
+        }
+    },
+
+    createBackup: function() {
+        var backup = this.exportAll();
+        // Also save to localStorage as a backup snapshot
+        try {
+            localStorage.setItem(this.prefix + 'backup_latest', backup);
+        } catch (e) {}
+        return backup;
+    },
+
+    restoreBackup: function(jsonString) {
+        return this.importAll(jsonString);
+    },
+
+    // ============================================================
+    // STATUS
+    // ============================================================
+
     getStatus: function() {
         var keys = this.getAllKeys();
+        var totalKeys = keys.length;
+        var versionedKeys = 0;
+        for (var i = 0; i < keys.length; i++) {
+            if (this.getSchemaVersion(keys[i]) !== null) versionedKeys++;
+        }
+
         return {
             name: this._engineName,
             version: this._engineVersion,
@@ -106,9 +281,20 @@ LawAIApp.StorageEngine = {
             layer: this._layer,
             domain: this._domain,
             prefix: this.prefix,
-            totalKeys: keys.length,
-            keys: keys.slice(0, 10), // Limit to 10 for readability
-            localStorageAvailable: typeof localStorage !== 'undefined'
+            totalKeys: totalKeys,
+            versionedKeys: versionedKeys,
+            keys: keys.slice(0, 10),
+            localStorageAvailable: typeof localStorage !== 'undefined',
+            initialized: this._initialized
         };
     }
 };
+
+// Auto-init
+setTimeout(function() {
+    if (LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.init === 'function') {
+        LawAIApp.StorageEngine.init();
+    }
+}, 50);
+
+console.log('💾 StorageEngine V2.0 ready');
