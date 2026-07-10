@@ -1,5 +1,5 @@
 // ================================================================
-// app.js – Runtime V5.1.0 Runtime Recovery + Profiler (Phase P.1)
+// app.js – Runtime V5.1.1 - Runtime Recovery + Profiler + Dependency (Phase P.2)
 // 渲染优先：立即显示 Dashboard，不等待任何引擎初始化完成
 // ================================================================
 
@@ -7,10 +7,10 @@ window.LawAIApp = window.LawAIApp || {};
 
 window.App = {
 
-    version: "5.1.0",
+    version: "5.1.1",
 
     // ============================================================
-    // 1. Runtime State（集中管理，不重复）
+    // 1. Runtime State
     // ============================================================
     _state: {
         initialized: false,
@@ -24,10 +24,9 @@ window.App = {
         maxRetries: 3,
         errors: [],
         bootTimeline: [],
-        version: "5.1.0"
+        version: "5.1.1"
     },
 
-    // 兼容旧属性
     get initialized() { return this._state.initialized; },
     set initialized(val) { this._state.initialized = val; },
 
@@ -56,9 +55,6 @@ window.App = {
     // 2. Runtime Lifecycle
     // ============================================================
 
-    /**
-     * INIT — 立即渲染，不等待任何引擎
-     */
     init: function(payload) {
         if (this._state.destroyed) {
             console.warn('⚠️ App destroyed, cannot init');
@@ -82,27 +78,21 @@ window.App = {
 
         this._boot = payload?.boot || window.LawAIApp.bootStatus || {};
 
-        // 1. 立即挂载 Root
         this.mountRoot();
-
-        // 2. 立即尝试渲染（不等待 composer）
         this._renderImmediately();
-
-        // 3. 设置 composer 监听（用于后续更新）
         this._setupComposerListener();
 
         this._state.bootTimeline.push({ event: 'init_complete', time: Date.now() });
         this._emit('APP_INITIALIZED', { version: this.version });
 
-        // 🔥 Profiler: 注册 App 引擎
+        // 🔥 Profiler + Dependency
         if (LawAIApp.DevTools?.RuntimeProfiler) {
             LawAIApp.DevTools.RuntimeProfiler.registerEngine('App');
+            LawAIApp.DevTools.RuntimeProfiler._currentCaller = 'App';
+            LawAIApp.DevTools.RuntimeProfiler.addDependency('App', 'SystemComposer');
         }
     },
 
-    /**
-     * 立即渲染 Dashboard（不等待任何引擎）
-     */
     _renderImmediately: function() {
         if (this._renderAttempted) return;
         this._renderAttempted = true;
@@ -115,12 +105,10 @@ window.App = {
 
         console.log("⚡ Rendering immediately (no waiting)...");
 
-        // 🔥 Profiler: 记录 Dashboard 渲染
         if (LawAIApp.DevTools?.RuntimeProfiler) {
             LawAIApp.DevTools.RuntimeProfiler.recordRender('dashboard');
         }
 
-        // 检查 SystemComposer 是否已加载
         var composer = window.LawAIApp?.SystemComposer;
 
         if (composer && typeof composer.init === 'function') {
@@ -141,9 +129,6 @@ window.App = {
         this._showMinimalSkeleton(root);
     },
 
-    /**
-     * 极简骨架（完全不依赖任何引擎）
-     */
     _showMinimalSkeleton: function(root) {
         if (!root) return;
         if (root.innerHTML.trim() !== '') return;
@@ -186,9 +171,6 @@ window.App = {
         }.bind(this), 1000);
     },
 
-    /**
-     * DESTROY
-     */
     destroy: function() {
         if (this._state.destroyed) return;
 
@@ -300,7 +282,6 @@ window.App = {
         console.log("🔄 Recovery started");
         this._state.retries = 0;
         this._state.errors = [];
-
         this._state.mounted = false;
 
         if (window.LawAIApp?.SystemComposer) {
@@ -517,10 +498,6 @@ window.addEventListener("RUNTIME_RESET", function() {
     console.log("🔄 RUNTIME_RESET");
     window.App.destroy();
 });
-
-// ============================================================
-// Auto-init
-// ============================================================
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
     setTimeout(function() {
