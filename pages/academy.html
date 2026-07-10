@@ -4,9 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🏛️ Academy | Law AI</title>
+    <!-- 绝对路径 CSS -->
     <link rel="stylesheet" href="/css/academy.css">
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/animation.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/learning.css">
+    <link rel="stylesheet" href="/css/responsive.css">
+    <link rel="stylesheet" href="/css/theme.css">
     <style>
         body { margin: 0; background: #0b1220; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; }
         #app { min-height: 100vh; max-width: 1200px; margin: 0 auto; }
@@ -19,7 +25,7 @@
     <div id="app"></div>
 
     <!-- ========================================================== -->
-    <!-- 手动加载核心 JS（绕过 loader）                             -->
+    <!-- 绝对路径加载 JS                                            -->
     <!-- ========================================================== -->
     <script src="/js/storageEngine.js"></script>
     <script src="/js/eventBus.js"></script>
@@ -38,7 +44,6 @@
                 var app = document.getElementById('app');
                 if (!app) return;
 
-                // 优先使用 Views.AcademyAIView
                 if (window.LawAIApp?.Views?.AcademyAIView && 
                     typeof window.LawAIApp.Views.AcademyAIView.render === 'function') {
                     app.innerHTML = '';
@@ -47,7 +52,6 @@
                     return;
                 }
 
-                // 其次使用顶层 AcademyAIView
                 if (window.LawAIApp?.AcademyAIView && 
                     typeof window.LawAIApp.AcademyAIView.render === 'function') {
                     app.innerHTML = '';
@@ -56,7 +60,6 @@
                     return;
                 }
 
-                // 未就绪：显示 loading
                 app.innerHTML = `
                     <div class="academy-loading">
                         <div class="spinner"></div>
@@ -67,18 +70,14 @@
                 setTimeout(renderAcademy, 500);
             }
 
-            // 等待系统就绪
             function waitForReady() {
                 if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                    // 检查是否已有 AcademyAIView
                     if (window.LawAIApp?.Views?.AcademyAIView || window.LawAIApp?.AcademyAIView) {
                         renderAcademy();
                     } else {
-                        // 监听 SYSTEM_READY
                         document.addEventListener('SYSTEM_READY', function() {
                             setTimeout(renderAcademy, 300);
                         });
-                        // 兜底：3秒后重试
                         setTimeout(renderAcademy, 3000);
                     }
                 } else {
