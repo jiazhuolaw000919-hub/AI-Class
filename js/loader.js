@@ -1,37 +1,51 @@
 // ================================================================
-// loader.js – V5.1.0 Runtime Recovery
-// 启动顺序：Critical 引擎立即加载，Background 引擎在渲染后加载
+// loader.js – V5.2.0 - Startup Pipeline (Phase 0.2)
+// 启动顺序：Stage 1 Critical → Stage 2 UX → Stage 3 Intelligence → Stage 4 Background
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
 
 // ============================================================
-// 🚀 关键引擎（必须优先加载，阻塞渲染）
+// 🚀 STAGE 1: CRITICAL — 立即加载，阻塞渲染（但非常轻量）
 // ============================================================
 var CRITICAL_ENGINES = [
     "storageEngine.js",      // 存储
     "eventBus.js",           // 事件通信
+    "themeEngine.js",        // 主题（立即应用）
     "systemComposer.js",     // UI 渲染
     "app.js"                 // 应用编排
 ];
 
 // ============================================================
-// 🔄 后台引擎（渲染后加载，不阻塞 UI）
+// 📊 STAGE 2: USER EXPERIENCE — 首屏渲染后加载
+// ============================================================
+var UX_ENGINES = [
+    "progressEngine.js",     // 进度数据
+    "experienceEngine.js",   // XP 和里程碑
+    "recommendationEngine.js" // 推荐
+];
+
+// ============================================================
+// 🧠 STAGE 3: INTELLIGENCE — 延迟加载
+// ============================================================
+var INTELLIGENCE_ENGINES = [
+    "lessonEngine.js",       // 课程数据
+    "memoryEngine.js",       // 复习调度
+    "practiceEngine.js",     // 练习引擎
+    "reflectionEngine.js",   // 反思引擎
+    "aimentorEngine.js",     // AI 导师
+    "schoolEngine.js"        // 多学院
+];
+
+// ============================================================
+// 🔄 STAGE 4: BACKGROUND — 空闲时加载
 // ============================================================
 var BACKGROUND_ENGINES = [
-    "profileEngine.js",
-    "progressEngine.js",
-    "lessonEngine.js",
-    "memoryEngine.js",
-    "practiceEngine.js",
-    "reflectionEngine.js",
-    "experienceEngine.js",
-    "schoolEngine.js",
-    "academicRecordEngine.js",
-    "certificateEngine.js",
-    "careerEngine.js",
-    "communityEngine.js",
-    "recommendationEngine.js"
+    "academicRecordEngine.js", // 学术记录
+    "certificateEngine.js",    // 证书
+    "careerEngine.js",         // 职业发展
+    "communityEngine.js",      // 社区
+    "executionEngine.js"       // 执行引擎（最后加载）
 ];
 
 // ============================================================
@@ -43,6 +57,12 @@ var _bootTimeline = [];
 var _health = { healthy: true, errors: [], warnings: [] };
 var _loadedModules = {};
 var _missingModules = [];
+var _stageStatus = {
+    critical: false,
+    ux: false,
+    intelligence: false,
+    background: false
+};
 
 // ============================================================
 // 获取当前脚本的目录路径
@@ -128,42 +148,103 @@ function tryLoadPaths(paths, index, resolve, src) {
 }
 
 // ============================================================
-// 🚀 启动关键引擎
+// 🚀 按阶段启动
 // ============================================================
-async function bootCritical() {
-    console.log("🚀 Loader V5.1.0 starting (Critical only)");
-    console.log("📂 Base path:", BASE_PATH);
-    console.log("📦 Loading " + CRITICAL_ENGINES.length + " critical modules...");
 
+// Stage 1: Critical — 立即加载
+async function loadStage1() {
+    console.log('🟢 Stage 1: Loading critical engines...');
     var startTime = Date.now();
-    _bootTimeline.push({ event: 'boot_start', time: startTime });
-
     var results = await Promise.all(CRITICAL_ENGINES.map(function(src) {
         return loadScript(src);
     }));
-
+    var elapsed = Date.now() - startTime;
     var loaded = results.filter(function(r) { return r.status === "ok" || r.status === "cached"; });
     var missing = results.filter(function(r) { return r.status === "missing"; });
+    console.log('✅ Stage 1 complete: ' + loaded.length + '/' + CRITICAL_ENGINES.length + ' loaded (' + elapsed + 'ms)');
+    _stageStatus.critical = true;
+    return results;
+}
 
-    var elapsed = Date.now() - startTime;
-    _bootTimeline.push({ event: 'critical_boot_complete', time: Date.now() });
+// Stage 2: UX — 延迟 100ms 后加载
+async function loadStage2() {
+    console.log('🟡 Stage 2: Loading UX engines...');
+    return new Promise(function(resolve) {
+        setTimeout(function() {
+            Promise.all(UX_ENGINES.map(function(src) {
+                return loadScript(src);
+            })).then(function(results) {
+                var loaded = results.filter(function(r) { return r.status === "ok" || r.status === "cached"; });
+                var missing = results.filter(function(r) { return r.status === "missing"; });
+                console.log('✅ Stage 2 complete: ' + loaded.length + '/' + UX_ENGINES.length + ' loaded');
+                _stageStatus.ux = true;
+                resolve(results);
+            });
+        }, 100);
+    });
+}
 
-    console.log("✅ " + loaded.length + "/" + CRITICAL_ENGINES.length + " critical modules loaded (" + elapsed + "ms)");
+// Stage 3: Intelligence — 延迟 500ms 后加载
+async function loadStage3() {
+    console.log('🔵 Stage 3: Loading Intelligence engines...');
+    return new Promise(function(resolve) {
+        setTimeout(function() {
+            Promise.all(INTELLIGENCE_ENGINES.map(function(src) {
+                return loadScript(src);
+            })).then(function(results) {
+                var loaded = results.filter(function(r) { return r.status === "ok" || r.status === "cached"; });
+                var missing = results.filter(function(r) { return r.status === "missing"; });
+                console.log('✅ Stage 3 complete: ' + loaded.length + '/' + INTELLIGENCE_ENGINES.length + ' loaded');
+                _stageStatus.intelligence = true;
+                resolve(results);
+            });
+        }, 500);
+    });
+}
 
+// Stage 4: Background — 延迟 1000ms 后加载
+async function loadStage4() {
+    console.log('🟣 Stage 4: Loading Background engines...');
+    return new Promise(function(resolve) {
+        setTimeout(function() {
+            Promise.all(BACKGROUND_ENGINES.map(function(src) {
+                return loadScript(src);
+            })).then(function(results) {
+                var loaded = results.filter(function(r) { return r.status === "ok" || r.status === "cached"; });
+                var missing = results.filter(function(r) { return r.status === "missing"; });
+                console.log('✅ Stage 4 complete: ' + loaded.length + '/' + BACKGROUND_ENGINES.length + ' loaded');
+                _stageStatus.background = true;
+                resolve(results);
+            });
+        }, 1000);
+    });
+}
+
+// ============================================================
+// 主启动
+// ============================================================
+async function boot() {
+    console.log("🚀 Loader V5.2.0 starting (Startup Pipeline)");
+    console.log("📂 Base path:", BASE_PATH);
+
+    _bootTimeline.push({ event: 'boot_start', time: Date.now() });
+
+    // Stage 1: Critical（立即执行）
+    await loadStage1();
+
+    // 触发 SYSTEM_READY（让 App 和 Router 知道可以渲染了）
     window.__ENGINE_STATUS__ = {
-        loaded: loaded.map(function(r) { return r.file; }),
-        missing: missing.map(function(r) { return r.file; }),
+        loaded: [],
+        missing: [],
         active: [],
         booted: true,
-        safeMode: missing.length > 0,
+        safeMode: false,
         timeline: _bootTimeline,
-        health: _health
+        health: _health,
+        stages: _stageStatus
     };
-
     window.LawAIApp.bootStatus = window.__ENGINE_STATUS__;
-    _health.healthy = missing.length === 0;
 
-    // 触发 SYSTEM_READY，让 App 开始渲染
     setTimeout(function() {
         window.dispatchEvent(new CustomEvent("SYSTEM_READY", {
             detail: {
@@ -171,44 +252,36 @@ async function bootCritical() {
                 timestamp: Date.now()
             }
         }));
-        console.log("✅ System ready for rendering (" + elapsed + "ms)");
+        console.log("✅ System ready for rendering");
     }, 50);
 
-    // ============================================================
-    // 🔄 后台加载其余引擎（不阻塞渲染）
-    // ============================================================
+    // Stage 2: UX（延迟 100ms）
     setTimeout(function() {
-        console.log("📦 Loading " + BACKGROUND_ENGINES.length + " background engines...");
-        Promise.all(BACKGROUND_ENGINES.map(function(src) {
-            return loadScript(src);
-        })).then(function(results) {
-            var bgLoaded = results.filter(function(r) { return r.status === "ok" || r.status === "cached"; });
-            var bgMissing = results.filter(function(r) { return r.status === "missing"; });
-            console.log("✅ " + bgLoaded.length + "/" + BACKGROUND_ENGINES.length + " background engines loaded");
-            if (bgMissing.length > 0) {
-                console.warn("⚠️ Background engines missing:", bgMissing.map(function(r) { return r.file; }));
-            }
-            window.__ENGINE_STATUS__.backgroundLoaded = bgLoaded.map(function(r) { return r.file; });
-            window.__ENGINE_STATUS__.backgroundMissing = bgMissing.map(function(r) { return r.file; });
-            window.dispatchEvent(new CustomEvent("BACKGROUND_LOADED", {
-                detail: {
-                    loaded: bgLoaded.map(function(r) { return r.file; }),
-                    missing: bgMissing.map(function(r) { return r.file; })
-                }
-            }));
-        });
-    }, 300);
+        loadStage2();
+    }, 100);
+
+    // Stage 3: Intelligence（延迟 500ms）
+    setTimeout(function() {
+        loadStage3();
+    }, 500);
+
+    // Stage 4: Background（延迟 1000ms）
+    setTimeout(function() {
+        loadStage4();
+    }, 1000);
+
+    console.log("🚀 Loader pipeline started");
 }
 
 // ============================================================
 // 自动启动
 // ============================================================
 if (document.readyState === "complete" || document.readyState === "interactive") {
-    setTimeout(bootCritical, 50);
+    setTimeout(boot, 50);
 } else {
     document.addEventListener("DOMContentLoaded", function() {
-        setTimeout(bootCritical, 50);
+        setTimeout(boot, 50);
     });
 }
 
-console.log("🚀 Loader V5.1.0 ready (Runtime Recovery)");
+console.log("🚀 Loader V5.2.0 ready (Startup Pipeline)");
