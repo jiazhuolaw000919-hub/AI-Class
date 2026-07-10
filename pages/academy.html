@@ -3,18 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Law AI Academy - Academy</title>
-    <!-- 用绝对路径加载 CSS -->
+    <title>🏛️ Academy | Law AI</title>
     <link rel="stylesheet" href="/css/academy.css">
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/components.css">
+    <style>
+        body { margin: 0; background: #0b1220; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; }
+        #app { min-height: 100vh; max-width: 1200px; margin: 0 auto; }
+        .academy-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; color: #94a3b8; text-align: center; }
+        .academy-loading .spinner { width: 40px; height: 40px; border: 3px solid rgba(74,158,255,0.15); border-top-color: #4a9eff; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
 </head>
 <body>
     <div id="app"></div>
 
-    <!-- ========================================== -->
-    <!-- 直接用绝对路径加载核心 JS（绕过 loader）   -->
-    <!-- ========================================== -->
+    <!-- ========================================================== -->
+    <!-- 手动加载核心 JS（绕过 loader）                             -->
+    <!-- ========================================================== -->
     <script src="/js/storageEngine.js"></script>
     <script src="/js/eventBus.js"></script>
     <script src="/js/profileEngine.js"></script>
@@ -25,37 +31,65 @@
     <script src="/js/router.js"></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('📄 Academy page loaded');
-            
-            // 等待 SystemComposer 就绪
+        (function() {
+            console.log('📄 Academy page loaded (V5.0)');
+
             function renderAcademy() {
                 var app = document.getElementById('app');
                 if (!app) return;
-                
-                if (window.LawAIApp?.Views?.AcademyAIView) {
+
+                // 优先使用 Views.AcademyAIView
+                if (window.LawAIApp?.Views?.AcademyAIView && 
+                    typeof window.LawAIApp.Views.AcademyAIView.render === 'function') {
                     app.innerHTML = '';
                     window.LawAIApp.Views.AcademyAIView.render(app);
-                    console.log('✅ Academy rendered');
+                    console.log('✅ Academy rendered via Views.AcademyAIView');
+                    return;
+                }
+
+                // 其次使用顶层 AcademyAIView
+                if (window.LawAIApp?.AcademyAIView && 
+                    typeof window.LawAIApp.AcademyAIView.render === 'function') {
+                    app.innerHTML = '';
+                    window.LawAIApp.AcademyAIView.render(app);
+                    console.log('✅ Academy rendered via AcademyAIView');
+                    return;
+                }
+
+                // 未就绪：显示 loading
+                app.innerHTML = `
+                    <div class="academy-loading">
+                        <div class="spinner"></div>
+                        <p>Loading Academy...</p>
+                    </div>
+                `;
+                console.warn('⚠️ AcademyAIView not ready, retrying...');
+                setTimeout(renderAcademy, 500);
+            }
+
+            // 等待系统就绪
+            function waitForReady() {
+                if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                    // 检查是否已有 AcademyAIView
+                    if (window.LawAIApp?.Views?.AcademyAIView || window.LawAIApp?.AcademyAIView) {
+                        renderAcademy();
+                    } else {
+                        // 监听 SYSTEM_READY
+                        document.addEventListener('SYSTEM_READY', function() {
+                            setTimeout(renderAcademy, 300);
+                        });
+                        // 兜底：3秒后重试
+                        setTimeout(renderAcademy, 3000);
+                    }
                 } else {
-                    console.warn('⚠️ AcademyAIView not ready, retrying...');
-                    setTimeout(renderAcademy, 500);
+                    document.addEventListener('DOMContentLoaded', function() {
+                        setTimeout(renderAcademy, 500);
+                    });
                 }
             }
-            
-            if (window.LawAIApp?.Views?.AcademyAIView) {
-                var app = document.getElementById('app');
-                if (app) {
-                    app.innerHTML = '';
-                    window.LawAIApp.Views.AcademyAIView.render(app);
-                }
-            } else {
-                document.addEventListener('SYSTEM_READY', function() {
-                    setTimeout(renderAcademy, 300);
-                });
-                setTimeout(renderAcademy, 3000);
-            }
-        });
+
+            waitForReady();
+        })();
     </script>
 </body>
 </html>
