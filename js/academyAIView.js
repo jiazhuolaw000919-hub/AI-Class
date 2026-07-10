@@ -1,7 +1,8 @@
 // ===========================================
 // academyAIView.js
-// AI 基础学院 - 学院仪表盘（Season 1 体验恢复版）
-// V4.1 - 移除自动渲染，由 academy.html 控制
+// AI 基础学院 - WOW 第一印象版
+// V5.0 - First Impression Recovery
+// "Make the user say WOW within 3 seconds"
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -19,46 +20,32 @@ LawAIApp.Views.AcademyAIView = {
             return;
         }
 
-        // 🔥 如果已经渲染过，强制重新渲染（修复重复调用导致空白的问题）
         if (this._rendered) {
-            console.log('🔄 Academy already rendered, forcing re-render...');
+            console.log('🔄 Academy already rendered, re-rendering...');
             this._rendered = false;
             this._deferredRendered = false;
         }
 
         this._rendered = true;
-        console.log('🏛️ AcademyAIView V4.1 rendering (progressive)...');
+        console.log('🏛️ AcademyAIView V5.0 rendering (WOW Edition)...');
 
-        // ============================================================
-        // 1. 获取数据（所有引擎继续运行）
-        // ============================================================
         var academy = this._getAcademyData();
         var progress = this._getProgressData();
         var recommendations = this._getRecommendations();
         var schools = this._getSchools();
 
-        // ============================================================
-        // 2. 立即渲染核心内容（Hero + Continue Learning + Stats）
-        // ============================================================
+        // 立即渲染核心内容
         app.innerHTML = this._buildCoreHTML(academy, progress, recommendations, schools);
 
-        // ============================================================
-        // 3. 延迟渲染次要内容（推荐路径 + 探索学院 + Quick Access）
-        // ============================================================
+        // 200ms 后加载次要内容
         var self = this;
         setTimeout(function() {
             self._renderDeferredContent(app, academy, progress, recommendations, schools);
         }, 200);
 
-        // ============================================================
-        // 4. 触发事件
-        // ============================================================
         LawAIApp.EventBus?.emit?.('AcademyRendered', { timestamp: Date.now() });
     },
 
-    /**
-     * 刷新 Academy（只更新动态数据）
-     */
     _refresh: function(app) {
         var stats = document.getElementById('academy-stats');
         var continueBtn = document.getElementById('academy-continue');
@@ -220,22 +207,22 @@ LawAIApp.Views.AcademyAIView = {
         var timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
         if (progress.completed >= 365) {
-            return '🏆 Master of AI! You\'ve completed everything!';
+            return '🏆 Master of AI!';
         }
         if (progress.streak >= 30) {
-            return '🔥 ' + progress.streak + '-day streak! You\'re unstoppable!';
+            return '🔥 ' + progress.streak + '-day streak!';
         }
         if (progress.streak >= 7) {
-            return '💪 ' + progress.streak + ' days strong! Keep going!';
+            return '💪 ' + progress.streak + ' days strong!';
         }
         if (progress.completed > 0) {
-            return timeGreeting + ', Learner! Ready to grow?';
+            return timeGreeting + ', Learner';
         }
-        return timeGreeting + '! Let\'s start your AI journey 🚀';
+        return 'Welcome to AI Fundamentals 🚀';
     },
 
     // ============================================================
-    // 核心 HTML 构建（立即渲染）
+    // 🔥 WOW Edition - 核心 HTML 构建（Apple/Notion 风格）
     // ============================================================
 
     _buildCoreHTML: function(academy, progress, recommendations, schools) {
@@ -243,108 +230,267 @@ LawAIApp.Views.AcademyAIView = {
         var continueLink = this._getContinueLink(nextLesson);
         var greeting = this._getGreeting(progress);
         var isComplete = progress.completed >= 365;
-        var progressText = isComplete ? '🎉 Complete!' : progress.completed + '/' + progress.total + ' lessons';
 
-        // Back button 功能保留
-        var backBtnHtml = `
-            <button class="back-btn" onclick="if(window.LawAIApp?.Router?.goBack){LawAIApp.Router.goBack();}else if(window.history?.back){window.history.back();}else{alert('Back');}" style="
-                background:rgba(255,255,255,0.05);
-                border:1px solid rgba(255,255,255,0.06);
-                color:#94a3b8;
-                padding:8px 16px;
-                border-radius:10px;
-                cursor:pointer;
-                margin-bottom:16px;
-                display:inline-flex;
-                align-items:center;
-                gap:8px;
-                font-size:13px;
-                transition:all 0.2s;
-            " onmouseover="this.style.background='rgba(255,255,255,0.08)';this.style.color='#e2e8f0'" onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.color='#94a3b8'">
-                ← Back
-            </button>
-        `;
+        // 计算进度百分比
+        var percent = Math.round(progress.percent || 0);
+        var progressDisplay = percent + '%';
+
+        // Streak 显示
+        var streakDisplay = progress.streak > 0 ? '🔥 ' + progress.streak + 'd' : '🌱 0d';
+
+        // XP 显示
+        var xpDisplay = (progress.xp || 0) + ' XP';
+
+        // Level 显示
+        var levelDisplay = 'Lv.' + (progress.level || 1);
+
+        // 完成状态
+        var completedCount = progress.completed || 0;
+        var totalCount = progress.total || 365;
+        var lessonCountDisplay = completedCount + '/' + totalCount + ' lessons';
 
         return `
-        <div class="academy-page" style="
+        <div class="academy-wow" style="
             max-width: 1000px;
             margin: 0 auto;
-            padding: 16px 20px 90px;
+            padding: 12px 20px 90px;
             color: #e2e8f0;
-            font-family: 'Inter', -apple-system, sans-serif;
+            font-family: 'Inter', -apple-system, -apple-system, sans-serif;
         ">
-            <!-- Back Button -->
-            ${backBtnHtml}
-
             <!-- ========================================================== -->
-            <!-- HERO 区（最高优先级） -->
+            <!-- 🔥 HERO 区 —— 主导整个屏幕 -->
             <!-- ========================================================== -->
             <div id="academy-hero" style="
-                background: linear-gradient(135deg, ${academy.themeColor || '#4a9eff'}, ${academy.themeColor ? academy.themeColor + 'cc' : '#6366f1cc'});
-                border-radius: 20px;
-                padding: 28px 24px;
+                background: linear-gradient(145deg, ${academy.themeColor || '#1a2a4a'}, ${academy.themeColor ? academy.themeColor + '88' : '#2a1a4a'});
+                border-radius: 28px;
+                padding: 40px 32px 32px;
                 color: white;
-                margin-bottom: 20px;
+                margin-bottom: 28px;
                 position: relative;
                 overflow: hidden;
-                animation: fadeUp 0.4s ease;
+                isolation: isolate;
+                min-height: 200px;
             ">
-                <div style="position:absolute;top:-40px;right:-20px;font-size:120px;opacity:0.12;pointer-events:none;">${academy.icon || '🤖'}</div>
+                <!-- 装饰大图标（背景） -->
+                <div style="
+                    position: absolute;
+                    right: -20px;
+                    bottom: -30px;
+                    font-size: 140px;
+                    opacity: 0.08;
+                    pointer-events: none;
+                    z-index: 0;
+                ">${academy.icon || '🤖'}</div>
+
+                <!-- 装饰光晕 -->
+                <div style="
+                    position: absolute;
+                    top: -80px;
+                    right: -80px;
+                    width: 300px;
+                    height: 300px;
+                    background: radial-gradient(circle, rgba(74,158,255,0.15), transparent 70%);
+                    border-radius: 50%;
+                    pointer-events: none;
+                    z-index: 0;
+                "></div>
+
                 <div style="position:relative;z-index:1;">
-                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-                        <span style="font-size:28px;">${academy.icon || '🤖'}</span>
-                        <span style="font-size:11px;background:rgba(255,255,255,0.2);padding:2px 12px;border-radius:20px;font-weight:500;">${academy.difficulty || 'Beginner'}</span>
-                        ${academy.featured ? '<span style="font-size:11px;background:rgba(255,215,0,0.25);padding:2px 12px;border-radius:20px;font-weight:500;">⭐ Featured</span>' : ''}
+
+                    <!-- 顶部：标签 + 徽章 -->
+                    <div style="
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        margin-bottom: 16px;
+                        flex-wrap: wrap;
+                    ">
+                        <span style="
+                            font-size: 28px;
+                            line-height: 1;
+                        ">${academy.icon || '🤖'}</span>
+                        <span style="
+                            font-size: 11px;
+                            background: rgba(255,255,255,0.15);
+                            padding: 4px 14px;
+                            border-radius: 100px;
+                            font-weight: 500;
+                            letter-spacing: 0.3px;
+                            backdrop-filter: blur(4px);
+                        ">${academy.difficulty || 'Beginner'}</span>
+                        ${academy.featured ? `
+                        <span style="
+                            font-size: 10px;
+                            background: rgba(255,215,0,0.2);
+                            padding: 4px 12px;
+                            border-radius: 100px;
+                            font-weight: 500;
+                            color: #fcd34d;
+                        ">⭐ Featured</span>
+                        ` : ''}
+                        <span style="
+                            margin-left: auto;
+                            font-size: 12px;
+                            opacity: 0.7;
+                            font-weight: 400;
+                            letter-spacing: 0.2px;
+                        ">${academy.estimatedHours || 200}h</span>
                     </div>
-                    <h1 style="margin:0 0 2px;font-size:24px;font-weight:700;">${greeting}</h1>
-                    <p style="margin:0 0 12px;opacity:0.9;font-size:15px;max-width:600px;">${academy.description || 'Master AI from the ground up.'}</p>
-                    <div style="display:flex;gap:16px;font-size:13px;opacity:0.85;flex-wrap:wrap;">
-                        <span>⏱️ ${academy.estimatedHours || 200} hours</span>
-                        <span>📚 ${progress.total || 365} lessons</span>
-                        <span>🎯 ${progressText}</span>
+
+                    <!-- 问候语 -->
+                    <h1 style="
+                        margin: 0 0 4px;
+                        font-size: 28px;
+                        font-weight: 700;
+                        letter-spacing: -0.3px;
+                        line-height: 1.1;
+                    ">${greeting}</h1>
+
+                    <!-- 描述 -->
+                    <p style="
+                        margin: 0 0 18px;
+                        opacity: 0.75;
+                        font-size: 15px;
+                        font-weight: 400;
+                        max-width: 480px;
+                        line-height: 1.5;
+                    ">${academy.description || 'Master AI from the ground up.'}</p>
+
+                    <!-- 进度条 + 统计徽章 -->
+                    <div style="
+                        display: flex;
+                        align-items: center;
+                        gap: 20px;
+                        flex-wrap: wrap;
+                        margin-top: 4px;
+                    ">
+                        <!-- 进度条 -->
+                        <div style="
+                            flex: 1;
+                            min-width: 120px;
+                        ">
+                            <div style="
+                                display: flex;
+                                justify-content: space-between;
+                                font-size: 12px;
+                                opacity: 0.7;
+                                margin-bottom: 4px;
+                            ">
+                                <span>Progress</span>
+                                <span>${progressDisplay}</span>
+                            </div>
+                            <div style="
+                                height: 4px;
+                                background: rgba(255,255,255,0.15);
+                                border-radius: 100px;
+                                overflow: hidden;
+                            ">
+                                <div style="
+                                    width: ${percent}%;
+                                    height: 100%;
+                                    background: linear-gradient(90deg, #4a9eff, #7c3aed);
+                                    border-radius: 100px;
+                                    transition: width 0.8s ease;
+                                "></div>
+                            </div>
+                        </div>
+
+                        <!-- 统计徽章 -->
+                        <div style="
+                            display: flex;
+                            gap: 16px;
+                            flex-wrap: wrap;
+                        ">
+                            <div style="
+                                display: flex;
+                                align-items: center;
+                                gap: 4px;
+                                font-size: 13px;
+                                font-weight: 500;
+                                background: rgba(255,255,255,0.06);
+                                padding: 4px 12px;
+                                border-radius: 100px;
+                                backdrop-filter: blur(4px);
+                            ">
+                                <span style="opacity:0.5;">✦</span> ${levelDisplay}
+                            </div>
+                            <div style="
+                                display: flex;
+                                align-items: center;
+                                gap: 4px;
+                                font-size: 13px;
+                                font-weight: 500;
+                                background: rgba(255,255,255,0.06);
+                                padding: 4px 12px;
+                                border-radius: 100px;
+                                backdrop-filter: blur(4px);
+                            ">
+                                <span style="opacity:0.5;">⭐</span> ${xpDisplay}
+                            </div>
+                            <div style="
+                                display: flex;
+                                align-items: center;
+                                gap: 4px;
+                                font-size: 13px;
+                                font-weight: 500;
+                                background: rgba(255,255,255,0.06);
+                                padding: 4px 12px;
+                                border-radius: 100px;
+                                backdrop-filter: blur(4px);
+                            ">
+                                <span style="opacity:0.5;">🔥</span> ${streakDisplay}
+                            </div>
+                            <div style="
+                                display: flex;
+                                align-items: center;
+                                gap: 4px;
+                                font-size: 12px;
+                                opacity: 0.6;
+                                background: rgba(255,255,255,0.04);
+                                padding: 4px 12px;
+                                border-radius: 100px;
+                            ">
+                                ${lessonCountDisplay}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- ========================================================== -->
-            <!-- 统计卡片（快速状态） -->
+            <!-- 🔥 唯一行动按钮 — Continue Learning -->
             <!-- ========================================================== -->
-            <div id="academy-stats" style="
-                display:grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 10px;
-                margin-bottom: 20px;
-                animation: fadeUp 0.4s ease 0.05s;
-            ">
-                ${this._buildStatsHTML(progress)}
+            <div style="margin-bottom: 32px;">
+                ${this._buildContinueLearningHTML(progress, nextLesson, continueLink, isComplete)}
             </div>
 
             <!-- ========================================================== -->
-            <!-- 继续学习（最重要行动点） -->
-            <!-- ========================================================== -->
-            ${this._buildContinueLearningHTML(progress, nextLesson, continueLink, isComplete)}
-
-            <!-- ========================================================== -->
-            <!-- 延迟加载区（骨架占位） -->
+            <!-- ⏳ 延迟加载区（骨架占位，轻量优雅） -->
             <!-- ========================================================== -->
             <div id="academy-deferred" style="
-                display:grid;
+                display: grid;
                 grid-template-columns: 1fr 1fr;
-                gap: 16px;
-                min-height: 200px;
+                gap: 20px;
+                min-height: 140px;
+                opacity: 0.6;
             ">
                 <!-- 推荐路径骨架 -->
-                <div id="recommendations-placeholder" style="background:rgba(255,255,255,0.03);border-radius:14px;padding:16px 18px;border:1px solid rgba(255,255,255,0.04);">
-                    <h3 style="margin:0 0 12px;font-size:14px;color:#94a3b8;font-weight:400;">🌟 Recommended Path</h3>
-                    <div style="padding:4px 0;">
+                <div id="recommendations-placeholder" style="
+                    background: rgba(255,255,255,0.02);
+                    border-radius: 16px;
+                    padding: 16px 20px;
+                    border: 1px solid rgba(255,255,255,0.04);
+                ">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                        <span style="font-size:14px;">🌟</span>
+                        <span style="font-size:12px;color:#94a3b8;font-weight:400;">Recommended</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:6px;">
                         ${[0,1,2].map(function(i) {
                             return `
-                            <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:${i < 2 ? '1px solid rgba(255,255,255,0.03)' : 'none'};">
-                                <span style="font-size:18px;">⏳</span>
-                                <div style="flex:1;">
-                                    <div style="height:12px;width:${70 - i * 10}%;background:rgba(255,255,255,0.06);border-radius:4px;animation:pulse 1.5s infinite ${i * 0.2}s;"></div>
-                                    <div style="height:8px;width:${50 - i * 10}%;background:rgba(255,255,255,0.04);border-radius:4px;margin-top:4px;animation:pulse 1.5s infinite ${i * 0.2 + 0.2}s;"></div>
-                                </div>
+                            <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:${i < 2 ? '1px solid rgba(255,255,255,0.04)' : 'none'};">
+                                <span style="font-size:14px;opacity:0.4;">⏳</span>
+                                <div style="flex:1;height:10px;width:${80 - i * 15}%;background:rgba(255,255,255,0.04);border-radius:4px;animation:pulse 1.5s infinite ${i * 0.2}s;"></div>
                             </div>
                             `;
                         }).join('')}
@@ -352,135 +498,139 @@ LawAIApp.Views.AcademyAIView = {
                 </div>
 
                 <!-- 探索学院骨架 -->
-                <div id="schools-placeholder" style="background:rgba(255,255,255,0.03);border-radius:14px;padding:16px 18px;border:1px solid rgba(255,255,255,0.04);">
-                    <h3 style="margin:0 0 12px;font-size:14px;color:#94a3b8;font-weight:400;">🏛️ Explore Schools</h3>
-                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+                <div id="schools-placeholder" style="
+                    background: rgba(255,255,255,0.02);
+                    border-radius: 16px;
+                    padding: 16px 20px;
+                    border: 1px solid rgba(255,255,255,0.04);
+                ">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                        <span style="font-size:14px;">🏛️</span>
+                        <span style="font-size:12px;color:#94a3b8;font-weight:400;">Explore</span>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;">
                         ${[0,1,2].map(function(i) {
-                            return `<div style="padding:8px 16px;background:rgba(255,255,255,0.04);border-radius:8px;animation:pulse 1.5s infinite ${i * 0.2}s;width:${80 + i * 20}px;height:36px;"></div>`;
+                            return `<div style="padding:6px 14px;background:rgba(255,255,255,0.03);border-radius:100px;animation:pulse 1.5s infinite ${i * 0.2}s;width:${70 + i * 20}px;height:28px;"></div>`;
                         }).join('')}
                     </div>
-                    <div style="height:40px;background:rgba(255,255,255,0.03);border-radius:8px;animation:pulse 1.5s infinite 0.6s;"></div>
                 </div>
             </div>
 
             <!-- ========================================================== -->
-            <!-- Quick Access Buttons（保留原有功能，放在底部） -->
+            <!-- Quick Access（紧凑，不抢戏） -->
             <!-- ========================================================== -->
             <div id="academy-quick-access" style="
-                display:flex;
-                flex-wrap:wrap;
-                gap:8px;
-                margin-top:20px;
-                padding-top:16px;
-                border-top:1px solid rgba(255,255,255,0.04);
-                animation: fadeUp 0.4s ease 0.15s;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+                margin-top: 24px;
+                padding-top: 16px;
+                border-top: 1px solid rgba(255,255,255,0.04);
             ">
-                <button class="quick-btn" onclick="if(window.LawAIApp?.Router?.navigate){LawAIApp.Router.navigate('course-ai-fundamentals');}else{alert('Courses');}" style="padding:8px 16px;background:rgba(74,158,255,0.12);border:1px solid rgba(74,158,255,0.15);border-radius:8px;color:#4a9eff;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(74,158,255,0.2)'" onmouseout="this.style.background='rgba(74,158,255,0.12)'">📖 Courses</button>
-                <button class="quick-btn" onclick="if(window.LawAIApp?.Router?.navigate){LawAIApp.Router.navigate('learning-hub');}else{alert('Learning Hub');}" style="padding:8px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">📚 Learning Hub</button>
-                <button class="quick-btn" onclick="if(window.LawAIApp?.Router?.navigate){LawAIApp.Router.navigate('knowledge-capture');}else{alert('Notes');}" style="padding:8px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">📓 My Notes</button>
-                <button class="quick-btn" onclick="if(window.LawAIApp?.Router?.navigate){LawAIApp.Router.navigate('adaptive-memory');}else{alert('Memory');}" style="padding:8px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">🧠 Memory</button>
-                <button class="quick-btn" onclick="if(window.LawAIApp?.Router?.navigate){LawAIApp.Router.navigate('intelligence');}else{alert('Intelligence');}" style="padding:8px 16px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.15);border-radius:8px;color:#8b5cf6;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(139,92,246,0.2)'" onmouseout="this.style.background='rgba(139,92,246,0.1)'">🧠 Intelligence</button>
+                ${[
+                    { icon: '📖', label: 'Courses', route: 'course-ai-fundamentals' },
+                    { icon: '📚', label: 'Hub', route: 'learning-hub' },
+                    { icon: '📓', label: 'Notes', route: 'knowledge-capture' },
+                    { icon: '🧠', label: 'Memory', route: 'adaptive-memory' },
+                    { icon: '🧠', label: 'Intelligence', route: 'intelligence' }
+                ].map(function(btn) {
+                    return `
+                    <button onclick="if(window.LawAIApp?.Router?.navigate){LawAIApp.Router.navigate('${btn.route}');}else{alert('${btn.label}');}" style="
+                        padding: 4px 14px;
+                        background: rgba(255,255,255,0.03);
+                        border: 1px solid rgba(255,255,255,0.04);
+                        border-radius: 100px;
+                        color: #94a3b8;
+                        font-size: 11px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        font-family: inherit;
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                    " onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#e2e8f0'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.color='#94a3b8'">
+                        ${btn.icon} ${btn.label}
+                    </button>
+                    `;
+                }).join('')}
             </div>
-
-            <!-- ========================================================== -->
-            <!-- 空状态（保留原有功能） -->
-            <!-- ========================================================== -->
-            ${progress.completed === 0 ? `
-                <div style="text-align:center;padding:40px 20px;background:rgba(255,255,255,0.02);border-radius:16px;border:1px dashed rgba(255,255,255,0.06);margin-top:16px;animation:fadeUp 0.4s ease 0.2s;">
-                    <div style="font-size:48px;">👋</div>
-                    <h3 style="color:#e2e8f0;">Welcome to ${academy.name || 'AI Academy'}!</h3>
-                    <p style="color:#94a3b8;">Start your first lesson and begin your AI journey.</p>
-                    <a href="/pages/lesson.html?day=1" style="display:inline-block;margin-top:12px;padding:10px 28px;background:#4a9eff;border:none;border-radius:10px;color:white;font-size:14px;font-weight:600;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">📖 Start Learning</a>
-                </div>
-            ` : ''}
 
             <!-- ========================================================== -->
             <!-- 微交互样式 -->
             <!-- ========================================================== -->
             <style>
-                @keyframes fadeUp {
-                    from { opacity: 0; transform: translateY(12px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
                 @keyframes pulse {
                     0%, 100% { opacity: 1; }
                     50% { opacity: 0.3; }
                 }
+                .academy-wow {
+                    animation: fadeUp 0.5s ease;
+                }
+                @keyframes fadeUp {
+                    from { opacity: 0; transform: translateY(16px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
             </style>
+
         </div>
         `;
     },
 
     /**
-     * 构建统计卡片 HTML
-     */
-    _buildStatsHTML: function(progress) {
-        return `
-            <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,0.04);">
-                <div style="font-size:20px;font-weight:700;color:#4a9eff;">${progress.level || 1}</div>
-                <div style="font-size:10px;color:#64748b;">Level</div>
-            </div>
-            <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,0.04);">
-                <div style="font-size:20px;font-weight:700;color:#fbbf24;">${progress.xp || 0}</div>
-                <div style="font-size:10px;color:#64748b;">XP</div>
-            </div>
-            <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,0.04);">
-                <div style="font-size:20px;font-weight:700;color:#f97316;">${progress.streak || 0}</div>
-                <div style="font-size:10px;color:#64748b;">Streak</div>
-            </div>
-            <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,0.04);">
-                <div style="font-size:20px;font-weight:700;color:#8b5cf6;">${Math.round(progress.percent || 0)}%</div>
-                <div style="font-size:10px;color:#64748b;">Progress</div>
-            </div>
-        `;
-    },
-
-    /**
-     * 构建 Continue Learning 卡片
+     * 🔥 Continue Learning — 唯一主行动按钮
      */
     _buildContinueLearningHTML: function(progress, nextLesson, continueLink, isComplete) {
         var nextDay = parseInt(nextLesson.replace('day-', ''));
         var title = this._getLessonTitle(nextDay);
         var summary = this._getLessonSummary(nextDay);
 
+        // 如果课程完成，显示不同文案
+        var actionText = isComplete ? '🎉 Review' : '📖 Continue →';
+        var subtitleText = isComplete ? 'You\'ve completed everything!' : (summary || 'Continue building your AI knowledge.');
+
         return `
-            <div style="
-                background:rgba(255,255,255,0.03);
-                border-radius:16px;
-                padding:20px 24px;
-                border:1px solid rgba(255,255,255,0.06);
-                margin-bottom:20px;
-                animation: fadeUp 0.4s ease 0.1s;
-                transition:all 0.3s ease;
-            " onmouseover="this.style.borderColor='rgba(74,158,255,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.06)'">
-                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-                    <div style="flex:1;min-width:150px;">
-                        <div style="font-size:13px;color:#94a3b8;font-weight:400;">📖 Continue Learning</div>
-                        <div style="font-size:17px;font-weight:600;margin:2px 0;">${title || 'Day ' + nextDay}</div>
-                        <div style="font-size:13px;color:#94a3b8;">${summary || 'Continue building your AI knowledge.'}</div>
+            <a id="academy-continue" href="${continueLink}" style="
+                display: block;
+                background: linear-gradient(135deg, #4a9eff, #6366f1);
+                border-radius: 20px;
+                padding: 20px 28px;
+                color: white;
+                text-decoration: none;
+                transition: all 0.3s ease;
+                position: relative;
+                overflow: hidden;
+                box-shadow: 0 8px 40px rgba(74,158,255,0.15);
+            " onmouseover="this.style.transform='scale(1.01)';this.style.boxShadow='0 12px 60px rgba(74,158,255,0.25)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 8px 40px rgba(74,158,255,0.15)'">
+                <!-- 装饰光晕 -->
+                <div style="
+                    position: absolute;
+                    top: -60px;
+                    right: -40px;
+                    width: 200px;
+                    height: 200px;
+                    background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
+                    border-radius: 50%;
+                    pointer-events: none;
+                "></div>
+                <div style="position:relative;z-index:1;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:120px;">
+                        <div style="font-size:12px;font-weight:500;opacity:0.8;letter-spacing:0.5px;text-transform:uppercase;">
+                            Next Lesson
+                        </div>
+                        <div style="font-size:18px;font-weight:600;margin:2px 0;">${title || 'Day ' + nextDay}</div>
+                        <div style="font-size:13px;opacity:0.85;">${subtitleText}</div>
                     </div>
-                    <a id="academy-continue" href="${continueLink}" style="
-                        padding:12px 32px;
-                        background:linear-gradient(135deg,#4a9eff,#6366f1);
-                        border:none;
-                        border-radius:12px;
-                        color:white;
-                        font-size:15px;
-                        font-weight:600;
-                        text-decoration:none;
-                        cursor:pointer;
-                        transition:all 0.3s ease;
-                        display:inline-flex;
-                        align-items:center;
-                        gap:8px;
-                        white-space:nowrap;
-                    " onmouseover="this.style.transform='scale(1.04)';this.style.boxShadow='0 8px 30px rgba(74,158,255,0.3)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='none'">
-                        ${isComplete ? '🎉 Review' : '📖 Continue'} →
-                    </a>
+                    <div style="
+                        padding: 10px 28px;
+                        background: rgba(255,255,255,0.15);
+                        border-radius: 100px;
+                        font-size: 15px;
+                        font-weight: 600;
+                        backdrop-filter: blur(4px);
+                        white-space: nowrap;
+                    ">${actionText}</div>
                 </div>
-                ${progress.streak > 0 ? `<div style="margin-top:8px;font-size:11px;color:#f97316;">🔥 ${progress.streak} day streak! Keep going!</div>` : ''}
-                ${progress.completed > 0 && progress.completed % 10 === 0 ? `<div style="margin-top:8px;font-size:11px;color:#fbbf24;">⭐ ${progress.completed} lessons completed! Amazing!</div>` : ''}
-            </div>
+            </a>
         `;
     },
 
@@ -494,39 +644,40 @@ LawAIApp.Views.AcademyAIView = {
         var container = document.getElementById('academy-deferred');
         if (!container) return;
 
-        console.log('📊 Academy: Rendering deferred content...');
+        console.log('📊 Academy: Rendering deferred content (WOW Edition)...');
 
         // ============================================================
-        // 推荐路径
+        // 推荐路径（优雅列表）
         // ============================================================
         var recsHtml = recommendations.slice(0, 3).map(function(rec, index) {
             var lessonId = rec.id || 'day-' + (index + 1);
             var dayNum = lessonId.replace('day-', '');
             var link = '/pages/lesson.html?day=' + dayNum;
-            var delay = index * 0.08;
+            var delay = index * 0.06;
             return `
                 <div style="
-                    display:flex;
-                    align-items:center;
-                    gap:10px;
-                    padding:8px 0;
-                    border-bottom:${index < 2 ? '1px solid rgba(255,255,255,0.04)' : 'none'};
-                    animation:fadeUp 0.3s ease ${delay}s;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 6px 0;
+                    border-bottom: ${index < 2 ? '1px solid rgba(255,255,255,0.04)' : 'none'};
+                    animation: fadeUp 0.4s ease ${delay}s;
                 ">
-                    <span style="font-size:18px;">${rec.icon || '📖'}</span>
+                    <span style="font-size:16px;">${rec.icon || '📖'}</span>
                     <div style="flex:1;min-width:0;">
                         <div style="font-size:13px;font-weight:500;color:#e2e8f0;">${rec.title || 'Lesson'}</div>
                         <div style="font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${rec.description || 'Continue your learning journey.'}</div>
                     </div>
                     <a href="${link}" style="
-                        padding:4px 12px;
-                        background:rgba(74,158,255,0.12);
-                        border-radius:6px;
-                        color:#4a9eff;
-                        font-size:11px;
-                        text-decoration:none;
-                        transition:all 0.2s;
-                    " onmouseover="this.style.background='rgba(74,158,255,0.2)'" onmouseout="this.style.background='rgba(74,158,255,0.12)'">
+                        padding: 4px 14px;
+                        background: rgba(74,158,255,0.1);
+                        border-radius: 100px;
+                        color: #4a9eff;
+                        font-size: 11px;
+                        text-decoration: none;
+                        transition: all 0.2s;
+                        font-weight: 500;
+                    " onmouseover="this.style.background='rgba(74,158,255,0.2)'" onmouseout="this.style.background='rgba(74,158,255,0.1)'">
                         Start →
                     </a>
                 </div>
@@ -538,29 +689,23 @@ LawAIApp.Views.AcademyAIView = {
         // ============================================================
         var schoolsHtml = schools.slice(0, 3).map(function(school, index) {
             var isActive = school.status === 'active' || school.status === 'available';
-            var bgColor = isActive ? 'rgba(74,158,255,0.08)' : 'rgba(255,255,255,0.03)';
-            var borderColor = isActive ? 'rgba(74,158,255,0.12)' : 'rgba(255,255,255,0.04)';
-            var link = isActive ? (school.id === 'school-ai' ? '/pages/academy.html' : '#') : '#';
-            var delay = 0.2 + index * 0.08;
+            var delay = 0.1 + index * 0.06;
             return `
                 <div style="
-                    display:flex;
+                    display:inline-flex;
                     align-items:center;
-                    gap:10px;
-                    padding:8px 12px;
-                    background:${bgColor};
-                    border-radius:8px;
-                    border:1px solid ${borderColor};
-                    transition:all 0.2s;
-                    animation:fadeUp 0.3s ease ${delay}s;
-                    cursor:${isActive ? 'pointer' : 'default'};
-                " onmouseover="if(${isActive}){this.style.background='rgba(74,158,255,0.15)'}" onmouseout="if(${isActive}){this.style.background='${bgColor}'}" onclick="if(${isActive} && '${school.id}' === 'school-ai'){window.location.href='/pages/academy.html'}">
-                    <span style="font-size:20px;">${school.icon || '🏛️'}</span>
-                    <div style="flex:1;">
-                        <div style="font-size:13px;font-weight:500;color:#e2e8f0;">${school.name || 'School'}</div>
-                        <div style="font-size:10px;color:#64748b;">${isActive ? '✅ Available' : '🚧 Coming soon'}</div>
-                    </div>
-                    ${isActive ? '<span style="font-size:10px;color:#22c55e;">Active</span>' : '<span style="font-size:10px;color:#64748b;">Soon</span>'}
+                    gap:6px;
+                    padding:4px 14px 4px 10px;
+                    background: ${isActive ? 'rgba(74,158,255,0.06)' : 'rgba(255,255,255,0.02)'};
+                    border-radius: 100px;
+                    border: 1px solid ${isActive ? 'rgba(74,158,255,0.08)' : 'rgba(255,255,255,0.04)'};
+                    animation: fadeUp 0.4s ease ${delay}s;
+                    cursor: ${isActive ? 'pointer' : 'default'};
+                    transition: all 0.2s;
+                " onclick="if(${isActive} && '${school.id}' === 'school-ai'){window.location.href='/pages/academy.html'}">
+                    <span style="font-size:14px;">${school.icon || '🏛️'}</span>
+                    <span style="font-size:12px;font-weight:500;color:#e2e8f0;">${school.name || 'School'}</span>
+                    ${isActive ? '<span style="font-size:8px;color:#22c55e;background:rgba(34,197,94,0.15);padding:0 8px;border-radius:100px;">●</span>' : '<span style="font-size:8px;color:#64748b;">soon</span>'}
                 </div>
             `;
         }).join('');
@@ -571,36 +716,45 @@ LawAIApp.Views.AcademyAIView = {
         var deferredHtml = `
             <!-- 推荐路径 -->
             <div style="
-                background:rgba(255,255,255,0.03);
-                border-radius:14px;
-                padding:16px 18px;
-                border:1px solid rgba(255,255,255,0.04);
+                background: rgba(255,255,255,0.02);
+                border-radius: 16px;
+                padding: 16px 20px;
+                border: 1px solid rgba(255,255,255,0.04);
             ">
-                <h3 style="margin:0 0 8px;font-size:14px;color:#94a3b8;font-weight:400;">🌟 Recommended Path</h3>
-                ${recsHtml || '<div style="color:#64748b;font-size:13px;padding:12px 0;">Complete lessons to get personalized recommendations.</div>'}
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                    <span style="font-size:14px;">🌟</span>
+                    <span style="font-size:12px;color:#94a3b8;font-weight:400;">Recommended for you</span>
+                </div>
+                ${recsHtml || '<div style="color:#64748b;font-size:13px;padding:8px 0;">Complete lessons to get recommendations.</div>'}
             </div>
 
             <!-- 探索学院 -->
             <div style="
-                background:rgba(255,255,255,0.03);
-                border-radius:14px;
-                padding:16px 18px;
-                border:1px solid rgba(255,255,255,0.04);
+                background: rgba(255,255,255,0.02);
+                border-radius: 16px;
+                padding: 16px 20px;
+                border: 1px solid rgba(255,255,255,0.04);
             ">
-                <h3 style="margin:0 0 8px;font-size:14px;color:#94a3b8;font-weight:400;">🏛️ Explore Schools</h3>
-                ${schoolsHtml || '<div style="color:#64748b;font-size:13px;padding:12px 0;">More schools coming soon.</div>'}
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                    <span style="font-size:14px;">🏛️</span>
+                    <span style="font-size:12px;color:#94a3b8;font-weight:400;">Explore Schools</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                    ${schoolsHtml || '<div style="color:#64748b;font-size:13px;padding:8px 0;">More schools coming soon.</div>'}
+                </div>
             </div>
         `;
 
         container.innerHTML = deferredHtml;
+        container.style.opacity = '1';
 
+        // 触发完成事件
         LawAIApp.EventBus?.emit?.('AcademyDeferredRendered', { timestamp: Date.now() });
-        console.log('✅ Academy deferred content rendered');
+        console.log('✅ Academy deferred content rendered (WOW Edition)');
     }
 };
 
 // ============================================================
-// 🔥 移除自动渲染逻辑（由 academy.html 控制渲染时机）
+// 引擎已加载
 // ============================================================
-// 保留 console.log 让开发者知道引擎已加载
-console.log('🏛️ AcademyAIView V4.1 ready (rendering controlled by academy.html)');
+console.log('🏛️ AcademyAIView V5.0 ready (WOW Edition)');
