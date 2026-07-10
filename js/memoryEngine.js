@@ -1,11 +1,77 @@
-// ===========================================
-// memoryEngine.js
-// 记忆引擎 - 长期记忆保留（Phase 24 完善版）
-// ===========================================
+
+
+## 📄 修改后的 `MemoryEngine.js`（含 Canon 元数据）
+
+```javascript
+// ================================================================
+// ENGINE: MemoryEngine
+// LAYER: Core Logic Layer
+// DOMAIN: Memory & Review Management
+// RECOVERY STATUS: 🟢 Canon Locked
+// VERSION: 2.0.0
+// ================================================================
+//
+// PURPOSE
+// ================================================================
+//   Manages long-term memory retention using spaced repetition.
+//   Tracks memory strength for each lesson, schedules reviews
+//   based on strength, and adapts to learner performance.
+//   Implements the "Review" phase of the Learning Loop.
+//
+// PUBLIC API
+// ================================================================
+//   init()                              -> void
+//   getAll()                            -> object
+//   getMemory(lessonId)                 -> object | null
+//   getMemoryStrength(lessonId)         -> number
+//   updateMemory(lessonId, strength)    -> object
+//   recordReview(lessonId, performance) -> object
+//   scheduleReviews()                   -> array
+//   getTodayReviews()                   -> array
+//   getHeatmap()                        -> object
+//   getStatus()                         -> Status object
+//
+// DEPENDENCIES
+// ================================================================
+//   - StorageEngine (required) : For persistent storage
+//   - EventBus (optional)     : For listening to LessonCompleted
+//
+// STORAGE
+// ================================================================
+//   - Key: 'lawai_memory_entries'
+//   - Format: JSON object keyed by lessonId
+//   - Schema: { lessonId, strength, lastReviewed, nextReview, reviewCount }
+//
+// EVENTS
+// ================================================================
+//   EMITTED:
+//   - 'ReviewCompleted' : When a review session is recorded
+//     Payload: { lessonId, performance }
+//
+//   CONSUMED:
+//   - 'LessonCompleted' : From ProgressEngine, initializes memory
+//     Payload: { lessonId, xpGain }
+//
+// FUTURE COMPATIBILITY
+// ================================================================
+//   - Review scheduling algorithm can be improved
+//   - Performance can be tracked per question type
+//   - Memory strength can be visualized in UI
+//
+// ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.MemoryEngine = (function() {
+    // ============================================================
+    // ENGINE METADATA
+    // ============================================================
+    var _engineName = 'MemoryEngine';
+    var _engineVersion = '2.0.0';
+    var _recoveryStatus = '🟢 Canon Locked';
+    var _layer = 'Core Logic Layer';
+    var _domain = 'Memory & Review Management';
+
     var _initialized = false;
     var _memories = {};
 
@@ -100,7 +166,18 @@ LawAIApp.MemoryEngine = (function() {
         var adjustment = (performance - 0.5) * 20;
         var newStrength = Math.max(10, Math.min(100, currentStrength + adjustment));
         
-        return updateMemory(lessonId, newStrength);
+        var result = updateMemory(lessonId, newStrength);
+        
+        // 触发事件
+        try {
+            LawAIApp.EventBus?.emit?.('ReviewCompleted', { 
+                lessonId: lessonId, 
+                performance: performance,
+                newStrength: newStrength
+            });
+        } catch (e) {}
+
+        return result;
     }
 
     // ===========================================
@@ -117,6 +194,31 @@ LawAIApp.MemoryEngine = (function() {
             };
         }
         return result;
+    }
+
+    // ===========================================
+    // ENGINE STATUS
+    // ===========================================
+    function getStatus() {
+        var memories = getAll();
+        var totalEntries = Object.keys(memories).length;
+        var totalReviews = 0;
+        for (var key in memories) {
+            totalReviews += memories[key].reviewCount || 0;
+        }
+        return {
+            name: _engineName,
+            version: _engineVersion,
+            recoveryStatus: _recoveryStatus,
+            layer: _layer,
+            domain: _domain,
+            initialized: _initialized,
+            totalMemories: totalEntries,
+            totalReviews: totalReviews,
+            todayReviews: getTodayReviews().length,
+            storageAvailable: !!(LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.get === 'function'),
+            eventBusAvailable: !!(LawAIApp.EventBus && typeof LawAIApp.EventBus.emit === 'function')
+        };
     }
 
     // ===========================================
@@ -155,7 +257,8 @@ LawAIApp.MemoryEngine = (function() {
         recordReview: recordReview,
         scheduleReviews: scheduleReviews,
         getTodayReviews: getTodayReviews,
-        getHeatmap: getHeatmap
+        getHeatmap: getHeatmap,
+        getStatus: getStatus
     };
 })();
 
