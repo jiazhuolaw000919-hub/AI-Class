@@ -1,14 +1,13 @@
 // ================================================================
-// app.js – Runtime V5.0 FINAL
-// 重构：集中状态管理 + 健康检查 + 恢复机制 + 事件驱动
-// 100% 保留所有现有功能，只改架构
+// app.js – Runtime V5.1.0 Runtime Recovery
+// 渲染优先：立即显示 Dashboard，不等待任何引擎初始化完成
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
 
 window.App = {
 
-    version: "5.0.0",
+    version: "5.1.0",
 
     // ============================================================
     // 1. Runtime State（集中管理，不重复）
@@ -22,10 +21,10 @@ window.App = {
         booted: false,
         safeMode: false,
         retries: 0,
-        maxRetries: 5,
+        maxRetries: 3,
         errors: [],
         bootTimeline: [],
-        version: "5.0.0"
+        version: "5.1.0"
     },
 
     // 兼容旧属性
@@ -51,13 +50,14 @@ window.App = {
     _boot: {},
     _composerHandler: null,
     _fallbackTimer: null,
+    _renderAttempted: false,
 
     // ============================================================
     // 2. Runtime Lifecycle
     // ============================================================
 
     /**
-     * INIT
+     * INIT — 立即渲染，不等待任何引擎
      */
     init: function(payload) {
         if (this._state.destroyed) {
@@ -81,12 +81,104 @@ window.App = {
         console.log("📋 Boot payload:", payload);
 
         this._boot = payload?.boot || window.LawAIApp.bootStatus || {};
+
+        // 1. 立即挂载 Root
         this.mountRoot();
+
+        // 2. 立即尝试渲染（不等待 composer）
+        this._renderImmediately();
+
+        // 3. 设置 composer 监听（用于后续更新）
         this._setupComposerListener();
-        this.render();
 
         this._state.bootTimeline.push({ event: 'init_complete', time: Date.now() });
         this._emit('APP_INITIALIZED', { version: this.version });
+    },
+
+    /**
+     * 立即渲染 Dashboard（不等待任何引擎）
+     */
+    _renderImmediately: function() {
+        if (this._renderAttempted) return;
+        this._renderAttempted = true;
+
+        var root = this.getRoot();
+        if (!root) {
+            console.warn("⚠️ Root not found, cannot render immediately");
+            return;
+        }
+
+        console.log("⚡ Rendering immediately (no waiting)...");
+
+        // 检查 SystemComposer 是否已加载
+        var composer = window.LawAIApp?.SystemComposer;
+
+        if (composer && typeof composer.init === 'function') {
+            // 如果 composer 已存在，立即初始化（同步）
+            try {
+                // 用 try-catch 保护，即使 composer.init 报错也不影响页面
+                var result = composer.init(this._boot);
+                if (result && typeof result.then === 'function') {
+                    result.catch(function(err) {
+                        console.warn('⚠️ Composer init async error:', err);
+                    });
+                }
+                console.log("✅ Composer initiated (immediate)");
+                return;
+            } catch (err) {
+                console.warn("⚠️ Composer init immediate error:", err);
+                // 即使报错，也要显示 fallback
+            }
+        }
+
+        // 如果 composer 还没加载或 init 失败，显示极简骨架
+        this._showMinimalSkeleton(root);
+    },
+
+    /**
+     * 极简骨架（完全不依赖任何引擎）
+     */
+    _showMinimalSkeleton: function(root) {
+        if (!root) return;
+        if (root.innerHTML.trim() !== '') return;
+
+        root.innerHTML = `
+            <div style="
+                min-height: 100vh;
+                background: linear-gradient(145deg, #0b1220 0%, #141c2e 50%, #0f1a2e 100%);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                color: #e2e8f0;
+                font-family: 'Inter', -apple-system, sans-serif;
+                padding: 20px;
+                text-align: center;
+            ">
+                <div style="font-size: 48px; margin-bottom: 16px;">🚀</div>
+                <h2 style="font-size: 22px; font-weight: 600; margin: 0 0 8px;">Law AI Academy</h2>
+                <p style="color: #94a3b8; font-size: 14px; margin: 0;">Preparing your learning environment...</p>
+                <div style="margin-top: 24px; width: 32px; height: 32px; border: 2px solid rgba(74,158,255,0.12); border-top-color: #4a9eff; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                <style>
+                    @keyframes spin { to { transform: rotate(360deg); } }
+                </style>
+            </div>
+        `;
+
+        // 如果 1 秒后 composer 还没加载，重试
+        setTimeout(function() {
+            var composer = window.LawAIApp?.SystemComposer;
+            if (composer && typeof composer.init === 'function') {
+                try {
+                    composer.init(this._boot);
+                    console.log("✅ Composer initialized (delayed fallback)");
+                } catch (err) {
+                    console.warn("⚠️ Composer init delayed fallback error:", err);
+                }
+            } else {
+                console.warn("⚠️ Composer still not available after 1s");
+            }
+        }.bind(this), 1000);
     },
 
     /**
@@ -168,7 +260,6 @@ window.App = {
     mountRoot: function() {
         var root = document.getElementById("law-runtime-root");
         if (!root) {
-            // 兜底创建
             var wrapper = document.createElement('div');
             wrapper.id = 'law-runtime-root';
             wrapper.style.cssText = 'min-height:100vh;background:#0b1220;color:white;';
@@ -189,67 +280,9 @@ window.App = {
     // ============================================================
 
     render: function() {
-        if (this._state.destroyed) {
-            console.warn("⚠️ App destroyed, cannot render");
-            return;
-        }
-
-        var root = this.getRoot();
-        if (!root) {
-            console.warn("⚠️ Root element not found, aborting render");
-            this.mountRoot();
-            root = this.getRoot();
-            if (!root) return;
-        }
-
-        if (this._state.mounted) {
-            console.log("✅ Already mounted, skipping render");
-            return;
-        }
-
-        var composer = window.LawAIApp?.SystemComposer;
-
-        if (composer?.init) {
-            console.log("🎯 SystemComposer found, initializing...");
-            try {
-                this._showLoadingState();
-                var result = composer.init(this._boot);
-
-                if (result && typeof result.then === 'function') {
-                    console.log("⏳ SystemComposer.init is async, waiting...");
-                    result
-                        .then(function() {
-                            console.log("✅ SystemComposer.init completed");
-                            this._scheduleFallbackCheck();
-                        }.bind(this))
-                        .catch(function(err) {
-                            console.error("❌ SystemComposer.init failed:", err);
-                            this.markUnhealthy('SystemComposer init failed: ' + err.message);
-                            this._showErrorState("SystemComposer 初始化失败：" + err.message);
-                        }.bind(this));
-                } else {
-                    console.log("✅ SystemComposer.init completed (sync)");
-                    this._scheduleFallbackCheck();
-                }
-            } catch (err) {
-                console.error("❌ SystemComposer.init threw error:", err);
-                this.markUnhealthy('SystemComposer threw error: ' + err.message);
-                this._showErrorState("SystemComposer 启动异常：" + err.message);
-            }
-            return;
-        }
-
-        console.warn("⏳ SystemComposer not ready, attempt " + (this._state.retries + 1) + "/" + this._state.maxRetries);
-        this._showLoadingState();
-
-        if (this._state.retries < this._state.maxRetries) {
-            this._state.retries++;
-            setTimeout(function() {
-                this.render();
-            }.bind(this), 800);
-        } else {
-            this.markUnhealthy('SystemComposer timeout after ' + this._state.maxRetries + ' retries');
-            this._showErrorState("SystemComposer 加载超时，请刷新页面");
+        // 已由 _renderImmediately 处理
+        if (!this._renderAttempted) {
+            this._renderImmediately();
         }
     },
 
@@ -264,16 +297,13 @@ window.App = {
         this._state.retries = 0;
         this._state.errors = [];
 
-        // 重置 mounted 状态
         this._state.mounted = false;
 
-        // 尝试重新初始化 composer
         if (window.LawAIApp?.SystemComposer) {
             try {
                 if (typeof window.LawAIApp.SystemComposer.recover === 'function') {
                     window.LawAIApp.SystemComposer.recover();
                 } else {
-                    // 重置 composer 并重新 init
                     if (typeof window.LawAIApp.SystemComposer.destroy === 'function') {
                         window.LawAIApp.SystemComposer.destroy();
                     }
@@ -288,8 +318,7 @@ window.App = {
             }
         }
 
-        // Fallback: 重新渲染
-        this.render();
+        this._renderImmediately();
     },
 
     restart: function() {
@@ -301,6 +330,7 @@ window.App = {
         this._state.healthy = false;
         this._state.retries = 0;
         this._state.errors = [];
+        this._renderAttempted = false;
         this.init({ boot: this._boot });
         this._emit('RUNTIME_RESET', {});
         console.log("🔄 Runtime restarted");
@@ -348,50 +378,14 @@ window.App = {
     // ============================================================
 
     _showLoadingState: function() {
-        var root = this.getRoot();
-        if (!root) return;
-        if (root.children.length > 0 && root.innerHTML.trim() !== '') return;
-
-        root.innerHTML = `
-            <div style="
-                display:flex;
-                flex-direction:column;
-                align-items:center;
-                justify-content:center;
-                min-height:100vh;
-                background:#0b1220;
-                color:white;
-                font-family:'Inter',Arial,sans-serif;
-                text-align:center;
-                padding:20px;
-            ">
-                <div style="font-size:48px;margin-bottom:16px;">🚀</div>
-                <h1 style="font-size:24px;font-weight:600;margin:0 0 8px;">Loading Law AI Academy</h1>
-                <p style="color:#94a3b8;font-size:14px;margin:0;">Preparing your learning environment...</p>
-                <div style="margin-top:30px;">
-                    <div style="
-                        display:inline-block;
-                        width:36px;
-                        height:36px;
-                        border:3px solid rgba(74,158,255,0.15);
-                        border-top-color:#4a9eff;
-                        border-radius:50%;
-                        animation:spin 1s linear infinite;
-                    "></div>
-                </div>
-                <style>
-                    @keyframes spin { to { transform: rotate(360deg); } }
-                </style>
-            </div>
-        `;
+        // 已废弃：不再显示 loading 状态，改用 _showMinimalSkeleton
     },
 
     _hideLoadingState: function() {
         var root = this.getRoot();
         if (!root) return;
-        var isLoading = root.innerHTML.includes('Loading Law AI Academy') ||
-                        root.innerHTML.includes('Runtime Loading') ||
-                        root.innerHTML.includes('Waiting SystemComposer');
+        var isLoading = root.innerHTML.includes('Preparing your learning environment') ||
+                        root.innerHTML.includes('Loading Law AI Academy');
         if (isLoading) {
             console.log("🔄 Clearing loading state");
         }
@@ -537,7 +531,7 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
                 window.App.init({ boot: window.LawAIApp.bootStatus || {} });
             }
         }
-    }, 500);
+    }, 200);
 }
 
 console.log("🚀 App Runtime V" + window.App.version + " Loaded");
