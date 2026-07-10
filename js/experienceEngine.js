@@ -3,7 +3,7 @@
 // LAYER: UI Layer
 // DOMAIN: User Experience & Engagement
 // RECOVERY STATUS: 🟢 Canon Locked
-// VERSION: 2.0.0
+// VERSION: 2.1.0 - Deferred Init (Phase 0.1.1)
 // ================================================================
 //
 // PURPOSE
@@ -22,12 +22,6 @@
 //   getXP()                             -> number
 //   renderCelebration(message)          -> void
 //   getStatus()                         -> Status object
-//
-//   INTERNAL (private):
-//   _addExperience(amount)              -> void
-//   _checkMilestones()                  -> void
-//   _safeSet(key, value)                -> boolean
-//   _safeGet(key, defaultValue)         -> any
 //
 // DEPENDENCIES
 // ================================================================
@@ -69,7 +63,7 @@ LawAIApp.ExperienceEngine = {
     // ENGINE METADATA
     // ============================================================
     _engineName: 'ExperienceEngine',
-    _engineVersion: '2.0.0',
+    _engineVersion: '2.1.0',
     _recoveryStatus: '🟢 Canon Locked',
     _layer: 'UI Layer',
     _domain: 'User Experience & Engagement',
@@ -81,31 +75,52 @@ LawAIApp.ExperienceEngine = {
     // PUBLIC API
     // ============================================================
 
+    /**
+     * init() — 立即加载 XP，延迟事件监听
+     */
     init: function() {
         if (this._initialized) return;
         this._initialized = true;
 
-        // 加载已保存的 XP
+        // 1. 立即：加载已保存的 XP（轻量，不阻塞）
         this._experienceLevel = this._safeGet('experience_level', 0);
+        console.log('✨ ExperienceEngine loaded, XP:', this._experienceLevel);
 
-        // 监听关键事件，累积体验分数
-        LawAIApp.EventBus?.on?.('LessonCompleted', function() {
+        // 2. 延迟：绑定事件监听（非关键，不阻塞首屏）
+        var self = this;
+        var scheduleFn = window.requestIdleCallback || function(cb) { setTimeout(cb, 200); };
+        
+        scheduleFn(function() {
+            self._bindEvents();
+            console.log('✨ ExperienceEngine: Event listeners bound (deferred)');
+        });
+    },
+
+    /**
+     * 🔥 绑定事件监听（延迟执行）
+     */
+    _bindEvents: function() {
+        // 监听课程完成
+        LawAIApp.EventBus?.on?.('LessonCompleted', function(data) {
             this._addExperience(5);
         }.bind(this));
 
+        // 监听练习完成
         LawAIApp.EventBus?.on?.('PracticeCompleted', function(data) {
             this._addExperience(data?.correct ? 3 : 1);
         }.bind(this));
 
+        // 监听项目完成
         LawAIApp.EventBus?.on?.('ProjectFinished', function() {
             this._addExperience(15);
         }.bind(this));
 
+        // 监听升级
         LawAIApp.EventBus?.on?.('LevelUp', function() {
             this._addExperience(10);
         }.bind(this));
 
-        console.log('✨ ExperienceEngine initialized, XP:', this._experienceLevel);
+        console.log('✨ ExperienceEngine: Event listeners active');
     },
 
     /**
@@ -259,7 +274,6 @@ LawAIApp.ExperienceEngine = {
         for (var i = 0; i < milestones.length; i++) {
             var m = milestones[i];
             if (newLevel >= m && oldLevel < m) {
-                // 刚达到里程碑
                 LawAIApp.EventBus?.emit?.('ExperienceMilestone', { 
                     level: newLevel, 
                     milestone: m,
@@ -297,10 +311,13 @@ LawAIApp.ExperienceEngine = {
 };
 
 // ============================================================
-// AUTO-INIT
+// AUTO-INIT — 延迟初始化（不阻塞首屏）
 // ============================================================
-setTimeout(function() {
-    LawAIApp.ExperienceEngine.init();
-}, 300);
+// 使用 requestIdleCallback 或 setTimeout 延迟初始化
+var scheduleInit = window.requestIdleCallback || function(cb) { setTimeout(cb, 300); };
 
-console.log('✨ ExperienceEngine V2.0 ready');
+scheduleInit(function() {
+    LawAIApp.ExperienceEngine.init();
+});
+
+console.log('✨ ExperienceEngine V2.1 loaded (deferred init)');
