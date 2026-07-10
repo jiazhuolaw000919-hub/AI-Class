@@ -41,7 +41,7 @@ REGISTRY SUMMARY
 **Total Registered Engines:** 10
 
 **Status Breakdown:**
-- 🟢 Canon Locked: 9
+- 🟢 Canon Locked: 10
 - 🟡 Verification Required: 0
 - 🔴 Missing: 0
 - ⚫ Deprecated: 0
