@@ -13,39 +13,11 @@
     <link rel="stylesheet" href="/css/responsive.css">
     <link rel="stylesheet" href="/css/theme.css">
     <style>
-        body { 
-            margin: 0; 
-            background: #0b1220; 
-            color: #e2e8f0; 
-            font-family: 'Inter', -apple-system, sans-serif; 
-        }
-        #app { 
-            min-height: 100vh; 
-            padding: 20px; 
-            max-width: 1000px; 
-            margin: 0 auto; 
-        }
-        .lesson-loading { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            min-height: 60vh; 
-            color: #94a3b8; 
-            text-align: center; 
-        }
-        .lesson-loading .spinner { 
-            width: 40px; 
-            height: 40px; 
-            border: 3px solid rgba(74,158,255,0.15); 
-            border-top-color: #4a9eff; 
-            border-radius: 50%; 
-            animation: spin 0.8s linear infinite; 
-            margin-bottom: 16px; 
-        }
+        body { margin: 0; background: #0b1220; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; }
+        #app { min-height: 100vh; padding: 20px; max-width: 1000px; margin: 0 auto; padding-bottom: 80px; }
+        .lesson-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; color: #94a3b8; text-align: center; }
+        .lesson-loading .spinner { width: 40px; height: 40px; border: 3px solid rgba(74,158,255,0.15); border-top-color: #4a9eff; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* ===== 内容区返回栏 ===== */
         .content-back-bar {
             display: flex;
             align-items: center;
@@ -103,10 +75,60 @@
             .content-back-bar .btn { font-size: 12px; padding: 6px 12px; }
             .content-back-bar .page-title { font-size: 11px; }
         }
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(20,20,40,0.92);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            justify-content: space-around;
+            padding: 6px 0 12px;
+            z-index: 100;
+        }
+        .bottom-nav a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 9px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.2s;
+            padding: 2px 12px;
+        }
+        .bottom-nav a:hover { color: #94a3b8; }
+        .bottom-nav a.active { color: #4a9eff; }
+        .bottom-nav a span:first-child { font-size: 18px; }
     </style>
 </head>
 <body>
     <div id="app"></div>
+
+    <!-- ========================================================== -->
+    <!-- 底部导航（固定）                                           -->
+    <!-- ========================================================== -->
+    <nav class="bottom-nav">
+        <a href="/" class="nav-item" data-tab="home">
+            <span>🏠</span><span>Home</span>
+        </a>
+        <a href="/pages/academy.html" class="nav-item" data-tab="academy">
+            <span>📚</span><span>Academy</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="calendar">
+            <span>📅</span><span>Calendar</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="notes">
+            <span>📝</span><span>Notes</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="settings">
+            <span>⚙️</span><span>Settings</span>
+        </a>
+    </nav>
 
     <!-- ========================================================== -->
     <!-- 脚本加载                                                  -->
@@ -124,6 +146,41 @@
         (function() {
             console.log('📄 Lesson page loaded');
 
+            // ==========================================================
+            // 底部导航点击处理
+            // ==========================================================
+            function setupNav() {
+                document.querySelectorAll('.nav-item').forEach(function(item) {
+                    item.addEventListener('click', function(e) {
+                        var tab = this.dataset.tab;
+                        
+                        if (tab === 'home') {
+                            window.location.href = '/';
+                            return;
+                        }
+                        if (tab === 'academy') {
+                            window.location.href = '/pages/academy.html';
+                            return;
+                        }
+                        
+                        e.preventDefault();
+                        var tabNames = {
+                            'calendar': '📅 Calendar',
+                            'notes': '📝 Notes',
+                            'settings': '⚙️ Settings'
+                        };
+                        if (window.LawAIApp?.Toast && typeof LawAIApp.Toast.info === 'function') {
+                            LawAIApp.Toast.info(tabNames[tab] + ' coming soon! 🚧');
+                        } else {
+                            alert(tabNames[tab] + ' coming soon! 🚧');
+                        }
+                    });
+                });
+            }
+
+            // ==========================================================
+            // 获取 Lesson ID
+            // ==========================================================
             function getLessonIdFromURL() {
                 var params = new URLSearchParams(window.location.search);
                 var id = params.get('lessonId') || params.get('id') || params.get('day');
@@ -136,18 +193,18 @@
             var lessonId = getLessonIdFromURL() || 'day-1';
             console.log('📖 Loading lesson:', lessonId);
 
-            /**
-             * 渲染返回栏（在内容区顶部）
-             */
-            function renderBackBar() {
+            // ==========================================================
+            // 渲染 Lesson
+            // ==========================================================
+            function renderLesson() {
                 var app = document.getElementById('app');
                 if (!app) return;
 
-                // 检查是否已经有返回栏
-                if (document.getElementById('content-back-bar')) return;
+                // 清空 app
+                app.innerHTML = '';
 
+                // 添加返回栏
                 var backBar = document.createElement('div');
-                backBar.id = 'content-back-bar';
                 backBar.className = 'content-back-bar';
                 backBar.innerHTML = `
                     <button class="btn btn-back" onclick="window.history.back()">
@@ -159,29 +216,15 @@
                     </a>
                     <span class="page-title">📖 Lesson ${lessonId}</span>
                 `;
+                app.appendChild(backBar);
 
-                // 插入到 #app 的第一个子元素位置
-                app.insertBefore(backBar, app.firstChild);
-                console.log('✅ Back bar rendered in content area');
-            }
+                // 渲染 Lesson 内容
+                var contentContainer = document.createElement('div');
+                contentContainer.id = 'lesson-content';
+                app.appendChild(contentContainer);
 
-            function renderLesson() {
-                var app = document.getElementById('app');
-                if (!app) return;
-
-                // 先渲染返回栏
-                renderBackBar();
-
-                // 然后渲染 lesson 内容
                 if (window.LawAIApp?.Views?.LessonView && 
                     typeof window.LawAIApp.Views.LessonView.render === 'function') {
-                    // 如果已经渲染过，清理旧内容（保留返回栏）
-                    var existingContent = document.getElementById('lesson-content');
-                    if (existingContent) existingContent.remove();
-
-                    var contentContainer = document.createElement('div');
-                    contentContainer.id = 'lesson-content';
-                    app.appendChild(contentContainer);
                     window.LawAIApp.Views.LessonView.render(lessonId, contentContainer);
                     console.log('✅ Lesson rendered via Views.LessonView');
                     return;
@@ -189,48 +232,43 @@
 
                 if (window.LawAIApp?.LessonView && 
                     typeof window.LawAIApp.LessonView.render === 'function') {
-                    var existingContent = document.getElementById('lesson-content');
-                    if (existingContent) existingContent.remove();
-
-                    var contentContainer = document.createElement('div');
-                    contentContainer.id = 'lesson-content';
-                    app.appendChild(contentContainer);
                     window.LawAIApp.LessonView.render(lessonId, contentContainer);
                     console.log('✅ Lesson rendered via LessonView');
                     return;
                 }
 
-                // 如果视图还没加载，显示 loading
-                var existingContent = document.getElementById('lesson-content');
-                if (!existingContent) {
-                    var contentContainer = document.createElement('div');
-                    contentContainer.id = 'lesson-content';
-                    app.appendChild(contentContainer);
-                    contentContainer.innerHTML = `
-                        <div class="lesson-loading">
-                            <div class="spinner"></div>
-                            <p>Loading lesson...</p>
-                            <p style="font-size:12px;color:#64748b;">Lesson: ${lessonId}</p>
-                        </div>
-                    `;
-                }
+                // 如果视图还没加载
+                contentContainer.innerHTML = `
+                    <div class="lesson-loading">
+                        <div class="spinner"></div>
+                        <p>Loading lesson...</p>
+                        <p style="font-size:12px;color:#64748b;">Lesson: ${lessonId}</p>
+                        <p style="font-size:12px;color:#64748b;margin-top:8px;">
+                            <a href="/" style="color:#4a9eff;text-decoration:none;">← Back to Dashboard</a>
+                        </p>
+                    </div>
+                `;
                 console.warn('⚠️ LessonView not ready, retrying...');
                 setTimeout(renderLesson, 500);
             }
 
+            // ==========================================================
+            // 等待就绪
+            // ==========================================================
             function waitForReady() {
                 if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                    setupNav();
                     if (window.LawAIApp?.Views?.LessonView || window.LawAIApp?.LessonView) {
                         renderLesson();
                     } else {
                         document.addEventListener('SYSTEM_READY', function() {
                             setTimeout(renderLesson, 300);
                         });
-                        // 兜底
                         setTimeout(renderLesson, 3000);
                     }
                 } else {
                     document.addEventListener('DOMContentLoaded', function() {
+                        setupNav();
                         setTimeout(renderLesson, 500);
                     });
                 }
