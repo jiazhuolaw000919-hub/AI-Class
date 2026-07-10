@@ -1,6 +1,6 @@
 // ================================================================
 // developerOverlay.js – Developer Overlay V1.0.0
-// Ctrl+Shift+D 显示性能数据覆盖层
+// Ctrl+Shift+L 显示性能数据覆盖层
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -9,7 +9,7 @@ LawAIApp.DevTools = LawAIApp.DevTools || {};
 LawAIApp.DevTools.DeveloperOverlay = {
     _visible: false,
     _overlay: null,
-    _shortcut: 'Ctrl+Shift+D',
+    _shortcut: 'Ctrl+Shift+L',
 
     /**
      * 初始化
@@ -17,13 +17,13 @@ LawAIApp.DevTools.DeveloperOverlay = {
     init: function() {
         // 监听键盘快捷键
         document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+            if (e.ctrlKey && e.shiftKey && (e.key === 'L' || e.key === 'l')) {
                 e.preventDefault();
                 this.toggle();
             }
         }.bind(this));
 
-        console.log('🛠️ DeveloperOverlay initialized (Ctrl+Shift+D to toggle)');
+        console.log('🛠️ DeveloperOverlay initialized (Ctrl+Shift+L to toggle)');
     },
 
     /**
@@ -96,7 +96,7 @@ LawAIApp.DevTools.DeveloperOverlay = {
         overlay.innerHTML = `
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:8px;">
                 <span style="font-weight:600;color:#4a9eff;font-size:13px;">🛠️ Runtime</span>
-                <span style="font-size:10px;color:#64748b;">Ctrl+Shift+D</span>
+                <span style="font-size:10px;color:#64748b;">Ctrl+Shift+L</span>
             </div>
             <div id="dev-overlay-content">
                 <div style="color:#64748b;">Loading data...</div>
@@ -216,4 +216,4 @@ LawAIApp.DevTools.DeveloperOverlay = {
 // 自动初始化
 LawAIApp.DevTools.DeveloperOverlay.init();
 
-console.log('🛠️ DeveloperOverlay V1.0.0 ready (Ctrl+Shift+D)');
+console.log('🛠️ DeveloperOverlay V1.0.0 ready (Ctrl+Shift+L)');
