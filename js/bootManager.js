@@ -1,5 +1,5 @@
 // ================================================================
-// bootManager.js – V3.0.0 - Simplified Scheduler + Profiler (Phase P.1)
+// bootManager.js – V3.0.1 - Simplified Scheduler + Profiler + Dependency (Phase P.2)
 // 只做一件事：调度启动，不执行具体逻辑
 // ================================================================
 
@@ -14,21 +14,17 @@ LawAIApp.BootManager = {
         background: false
     },
 
-    /**
-     * 启动调度器 — 触发启动
-     */
     start: function() {
         if (this._booted) {
             return Promise.resolve({ status: 'already_booted' });
         }
         this._booted = true;
 
-        // 🔥 Profiler: 注册 BootManager
         if (LawAIApp.DevTools?.RuntimeProfiler) {
             LawAIApp.DevTools.RuntimeProfiler.registerEngine('BootManager');
+            LawAIApp.DevTools.RuntimeProfiler._currentCaller = 'BootManager';
         }
 
-        // 触发启动事件
         try {
             LawAIApp.EventBus?.emit?.('BootStarted');
         } catch (e) { /* 静默 */ }
@@ -38,18 +34,12 @@ LawAIApp.BootManager = {
         return Promise.resolve({ status: 'started' });
     },
 
-    /**
-     * 标记阶段完成
-     */
     markStage: function(stage) {
         if (this._stages[stage] !== undefined) {
             this._stages[stage] = true;
         }
     },
 
-    /**
-     * 获取状态
-     */
     getStatus: function() {
         return {
             booted: this._booted,
@@ -58,19 +48,13 @@ LawAIApp.BootManager = {
         };
     },
 
-    /**
-     * 获取阶段状态
-     */
     getStages: function() {
         return this._stages;
     },
 
-    /**
-     * 是否已启动
-     */
     isBooted: function() {
         return this._booted;
     }
 };
 
-console.log('🚀 BootManager V3.0 ready (Profiler)');
+console.log('🚀 BootManager V3.0.1 ready (Profiler + Dependency)');
