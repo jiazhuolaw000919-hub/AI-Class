@@ -1,6 +1,6 @@
 // ===========================================
-// router.js – V4.6 修复版
-// 修复：面包屑用硬链接，不再依赖 navigate
+// router.js – V4.7 - Instant First Paint (Phase 0.1.1)
+// 优化：非关键初始化延迟到首屏后
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -24,14 +24,52 @@ LawAIApp.Router = {
     _isNavigating: false,
 
     /**
-     * 初始化路由
+     * 初始化路由 — 立即执行关键功能，延迟非关键功能
      */
     init: function() {
         if (this._initialized) return;
         this._initialized = true;
 
-        console.log('🧭 Router V4.6 initialized');
+        console.log('🧭 Router V4.7 initializing (critical only)...');
 
+        // ============================================================
+        // 1. 关键：立即恢复当前页面状态（从 URL 解析）
+        // ============================================================
+        var currentPath = window.location.pathname;
+        var initialPage = this._getPageFromPath(currentPath);
+        
+        if (initialPage && (initialPage === 'academy' || initialPage === 'lesson')) {
+            this._breadcrumbStack = [
+                { page: 'dashboard', title: '📊 Dashboard', params: {} }
+            ];
+            this._pushBreadcrumb(initialPage, {});
+            this.loadPage(initialPage);
+            this.updateNav(initialPage);
+        } else {
+            this.loadPage('dashboard');
+            this.updateNav('dashboard');
+        }
+
+        // ============================================================
+        // 2. 延迟：绑定事件监听（不阻塞首屏）
+        // ============================================================
+        var self = this;
+        
+        var scheduleFn = window.requestIdleCallback || function(cb) { setTimeout(cb, 100); };
+        
+        scheduleFn(function() {
+            self._bindEventListeners();
+            console.log('🧭 Router: Event listeners bound (deferred)');
+        });
+
+        console.log('🧭 Router V4.7 ready (critical)');
+    },
+
+    /**
+     * 🔥 绑定事件监听（延迟执行）
+     */
+    _bindEventListeners: function() {
+        // 导航点击
         document.querySelectorAll('.nav-item').forEach(function(btn) {
             btn.addEventListener('click', function(e) {
                 var page = this.dataset.page;
@@ -42,6 +80,7 @@ LawAIApp.Router = {
             });
         });
 
+        // popstate
         window.addEventListener('popstate', function(e) {
             if (this._popstateHandling || this._isNavigating) return;
             this._popstateHandling = true;
@@ -62,22 +101,11 @@ LawAIApp.Router = {
             }
             this._popstateHandling = false;
         }.bind(this));
-
-        var currentPath = window.location.pathname;
-        var initialPage = this._getPageFromPath(currentPath);
-        
-        if (initialPage && (initialPage === 'academy' || initialPage === 'lesson')) {
-            this._breadcrumbStack = [
-                { page: 'dashboard', title: '📊 Dashboard', params: {} }
-            ];
-            this._pushBreadcrumb(initialPage, {});
-            this.loadPage(initialPage);
-            this.updateNav(initialPage);
-        } else {
-            this.loadPage('dashboard');
-            this.updateNav('dashboard');
-        }
     },
+
+    // ============================================================
+    // 以下方法保持不变（全部保留）
+    // ============================================================
 
     /**
      * 导航到指定页面
@@ -177,12 +205,11 @@ LawAIApp.Router = {
     },
 
     /**
-     * 加载页面
+     * 加载页面（保持不变）
      */
     loadPage: function(page) {
         var app = document.getElementById('app') || document.getElementById('law-runtime-root');
 
-        // Academy 路由
         if (page === 'academy' || page === 'academy.html' || page === 'pages') {
             if (app) {
                 if (LawAIApp.Views?.AcademyAIView && typeof LawAIApp.Views.AcademyAIView.render === 'function') {
@@ -207,7 +234,6 @@ LawAIApp.Router = {
             return;
         }
 
-        // Lesson 路由
         if (page === 'lesson' || page === 'lesson.html') {
             var day = this.currentParams.day || this.currentParams.lessonId || '1';
             if (app) {
@@ -412,9 +438,7 @@ LawAIApp.Router = {
             return;
         }
 
-        // ============================================================
         // Dashboard 特殊处理
-        // ============================================================
         if (page === 'dashboard') {
             console.log('📌 Loading Dashboard...');
             
@@ -426,7 +450,6 @@ LawAIApp.Router = {
                 return;
             }
 
-            // Dashboard 不存在，用内联内容
             console.warn('⚠️ LawAIApp.Dashboard not found, using inline fallback');
             if (app) {
                 app.innerHTML = `
@@ -470,7 +493,7 @@ LawAIApp.Router = {
                             </div>
                         </div>
                         <div style="margin-top:30px;text-align:center;font-size:12px;color:#64748b;">
-                            ⚡ Router V4.6 | Dashboard fallback mode
+                            ⚡ Router V4.7 | Dashboard fallback mode
                         </div>
                     </div>
                 `;
@@ -609,7 +632,7 @@ LawAIApp.Router = {
     },
 
     /**
-     * 🔥 渲染面包屑（修复：使用硬链接）
+     * 渲染面包屑（使用硬链接）
      */
     _renderBreadcrumb: function() {
         var oldBreadcrumb = document.getElementById('breadcrumb-nav');
@@ -632,16 +655,13 @@ LawAIApp.Router = {
             animation: fadeIn 0.3s ease;
         `;
 
-        // 🔥 Home 用硬链接跳转到 /
         var html = '<a href="/" style="cursor:pointer;color:#4a9eff;text-decoration:none;">🏠 Home</a>';
 
         this._breadcrumbStack.forEach(function(crumb, index) {
             html += ' <span style="opacity:0.4;">›</span> ';
             if (index === this._breadcrumbStack.length - 1) {
-                // 当前页面不可点击
                 html += '<span style="color:#e2e8f0;">' + crumb.title + '</span>';
             } else {
-                // 🔥 非当前页面用硬链接
                 var href = this._buildPath(crumb.page, crumb.params || {});
                 html += '<a href="' + href + '" style="cursor:pointer;color:#4a9eff;text-decoration:none;">' + crumb.title + '</a>';
             }
@@ -719,21 +739,24 @@ LawAIApp.Router = {
     }
 };
 
-// 自动初始化
+// ============================================================
+// 自动初始化 — 关键功能立即执行，非关键功能延迟
+// ============================================================
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    // 立即初始化关键功能
     setTimeout(function() {
         if (LawAIApp.Router && typeof LawAIApp.Router.init === 'function') {
             LawAIApp.Router.init();
         }
-    }, 100);
+    }, 50);
 } else {
     document.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() {
             if (LawAIApp.Router && typeof LawAIApp.Router.init === 'function') {
                 LawAIApp.Router.init();
             }
-        }, 100);
+        }, 50);
     });
 }
 
-console.log('🧭 Router V4.6 ready (breadcrumb with hard links)');
+console.log('🧭 Router V4.7 ready (instant first paint)');
