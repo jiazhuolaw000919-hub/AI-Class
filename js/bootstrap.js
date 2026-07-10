@@ -1,6 +1,6 @@
 // ===========================================
 // bootstrap.js
-// Academy 引导引擎 — 极简启动管道 (Phase 0.3)
+// Academy 引导引擎 — 极简启动管道 + Profiler (Phase P.1)
 // 只做一件事：按阶段启动系统，不阻塞 UI
 // ===========================================
 
@@ -15,6 +15,12 @@ window.LawAIApp = window.LawAIApp || {};
     function boot() {
         if (_booted) return;
         _booted = true;
+
+        // 🔥 Profiler: 注册 Bootstrap
+        if (LawAIApp.DevTools?.RuntimeProfiler) {
+            LawAIApp.DevTools.RuntimeProfiler.registerEngine('Bootstrap');
+            LawAIApp.DevTools.RuntimeProfiler.mark('bootstrap_start');
+        }
 
         console.log('🚀 Bootstrap: Starting (simplified)');
 
@@ -79,9 +85,16 @@ window.LawAIApp = window.LawAIApp || {};
             } catch (e) { /* 静默 */ }
             console.log('✅ Stage 4: Background engines loaded');
             console.log('🎯 Bootstrap complete — all stages started');
+
+            // 🔥 Profiler: 启动完成，冻结计时器
+            if (LawAIApp.DevTools?.RuntimeProfiler) {
+                LawAIApp.DevTools.RuntimeProfiler.mark('bootstrap_end');
+                LawAIApp.DevTools.RuntimeProfiler.freeze();
+                console.log('📊 RuntimeProfiler frozen');
+            }
         }, 1000);
 
-        // 触发最终就绪事件（延迟到所有阶段启动后）
+        // 触发最终就绪事件
         setTimeout(function() {
             try {
                 window.dispatchEvent(new CustomEvent('BOOT_COMPLETE', {
@@ -106,7 +119,7 @@ window.LawAIApp = window.LawAIApp || {};
 
     execute();
 
-    // 公开 API（简化）
+    // 公开 API
     LawAIApp.Bootstrap = {
         isBooted: function() { return _booted; }
     };
@@ -124,4 +137,4 @@ window.LawAIApp = window.LawAIApp || {};
 
 })();
 
-console.log('🚀 Bootstrap V5.0 ready (simplified)');
+console.log('🚀 Bootstrap V5.0 ready (simplified + Profiler)');
