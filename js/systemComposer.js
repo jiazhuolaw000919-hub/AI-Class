@@ -3,29 +3,7 @@
 // LAYER: UI Layer
 // DOMAIN: System Composition & UI Rendering
 // RECOVERY STATUS: 🟢 Canon Locked
-// VERSION: 5.3.0 - First Paint Recovery (Phase 0.4)
-// ================================================================
-//
-// PURPOSE
-// ================================================================
-//   Renders the Dashboard immediately. No waiting for any engine.
-//   First Paint contains: Header, Greeting, Continue Learning, Hero, Navigation.
-//   Everything else loads progressively after First Paint.
-//
-// PUBLIC API
-// ================================================================
-//   init(boot)                             -> void
-//   refresh()                              -> void
-//   refreshPanel(name)                     -> void
-//   destroy()                              -> void
-//   registerPanel(name, renderer)          -> void
-//   resolvePanel(name)                     -> function | null
-//   scheduleRender(panelName)              -> void
-//   recover()                              -> void
-//   getDOM(key)                            -> HTMLElement | null
-//   getStatus()                            -> Status object
-//   isReady()                              -> boolean
-//
+// VERSION: 5.3.1 - Complete First Paint Recovery (Phase 0.4)
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -36,7 +14,7 @@ LawAIApp.SystemComposer = {
     // ENGINE METADATA
     // ============================================================
     _engineName: 'SystemComposer',
-    _engineVersion: '5.3.0',
+    _engineVersion: '5.3.1',
     _recoveryStatus: '🟢 Canon Locked',
     _layer: 'UI Layer',
     _domain: 'System Composition & UI Rendering',
@@ -58,6 +36,7 @@ LawAIApp.SystemComposer = {
     _deferredRendered: false,
     _panelsRegistered: false,
     _firstPaintComplete: false,
+    _hydrationStage: 0,
 
     // ============================================================
     // 2. DOM Cache
@@ -234,6 +213,9 @@ LawAIApp.SystemComposer = {
             // 🔥 标记首屏完成
             this._firstPaintComplete = true;
 
+            // 🔥 隐藏全局 Loader
+            this._hideLoader();
+
             console.log("✅ SystemComposer V" + this.version + " initialized successfully");
 
         } catch (err) {
@@ -241,6 +223,20 @@ LawAIApp.SystemComposer = {
             this._renderFallbackUI(err.message);
         } finally {
             this._mounting = false;
+        }
+    },
+
+    /**
+     * 🔥 隐藏全局 Loader（首屏后立即执行）
+     */
+    _hideLoader: function() {
+        var loader = document.getElementById('loading-placeholder');
+        if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(function() {
+                loader.style.display = 'none';
+            }, 800);
+            console.log('🔒 Global loader hidden');
         }
     },
 
@@ -299,6 +295,7 @@ LawAIApp.SystemComposer = {
         this._deferredRendered = false;
         this._panelsRegistered = false;
         this._firstPaintComplete = false;
+        this._hydrationStage = 0;
         console.log("🧩 SystemComposer destroyed");
     },
 
@@ -603,7 +600,7 @@ LawAIApp.SystemComposer = {
         var btnText = isDemo ? '📖 Start' : (completedList.length >= 365 ? '🎉 Review' : '📖 Continue');
 
         // ============================================================
-        // 2. 构建 First Paint HTML（纯字符串，零依赖）
+        // 2. 构建 First Paint HTML
         // ============================================================
         var coreHTML = `
         <div id="systemComposerRoot" style="
@@ -761,7 +758,7 @@ LawAIApp.SystemComposer = {
                     </div>
                 </div>
 
-                <!-- 🔥 Continue Learning —— 唯一主行动按钮 -->
+                <!-- 🔥 Continue Learning -->
                 <a href="${lessonLink}" style="
                     display: block;
                     background: linear-gradient(135deg, #4a9eff, #6366f1);
@@ -874,7 +871,7 @@ LawAIApp.SystemComposer = {
                     </div>
                 </div>
 
-                <!-- 底部导航（固定，立即可点击） -->
+                <!-- 底部导航 -->
                 <nav style="
                     position: fixed;
                     bottom: 0;
@@ -914,7 +911,7 @@ LawAIApp.SystemComposer = {
         `;
 
         // ============================================================
-        // 3. 立即渲染（零等待）
+        // 3. 立即渲染
         // ============================================================
         this.root.innerHTML = coreHTML;
         this._setupNavGuard();
@@ -923,22 +920,33 @@ LawAIApp.SystemComposer = {
         console.log("✅ First Paint complete");
 
         // ============================================================
-        // 4. 延迟渲染次要内容（200ms 后）
+        // 4. 🔥 分段 Hydration — 不阻塞首屏
         // ============================================================
         var self = this;
+        var dataCopy = data;
+
+        // Hydration 1: Skill Mastery (200ms)
         setTimeout(function() {
-            self._renderDeferredContent(data, completedList, isDemo);
+            self._hydrateSkillMastery(dataCopy, completedList, isDemo);
         }, 200);
+
+        // Hydration 2: Knowledge Graph (400ms)
+        setTimeout(function() {
+            self._hydrateKnowledgeGraph(dataCopy, completedList, isDemo);
+        }, 400);
+
+        // Hydration 3: 刷新面板 (600ms)
+        setTimeout(function() {
+            self.refresh();
+        }, 600);
     },
 
     /**
-     * 延迟渲染 Skill Mastery + Knowledge Graph
+     * 🔥 分段 Hydration: Skill Mastery
      */
-    _renderDeferredContent: function(data, completedList, isDemo) {
-        if (this._deferredRendered) return;
-        this._deferredRendered = true;
-
-        console.log("📊 Hydrating deferred content...");
+    _hydrateSkillMastery: function(data, completedList, isDemo) {
+        console.log("💧 Hydrating Skill Mastery...");
+        this._hydrationStage++;
 
         var skills = this._getSkillMastery(completedList, isDemo);
         var skillsHtml = skills.map(function(s) {
@@ -955,6 +963,29 @@ LawAIApp.SystemComposer = {
                 </div>
             `;
         }).join('');
+
+        var container = document.getElementById('skill-mastery-placeholder');
+        if (container) {
+            container.innerHTML = `
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+                    <span style="font-size:14px;">🧠</span>
+                    <span style="font-size:12px;color:#94a3b8;font-weight:400;">Skill Mastery</span>
+                </div>
+                ${skillsHtml}
+                <div style="font-size:8px;color:#64748b;margin-top:4px;text-align:right;">
+                    ${isDemo ? 'Complete lessons to unlock skills!' : ''}
+                </div>
+            `;
+            container.style.animation = 'fadeIn 0.4s ease';
+        }
+    },
+
+    /**
+     * 🔥 分段 Hydration: Knowledge Graph
+     */
+    _hydrateKnowledgeGraph: function(data, completedList, isDemo) {
+        console.log("💧 Hydrating Knowledge Graph...");
+        this._hydrationStage++;
 
         var graph = this._getKnowledgeGraph(completedList, isDemo);
         var nodes = graph.nodes;
@@ -1021,44 +1052,21 @@ LawAIApp.SystemComposer = {
             graphHtml = '<div style="color:#64748b;font-size:12px;text-align:center;padding:8px 0;">Complete lessons to build your graph.</div>';
         }
 
-        var skillHtml = `
-            <div style="background:rgba(255,255,255,0.02);border-radius:16px;padding:16px 20px;border:1px solid rgba(255,255,255,0.04);">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
-                    <span style="font-size:14px;">🧠</span>
-                    <span style="font-size:12px;color:#94a3b8;font-weight:400;">Skill Mastery</span>
-                </div>
-                ${skillsHtml}
-                <div style="font-size:8px;color:#64748b;margin-top:4px;text-align:right;">
-                    ${isDemo ? 'Complete lessons to unlock skills!' : ''}
-                </div>
-            </div>
-        `;
-
-        var graphContainerHtml = `
-            <div style="background:rgba(255,255,255,0.02);border-radius:16px;padding:16px 20px;border:1px solid rgba(255,255,255,0.04);">
+        var container = document.getElementById('knowledge-graph-placeholder');
+        if (container) {
+            container.innerHTML = `
                 <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
                     <span style="font-size:14px;">🔗</span>
                     <span style="font-size:12px;color:#94a3b8;font-weight:400;">Knowledge Graph</span>
                 </div>
                 ${graphHtml}
-            </div>
-        `;
-
-        var container = document.getElementById('deferred-dashboard-content');
-        if (container) {
-            container.innerHTML = skillHtml + graphContainerHtml;
-            container.style.opacity = '1';
-            var children = container.children;
-            for (var i = 0; i < children.length; i++) {
-                children[i].style.animation = 'fadeIn 0.4s ease ' + (i * 0.08) + 's';
-            }
+            `;
+            container.style.animation = 'fadeIn 0.4s ease 0.1s';
         }
-
-        console.log('📊 Deferred content hydrated');
     },
 
     // ============================================================
-    // 13. Fallback UI 方法（保留）
+    // 13. Fallback UI 方法
     // ============================================================
 
     _renderMinimalUI: function() {
@@ -1104,7 +1112,6 @@ LawAIApp.SystemComposer = {
         var navItems = document.querySelectorAll('.nav-item');
         var self = this;
         navItems.forEach(function(item) {
-            // 移除旧监听，避免重复
             item.removeEventListener('click', self._navClickHandler);
             item.addEventListener('click', self._navClickHandler = function(e) {
                 var tab = this.getAttribute('data-tab');
@@ -1194,7 +1201,8 @@ LawAIApp.SystemComposer = {
             domCacheSize: Object.keys(this.cache).length,
             deferredRendered: this._deferredRendered,
             panelsRegistered: this._panelsRegistered,
-            firstPaintComplete: this._firstPaintComplete
+            firstPaintComplete: this._firstPaintComplete,
+            hydrationStage: this._hydrationStage
         };
     },
 
