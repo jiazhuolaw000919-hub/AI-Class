@@ -35,6 +35,7 @@ REGISTRY SUMMARY
 | ENG-006 | MemoryEngine | Core Logic | 🟢 Canon Locked | 2.0.0 |
 | ENG-007 | PracticeEngine | Core Logic | 🟢 Canon Locked | 2.0.0 |
 | ENG-008 | ReflectionEngine | Core Logic | 🟢 Canon Locked | 1.0.0 |
+| **ENG-009** | **AIMentorEngine** | **AI Layer** | **🟢 Canon Locked** | **1.0.0** |
 
 **Total Registered Engines:** 8
 
@@ -382,3 +383,63 @@ ENGINE REGISTRATION DETAILS
   nextReview: '2026-01-08T00:00:00.000Z',
   reviewCount: 0
 }
+
+---
+
+## ENG-009: AIMentorEngine
+
+| Property | Value |
+|----------|-------|
+| **Engine ID** | ENG-009 |
+| **Engine Name** | AIMentorEngine |
+| **Architecture Layer** | AI Layer |
+| **Purpose** | Provides AI-powered mentorship and learning support. Acts as Teacher, Mentor, Coach, Reviewer, Companion, and Navigator. |
+| **Owner Domain** | AI Mentorship & Learning Support |
+| **Recovery Status** | 🟢 Canon Locked |
+| **Version** | 1.0.0 |
+
+### Canonical API
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `getMentorMessage(context, type)` | Get personalized mentor message | string |
+| `explainConcept(concept, level)` | Explain a concept at appropriate level | string |
+| `getEncouragement(progress)` | Get encouragement based on progress | string |
+| `askReflectionQuestion(lessonId)` | Get a reflection question | string |
+| `reviewAnswer(question, answer)` | Review answer and provide feedback | object |
+| `suggestNextAction(lessonId)` | Suggest next learning action | string |
+| `getPersonalizedGreeting()` | Get personalized greeting | string |
+| `getStatus()` | Get engine status | Status object |
+
+### Dependencies
+
+| Dependency | Type | Description |
+|------------|------|-------------|
+| ProgressEngine | Optional | For progress data |
+| LessonEngine | Optional | For lesson data |
+| MemoryEngine | Optional | For memory data |
+
+### Canonical Events
+
+| Event | Type | Payload | Description |
+|-------|------|---------|-------------|
+| None | - | - | Passive engine, no events emitted |
+
+### AI Roles
+
+| Role | Description |
+|------|-------------|
+| Teacher | Explains concepts clearly |
+| Mentor | Provides guidance and wisdom |
+| Coach | Encourages improvement |
+| Reviewer | Evaluates understanding |
+| Companion | Maintains engagement |
+| Navigator | Suggests learning paths |
+
+### Future Extension
+
+- Integration with external AI APIs (OpenAI, Claude)
+- Voice interaction support
+- Personalization based on learner feedback
+- Adaptive difficulty
+- Multi-language support
