@@ -1,6 +1,6 @@
 // ===========================================
-// router.js – V4.7 - Instant First Paint + Profiler (Phase P.1)
-// 优化：非关键初始化延迟到首屏后
+// router.js – V5.0 Navigation Recovery (Phase 6)
+// 自然引导，不是菜单。每个页面自然引导到下一个行动。
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -22,24 +22,24 @@ LawAIApp.Router = {
     _initialized: false,
     _popstateHandling: false,
     _isNavigating: false,
+    _navigationHistory: [],
+    _maxHistory: 20,
 
-    /**
-     * 初始化路由 — 立即执行关键功能，延迟非关键功能
-     */
+    // ============================================================
+    // INIT — 立即初始化，不阻塞
+    // ============================================================
+
     init: function() {
         if (this._initialized) return;
         this._initialized = true;
 
-        console.log('🧭 Router V4.7 initializing (critical only)...');
+        console.log('🧭 Router V5.0 initializing (Navigation Recovery)...');
 
-        // 🔥 Profiler: 注册 Router
         if (LawAIApp.DevTools?.RuntimeProfiler) {
             LawAIApp.DevTools.RuntimeProfiler.registerEngine('Router');
         }
 
-        // ============================================================
-        // 1. 关键：立即恢复当前页面状态（从 URL 解析）
-        // ============================================================
+        // 1. 立即恢复当前页面状态
         var currentPath = window.location.pathname;
         var initialPage = this._getPageFromPath(currentPath);
         
@@ -48,18 +48,18 @@ LawAIApp.Router = {
                 { page: 'dashboard', title: '📊 Dashboard', params: {} }
             ];
             this._pushBreadcrumb(initialPage, {});
+            this._navigationHistory.push('dashboard');
+            this._navigationHistory.push(initialPage);
             this.loadPage(initialPage);
             this.updateNav(initialPage);
         } else {
+            this._navigationHistory.push('dashboard');
             this.loadPage('dashboard');
             this.updateNav('dashboard');
         }
 
-        // ============================================================
-        // 2. 延迟：绑定事件监听（不阻塞首屏）
-        // ============================================================
+        // 2. 延迟绑定事件监听（不阻塞首屏）
         var self = this;
-        
         var scheduleFn = window.requestIdleCallback || function(cb) { setTimeout(cb, 100); };
         
         scheduleFn(function() {
@@ -67,12 +67,13 @@ LawAIApp.Router = {
             console.log('🧭 Router: Event listeners bound (deferred)');
         });
 
-        console.log('🧭 Router V4.7 ready (critical)');
+        console.log('🧭 Router V5.0 ready');
     },
 
-    /**
-     * 🔥 绑定事件监听（延迟执行）
-     */
+    // ============================================================
+    // 事件绑定（延迟）
+    // ============================================================
+
     _bindEventListeners: function() {
         document.querySelectorAll('.nav-item').forEach(function(btn) {
             btn.addEventListener('click', function(e) {
@@ -107,7 +108,73 @@ LawAIApp.Router = {
     },
 
     // ============================================================
-    // 导航
+    // PART C: Continue Learning — 智能继续
+    // ============================================================
+
+    /**
+     * 获取当前应该继续的课程
+     * 智能判断：未完成的第一课，或复习最后一课
+     */
+    getContinueLesson: function() {
+        try {
+            var progress = LawAIApp.ProgressEngine?.getProgress?.();
+            if (!progress) return 'day-1';
+
+            var completed = progress.completedLessons || [];
+            var total = progress.totalLessons || 365;
+            var nextDay = completed.length + 1;
+
+            // 如果全部完成，返回最后一课（复习）
+            if (nextDay > total) {
+                return 'day-' + total;
+            }
+            return 'day-' + nextDay;
+        } catch (e) {
+            return 'day-1';
+        }
+    },
+
+    /**
+     * 获取继续学习的链接
+     */
+    getContinueLink: function() {
+        var lesson = this.getContinueLesson();
+        return '/pages/lesson.html?day=' + lesson.replace('day-', '');
+    },
+
+    /**
+     * 获取继续学习的标题
+     */
+    getContinueTitle: function() {
+        var lesson = this.getContinueLesson();
+        var dayNum = parseInt(lesson.replace('day-', ''));
+        try {
+            if (LawAIApp.LessonEngine?.getLessonByDay) {
+                var l = LawAIApp.LessonEngine.getLessonByDay(dayNum);
+                if (l && l.title) return l.title;
+            }
+        } catch (e) {}
+        return 'Day ' + dayNum;
+    },
+
+    /**
+     * 获取继续学习的描述
+     */
+    getContinueDescription: function() {
+        var lesson = this.getContinueLesson();
+        var dayNum = parseInt(lesson.replace('day-', ''));
+        try {
+            if (LawAIApp.LessonEngine?.getLessonByDay) {
+                var l = LawAIApp.LessonEngine.getLessonByDay(dayNum);
+                if (l && l.summary) return l.summary;
+                if (l && l.subtitle) return l.subtitle;
+            }
+        } catch (e) {}
+        return 'Continue your AI learning journey.';
+    },
+
+    // ============================================================
+    // 导航核心
     // ============================================================
 
     navigate: function(page, params, options) {
@@ -129,10 +196,16 @@ LawAIApp.Router = {
         this._isNavigating = true;
         this.currentParams = params;
 
+        // 记录历史（非 popstate）
         if (!fromPopstate && !options.replace) {
             this._pushBreadcrumb(page, params);
+            this._navigationHistory.push(page);
+            if (this._navigationHistory.length > this._maxHistory) {
+                this._navigationHistory.shift();
+            }
         }
 
+        // 特殊页面跳转
         if (page === 'academy' || page === 'academy.html') {
             console.log('📌 Navigating to Academy page');
             this.currentPage = 'academy';
@@ -153,7 +226,6 @@ LawAIApp.Router = {
         if (page === 'dashboard') {
             console.log('📌 Navigating to Dashboard');
             if (window.location.pathname.includes('/pages/')) {
-                console.log('📌 On /pages/ path, redirecting to /');
                 this._isNavigating = false;
                 window.location.href = '/';
                 return;
@@ -180,20 +252,165 @@ LawAIApp.Router = {
         this._isNavigating = false;
     },
 
-    /**
-     * 构建路径
-     */
-    _buildPath: function(page, params) {
-        if (page === 'academy' || page === 'academy.html') {
-            return '/pages/academy.html';
+    // ============================================================
+    // PART D: 返回导航 — 可预测
+    // ============================================================
+
+    goBack: function() {
+        console.log('🔙 goBack called');
+
+        // 1. 优先使用面包屑栈
+        if (this._breadcrumbStack.length > 1) {
+            this._breadcrumbStack.pop();
+            var prev = this._breadcrumbStack[this._breadcrumbStack.length - 1];
+            if (prev) {
+                if (prev.page === 'academy' || prev.page === 'lesson') {
+                    window.location.href = this._buildPath(prev.page, prev.params || {});
+                    return;
+                }
+                this.navigate(prev.page, prev.params || {}, { replace: true });
+                return;
+            }
         }
+
+        // 2. 使用导航历史
+        if (this._navigationHistory.length > 1) {
+            this._navigationHistory.pop();
+            var prevPage = this._navigationHistory[this._navigationHistory.length - 1];
+            if (prevPage && prevPage !== this.currentPage) {
+                this.navigate(prevPage, {}, { replace: true });
+                return;
+            }
+        }
+
+        // 3. 浏览器后退
+        if (window.history.length > 1) {
+            window.history.back();
+            return;
+        }
+
+        // 4. 最终 fallback：回首页
+        this.goHome();
+    },
+
+    goHome: function() {
+        console.log('🏠 goHome called');
+        if (window.location.pathname.includes('/pages/')) {
+            window.location.href = '/';
+            return;
+        }
+        this.navigate('dashboard', {}, { replace: true });
+    },
+
+    // ============================================================
+    // PART F: 面包屑 — 当前位置
+    // ============================================================
+
+    getBreadcrumbs: function() {
+        return this._breadcrumbStack.slice();
+    },
+
+    getCurrentPosition: function() {
+        var stack = this._breadcrumbStack;
+        if (stack.length === 0) return 'Dashboard';
+        return stack[stack.length - 1]?.title || 'Dashboard';
+    },
+
+    _pushBreadcrumb: function(page, params) {
+        var titles = {
+            dashboard: '📊 Dashboard',
+            learning: '📚 Learning',
+            calendar: '📅 Calendar',
+            notes: '📝 Notes',
+            tools: '🛠️ Tools',
+            prompt: '📋 Prompts',
+            settings: '⚙️ Settings',
+            lesson: '📖 Day ' + (params?.day || '?'),
+            academy: '🏛️ Academy',
+            'academy-dashboard': '🤖 AI Foundation',
+            'course-ai-fundamentals': '📖 AI Fundamentals',
+            module: '📦 ' + (params?.moduleId || 'Module'),
+            'lesson-detail': '📖 ' + (params?.lessonId || 'Lesson'),
+            practice: '⚡ ' + (params?.practiceId || 'Practice'),
+            'quiz-dashboard': '📊 Quiz Insights',
+            'smart-project': '🚀 ' + (params?.projectId || 'Project'),
+            'learning-hub': '📚 Learning Hub',
+            'knowledge-capture': '📓 Notes',
+            'knowledge-editor': '✏️ Editor',
+            'knowledge-favorites': '⭐ Favorites',
+            'knowledge-export': '📤 Export',
+            'adaptive-memory': '🧠 Adaptive Memory',
+            'intelligence': '🧠 Intelligence',
+            'mentor-brain': '🤖 Mentor Brain',
+            'conversations': '💬 Chat',
+            'planner': '📅 Planner',
+            'goal-intelligence': '🎯 Goals',
+            'command-center': '🚀 Command Center',
+            'career-showcase': '🚀 Showcase'
+        };
+
+        var title = titles[page] || page;
+        if (this._breadcrumbStack.length > 0 && this._breadcrumbStack[this._breadcrumbStack.length - 1].page === page) {
+            return;
+        }
+        this._breadcrumbStack.push({ page: page, title: title, params: params });
+        if (this._breadcrumbStack.length > 8) {
+            this._breadcrumbStack.shift();
+        }
+    },
+
+    _renderBreadcrumb: function() {
+        var oldBreadcrumb = document.getElementById('breadcrumb-nav');
+        if (oldBreadcrumb) oldBreadcrumb.remove();
+
+        if (this.currentPage === 'dashboard' || this._breadcrumbStack.length <= 1) return;
+
+        var breadcrumb = document.createElement('div');
+        breadcrumb.id = 'breadcrumb-nav';
+        breadcrumb.style.cssText = `
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            flex-wrap: wrap;
+            max-width: 1000px;
+            margin: 0 auto;
+            animation: fadeIn 0.3s ease;
+        `;
+
+        var html = '<a href="/" style="cursor:pointer;color:#4a9eff;text-decoration:none;font-weight:500;">🏠 Home</a>';
+
+        this._breadcrumbStack.forEach(function(crumb, index) {
+            html += ' <span style="opacity:0.4;font-size:0.6rem;">›</span> ';
+            if (index === this._breadcrumbStack.length - 1) {
+                html += '<span style="color:#e2e8f0;font-weight:500;">' + crumb.title + '</span>';
+            } else {
+                var href = this._buildPath(crumb.page, crumb.params || {});
+                html += '<a href="' + href + '" style="cursor:pointer;color:#4a9eff;text-decoration:none;opacity:0.7;">' + crumb.title + '</a>';
+            }
+        }.bind(this));
+
+        breadcrumb.innerHTML = html;
+
+        var app = document.getElementById('app') || document.getElementById('law-runtime-root');
+        if (app && app.parentNode) {
+            app.parentNode.insertBefore(breadcrumb, app);
+        }
+    },
+
+    // ============================================================
+    // 原有方法保持不变
+    // ============================================================
+
+    _buildPath: function(page, params) {
+        if (page === 'academy' || page === 'academy.html') return '/pages/academy.html';
         if (page === 'lesson' || page === 'lesson.html') {
             var day = params.day || params.lessonId || '1';
             return '/pages/lesson.html?day=' + day;
         }
-        if (page === 'dashboard') {
-            return '/';
-        }
+        if (page === 'dashboard') return '/';
         var path = '/' + page;
         if (Object.keys(params).length > 0) {
             var query = Object.keys(params).map(function(k) {
@@ -204,39 +421,19 @@ LawAIApp.Router = {
         return path;
     },
 
-    /**
-     * 加载页面（含 Profiler 渲染计数）
-     */
     loadPage: function(page) {
         var app = document.getElementById('app') || document.getElementById('law-runtime-root');
 
-        // 🔥 Profiler: 记录页面渲染
-        if (LawAIApp.DevTools?.RuntimeProfiler) {
-            var pageName = page;
-            if (page === 'academy' || page === 'academy.html' || page === 'pages') pageName = 'academy';
-            else if (page === 'lesson' || page === 'lesson.html') pageName = 'lesson';
-            else if (page === 'dashboard') pageName = 'dashboard';
-            LawAIApp.DevTools.RuntimeProfiler.recordRender(pageName);
-        }
-
         if (page === 'academy' || page === 'academy.html' || page === 'pages') {
             if (app) {
-                if (LawAIApp.Views?.AcademyAIView && typeof LawAIApp.Views.AcademyAIView.render === 'function') {
+                if (LawAIApp.Views?.AcademyAIView?.render) {
                     app.innerHTML = '';
                     LawAIApp.Views.AcademyAIView.render(app);
-                    console.log('✅ Academy rendered via View');
-                } else if (LawAIApp.AcademyAIView && typeof LawAIApp.AcademyAIView.render === 'function') {
+                } else if (LawAIApp.AcademyAIView?.render) {
                     app.innerHTML = '';
                     LawAIApp.AcademyAIView.render(app);
-                    console.log('✅ Academy rendered via AcademyAIView');
                 } else {
-                    app.innerHTML = `
-                        <div style="padding:40px;text-align:center;color:#94a3b8;">
-                            <h3>🏛️ Academy</h3>
-                            <p>Loading academy content...</p>
-                            <button onclick="LawAIApp.Router.goHome()" style="margin-top:16px;padding:8px 24px;background:#4a9eff;border:none;border-radius:8px;color:white;cursor:pointer;">🏠 Go Home</button>
-                        </div>
-                    `;
+                    app.innerHTML = `<div style="padding:40px;text-align:center;color:#94a3b8;"><h3>🏛️ Academy</h3><p>Loading academy content...</p><button onclick="LawAIApp.Router.goHome()" style="margin-top:16px;padding:8px 24px;background:#4a9eff;border:none;border-radius:8px;color:white;cursor:pointer;">🏠 Go Home</button></div>`;
                 }
             }
             this.currentPage = 'academy';
@@ -246,22 +443,14 @@ LawAIApp.Router = {
         if (page === 'lesson' || page === 'lesson.html') {
             var day = this.currentParams.day || this.currentParams.lessonId || '1';
             if (app) {
-                if (LawAIApp.Views?.LessonView && typeof LawAIApp.Views.LessonView.render === 'function') {
+                if (LawAIApp.Views?.LessonView?.render) {
                     app.innerHTML = '';
                     LawAIApp.Views.LessonView.render(day, app);
-                    console.log('✅ Lesson rendered via View');
-                } else if (LawAIApp.LessonView && typeof LawAIApp.LessonView.render === 'function') {
+                } else if (LawAIApp.LessonView?.render) {
                     app.innerHTML = '';
                     LawAIApp.LessonView.render(day, app);
-                    console.log('✅ Lesson rendered via LessonView');
                 } else {
-                    app.innerHTML = `
-                        <div style="padding:40px;text-align:center;color:#94a3b8;">
-                            <h3>📖 Lesson ${day}</h3>
-                            <p>Loading lesson content...</p>
-                            <button onclick="LawAIApp.Router.goHome()" style="margin-top:16px;padding:8px 24px;background:#4a9eff;border:none;border-radius:8px;color:white;cursor:pointer;">🏠 Go Home</button>
-                        </div>
-                    `;
+                    app.innerHTML = `<div style="padding:40px;text-align:center;color:#94a3b8;"><h3>📖 Lesson ${day}</h3><p>Loading lesson content...</p><button onclick="LawAIApp.Router.goHome()" style="margin-top:16px;padding:8px 24px;background:#4a9eff;border:none;border-radius:8px;color:white;cursor:pointer;">🏠 Go Home</button></div>`;
                 }
             }
             this.currentPage = 'lesson';
@@ -272,13 +461,9 @@ LawAIApp.Router = {
         if (page === 'academy-dashboard') {
             if (app) {
                 app.innerHTML = '';
-                if (LawAIApp.Views?.AcademyAIView && typeof LawAIApp.Views.AcademyAIView.render === 'function') {
-                    LawAIApp.Views.AcademyAIView.render(app);
-                } else if (LawAIApp.AcademyAIView && typeof LawAIApp.AcademyAIView.render === 'function') {
-                    LawAIApp.AcademyAIView.render();
-                } else {
-                    app.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;"><h3>🤖 AI Foundation</h3><p>Loading...</p></div>';
-                }
+                if (LawAIApp.Views?.AcademyAIView?.render) LawAIApp.Views.AcademyAIView.render(app);
+                else if (LawAIApp.AcademyAIView?.render) LawAIApp.AcademyAIView.render();
+                else app.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;"><h3>🤖 AI Foundation</h3><p>Loading...</p></div>';
             }
             this.currentPage = page;
             return;
@@ -286,7 +471,7 @@ LawAIApp.Router = {
 
         // course-ai-fundamentals
         if (page === 'course-ai-fundamentals' && LawAIApp.CourseAIFundamentalsView) {
-            if (app) { app.innerHTML = ''; }
+            if (app) app.innerHTML = '';
             LawAIApp.CourseAIFundamentalsView.render();
             this.currentPage = page;
             return;
@@ -294,15 +479,15 @@ LawAIApp.Router = {
 
         // module
         if (page === 'module' && LawAIApp.ModuleView) {
-            if (app) { app.innerHTML = ''; }
+            if (app) app.innerHTML = '';
             LawAIApp.ModuleView.render(this.currentParams.moduleId);
             this.currentPage = page;
             return;
         }
 
         // lesson-detail
-        if (page === 'lesson-detail' && LawAIApp.Views && LawAIApp.Views.LessonView) {
-            if (app) { app.innerHTML = ''; }
+        if (page === 'lesson-detail' && LawAIApp.Views?.LessonView) {
+            if (app) app.innerHTML = '';
             LawAIApp.Views.LessonView.render(this.currentParams.lessonId, app);
             this.currentPage = page;
             return;
@@ -310,7 +495,7 @@ LawAIApp.Router = {
 
         // practice
         if (page === 'practice' && LawAIApp.PracticeView) {
-            if (app) { app.innerHTML = ''; }
+            if (app) app.innerHTML = '';
             LawAIApp.PracticeView.render(this.currentParams.practiceId);
             this.currentPage = page;
             return;
@@ -318,7 +503,7 @@ LawAIApp.Router = {
 
         // quiz-dashboard
         if (page === 'quiz-dashboard' && LawAIApp.QuizInsightDashboard) {
-            if (app) { app.innerHTML = ''; }
+            if (app) app.innerHTML = '';
             LawAIApp.QuizInsightDashboard.render(this.currentParams.moduleId);
             this.currentPage = page;
             return;
@@ -326,7 +511,7 @@ LawAIApp.Router = {
 
         // smart-project
         if (page === 'smart-project' && LawAIApp.SmartProjectView) {
-            if (app) { app.innerHTML = ''; }
+            if (app) app.innerHTML = '';
             LawAIApp.SmartProjectView.render(this.currentParams.projectId);
             this.currentPage = page;
             return;
@@ -334,7 +519,7 @@ LawAIApp.Router = {
 
         // learning-hub
         if (page === 'learning-hub' && LawAIApp.LearningHub) {
-            if (app) { app.innerHTML = ''; }
+            if (app) app.innerHTML = '';
             LawAIApp.LearningHub.render();
             this.currentPage = page;
             return;
@@ -342,7 +527,7 @@ LawAIApp.Router = {
 
         // knowledge-capture
         if (page === 'knowledge-capture' && LawAIApp.KnowledgeDashboard) {
-            if (app) { app.innerHTML = ''; }
+            if (app) app.innerHTML = '';
             LawAIApp.KnowledgeDashboard.render();
             this.currentPage = page;
             return;
@@ -350,7 +535,7 @@ LawAIApp.Router = {
 
         // knowledge-editor
         if (page === 'knowledge-editor' && LawAIApp.KnowledgeEditor) {
-            if (app) { app.innerHTML = ''; }
+            if (app) app.innerHTML = '';
             LawAIApp.KnowledgeEditor.render(this.currentParams);
             this.currentPage = page;
             return;
@@ -385,7 +570,7 @@ LawAIApp.Router = {
 
         // adaptive-memory
         if (page === 'adaptive-memory' && LawAIApp.MemoryDashboard) {
-            if (app) { app.innerHTML = ''; }
+            if (app) app.innerHTML = '';
             LawAIApp.MemoryDashboard.render();
             this.currentPage = page;
             return;
@@ -393,7 +578,7 @@ LawAIApp.Router = {
 
         // intelligence
         if (page === 'intelligence' && LawAIApp.IntelligenceEngine) {
-            if (app) { app.innerHTML = ''; }
+            if (app) app.innerHTML = '';
             LawAIApp.IntelligenceEngine.renderDashboard();
             this.currentPage = page;
             return;
@@ -401,7 +586,7 @@ LawAIApp.Router = {
 
         // mentor-brain
         if (page === 'mentor-brain' && LawAIApp.MentorBrain) {
-            if (app) { app.innerHTML = ''; }
+            if (app) app.innerHTML = '';
             LawAIApp.MentorBrain.renderDashboard();
             this.currentPage = page;
             return;
@@ -409,7 +594,7 @@ LawAIApp.Router = {
 
         // conversations
         if (page === 'conversations' && LawAIApp.ConversationUI) {
-            if (app) { app.innerHTML = ''; }
+            if (app) app.innerHTML = '';
             LawAIApp.ConversationUI.render();
             this.currentPage = page;
             return;
@@ -417,7 +602,7 @@ LawAIApp.Router = {
 
         // planner
         if (page === 'planner' && LawAIApp.PlannerDashboard) {
-            if (app) { app.innerHTML = ''; }
+            if (app) app.innerHTML = '';
             LawAIApp.PlannerDashboard.render();
             this.currentPage = page;
             return;
@@ -425,7 +610,7 @@ LawAIApp.Router = {
 
         // goal-intelligence
         if (page === 'goal-intelligence' && LawAIApp.GoalDashboard) {
-            if (app) { app.innerHTML = ''; }
+            if (app) app.innerHTML = '';
             LawAIApp.GoalDashboard.render();
             this.currentPage = page;
             return;
@@ -433,7 +618,7 @@ LawAIApp.Router = {
 
         // command-center
         if (page === 'command-center' && LawAIApp.CommandCenter) {
-            if (app) { app.innerHTML = ''; }
+            if (app) app.innerHTML = '';
             LawAIApp.CommandCenter.render();
             this.currentPage = page;
             return;
@@ -441,7 +626,7 @@ LawAIApp.Router = {
 
         // career-showcase
         if (page === 'career-showcase' && LawAIApp.ShowcaseDashboard) {
-            if (app) { app.innerHTML = ''; }
+            if (app) app.innerHTML = '';
             LawAIApp.ShowcaseDashboard.render();
             this.currentPage = page;
             return;
@@ -449,17 +634,12 @@ LawAIApp.Router = {
 
         // Dashboard
         if (page === 'dashboard') {
-            console.log('📌 Loading Dashboard...');
-            
-            if (LawAIApp.Dashboard && typeof LawAIApp.Dashboard.render === 'function') {
-                console.log('✅ Dashboard.render found');
+            if (LawAIApp.Dashboard?.render) {
                 if (app) app.innerHTML = '';
                 LawAIApp.Dashboard.render(this.currentParams);
                 this.currentPage = 'dashboard';
                 return;
             }
-
-            console.warn('⚠️ LawAIApp.Dashboard not found, using inline fallback');
             if (app) {
                 app.innerHTML = `
                     <div style="padding:20px;max-width:1000px;margin:0 auto;font-family:'Inter',sans-serif;">
@@ -501,9 +681,7 @@ LawAIApp.Router = {
                                 <a href="/pages/academy.html" style="padding:8px 20px;background:rgba(74,158,255,0.15);border-radius:8px;color:#4a9eff;text-decoration:none;font-size:13px;font-weight:500;">Enter →</a>
                             </div>
                         </div>
-                        <div style="margin-top:30px;text-align:center;font-size:12px;color:#64748b;">
-                            ⚡ Router V4.7 | Dashboard fallback mode
-                        </div>
+                        <div style="margin-top:30px;text-align:center;font-size:12px;color:#64748b;">⚡ Router V5.0 | Dashboard fallback mode</div>
                     </div>
                 `;
             }
@@ -511,19 +689,16 @@ LawAIApp.Router = {
             return;
         }
 
-        // 其他模板页面 fallback
+        // 其他页面 fallback
         var cacheKey = this._getCacheKey(page, this.currentParams);
         if (this._pageCache[cacheKey]) {
-            if (app) {
-                app.innerHTML = this._pageCache[cacheKey];
-            }
+            if (app) app.innerHTML = this._pageCache[cacheKey];
             this.currentPage = page;
             return;
         }
 
         var template = document.getElementById('template-' + page);
         if (!template) {
-            console.log('📄 Page: ' + page + ' (no template, using fallback)');
             if (app) {
                 app.innerHTML = `
                     <div style="padding:40px;text-align:center;color:#94a3b8;">
@@ -545,9 +720,6 @@ LawAIApp.Router = {
         this.currentPage = page;
     },
 
-    /**
-     * 更新导航高亮 + 面包屑
-     */
     updateNav: function(activePage) {
         document.querySelectorAll('.nav-item').forEach(function(btn) {
             var page = btn.dataset.page;
@@ -560,9 +732,6 @@ LawAIApp.Router = {
         this._renderBreadcrumb();
     },
 
-    /**
-     * 从路径获取页面名
-     */
     _getPageFromPath: function(path) {
         if (path.includes('/pages/')) {
             var parts = path.split('/pages/');
@@ -580,9 +749,6 @@ LawAIApp.Router = {
         return null;
     },
 
-    /**
-     * 获取缓存 key
-     */
     _getCacheKey: function(page, params) {
         if (page === 'lesson' && params.day) return 'lesson_day_' + params.day;
         if (page === 'module' && params.moduleId) return 'module_' + params.moduleId;
@@ -594,158 +760,20 @@ LawAIApp.Router = {
         return page;
     },
 
-    /**
-     * 面包屑
-     */
-    _pushBreadcrumb: function(page, params) {
-        var titles = {
-            dashboard: '📊 Dashboard',
-            learning: '📚 Learning',
-            calendar: '📅 Calendar',
-            notes: '📝 Notes',
-            tools: '🛠️ Tools',
-            prompt: '📋 Prompts',
-            settings: '⚙️ Settings',
-            lesson: '📖 Day ' + (params?.day || '?'),
-            academy: '🏫 Academy',
-            'academy-dashboard': '🤖 AI Foundation',
-            'course-ai-fundamentals': '📖 AI Fundamentals',
-            module: '📦 ' + (params?.moduleId || 'Module'),
-            'lesson-detail': '📖 ' + (params?.lessonId || 'Lesson'),
-            practice: '⚡ ' + (params?.practiceId || 'Practice'),
-            'quiz-dashboard': '📊 Quiz Insights',
-            'smart-project': '🚀 ' + (params?.projectId || 'Project'),
-            'learning-hub': '📚 Learning Hub',
-            'knowledge-capture': '📓 Notes',
-            'knowledge-editor': '✏️ Editor',
-            'knowledge-favorites': '⭐ Favorites',
-            'knowledge-export': '📤 Export',
-            'adaptive-memory': '🧠 Adaptive Memory',
-            'intelligence': '🧠 Intelligence',
-            'mentor-brain': '🤖 Mentor Brain',
-            'conversations': '💬 Chat',
-            'planner': '📅 Planner',
-            'goal-intelligence': '🎯 Goals',
-            'command-center': '🚀 Command Center',
-            'career-showcase': '🚀 Showcase'
-        };
+    getCurrentPath: function() { return '/' + this.currentPage; },
+    getHistory: function() { return this._breadcrumbStack.slice(); },
+    getNavigationHistory: function() { return this._navigationHistory.slice(); },
 
-        var title = titles[page] || page;
-        if (this._breadcrumbStack.length > 0 && this._breadcrumbStack[this._breadcrumbStack.length - 1].page === page) {
-            return;
-        }
-        this._breadcrumbStack.push({ page: page, title: title, params: params });
-        if (this._breadcrumbStack.length > 8) {
-            this._breadcrumbStack.shift();
-        }
-    },
-
-    /**
-     * 渲染面包屑
-     */
-    _renderBreadcrumb: function() {
-        var oldBreadcrumb = document.getElementById('breadcrumb-nav');
-        if (oldBreadcrumb) oldBreadcrumb.remove();
-
-        if (this.currentPage === 'dashboard' || this._breadcrumbStack.length <= 1) return;
-
-        var breadcrumb = document.createElement('div');
-        breadcrumb.id = 'breadcrumb-nav';
-        breadcrumb.style.cssText = `
-            padding: 0.5rem 1rem;
-            font-size: 0.8rem;
-            color: #64748b;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-            flex-wrap: wrap;
-            max-width: 1000px;
-            margin: 0 auto;
-            animation: fadeIn 0.3s ease;
-        `;
-
-        var html = '<a href="/" style="cursor:pointer;color:#4a9eff;text-decoration:none;">🏠 Home</a>';
-
-        this._breadcrumbStack.forEach(function(crumb, index) {
-            html += ' <span style="opacity:0.4;">›</span> ';
-            if (index === this._breadcrumbStack.length - 1) {
-                html += '<span style="color:#e2e8f0;">' + crumb.title + '</span>';
-            } else {
-                var href = this._buildPath(crumb.page, crumb.params || {});
-                html += '<a href="' + href + '" style="cursor:pointer;color:#4a9eff;text-decoration:none;">' + crumb.title + '</a>';
-            }
-        }.bind(this));
-
-        breadcrumb.innerHTML = html;
-
-        var app = document.getElementById('app') || document.getElementById('law-runtime-root');
-        if (app && app.parentNode) {
-            app.parentNode.insertBefore(breadcrumb, app);
-        }
-    },
-
-    /**
-     * 重新运行页面脚本
-     */
-    _rerunPageScripts: function(page) {},
-
-    /**
-     * 返回上一页
-     */
-    goBack: function() {
-        console.log('🔙 goBack called');
-        if (this._breadcrumbStack.length > 1) {
-            this._breadcrumbStack.pop();
-            var prev = this._breadcrumbStack[this._breadcrumbStack.length - 1];
-            if (prev) {
-                if (prev.page === 'academy' || prev.page === 'lesson') {
-                    window.location.href = this._buildPath(prev.page, prev.params || {});
-                    return;
-                }
-                this.navigate(prev.page, prev.params || {}, { replace: true });
-                return;
-            }
-        }
-        this.goHome();
-    },
-
-    /**
-     * 返回首页
-     */
-    goHome: function() {
-        console.log('🏠 goHome called');
-        if (window.location.pathname.includes('/pages/')) {
-            console.log('📌 On /pages/ path, redirecting to /');
-            window.location.href = '/';
-            return;
-        }
-        this.navigate('dashboard', {}, { replace: true });
-    },
-
-    /**
-     * 获取当前路径
-     */
-    getCurrentPath: function() {
-        return '/' + this.currentPage;
-    },
-
-    /**
-     * 获取历史
-     */
-    getHistory: function() {
-        return this._breadcrumbStack.slice();
-    },
-
-    /**
-     * 清除缓存
-     */
     clearCache: function() {
         this._pageCache = {};
         this._breadcrumbStack = [];
+        this._navigationHistory = [];
         var oldBreadcrumb = document.getElementById('breadcrumb-nav');
         if (oldBreadcrumb) oldBreadcrumb.remove();
         console.log('🧹 Router cache cleared');
-    }
+    },
+
+    _rerunPageScripts: function(page) {}
 };
 
 // ============================================================
@@ -753,18 +781,14 @@ LawAIApp.Router = {
 // ============================================================
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
     setTimeout(function() {
-        if (LawAIApp.Router && typeof LawAIApp.Router.init === 'function') {
-            LawAIApp.Router.init();
-        }
+        if (LawAIApp.Router?.init) LawAIApp.Router.init();
     }, 50);
 } else {
     document.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() {
-            if (LawAIApp.Router && typeof LawAIApp.Router.init === 'function') {
-                LawAIApp.Router.init();
-            }
+            if (LawAIApp.Router?.init) LawAIApp.Router.init();
         }, 50);
     });
 }
 
-console.log('🧭 Router V4.7 ready (instant first paint + profiler)');
+console.log('🧭 Router V5.0 ready (Navigation Recovery)');
