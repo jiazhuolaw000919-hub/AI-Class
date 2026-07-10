@@ -1,8 +1,7 @@
 // ===========================================
 // academyAIView.js
-// AI 基础学院 - WOW 第一印象版
+// AI 基础学院 - WOW 第一印象版 + Profiler (Phase P.1)
 // V5.0 - First Impression Recovery
-// "Make the user say WOW within 3 seconds"
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -29,15 +28,18 @@ LawAIApp.Views.AcademyAIView = {
         this._rendered = true;
         console.log('🏛️ AcademyAIView V5.0 rendering (WOW Edition)...');
 
+        // 🔥 Profiler: 记录 Academy 渲染
+        if (LawAIApp.DevTools?.RuntimeProfiler) {
+            LawAIApp.DevTools.RuntimeProfiler.recordRender('academy');
+        }
+
         var academy = this._getAcademyData();
         var progress = this._getProgressData();
         var recommendations = this._getRecommendations();
         var schools = this._getSchools();
 
-        // 立即渲染核心内容
         app.innerHTML = this._buildCoreHTML(academy, progress, recommendations, schools);
 
-        // 200ms 后加载次要内容
         var self = this;
         setTimeout(function() {
             self._renderDeferredContent(app, academy, progress, recommendations, schools);
@@ -64,7 +66,7 @@ LawAIApp.Views.AcademyAIView = {
     },
 
     // ============================================================
-    // 数据获取方法（保留所有引擎调用）
+    // 数据获取方法
     // ============================================================
 
     _getAcademyData: function() {
@@ -222,7 +224,7 @@ LawAIApp.Views.AcademyAIView = {
     },
 
     // ============================================================
-    // 🔥 WOW Edition - 核心 HTML 构建（Apple/Notion 风格）
+    // 核心 HTML 构建
     // ============================================================
 
     _buildCoreHTML: function(academy, progress, recommendations, schools) {
@@ -231,20 +233,11 @@ LawAIApp.Views.AcademyAIView = {
         var greeting = this._getGreeting(progress);
         var isComplete = progress.completed >= 365;
 
-        // 计算进度百分比
         var percent = Math.round(progress.percent || 0);
         var progressDisplay = percent + '%';
-
-        // Streak 显示
         var streakDisplay = progress.streak > 0 ? '🔥 ' + progress.streak + 'd' : '🌱 0d';
-
-        // XP 显示
         var xpDisplay = (progress.xp || 0) + ' XP';
-
-        // Level 显示
         var levelDisplay = 'Lv.' + (progress.level || 1);
-
-        // 完成状态
         var completedCount = progress.completed || 0;
         var totalCount = progress.total || 365;
         var lessonCountDisplay = completedCount + '/' + totalCount + ' lessons';
@@ -257,9 +250,6 @@ LawAIApp.Views.AcademyAIView = {
             color: #e2e8f0;
             font-family: 'Inter', -apple-system, -apple-system, sans-serif;
         ">
-            <!-- ========================================================== -->
-            <!-- 🔥 HERO 区 —— 主导整个屏幕 -->
-            <!-- ========================================================== -->
             <div id="academy-hero" style="
                 background: linear-gradient(145deg, ${academy.themeColor || '#1a2a4a'}, ${academy.themeColor ? academy.themeColor + '88' : '#2a1a4a'});
                 border-radius: 28px;
@@ -271,7 +261,6 @@ LawAIApp.Views.AcademyAIView = {
                 isolation: isolate;
                 min-height: 200px;
             ">
-                <!-- 装饰大图标（背景） -->
                 <div style="
                     position: absolute;
                     right: -20px;
@@ -282,7 +271,6 @@ LawAIApp.Views.AcademyAIView = {
                     z-index: 0;
                 ">${academy.icon || '🤖'}</div>
 
-                <!-- 装饰光晕 -->
                 <div style="
                     position: absolute;
                     top: -80px;
@@ -297,7 +285,6 @@ LawAIApp.Views.AcademyAIView = {
 
                 <div style="position:relative;z-index:1;">
 
-                    <!-- 顶部：标签 + 徽章 -->
                     <div style="
                         display: flex;
                         align-items: center;
@@ -337,7 +324,6 @@ LawAIApp.Views.AcademyAIView = {
                         ">${academy.estimatedHours || 200}h</span>
                     </div>
 
-                    <!-- 问候语 -->
                     <h1 style="
                         margin: 0 0 4px;
                         font-size: 28px;
@@ -346,7 +332,6 @@ LawAIApp.Views.AcademyAIView = {
                         line-height: 1.1;
                     ">${greeting}</h1>
 
-                    <!-- 描述 -->
                     <p style="
                         margin: 0 0 18px;
                         opacity: 0.75;
@@ -356,7 +341,6 @@ LawAIApp.Views.AcademyAIView = {
                         line-height: 1.5;
                     ">${academy.description || 'Master AI from the ground up.'}</p>
 
-                    <!-- 进度条 + 统计徽章 -->
                     <div style="
                         display: flex;
                         align-items: center;
@@ -364,7 +348,6 @@ LawAIApp.Views.AcademyAIView = {
                         flex-wrap: wrap;
                         margin-top: 4px;
                     ">
-                        <!-- 进度条 -->
                         <div style="
                             flex: 1;
                             min-width: 120px;
@@ -395,7 +378,6 @@ LawAIApp.Views.AcademyAIView = {
                             </div>
                         </div>
 
-                        <!-- 统计徽章 -->
                         <div style="
                             display: flex;
                             gap: 16px;
@@ -457,16 +439,10 @@ LawAIApp.Views.AcademyAIView = {
                 </div>
             </div>
 
-            <!-- ========================================================== -->
-            <!-- 🔥 唯一行动按钮 — Continue Learning -->
-            <!-- ========================================================== -->
             <div style="margin-bottom: 32px;">
                 ${this._buildContinueLearningHTML(progress, nextLesson, continueLink, isComplete)}
             </div>
 
-            <!-- ========================================================== -->
-            <!-- ⏳ 延迟加载区（骨架占位，轻量优雅） -->
-            <!-- ========================================================== -->
             <div id="academy-deferred" style="
                 display: grid;
                 grid-template-columns: 1fr 1fr;
@@ -474,7 +450,6 @@ LawAIApp.Views.AcademyAIView = {
                 min-height: 140px;
                 opacity: 0.6;
             ">
-                <!-- 推荐路径骨架 -->
                 <div id="recommendations-placeholder" style="
                     background: rgba(255,255,255,0.02);
                     border-radius: 16px;
@@ -497,7 +472,6 @@ LawAIApp.Views.AcademyAIView = {
                     </div>
                 </div>
 
-                <!-- 探索学院骨架 -->
                 <div id="schools-placeholder" style="
                     background: rgba(255,255,255,0.02);
                     border-radius: 16px;
@@ -516,9 +490,6 @@ LawAIApp.Views.AcademyAIView = {
                 </div>
             </div>
 
-            <!-- ========================================================== -->
-            <!-- Quick Access（紧凑，不抢戏） -->
-            <!-- ========================================================== -->
             <div id="academy-quick-access" style="
                 display: flex;
                 flex-wrap: wrap;
@@ -555,9 +526,6 @@ LawAIApp.Views.AcademyAIView = {
                 }).join('')}
             </div>
 
-            <!-- ========================================================== -->
-            <!-- 微交互样式 -->
-            <!-- ========================================================== -->
             <style>
                 @keyframes pulse {
                     0%, 100% { opacity: 1; }
@@ -576,15 +544,11 @@ LawAIApp.Views.AcademyAIView = {
         `;
     },
 
-    /**
-     * 🔥 Continue Learning — 唯一主行动按钮
-     */
     _buildContinueLearningHTML: function(progress, nextLesson, continueLink, isComplete) {
         var nextDay = parseInt(nextLesson.replace('day-', ''));
         var title = this._getLessonTitle(nextDay);
         var summary = this._getLessonSummary(nextDay);
 
-        // 如果课程完成，显示不同文案
         var actionText = isComplete ? '🎉 Review' : '📖 Continue →';
         var subtitleText = isComplete ? 'You\'ve completed everything!' : (summary || 'Continue building your AI knowledge.');
 
@@ -601,7 +565,6 @@ LawAIApp.Views.AcademyAIView = {
                 overflow: hidden;
                 box-shadow: 0 8px 40px rgba(74,158,255,0.15);
             " onmouseover="this.style.transform='scale(1.01)';this.style.boxShadow='0 12px 60px rgba(74,158,255,0.25)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 8px 40px rgba(74,158,255,0.15)'">
-                <!-- 装饰光晕 -->
                 <div style="
                     position: absolute;
                     top: -60px;
@@ -634,9 +597,6 @@ LawAIApp.Views.AcademyAIView = {
         `;
     },
 
-    /**
-     * 延迟渲染次要内容
-     */
     _renderDeferredContent: function(app, academy, progress, recommendations, schools) {
         if (this._deferredRendered) return;
         this._deferredRendered = true;
@@ -646,9 +606,6 @@ LawAIApp.Views.AcademyAIView = {
 
         console.log('📊 Academy: Rendering deferred content (WOW Edition)...');
 
-        // ============================================================
-        // 推荐路径（优雅列表）
-        // ============================================================
         var recsHtml = recommendations.slice(0, 3).map(function(rec, index) {
             var lessonId = rec.id || 'day-' + (index + 1);
             var dayNum = lessonId.replace('day-', '');
@@ -684,9 +641,6 @@ LawAIApp.Views.AcademyAIView = {
             `;
         }).join('');
 
-        // ============================================================
-        // 探索学院
-        // ============================================================
         var schoolsHtml = schools.slice(0, 3).map(function(school, index) {
             var isActive = school.status === 'active' || school.status === 'available';
             var delay = 0.1 + index * 0.06;
@@ -710,11 +664,7 @@ LawAIApp.Views.AcademyAIView = {
             `;
         }).join('');
 
-        // ============================================================
-        // 完整延迟内容
-        // ============================================================
         var deferredHtml = `
-            <!-- 推荐路径 -->
             <div style="
                 background: rgba(255,255,255,0.02);
                 border-radius: 16px;
@@ -728,7 +678,6 @@ LawAIApp.Views.AcademyAIView = {
                 ${recsHtml || '<div style="color:#64748b;font-size:13px;padding:8px 0;">Complete lessons to get recommendations.</div>'}
             </div>
 
-            <!-- 探索学院 -->
             <div style="
                 background: rgba(255,255,255,0.02);
                 border-radius: 16px;
@@ -748,13 +697,9 @@ LawAIApp.Views.AcademyAIView = {
         container.innerHTML = deferredHtml;
         container.style.opacity = '1';
 
-        // 触发完成事件
         LawAIApp.EventBus?.emit?.('AcademyDeferredRendered', { timestamp: Date.now() });
         console.log('✅ Academy deferred content rendered (WOW Edition)');
     }
 };
 
-// ============================================================
-// 引擎已加载
-// ============================================================
-console.log('🏛️ AcademyAIView V5.0 ready (WOW Edition)');
+console.log('🏛️ AcademyAIView V5.0 ready (WOW Edition + Profiler)');
