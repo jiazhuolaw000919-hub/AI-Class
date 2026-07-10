@@ -1,6 +1,6 @@
 // ===========================================
 // lessonView.js
-// 课程视图 - 完整课程展示（Season 1.5 Part D 升级版）
+// 课程视图 - 完整课程展示 + Profiler (Phase P.1)
 // V3.0 - 整合 MemoryEngine + PracticeEngine + ReflectionEngine
 // ===========================================
 
@@ -27,6 +27,11 @@ LawAIApp.Views.LessonView = {
         if (!this._container) {
             console.warn('⚠️ LessonView: Container not found');
             return;
+        }
+
+        // 🔥 Profiler: 记录 Lesson 渲染
+        if (LawAIApp.DevTools?.RuntimeProfiler) {
+            LawAIApp.DevTools.RuntimeProfiler.recordRender('lesson');
         }
 
         this._showSkeleton();
@@ -275,7 +280,6 @@ LawAIApp.Views.LessonView = {
                     <p style="margin:0;font-size:14px;">Remember: ${(lesson.keywords || []).join(', ') || 'Key concepts from this lesson'}</p>
                 </div>
 
-                <!-- 💭 Reflection -->
                 <div style="
                     background:rgba(251,191,36,0.05);
                     border-radius:12px;
@@ -313,7 +317,6 @@ LawAIApp.Views.LessonView = {
                     </button>
                 </div>
 
-                <!-- ✏️ Practice -->
                 <div style="
                     background:rgba(34,197,94,0.05);
                     border-radius:12px;
@@ -366,7 +369,6 @@ LawAIApp.Views.LessonView = {
                     " placeholder="Type your answer here...">
                 </div>
 
-                <!-- 🔄 Review -->
                 ${completed && needsReview ? `
                 <div style="
                     background:rgba(245,158,11,0.05);
@@ -621,7 +623,6 @@ LawAIApp.Views.LessonView = {
                     }
                     input.value = '';
                     
-                    // 如果正确，更新记忆强度
                     if (result.correct && LawAIApp.MemoryEngine && typeof LawAIApp.MemoryEngine.updateMemory === 'function') {
                         try {
                             var currentStrength = LawAIApp.MemoryEngine.getMemoryStrength(this._lessonId) || 50;
@@ -646,7 +647,7 @@ LawAIApp.Views.LessonView = {
 
         try {
             if (LawAIApp.MemoryEngine && typeof LawAIApp.MemoryEngine.recordReview === 'function') {
-                var performance = 0.8; // 假设复习表现良好
+                var performance = 0.8;
                 LawAIApp.MemoryEngine.recordReview(lessonId, performance);
                 
                 var feedbackEl = document.getElementById('review-feedback');
@@ -657,7 +658,6 @@ LawAIApp.Views.LessonView = {
                 if (LawAIApp.Toast?.success) {
                     LawAIApp.Toast.success('🔄 Review completed! Memory strengthened.');
                 }
-                // 重新渲染
                 setTimeout(function() {
                     this.render(lessonId, this._container);
                 }.bind(this), 1000);
@@ -712,4 +712,4 @@ LawAIApp.Views.LessonView = {
     }
 };
 
-console.log('📖 LessonView V3.0 ready');
+console.log('📖 LessonView V3.0 ready (Profiler)');
