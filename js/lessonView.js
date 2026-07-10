@@ -1,6 +1,7 @@
 // ===========================================
 // lessonView.js
 // 课程视图 - 完整课程展示（Season 1.5 Part D 升级版）
+// V2.1 - 优化完成状态检查
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -27,10 +28,8 @@ LawAIApp.Views.LessonView = {
             return;
         }
 
-        // 显示骨架
         this._showSkeleton();
 
-        // 加载课程数据
         var lesson = this._loadLesson(lessonId);
         if (lesson) {
             this._lesson = lesson;
@@ -44,7 +43,6 @@ LawAIApp.Views.LessonView = {
      * 加载课程数据
      */
     _loadLesson: function(lessonId) {
-        // 尝试从 LessonEngine 获取
         try {
             if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
                 var day = parseInt(lessonId.replace('day-', ''));
@@ -55,7 +53,6 @@ LawAIApp.Views.LessonView = {
             }
         } catch (e) {}
 
-        // 尝试从 ModuleData/LessonData 获取
         try {
             if (LawAIApp.ModuleData && LawAIApp.ModuleData.modules) {
                 var allModules = LawAIApp.ModuleData.modules;
@@ -73,7 +70,6 @@ LawAIApp.Views.LessonView = {
             }
         } catch (e) {}
 
-        // 生成默认课程数据
         var dayNum = parseInt(lessonId.replace('day-', ''));
         if (!isNaN(dayNum)) {
             return {
@@ -123,20 +119,28 @@ LawAIApp.Views.LessonView = {
     },
 
     /**
+     * 检查课程是否完成（优化版）
+     */
+    _isLessonCompleted: function(lessonId) {
+        try {
+            if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.isLessonCompleted === 'function') {
+                return LawAIApp.ProgressEngine.isLessonCompleted(lessonId);
+            }
+            if (LawAIApp.ModuleProgress && typeof LawAIApp.ModuleProgress.get === 'function') {
+                var modProgress = LawAIApp.ModuleProgress.get(this._lesson?.moduleId);
+                if (modProgress && modProgress.completedLessons) {
+                    return modProgress.completedLessons.indexOf(lessonId) !== -1;
+                }
+            }
+        } catch (e) {}
+        return false;
+    },
+
+    /**
      * 渲染课程内容
      */
     _renderContent: function(lesson) {
-        var completed = false;
-        try {
-            if (LawAIApp.ModuleProgress && typeof LawAIApp.ModuleProgress.get === 'function') {
-                var modProgress = LawAIApp.ModuleProgress.get(lesson.moduleId);
-                completed = modProgress && modProgress.completedLessons && 
-                           modProgress.completedLessons.indexOf(lesson.lessonId) !== -1;
-            }
-            if (!completed && LawAIApp.ProgressEngine) {
-                completed = LawAIApp.ProgressEngine.isLessonCompleted(lesson.lessonId);
-            }
-        } catch (e) {}
+        var completed = this._isLessonCompleted(lesson.lessonId);
 
         var html = `
             <div class="lesson-container" style="
@@ -145,7 +149,6 @@ LawAIApp.Views.LessonView = {
                 padding: 16px 20px 40px;
                 color: #e2e8f0;
             ">
-                <!-- 返回导航 -->
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
                     <button onclick="LawAIApp.Router?.goBack ? LawAIApp.Router.goBack() : history.back()" style="
                         background:none;
@@ -160,7 +163,6 @@ LawAIApp.Views.LessonView = {
                     </span>
                 </div>
 
-                <!-- 课程头部 -->
                 <div style="
                     background: linear-gradient(135deg, #1a2a4a, #2a1a4a);
                     padding: 24px;
@@ -183,7 +185,6 @@ LawAIApp.Views.LessonView = {
                     </div>
                 </div>
 
-                <!-- 学习目标 -->
                 <div style="
                     background:rgba(255,255,255,0.03);
                     border-radius:12px;
@@ -195,7 +196,6 @@ LawAIApp.Views.LessonView = {
                     <p style="margin:0;font-size:14px;">Understand the core idea behind "${lesson.shortTitle || lesson.title}".</p>
                 </div>
 
-                <!-- 主要内容占位 -->
                 <div style="
                     background:rgba(255,255,255,0.03);
                     border-radius:12px;
@@ -207,7 +207,6 @@ LawAIApp.Views.LessonView = {
                     <p style="margin:0;font-size:14px;color:#94a3b8;">Lesson content will be displayed here. Complete the lesson to unlock full content.</p>
                 </div>
 
-                <!-- AI 摘要 -->
                 <div style="
                     background:rgba(74,158,255,0.05);
                     border-radius:12px;
@@ -219,7 +218,6 @@ LawAIApp.Views.LessonView = {
                     <p style="margin:0;font-size:14px;">${lesson.summary || 'This lesson introduces key concepts in ' + (lesson.category || 'AI') + '. Focus on understanding the core principles.'}</p>
                 </div>
 
-                <!-- 记忆钩子 -->
                 <div style="
                     background:rgba(139,92,246,0.05);
                     border-radius:12px;
@@ -231,7 +229,6 @@ LawAIApp.Views.LessonView = {
                     <p style="margin:0;font-size:14px;">Remember: ${(lesson.keywords || []).join(', ') || 'Key concepts from this lesson'}</p>
                 </div>
 
-                <!-- 反思 -->
                 <div style="
                     background:rgba(251,191,36,0.05);
                     border-radius:12px;
@@ -256,7 +253,6 @@ LawAIApp.Views.LessonView = {
                     " placeholder="Write your reflection here..."></textarea>
                 </div>
 
-                <!-- 完成按钮 -->
                 ${!completed ? `
                     <button onclick="LawAIApp.Views.LessonView.completeLesson('${lesson.lessonId}')" style="
                         width:100%;
@@ -286,7 +282,6 @@ LawAIApp.Views.LessonView = {
                     </div>
                 `}
 
-                <!-- 导航 -->
                 <div style="display:flex;justify-content:space-between;margin-top:16px;gap:12px;">
                     <button onclick="LawAIApp.Views.LessonView.previousLesson()" style="
                         flex:1;
@@ -313,7 +308,9 @@ LawAIApp.Views.LessonView = {
         `;
 
         this._container.innerHTML = html;
-        this._container.scrollTop = 0;
+        if (this._container.scrollTop !== undefined) {
+            this._container.scrollTop = 0;
+        }
     },
 
     /**
@@ -358,18 +355,26 @@ LawAIApp.Views.LessonView = {
                     var xpGain = result.xpGain || 20;
                     if (LawAIApp.Toast && typeof LawAIApp.Toast.success === 'function') {
                         LawAIApp.Toast.success('🎉 Lesson completed! +' + xpGain + ' XP');
+                    } else {
+                        alert('🎉 Lesson completed! +' + xpGain + ' XP');
                     }
                     // 重新渲染
                     this.render(lessonId, this._container);
-                    // 触发事件
                     LawAIApp.EventBus?.emit?.('LessonCompleted', { lessonId: lessonId });
                 }
             } else {
-                LawAIApp.Toast?.warning?.('ProgressEngine not available');
+                console.warn('⚠️ ProgressEngine.completeLesson not available');
+                if (LawAIApp.Toast?.warning) {
+                    LawAIApp.Toast.warning('ProgressEngine not available');
+                } else {
+                    alert('ProgressEngine not available');
+                }
             }
         } catch (err) {
             console.error('Complete lesson error:', err);
-            LawAIApp.Toast?.error?.('Failed to complete lesson');
+            if (LawAIApp.Toast?.error) {
+                LawAIApp.Toast.error('Failed to complete lesson');
+            }
         }
     },
 
@@ -382,7 +387,9 @@ LawAIApp.Views.LessonView = {
             if (day > 1) {
                 this.render('day-' + (day - 1), this._container);
             } else {
-                LawAIApp.Toast?.info?.('You\'re at the first lesson');
+                if (LawAIApp.Toast?.info) {
+                    LawAIApp.Toast.info('You\'re at the first lesson');
+                }
             }
         }
     },
@@ -396,7 +403,9 @@ LawAIApp.Views.LessonView = {
             if (day < 365) {
                 this.render('day-' + (day + 1), this._container);
             } else {
-                LawAIApp.Toast?.info?.('🎉 You\'ve completed all lessons!');
+                if (LawAIApp.Toast?.info) {
+                    LawAIApp.Toast.info('🎉 You\'ve completed all lessons!');
+                }
             }
         }
     },
@@ -405,8 +414,10 @@ LawAIApp.Views.LessonView = {
      * 练习模式
      */
     goPractice: function(lessonId) {
-        LawAIApp.Toast?.info?.('✏️ Practice mode coming soon!');
+        if (LawAIApp.Toast?.info) {
+            LawAIApp.Toast.info('✏️ Practice mode coming soon!');
+        }
     }
 };
 
-console.log('📖 LessonView V2.0 ready');
+console.log('📖 LessonView V2.1 ready');
