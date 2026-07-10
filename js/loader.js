@@ -1,6 +1,6 @@
 // ================================================================
-// loader.js – V5.3.0 - Simplified Startup + Profiler (Phase P)
-// 精简阶段结构，减少冗余日志 + 性能标记
+// loader.js – V5.3.1 - Simplified Startup + Profiler + Dependency (Phase P.2)
+// 精简阶段结构 + 性能标记 + 依赖追踪
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -59,7 +59,7 @@ function getBasePath() {
 var BASE_PATH = getBasePath();
 
 // ============================================================
-// 加载脚本（精简）
+// 加载脚本（精简 + 依赖追踪）
 // ============================================================
 function loadScript(src) {
     if (_loadCache[src]) {
@@ -67,6 +67,17 @@ function loadScript(src) {
     }
     if (_loadingPromises[src]) {
         return _loadingPromises[src];
+    }
+
+    var engineName = src.replace('.js', '');
+    // 🔥 注册引擎并记录依赖
+    if (LawAIApp.DevTools?.RuntimeProfiler) {
+        LawAIApp.DevTools.RuntimeProfiler.registerEngine(engineName);
+        var caller = 'Loader';
+        if (LawAIApp.DevTools.RuntimeProfiler._currentCaller) {
+            caller = LawAIApp.DevTools.RuntimeProfiler._currentCaller;
+        }
+        LawAIApp.DevTools.RuntimeProfiler.addDependency(caller, engineName);
     }
 
     var promise = new Promise(function(resolve) {
@@ -80,14 +91,14 @@ function loadScript(src) {
         for (var i = 0; i < paths.length; i++) {
             if (unique.indexOf(paths[i]) === -1) unique.push(paths[i]);
         }
-        tryLoad(unique, 0, resolve, src);
+        tryLoad(unique, 0, resolve, src, engineName);
     });
 
     _loadingPromises[src] = promise;
     return promise;
 }
 
-function tryLoad(paths, index, resolve, src) {
+function tryLoad(paths, index, resolve, src, engineName) {
     if (index >= paths.length) {
         resolve({ file: src, status: "missing" });
         return;
@@ -97,22 +108,27 @@ function tryLoad(paths, index, resolve, src) {
     script.onload = function() {
         _loadCache[src] = true;
         _loadedModules[src] = true;
+        // 🔥 通知 Profiler 引擎加载完成
+        if (LawAIApp.DevTools?.RuntimeProfiler) {
+            LawAIApp.DevTools.RuntimeProfiler.engineLoaded(engineName);
+        }
         resolve({ file: src, status: "ok" });
     };
     script.onerror = function() {
-        tryLoad(paths, index + 1, resolve, src);
+        tryLoad(paths, index + 1, resolve, src, engineName);
     };
     document.head.appendChild(script);
 }
 
 // ============================================================
-// 按阶段加载（带 Profiler 标记）
+// 按阶段加载
 // ============================================================
 function loadStage(name, files, delay) {
     return new Promise(function(resolve) {
         setTimeout(function() {
-            // 🔥 Profiler: 标记阶段开始
+            // 🔥 标记当前阶段
             if (LawAIApp.DevTools?.RuntimeProfiler) {
+                LawAIApp.DevTools.RuntimeProfiler._currentCaller = 'Stage_' + name;
                 LawAIApp.DevTools.RuntimeProfiler.mark('stage_' + name + '_start');
             }
 
@@ -120,7 +136,6 @@ function loadStage(name, files, delay) {
                 var loaded = results.filter(function(r) { return r.status === "ok"; }).length;
                 console.log('✅ Stage ' + name + ': ' + loaded + '/' + files.length + ' loaded');
 
-                // 🔥 Profiler: 标记阶段结束
                 if (LawAIApp.DevTools?.RuntimeProfiler) {
                     LawAIApp.DevTools.RuntimeProfiler.mark('stage_' + name + '_end');
                     LawAIApp.DevTools.RuntimeProfiler.measure(
@@ -129,7 +144,6 @@ function loadStage(name, files, delay) {
                         'stage_' + name + '_end'
                     );
                 }
-
                 resolve(results);
             });
         }, delay || 0);
@@ -140,17 +154,13 @@ function loadStage(name, files, delay) {
 // 主启动
 // ============================================================
 async function boot() {
-    // 🔥 Profiler: 标记启动开始
     if (LawAIApp.DevTools?.RuntimeProfiler) {
         LawAIApp.DevTools.RuntimeProfiler.mark('loader_boot_start');
     }
+    console.log("🚀 Loader V5.3.1 starting...");
 
-    console.log("🚀 Loader V5.3.0 starting...");
-
-    // Stage 1: Critical — 立即加载
     await loadStage('critical', STAGES.critical, 0);
 
-    // 触发 SYSTEM_READY
     var status = {
         loaded: Object.keys(_loadedModules),
         booted: true
@@ -165,16 +175,10 @@ async function boot() {
         console.log("✅ SYSTEM_READY dispatched");
     }, 50);
 
-    // Stage 2: UX — 100ms
     loadStage('ux', STAGES.ux, 100);
-
-    // Stage 3: Intelligence — 500ms
     loadStage('intelligence', STAGES.intelligence, 500);
-
-    // Stage 4: Background — 1000ms
     loadStage('background', STAGES.background, 1000);
 
-    // 🔥 Profiler: 标记启动结束
     if (LawAIApp.DevTools?.RuntimeProfiler) {
         LawAIApp.DevTools.RuntimeProfiler.mark('loader_boot_end');
         LawAIApp.DevTools.RuntimeProfiler.measure(
@@ -183,12 +187,11 @@ async function boot() {
             'loader_boot_end'
         );
     }
-
     console.log("🚀 Loader pipeline started");
 }
 
 // ============================================================
-// 按需加载 API（保留）
+// 按需加载 API
 // ============================================================
 LawAIApp.require = function(moduleName) {
     return loadScript(moduleName + '.js');
@@ -207,9 +210,6 @@ LawAIApp.getLoadStatus = function() {
     };
 };
 
-// ============================================================
-// 自动启动
-// ============================================================
 if (document.readyState === "complete" || document.readyState === "interactive") {
     setTimeout(boot, 50);
 } else {
@@ -218,4 +218,4 @@ if (document.readyState === "complete" || document.readyState === "interactive")
     });
 }
 
-console.log("🚀 Loader V5.3.0 ready (simplified + profiler)");
+console.log("🚀 Loader V5.3.1 ready (simplified + profiler + dependency)");
