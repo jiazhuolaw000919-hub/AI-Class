@@ -1,11 +1,81 @@
-// ===========================================
-// practiceEngine.js
-// 练习引擎 - 知识转化为技能（Phase 23 完善版）
-// ===========================================
+// ================================================================
+// ENGINE: PracticeEngine
+// LAYER: Core Logic Layer
+// DOMAIN: Practice & Skill Development
+// RECOVERY STATUS: 🟢 Canon Locked
+// VERSION: 2.0.0
+// ================================================================
+//
+// PURPOSE
+// ================================================================
+//   Transforms knowledge into skill through practice exercises,
+//   challenges, and real-world tasks. Tracks mastery and provides
+//   adaptive difficulty. Implements the "Practice" phase of the
+//   Learning Loop.
+//
+// PUBLIC API
+// ================================================================
+//   init()                                      -> void
+//   startPractice(lessonId, type)               -> Practice object
+//   completePractice(practice, userAnswer)      -> Result object
+//   getRecommendedType(lessonId)                -> string
+//   getHistoryByLesson(lessonId)                -> array
+//   getRecent(limit)                            -> array
+//   getAllHistory()                             -> array
+//   getMastery()                                -> object
+//   generateInteractivePractice(lessonTitle, type) -> Practice object
+//   checkAnswer(practice, selectedIndex)        -> Result object
+//   getStatus()                                 -> Status object
+//
+// PRACTICE TYPES
+// ================================================================
+//   - mini_exercise     : Short practice exercise
+//   - scenario_challenge : Scenario-based challenge
+//   - real_world_task   : Real-world application task
+//   - case_study        : Case study analysis
+//   - multiple_choice   : Multiple choice question
+//   - fill_blank        : Fill in the blank
+//
+// DEPENDENCIES
+// ================================================================
+//   - StorageEngine (required) : For persistent storage
+//   - EventBus (optional)     : For emitting events
+//   - LessonEngine (optional) : For lesson data
+//
+// STORAGE
+// ================================================================
+//   - Key: 'lawai_practice_history'
+//   - Format: JSON array of practice records
+//   - Schema: { lessonId, practiceId, type, difficulty, correct, userAnswer, feedback, completedAt }
+//
+// EVENTS
+// ================================================================
+//   EMITTED:
+//   - 'PracticeStarted'    : When a practice session starts
+//     Payload: { practice }
+//   - 'PracticeCompleted'  : When a practice session completes
+//     Payload: { practice, feedback, correct }
+//
+// FUTURE COMPATIBILITY
+// ================================================================
+//   - New practice types can be added
+//   - Difficulty can be made adaptive
+//   - Mastery tracking can be per-skill
+//
+// ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.PracticeEngine = (function() {
+    // ============================================================
+    // ENGINE METADATA
+    // ============================================================
+    var _engineName = 'PracticeEngine';
+    var _engineVersion = '2.0.0';
+    var _recoveryStatus = '🟢 Canon Locked';
+    var _layer = 'Core Logic Layer';
+    var _domain = 'Practice & Skill Development';
+
     var _initialized = false;
     var _history = [];
 
@@ -84,7 +154,6 @@ LawAIApp.PracticeEngine = (function() {
                         parseInt(userAnswer) === practice.correctIndex);
             feedback = isCorrect ? '✅ Correct! Great job!' : '❌ Not quite. Review the lesson and try again.';
         } else if (userAnswer && userAnswer.length > 5) {
-            // 对于开放式问题，长度>5视为合理尝试
             isCorrect = true;
             feedback = '✅ Good effort! Your answer has been recorded.';
         } else {
@@ -175,7 +244,7 @@ LawAIApp.PracticeEngine = (function() {
     }
 
     // ===========================================
-    // 交互式练习（Season 4）
+    // 交互式练习
     // ===========================================
     function generateInteractivePractice(lessonTitle, type) {
         type = type || 'multiple_choice';
@@ -219,6 +288,31 @@ LawAIApp.PracticeEngine = (function() {
     }
 
     // ===========================================
+    // ENGINE STATUS
+    // ===========================================
+    function getStatus() {
+        var history = getAllHistory();
+        var totalPractices = history.length;
+        var correctPractices = 0;
+        history.forEach(function(r) {
+            if (r.correct) correctPractices++;
+        });
+        return {
+            name: _engineName,
+            version: _engineVersion,
+            recoveryStatus: _recoveryStatus,
+            layer: _layer,
+            domain: _domain,
+            initialized: _initialized,
+            totalPractices: totalPractices,
+            correctPractices: correctPractices,
+            accuracy: totalPractices > 0 ? Math.round((correctPractices / totalPractices) * 100) : 0,
+            storageAvailable: !!(LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.get === 'function'),
+            eventBusAvailable: !!(LawAIApp.EventBus && typeof LawAIApp.EventBus.emit === 'function')
+        };
+    }
+
+    // ===========================================
     // 初始化
     // ===========================================
     function init() {
@@ -237,8 +331,10 @@ LawAIApp.PracticeEngine = (function() {
         getMastery: getMastery,
         getRecent: getRecent,
         getHistory: getAllHistory,
+        getHistoryByLesson: getHistoryByLesson,
         generateInteractivePractice: generateInteractivePractice,
-        checkAnswer: checkAnswer
+        checkAnswer: checkAnswer,
+        getStatus: getStatus
     };
 })();
 
