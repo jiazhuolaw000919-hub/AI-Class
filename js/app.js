@@ -1,5 +1,5 @@
 // ================================================================
-// app.js – Runtime V5.1.0 Runtime Recovery
+// app.js – Runtime V5.1.0 Runtime Recovery + Profiler (Phase P.1)
 // 渲染优先：立即显示 Dashboard，不等待任何引擎初始化完成
 // ================================================================
 
@@ -93,6 +93,11 @@ window.App = {
 
         this._state.bootTimeline.push({ event: 'init_complete', time: Date.now() });
         this._emit('APP_INITIALIZED', { version: this.version });
+
+        // 🔥 Profiler: 注册 App 引擎
+        if (LawAIApp.DevTools?.RuntimeProfiler) {
+            LawAIApp.DevTools.RuntimeProfiler.registerEngine('App');
+        }
     },
 
     /**
@@ -110,13 +115,16 @@ window.App = {
 
         console.log("⚡ Rendering immediately (no waiting)...");
 
+        // 🔥 Profiler: 记录 Dashboard 渲染
+        if (LawAIApp.DevTools?.RuntimeProfiler) {
+            LawAIApp.DevTools.RuntimeProfiler.recordRender('dashboard');
+        }
+
         // 检查 SystemComposer 是否已加载
         var composer = window.LawAIApp?.SystemComposer;
 
         if (composer && typeof composer.init === 'function') {
-            // 如果 composer 已存在，立即初始化（同步）
             try {
-                // 用 try-catch 保护，即使 composer.init 报错也不影响页面
                 var result = composer.init(this._boot);
                 if (result && typeof result.then === 'function') {
                     result.catch(function(err) {
@@ -127,11 +135,9 @@ window.App = {
                 return;
             } catch (err) {
                 console.warn("⚠️ Composer init immediate error:", err);
-                // 即使报错，也要显示 fallback
             }
         }
 
-        // 如果 composer 还没加载或 init 失败，显示极简骨架
         this._showMinimalSkeleton(root);
     },
 
@@ -165,7 +171,6 @@ window.App = {
             </div>
         `;
 
-        // 如果 1 秒后 composer 还没加载，重试
         setTimeout(function() {
             var composer = window.LawAIApp?.SystemComposer;
             if (composer && typeof composer.init === 'function') {
@@ -276,18 +281,17 @@ window.App = {
     },
 
     // ============================================================
-    // 5. Render Pipeline（减少嵌套）
+    // 5. Render Pipeline
     // ============================================================
 
     render: function() {
-        // 已由 _renderImmediately 处理
         if (!this._renderAttempted) {
             this._renderImmediately();
         }
     },
 
     // ============================================================
-    // 6. Recovery（不刷新浏览器）
+    // 6. Recovery
     // ============================================================
 
     recover: function() {
@@ -337,7 +341,7 @@ window.App = {
     },
 
     // ============================================================
-    // 7. Refresh（防重复）
+    // 7. Refresh
     // ============================================================
 
     _refreshLock: false,
@@ -377,9 +381,7 @@ window.App = {
     // 8. Loading / Error States
     // ============================================================
 
-    _showLoadingState: function() {
-        // 已废弃：不再显示 loading 状态，改用 _showMinimalSkeleton
-    },
+    _showLoadingState: function() {},
 
     _hideLoadingState: function() {
         var root = this.getRoot();
@@ -492,9 +494,7 @@ window.App = {
             if (window.LawAIApp?.EventBus && typeof window.LawAIApp.EventBus.emit === 'function') {
                 window.LawAIApp.EventBus.emit(eventName, data);
             }
-        } catch (err) {
-            // ignore
-        }
+        } catch (err) {}
     }
 
 };
@@ -519,7 +519,7 @@ window.addEventListener("RUNTIME_RESET", function() {
 });
 
 // ============================================================
-// Auto-init（安全网）
+// Auto-init
 // ============================================================
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
