@@ -15,16 +15,111 @@
   <link rel="stylesheet" href="css/responsive.css">
   <link rel="stylesheet" href="css/theme.css">
 
+  <!-- ========================= -->
+  <!-- 加载 JS -->
+  <!-- ========================= -->
+  
+  <!-- 1. Loader（核心加载器） -->
   <script src="js/loader.js"></script>
+  
+  <!-- 2. 课程引擎（新增） -->
+  <script src="js/lessonEngine.js"></script>
+  
+  <!-- 3. UI 组件 -->
   <script src="js/ui/toastSystem.js"></script>
   <script src="js/ui/emptyStates.js"></script>
 
+  <!-- 4. 启动脚本 -->
   <script>
-    // ... 你的启动脚本（保持不变）
+    console.log('🚀 Starting Law AI Academy...');
+    
+    function initApp() {
+      console.log('✅ System ready, initializing App...');
+      
+      if (window.LawAIApp && window.LawAIApp.SystemComposer) {
+        try {
+          window.LawAIApp.SystemComposer.init({});
+        } catch (err) {
+          console.warn('⚠️ SystemComposer init error:', err);
+        }
+      } else {
+        console.warn('⚠️ SystemComposer not found, retrying...');
+        setTimeout(initApp, 500);
+        return;
+      }
+      
+      setTimeout(function() {
+        var el = document.getElementById('loading-placeholder');
+        if (el) {
+          el.style.opacity = '0';
+          setTimeout(function() {
+            el.style.display = 'none';
+          }, 800);
+        }
+      }, 500);
+    }
+
+    document.addEventListener('SYSTEM_READY', function(e) {
+      console.log('📡 SYSTEM_READY received');
+      initApp();
+    });
+
+    setTimeout(function() {
+      var root = document.getElementById('law-runtime-root');
+      if (root && root.innerHTML.trim() === '') {
+        console.warn('⚠️ Fallback: forcing init...');
+        initApp();
+      }
+    }, 5000);
+
+    setTimeout(function() {
+      var el = document.getElementById('loading-placeholder');
+      if (el && el.style.display !== 'none') {
+        el.style.opacity = '0';
+        setTimeout(function() {
+          el.style.display = 'none';
+        }, 800);
+      }
+    }, 7000);
   </script>
+
 </head>
 <body>
   <div id="law-runtime-root"></div>
+
   <!-- 加载提示 -->
+  <div id="loading-placeholder" style="
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #0b1220;
+    color: #94a3b8;
+    font-family: 'Inter', -apple-system, sans-serif;
+    text-align: center;
+    padding: 20px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    pointer-events: none;
+    transition: opacity 0.8s ease;
+  ">
+    <div style="font-size: 48px; margin-bottom: 16px;">🚀</div>
+    <h2 style="color: white; font-weight: 600; margin: 0 0 8px 0;">Loading Law AI Academy</h2>
+    <p style="margin: 0; font-size: 14px;">Preparing your learning environment...</p>
+    <div style="margin-top: 24px; width: 40px; height: 40px; border: 3px solid rgba(74,158,255,0.15); border-top-color: #4a9eff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+  </div>
+
+  <noscript>
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#0b1220;color:white;text-align:center;padding:20px;">
+      <h2>⚠️ JavaScript 未启用</h2>
+      <p style="color:#94a3b8;">请启用 JavaScript 以使用 Law AI Academy</p>
+    </div>
+  </noscript>
 </body>
 </html>
