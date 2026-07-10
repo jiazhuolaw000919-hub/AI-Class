@@ -23,7 +23,7 @@ No engine may exist outside this registry.
 | 2 | `EventBus` | Infrastructure | Event Communication | 🟢 Canon Locked | 2.0.0 |
 | 3 | `ProgressEngine` | Core Logic | Learning Progress | 🟢 Canon Locked | 2.0.0 |
 | 4 | `LessonEngine` | Data Layer | Lesson Data Management | 🟢 Canon Locked | 1.0.0 |
-| 5 | `SystemComposer` | UI Layer | System Composition | 🟡 Needs Verification | 5.0.0 |
+| 5 | `SystemComposer` | UI Layer | System Composition | 🟢 Canon Locked | 5.0.1 |
 | 6 | `Router` | System | Navigation | ⚫ Not an Engine | N/A |
 
 ---
@@ -95,9 +95,9 @@ No engine may exist outside this registry.
 | Property | Value |
 |----------|-------|
 | **Layer** | UI Layer |
-| **Domain** | System Composition |
-| **Status** | 🟡 Needs Verification |
-| **Version** | 5.0.0 |
+| **Domain** | System Composition & UI Rendering |
+| **Status** | 🟢 Canon Locked |
+| **Version** | 5.0.1 |
 | **Dependencies** | StorageEngine, EventBus, ProgressEngine |
 | **Storage** | None (renders UI) |
 | **Events Emitted** | `COMPOSER_MOUNTED` |
@@ -164,6 +164,7 @@ No engine may exist outside this registry.
 | Date | Version | Changes |
 |------|---------|---------|
 | 2026-07-10 | 1.0 | Initial registry created during Phase 2 Recovery |
+| 2026-07-10 | 1.0.1 | Updated SystemComposer status to 🟢 Canon Locked (v5.0.1) |
 
 ---
 
