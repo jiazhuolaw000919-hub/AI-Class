@@ -32,11 +32,14 @@ REGISTRY SUMMARY
 | ENG-003 | ProgressEngine | Core Logic | 🟢 Canon Locked | 2.0.0 |
 | ENG-004 | LessonEngine | Data Layer | 🟢 Canon Locked | 1.0.0 |
 | ENG-005 | SystemComposer | UI Layer | 🟢 Canon Locked | 5.0.1 |
+| ENG-006 | MemoryEngine | Core Logic | 🟢 Canon Locked | 2.0.0 |
+| ENG-007 | PracticeEngine | Core Logic | 🟢 Canon Locked | 2.0.0 |
+| ENG-008 | ReflectionEngine | Core Logic | 🟢 Canon Locked | 1.0.0 |
 
-**Total Registered Engines:** 5
+**Total Registered Engines:** 8
 
 **Status Breakdown:**
-- 🟢 Canon Locked: 5
+- 🟢 Canon Locked: 8
 - 🟡 Verification Required: 0
 - 🔴 Missing: 0
 - ⚫ Deprecated: 0
@@ -54,7 +57,7 @@ ENGINE REGISTRATION DETAILS
 | **Engine ID** | ENG-001 |
 | **Engine Name** | StorageEngine |
 | **Architecture Layer** | Infrastructure Layer |
-| **Purpose** | Provides a unified abstraction layer for persistent storage. Currently uses localStorage, designed for future migration to Supabase, IndexedDB, or cloud storage. |
+| **Purpose** | Provides a unified abstraction layer for persistent storage. |
 | **Owner Domain** | Persistent Storage Abstraction |
 | **Recovery Status** | 🟢 Canon Locked |
 | **Version** | 1.0.0 |
@@ -73,40 +76,30 @@ ENGINE REGISTRATION DETAILS
 
 | Key Pattern | Format | Description |
 |-------------|--------|-------------|
-| `lawai_*` | JSON | All keys are prefixed with 'lawai_' to avoid collisions |
+| `lawai_*` | JSON | All keys are prefixed with 'lawai_' |
 
 ### Dependencies
 
 | Dependency | Type | Description |
 |------------|------|-------------|
-| None | - | Standalone engine, no dependencies |
+| None | - | Standalone engine |
 
 ### Consumers
 
-| Consumer | Layer | Description |
-|----------|-------|-------------|
-| ProgressEngine | Core Logic | Reads/writes progress data |
-| LessonEngine | Data Layer | Reads/writes lesson data |
-| SystemComposer | UI Layer | Reads UI state |
-| Future Engines | All | Any engine needing persistence |
+| Consumer | Layer |
+|----------|-------|
+| ProgressEngine | Core Logic |
+| LessonEngine | Data Layer |
+| MemoryEngine | Core Logic |
+| PracticeEngine | Core Logic |
+| ReflectionEngine | Core Logic |
+| SystemComposer | UI Layer |
 
 ### Canonical Events
 
 | Event | Type | Payload | Description |
 |-------|------|---------|-------------|
-| None | - | - | Passive engine, no events emitted |
-
-### Future Extension
-
-- Support for IndexedDB adapter
-- Support for Supabase adapter
-- Cloud sync capabilities
-- Offline-first architecture
-
-### Notes
-
-- Migration path: implement adapters for different backends
-- API signature must remain stable across adapters
+| None | - | - | Passive engine |
 
 ---
 
@@ -117,7 +110,7 @@ ENGINE REGISTRATION DETAILS
 | **Engine ID** | ENG-002 |
 | **Engine Name** | EventBus |
 | **Architecture Layer** | Infrastructure Layer |
-| **Purpose** | Provides centralized event communication. Decouples engines by enabling publish/subscribe pattern with priority-based ordering and wildcard listeners. |
+| **Purpose** | Provides centralized event communication. |
 | **Owner Domain** | Event Communication & Pub/Sub |
 | **Recovery Status** | 🟢 Canon Locked |
 | **Version** | 2.0.0 |
@@ -150,57 +143,36 @@ ENGINE REGISTRATION DETAILS
 
 | Key Pattern | Format | Description |
 |-------------|--------|-------------|
-| None | - | In-memory only. Event history limited to 100 entries. |
+| None | - | In-memory only |
 
 ### Dependencies
 
 | Dependency | Type | Description |
 |------------|------|-------------|
-| None | - | Standalone engine, no dependencies |
+| None | - | Standalone engine |
 
 ### Consumers
 
-| Consumer | Layer | Description |
-|----------|-------|-------------|
-| ProgressEngine | Core Logic | Emits LessonCompleted, ProgressUpdated |
-| SystemComposer | UI Layer | Listens for SYSTEM_READY, PROFILE_UPDATED |
-| Router | System | Emits RouteChanged |
-| Future Engines | All | Any engine needing event communication |
+| Consumer | Layer |
+|----------|-------|
+| ProgressEngine | Core Logic |
+| MemoryEngine | Core Logic |
+| PracticeEngine | Core Logic |
+| SystemComposer | UI Layer |
+| Router | System |
 
 ### Canonical Events
-
-#### Emitted Events
-
-| Event | Payload | Description |
-|-------|---------|-------------|
-| None | - | EventBus is passive, does not emit events |
 
 #### Consumed Events
 
 | Event | Source | Payload | Description |
 |-------|--------|---------|-------------|
-| SYSTEM_READY | Loader/App | `{ boot, timestamp }` | System initialization signal |
-| COMPOSER_MOUNTED | SystemComposer | `{ version, initialized, root }` | UI mounted signal |
-| LessonCompleted | ProgressEngine | `{ lessonId, xpGain }` | Lesson completion signal |
-| ProgressUpdated | ProgressEngine | `{ lessonId, progress }` | Progress update signal |
-| RouteChanged | Router | `{ page, params }` | Navigation signal |
-| PROFILE_UPDATED | ProfileEngine | `{ profile }` | Profile update signal |
-| LEARNING_UI_REFRESH | SystemComposer | `{}` | UI refresh signal |
-| RUNTIME_READY | SystemComposer | `{}` | Runtime ready signal |
-| WORKSPACE_UPDATED | WorkspaceEngine | `{}` | Workspace update signal |
-
-### Future Extension
-
-- Priority-based event filtering
-- Event replay capability
-- Persistent event history
-- Cross-tab event synchronization
-
-### Notes
-
-- Event names are canonical and must not change
-- New events must be registered here before implementation
-- Debug mode helpful for development
+| SYSTEM_READY | Loader/App | `{ boot, timestamp }` | System initialization |
+| COMPOSER_MOUNTED | SystemComposer | `{ version, initialized, root }` | UI mounted |
+| LessonCompleted | ProgressEngine | `{ lessonId, xpGain }` | Lesson completion |
+| ReviewCompleted | MemoryEngine | `{ lessonId, performance }` | Review completion |
+| PracticeCompleted | PracticeEngine | `{ practice, feedback, correct }` | Practice completion |
+| ReflectionSaved | ReflectionEngine | `{ userId, lessonId }` | Reflection saved |
 
 ---
 
@@ -211,8 +183,8 @@ ENGINE REGISTRATION DETAILS
 | **Engine ID** | ENG-003 |
 | **Engine Name** | ProgressEngine |
 | **Architecture Layer** | Core Logic Layer |
-| **Purpose** | Owns all user learning progress data. Tracks completed lessons, XP, levels, streaks, and stages. Single source of truth for learner progress. |
-| **Owner Domain** | Learning Progress Tracking & Management |
+| **Purpose** | Owns all user learning progress data. |
+| **Owner Domain** | Learning Progress Tracking |
 | **Recovery Status** | 🟢 Canon Locked |
 | **Version** | 2.0.0 |
 
@@ -244,18 +216,169 @@ ENGINE REGISTRATION DETAILS
 |-----|--------|----------------|-------------|
 | `lawai_progress` | JSON | 2.0.0 | Full user progress object |
 
-**Progress Object Schema:**
+### Dependencies
+
+| Dependency | Type | Description |
+|------------|------|-------------|
+| StorageEngine | Required | For persistent storage |
+| EventBus | Optional | For emitting events |
+
+### Consumers
+
+| Consumer | Layer |
+|----------|-------|
+| SystemComposer | UI Layer |
+| LessonView | UI Layer |
+| AcademyView | UI Layer |
+
+### Canonical Events
+
+#### Emitted Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `LessonCompleted` | `{ lessonId, xpGain }` | Lesson completed |
+| `ProgressUpdated` | `{ lessonId, progress }` | Progress updated |
+
+---
+
+## ENG-004: LessonEngine
+
+| Property | Value |
+|----------|-------|
+| **Engine ID** | ENG-004 |
+| **Engine Name** | LessonEngine |
+| **Architecture Layer** | Data Layer |
+| **Purpose** | Owns lesson data generation and retrieval. |
+| **Owner Domain** | Lesson Data Management |
+| **Recovery Status** | 🟢 Canon Locked |
+| **Version** | 1.0.0 |
+
+### Canonical API
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `getLessonByDay(day)` | Get a lesson by day number | Lesson object |
+| `getAllLessons()` | Get all 365 lessons | Array |
+| `createLesson(day)` | Create a single lesson | Lesson object |
+| `generateAllLessons(force)` | Generate all lessons | Array |
+| `getStatus()` | Get engine status | Status object |
+
+### Canonical Storage
+
+| Key | Format | Schema Version | Description |
+|-----|--------|----------------|-------------|
+| `lawai_allLessons` | JSON | 1.0.0 | Array of 365 lesson objects |
+
+### Dependencies
+
+| Dependency | Type | Description |
+|------------|------|-------------|
+| StorageEngine | Optional | For persistent storage |
+
+### Consumers
+
+| Consumer | Layer |
+|----------|-------|
+| SystemComposer | UI Layer |
+| LessonView | UI Layer |
+| PracticeEngine | Core Logic |
+
+---
+
+## ENG-005: SystemComposer
+
+| Property | Value |
+|----------|-------|
+| **Engine ID** | ENG-005 |
+| **Engine Name** | SystemComposer |
+| **Architecture Layer** | UI Layer |
+| **Purpose** | Owns the composition and rendering of the entire UI. |
+| **Owner Domain** | System Composition & UI Rendering |
+| **Recovery Status** | 🟢 Canon Locked |
+| **Version** | 5.0.1 |
+
+### Canonical API
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `init(boot)` | Initialize the composer | void |
+| `refresh()` | Refresh all panels | void |
+| `refreshPanel(name)` | Refresh a specific panel | void |
+| `destroy()` | Destroy the composer | void |
+| `registerPanel(name, renderer)` | Register a panel | void |
+| `resolvePanel(name)` | Get a panel renderer | function |
+| `scheduleRender(panelName)` | Schedule a panel render | void |
+| `recover()` | Attempt recovery | void |
+| `getDOM(key)` | Get cached DOM element | HTMLElement |
+| `getStatus()` | Get engine status | Status object |
+| `isReady()` | Check if ready | boolean |
+
+### Dependencies
+
+| Dependency | Type | Description |
+|------------|------|-------------|
+| StorageEngine | Optional | For reading stored data |
+| EventBus | Optional | For event communication |
+| ProgressEngine | Optional | For progress data |
+| LessonEngine | Optional | For lesson data |
+
+### Canonical Events
+
+#### Emitted Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `COMPOSER_MOUNTED` | `{ version, initialized, root }` | Composer mounted |
+
+#### Consumed Events
+
+| Event | Source | Payload | Description |
+|-------|--------|---------|-------------|
+| `SYSTEM_READY` | Loader/App | `{ boot, timestamp }` | Triggers initialization |
+| `PROFILE_UPDATED` | ProfileEngine | `{ profile }` | Refreshes learning panel |
+
+---
+
+## ENG-006: MemoryEngine
+
+| Property | Value |
+|----------|-------|
+| **Engine ID** | ENG-006 |
+| **Engine Name** | MemoryEngine |
+| **Architecture Layer** | Core Logic Layer |
+| **Purpose** | Manages long-term memory retention using spaced repetition. Tracks memory strength, schedules reviews, and adapts to learner performance. |
+| **Owner Domain** | Memory & Review Management |
+| **Recovery Status** | 🟢 Canon Locked |
+| **Version** | 2.0.0 |
+
+### Canonical API
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `init()` | Initialize the engine | void |
+| `getAll()` | Get all memory entries | object |
+| `getMemory(lessonId)` | Get memory for a lesson | object |
+| `getMemoryStrength(lessonId)` | Get memory strength score | number |
+| `updateMemory(lessonId, strength)` | Update memory strength | object |
+| `recordReview(lessonId, performance)` | Record a review session | object |
+| `scheduleReviews()` | Get all overdue reviews | array |
+| `getTodayReviews()` | Get today's review list | array |
+| `getHeatmap()` | Get memory heatmap data | object |
+| `getStatus()` | Get engine status | Status object |
+
+### Canonical Storage
+
+| Key | Format | Schema Version | Description |
+|-----|--------|----------------|-------------|
+| `lawai_memory_entries` | JSON | 1.0.0 | Memory entries by lessonId |
+
+**Memory Entry Schema:**
 ```javascript
 {
-  completedLessons: [],      // Array of lesson IDs
-  currentLesson: 1,          // Current lesson number
-  completionPercent: 0,      // 0-100
-  currentStage: 'Foundation', // Stage name
-  xp: 0,                     // Total XP
-  totalLessons: 365,         // Total lessons available
-  day: 1,                    // Current day
-  level: 1,                  // Current level
-  streak: 0,                 // Day streak
-  lastActive: null,          // Last active date
-  createdAt: '2026-01-01T00:00:00.000Z' // Creation date
+  lessonId: 'day-1',
+  strength: 50,          // 0-100
+  lastReviewed: '2026-01-01T00:00:00.000Z',
+  nextReview: '2026-01-08T00:00:00.000Z',
+  reviewCount: 0
 }
