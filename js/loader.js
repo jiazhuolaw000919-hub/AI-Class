@@ -1,8 +1,14 @@
+// ================================================================
+// loader.js – V5.0 FINAL
+// 新增：Boot Timeline + Dependency Graph + Health Report
+// 100% 保留 require/requireAll API
+// ================================================================
+
 window.LawAIApp = window.LawAIApp || {};
 
-// ===========================================
+// ============================================================
 // 核心引擎（必须优先加载）
-// ===========================================
+// ============================================================
 var CORE_ENGINES = [
     "storageEngine.js",
     "eventBus.js",
@@ -12,28 +18,29 @@ var CORE_ENGINES = [
     "app.js"
 ];
 
-// ===========================================
+// ============================================================
 // 加载缓存
-// ===========================================
+// ============================================================
 var _loadCache = {};
 var _loadingPromises = {};
+var _bootTimeline = [];
+var _health = { healthy: true, errors: [], warnings: [] };
+var _loadedModules = {};
+var _missingModules = [];
 
-// ===========================================
+// ============================================================
 // 获取当前脚本的目录路径
-// ===========================================
+// ============================================================
 function getBasePath() {
-    // 获取当前执行脚本的路径
     var scripts = document.getElementsByTagName('script');
     var currentScript = scripts[scripts.length - 1];
     var src = currentScript.src || '';
     
-    // 如果 src 包含 /js/loader.js，提取基础路径
     var match = src.match(/^(.*)\/js\/loader\.js/);
     if (match) {
         return match[1] + '/js/';
     }
     
-    // 备用：使用当前页面的路径
     var path = window.location.pathname;
     if (path.includes('/pages/')) {
         return '/js/';
@@ -44,9 +51,9 @@ function getBasePath() {
 var BASE_PATH = getBasePath();
 console.log('📂 Loader base path:', BASE_PATH);
 
-// ===========================================
+// ============================================================
 // 加载脚本
-// ===========================================
+// ============================================================
 function loadScript(src) {
     if (_loadCache[src]) {
         return Promise.resolve({ file: src, status: "ok", cached: true });
@@ -62,6 +69,7 @@ function loadScript(src) {
         var existing = document.querySelector('script[src="' + path + '"]');
         if (existing) {
             _loadCache[src] = true;
+            _loadedModules[src] = { loaded: true, time: 0 };
             resolve({ file: src, status: "ok", cached: true });
             return;
         }
@@ -71,13 +79,13 @@ function loadScript(src) {
 
         script.onload = function() {
             _loadCache[src] = true;
+            _loadedModules[src] = { loaded: true, time: Date.now() };
             resolve({ file: src, status: "ok" });
         };
 
         script.onerror = function() {
             console.warn("⚠️ Failed to load:", src, "from", path);
             
-            // 尝试备用路径
             var fallbackPaths = [
                 '/js/' + src,
                 '../js/' + src,
@@ -97,6 +105,8 @@ function loadScript(src) {
 
 function tryNext(paths, index, resolve, src) {
     if (index >= paths.length) {
+        _missingModules.push(src);
+        _health.warnings.push('Module not found: ' + src);
         resolve({ file: src, status: "missing" });
         return;
     }
@@ -108,6 +118,7 @@ function tryNext(paths, index, resolve, src) {
     script.src = path;
     script.onload = function() {
         _loadCache[src] = true;
+        _loadedModules[src] = { loaded: true, time: Date.now() };
         resolve({ file: src, status: "ok" });
     };
     script.onerror = function() {
@@ -116,9 +127,9 @@ function tryNext(paths, index, resolve, src) {
     document.head.appendChild(script);
 }
 
-// ===========================================
+// ============================================================
 // 按需加载模块
-// ===========================================
+// ============================================================
 LawAIApp.require = function(moduleName) {
     var fileName = moduleName + '.js';
     if (_loadCache[fileName]) {
@@ -127,18 +138,15 @@ LawAIApp.require = function(moduleName) {
     return loadScript(fileName);
 };
 
-// ===========================================
-// 批量按需加载
-// ===========================================
 LawAIApp.requireAll = function(moduleNames) {
     return Promise.all(moduleNames.map(function(name) {
         return LawAIApp.require(name);
     }));
 };
 
-// ===========================================
-// 获取加载状态
-// ===========================================
+// ============================================================
+// 获取加载状态（原有 API）
+// ============================================================
 LawAIApp.getLoadStatus = function() {
     return {
         cached: Object.keys(_loadCache),
@@ -146,9 +154,6 @@ LawAIApp.getLoadStatus = function() {
     };
 };
 
-// ===========================================
-// 清除缓存（调试用）
-// ===========================================
 LawAIApp.clearLoadCache = function() {
     for (var key in _loadCache) {
         delete _loadCache[key];
@@ -159,15 +164,84 @@ LawAIApp.clearLoadCache = function() {
     console.log('🧹 Load cache cleared');
 };
 
-// ===========================================
+// ============================================================
+// 新增：Boot Status
+// ============================================================
+LawAIApp.getBootStatus = function() {
+    var loadedCount = Object.keys(_loadedModules).filter(function(k) {
+        return _loadedModules[k].loaded;
+    }).length;
+    var totalCount = Object.keys(_loadedModules).length;
+
+    return {
+        loaded: loadedCount,
+        missing: _missingModules.length,
+        total: totalCount,
+        active: loadedCount > 0,
+        booted: _health.healthy,
+        safeMode: _health.healthy === false,
+        timeline: _bootTimeline.slice(-10),
+        health: _health,
+        version: '5.0.0',
+        loadedModules: Object.keys(_loadedModules).filter(function(k) {
+            return _loadedModules[k].loaded;
+        }),
+        missingModules: _missingModules.slice()
+    };
+};
+
+// ============================================================
+// 新增：Dependency Graph
+// ============================================================
+LawAIApp.getDependencyGraph = function() {
+    var graph = {};
+    var modules = Object.keys(_loadedModules);
+    
+    for (var i = 0; i < modules.length; i++) {
+        var name = modules[i];
+        var module = _loadedModules[name];
+        if (module.loaded) {
+            graph[name] = {
+                loaded: true,
+                dependencies: []
+            };
+        }
+    }
+    return graph;
+};
+
+// ============================================================
+// 新增：Health Report
+// ============================================================
+LawAIApp.getHealthReport = function() {
+    var status = LawAIApp.getBootStatus();
+    var runtimeHealth = LawAIApp.Runtime ? LawAIApp.Runtime.getHealth() : null;
+    var composerStatus = LawAIApp.SystemComposer ? LawAIApp.SystemComposer.getStatus() : null;
+
+    return {
+        loader: {
+            status: status,
+            version: '5.0.0'
+        },
+        runtime: runtimeHealth,
+        composer: composerStatus,
+        overall: _health.healthy && 
+                (runtimeHealth ? runtimeHealth.healthy : false) &&
+                (composerStatus ? composerStatus.ready !== false : true),
+        timestamp: Date.now()
+    };
+};
+
+// ============================================================
 // 启动
-// ===========================================
+// ============================================================
 async function boot() {
-    console.log("🚀 Loader V4.6 starting (auto-detecting path)");
+    console.log("🚀 Loader V5.0 starting (auto-detecting path)");
     console.log("📂 Base path:", BASE_PATH);
     console.log("📦 Loading " + CORE_ENGINES.length + " core modules...");
 
     var startTime = Date.now();
+    _bootTimeline.push({ event: 'boot_start', time: startTime });
 
     var results = await Promise.all(CORE_ENGINES.map(function(src) {
         return loadScript(src);
@@ -177,6 +251,7 @@ async function boot() {
     var missing = results.filter(function(r) { return r.status === "missing"; });
 
     var elapsed = Date.now() - startTime;
+    _bootTimeline.push({ event: 'boot_complete', time: Date.now() });
 
     console.log("✅ " + loaded.length + "/" + CORE_ENGINES.length + " core modules loaded (" + elapsed + "ms)");
 
@@ -185,10 +260,13 @@ async function boot() {
         missing: missing.map(function(r) { return r.file; }),
         active: [],
         booted: true,
-        safeMode: missing.length > 0
+        safeMode: missing.length > 0,
+        timeline: _bootTimeline,
+        health: _health
     };
 
     window.LawAIApp.bootStatus = window.__ENGINE_STATUS__;
+    _health.healthy = missing.length === 0;
 
     setTimeout(function() {
         window.dispatchEvent(new CustomEvent("SYSTEM_READY", {
@@ -202,9 +280,9 @@ async function boot() {
     }, 200);
 }
 
-// ===========================================
+// ============================================================
 // 自动启动
-// ===========================================
+// ============================================================
 if (document.readyState === "complete" || document.readyState === "interactive") {
     setTimeout(boot, 50);
 } else {
@@ -213,4 +291,4 @@ if (document.readyState === "complete" || document.readyState === "interactive")
     });
 }
 
-console.log("🚀 Loader V4.6 ready (auto-detecting path)");
+console.log("🚀 Loader V5.0 ready (auto-detecting path)");
