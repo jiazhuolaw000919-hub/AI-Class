@@ -1,6 +1,7 @@
 // ===========================================
 // bootstrap.js
-// Academy 引导引擎 - 系统初始化 + 健康检查（Season 1.5 Part I 完整版）
+// Academy 引导引擎 - Startup Pipeline (Phase 0.2)
+// Stage 1: Critical → Stage 2: UX → Stage 3: Intelligence → Stage 4: Background
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -10,9 +11,235 @@ window.LawAIApp = window.LawAIApp || {};
     var _health = {};
     var _bootAttempts = 0;
     var _maxBootAttempts = 3;
+    var _stages = {
+        critical: false,
+        ux: false,
+        intelligence: false,
+        background: false
+    };
 
     // ===========================================
-    // 启动管道
+    // 🚀 STAGE 1: CRITICAL — 立即渲染 UI
+    // ===========================================
+    function stage1Critical() {
+        console.log('🟢 Stage 1: Critical — Rendering UI...');
+
+        // 1. 立即应用主题
+        try {
+            if (LawAIApp.ThemeEngine && typeof LawAIApp.ThemeEngine.init === 'function') {
+                LawAIApp.ThemeEngine.init();
+            }
+        } catch (e) { /* 静默 */ }
+
+        // 2. 确保 Storage 可用（同步读取，极轻量）
+        try {
+            if (!LawAIApp.StorageEngine) {
+                // 极简 fallback
+                LawAIApp.StorageEngine = {
+                    get: function(key, def) {
+                        try { var v = localStorage.getItem('lawai_' + key); return v ? JSON.parse(v) : def; }
+                        catch(e) { return def; }
+                    },
+                    set: function(key, value) {
+                        try { localStorage.setItem('lawai_' + key, JSON.stringify(value)); return true; }
+                        catch(e) { return false; }
+                    }
+                };
+            }
+        } catch (e) { /* 静默 */ }
+
+        // 3. 触发 SYSTEM_READY（让 App 和 Router 初始化）
+        try {
+            var event = new CustomEvent('SYSTEM_READY', {
+                detail: { boot: { booted: true }, timestamp: Date.now() }
+            });
+            window.dispatchEvent(event);
+        } catch (e) { /* 静默 */ }
+
+        // 4. 如果 App 还没初始化，手动触发
+        try {
+            if (window.App && typeof window.App.init === 'function' && !window.App._state?.initialized) {
+                window.App.init({ boot: { booted: true } });
+            }
+        } catch (e) { console.warn('⚠️ App init fallback:', e); }
+
+        _stages.critical = true;
+        console.log('✅ Stage 1 complete — UI rendering started');
+    }
+
+    // ===========================================
+    // 📊 STAGE 2: USER EXPERIENCE — 进度、推荐、成就
+    // ===========================================
+    function stage2UX() {
+        console.log('🟡 Stage 2: User Experience — Loading progress & recommendations...');
+
+        // 使用 requestIdleCallback 或 setTimeout 延迟执行
+        var scheduleFn = window.requestIdleCallback || function(cb) { setTimeout(cb, 100); };
+
+        scheduleFn(function() {
+            // 1. ProgressEngine
+            try {
+                if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.init === 'function') {
+                    LawAIApp.ProgressEngine.init();
+                }
+                if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.getProgress === 'function') {
+                    LawAIApp.ProgressEngine.getProgress();
+                }
+            } catch (e) { console.warn('⚠️ ProgressEngine load:', e); }
+
+            // 2. ExperienceEngine（XP 和里程碑）
+            try {
+                if (LawAIApp.ExperienceEngine && typeof LawAIApp.ExperienceEngine.init === 'function') {
+                    LawAIApp.ExperienceEngine.init();
+                }
+            } catch (e) { console.warn('⚠️ ExperienceEngine load:', e); }
+
+            // 3. 推荐引擎（轻量加载）
+            try {
+                if (LawAIApp.RecommendationEngine && typeof LawAIApp.RecommendationEngine.getRecommendations === 'function') {
+                    // 预获取推荐，不阻塞
+                    LawAIApp.RecommendationEngine.getRecommendations(3);
+                }
+            } catch (e) { console.warn('⚠️ RecommendationEngine load:', e); }
+
+            // 4. 刷新 Dashboard 数据
+            try {
+                if (LawAIApp.Dashboard && typeof LawAIApp.Dashboard.render === 'function') {
+                    // 如果 Dashboard 已经渲染，刷新数据
+                    var root = document.getElementById('app') || document.getElementById('law-runtime-root');
+                    if (root && root.innerHTML.includes('systemComposerRoot')) {
+                        // 使用 SystemComposer 刷新
+                        if (LawAIApp.SystemComposer && typeof LawAIApp.SystemComposer.refresh === 'function') {
+                            LawAIApp.SystemComposer.refresh();
+                        }
+                    }
+                }
+            } catch (e) { console.warn('⚠️ Dashboard refresh:', e); }
+
+            _stages.ux = true;
+            console.log('✅ Stage 2 complete — UX data loaded');
+        });
+    }
+
+    // ===========================================
+    // 🧠 STAGE 3: INTELLIGENCE — 知识图谱、职业、AI 导师
+    // ===========================================
+    function stage3Intelligence() {
+        console.log('🔵 Stage 3: Intelligence — Loading AI systems...');
+
+        var scheduleFn = window.requestIdleCallback || function(cb) { setTimeout(cb, 300); };
+
+        scheduleFn(function() {
+            // 1. MemoryEngine（复习调度）
+            try {
+                if (LawAIApp.MemoryEngine && typeof LawAIApp.MemoryEngine.init === 'function') {
+                    LawAIApp.MemoryEngine.init();
+                }
+            } catch (e) { console.warn('⚠️ MemoryEngine load:', e); }
+
+            // 2. LessonEngine（课程数据）
+            try {
+                if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getAllLessons === 'function') {
+                    LawAIApp.LessonEngine.getAllLessons();
+                }
+            } catch (e) { console.warn('⚠️ LessonEngine load:', e); }
+
+            // 3. CareerEngine（职业发展）
+            try {
+                if (LawAIApp.CareerEngine && typeof LawAIApp.CareerEngine.init === 'function') {
+                    LawAIApp.CareerEngine.init();
+                }
+            } catch (e) { console.warn('⚠️ CareerEngine load:', e); }
+
+            // 4. AIMentorEngine（AI 导师）
+            try {
+                if (LawAIApp.AIMentorEngine && typeof LawAIApp.AIMentorEngine.init === 'function') {
+                    LawAIApp.AIMentorEngine.init();
+                }
+            } catch (e) { console.warn('⚠️ AIMentorEngine load:', e); }
+
+            // 5. SchoolEngine（多学院）
+            try {
+                if (LawAIApp.SchoolEngine && typeof LawAIApp.SchoolEngine.init === 'function') {
+                    LawAIApp.SchoolEngine.init();
+                }
+            } catch (e) { console.warn('⚠️ SchoolEngine load:', e); }
+
+            _stages.intelligence = true;
+            console.log('✅ Stage 3 complete — Intelligence loaded');
+        });
+    }
+
+    // ===========================================
+    // 🔄 STAGE 4: BACKGROUND — 分析、同步、清理
+    // ===========================================
+    function stage4Background() {
+        console.log('🟣 Stage 4: Background — Loading remaining systems...');
+
+        var scheduleFn = window.requestIdleCallback || function(cb) { setTimeout(cb, 500); };
+
+        scheduleFn(function() {
+            // 1. PracticeEngine
+            try {
+                if (LawAIApp.PracticeEngine && typeof LawAIApp.PracticeEngine.init === 'function') {
+                    LawAIApp.PracticeEngine.init();
+                }
+            } catch (e) { console.warn('⚠️ PracticeEngine load:', e); }
+
+            // 2. ReflectionEngine
+            try {
+                if (LawAIApp.ReflectionEngine && typeof LawAIApp.ReflectionEngine.init === 'function') {
+                    LawAIApp.ReflectionEngine.init();
+                }
+            } catch (e) { console.warn('⚠️ ReflectionEngine load:', e); }
+
+            // 3. CertificateEngine
+            try {
+                if (LawAIApp.CertificateEngine && typeof LawAIApp.CertificateEngine.init === 'function') {
+                    LawAIApp.CertificateEngine.init();
+                }
+            } catch (e) { console.warn('⚠️ CertificateEngine load:', e); }
+
+            // 4. AcademicRecordEngine
+            try {
+                if (LawAIApp.AcademicRecordEngine && typeof LawAIApp.AcademicRecordEngine.init === 'function') {
+                    LawAIApp.AcademicRecordEngine.init();
+                }
+            } catch (e) { console.warn('⚠️ AcademicRecordEngine load:', e); }
+
+            // 5. CommunityEngine
+            try {
+                if (LawAIApp.CommunityEngine && typeof LawAIApp.CommunityEngine.init === 'function') {
+                    LawAIApp.CommunityEngine.init();
+                }
+            } catch (e) { console.warn('⚠️ CommunityEngine load:', e); }
+
+            // 6. 数据清理（非关键）
+            try {
+                var keys = Object.keys(localStorage);
+                var prefix = 'lawai_';
+                for (var i = 0; i < keys.length; i++) {
+                    if (keys[i].startsWith(prefix) && keys[i].includes('_temp_')) {
+                        localStorage.removeItem(keys[i]);
+                    }
+                }
+            } catch (e) { /* 静默 */ }
+
+            _stages.background = true;
+            console.log('✅ Stage 4 complete — Background systems loaded');
+            console.log('✅ All startup stages complete!');
+
+            // 触发最终就绪事件
+            try {
+                window.dispatchEvent(new CustomEvent('BOOT_COMPLETE', {
+                    detail: { stages: _stages, timestamp: Date.now() }
+                }));
+            } catch (e) { /* 静默 */ }
+        });
+    }
+
+    // ===========================================
+    // 🚀 启动管道 — 主入口
     // ===========================================
     function boot() {
         if (_booted) {
@@ -28,57 +255,32 @@ window.LawAIApp = window.LawAIApp || {};
         }
 
         console.log('🚀 Bootstrapping Law AI Academy (attempt ' + _bootAttempts + ')...');
+        console.log('📋 Startup Pipeline: Stage 1 → 2 → 3 → 4');
 
+        // ============================================
+        // 执行管道
+        // ============================================
         try {
-            // 1. 详细健康检查（Part I）
-            var healthReport = runHealthCheck();
-            _health = healthReport;
+            // Stage 1: Critical — 立即执行（同步）
+            stage1Critical();
 
-            // 输出详细报告
-            console.log('📊 Health Report:', healthReport);
+            // Stage 2: UX — 延迟 100ms（使用 requestIdleCallback）
+            setTimeout(function() {
+                stage2UX();
+            }, 100);
 
-            if (!healthReport.allPassed) {
-                console.warn('⚠️ Health check issues found:', healthReport.issues);
-                // 尝试自动修复
-                var repaired = attemptRepair(healthReport.issues);
-                if (repaired > 0) {
-                    console.log('🔧 Repaired ' + repaired + ' issues');
-                    // 重新检查
-                    var recheck = runHealthCheck();
-                    if (recheck.allPassed) {
-                        console.log('✅ All issues resolved after repair');
-                    } else {
-                        console.warn('⚠️ Some issues remain:', recheck.issues);
-                    }
-                }
-            }
+            // Stage 3: Intelligence — 延迟 500ms
+            setTimeout(function() {
+                stage3Intelligence();
+            }, 500);
 
-            // 2. 初始化核心引擎
-            initializeCoreEngines();
-
-            // 3. 验证数据完整性（Part A）
-            verifyDataIntegrity();
-
-            // 4. 触发就绪事件
-            var event = new CustomEvent('SYSTEM_READY', {
-                detail: {
-                    boot: { booted: true, health: _health },
-                    timestamp: Date.now()
-                }
-            });
-            window.dispatchEvent(event);
-
-            // 5. 启动 App
-            if (window.App && typeof window.App.init === 'function' && !window.App.initialized) {
-                try {
-                    window.App.init({ boot: { booted: true, health: _health } });
-                } catch (e) {
-                    console.warn('App init failed:', e);
-                }
-            }
+            // Stage 4: Background — 延迟 1000ms
+            setTimeout(function() {
+                stage4Background();
+            }, 1000);
 
             _booted = true;
-            console.log('✅ Bootstrap complete (attempt ' + _bootAttempts + ')');
+            console.log('✅ Bootstrap pipeline started (attempt ' + _bootAttempts + ')');
 
         } catch (err) {
             console.error('❌ Bootstrap failed:', err);
@@ -92,246 +294,61 @@ window.LawAIApp = window.LawAIApp || {};
     }
 
     // ===========================================
-    // 详细健康检查（Part I 核心）
+    // 健康检查（精简版，不阻塞启动）
     // ===========================================
     function runHealthCheck() {
         var checks = {};
         var issues = [];
-        var details = {};
 
-        // 检查 StorageEngine
         try {
-            if (LawAIApp.StorageEngine) {
-                checks.storage = true;
-                details.storage = 'ok';
-                // 测试存储功能
-                var testKey = 'lawai_health_test';
-                localStorage.setItem(testKey, 'ok');
-                localStorage.removeItem(testKey);
-            } else {
-                checks.storage = false;
-                details.storage = 'missing';
-                issues.push({ module: 'StorageEngine', severity: 'critical', message: 'StorageEngine missing' });
-            }
+            checks.storage = !!LawAIApp.StorageEngine;
+            if (!checks.storage) issues.push('StorageEngine missing');
         } catch (e) {
             checks.storage = false;
-            details.storage = 'error';
-            issues.push({ module: 'StorageEngine', severity: 'critical', message: 'StorageEngine error: ' + e.message });
+            issues.push('StorageEngine error');
         }
 
-        // 检查 ProgressEngine
         try {
-            if (LawAIApp.ProgressEngine) {
-                checks.progress = true;
-                details.progress = 'ok';
-                // 验证 getProgress 可用
-                if (typeof LawAIApp.ProgressEngine.getProgress === 'function') {
-                    var test = LawAIApp.ProgressEngine.getProgress();
-                    if (test && typeof test === 'object') {
-                        // 正常
-                    } else {
-                        issues.push({ module: 'ProgressEngine', severity: 'high', message: 'getProgress returned invalid data' });
-                    }
-                }
-            } else {
-                checks.progress = false;
-                details.progress = 'missing';
-                issues.push({ module: 'ProgressEngine', severity: 'critical', message: 'ProgressEngine missing' });
-            }
+            checks.progress = !!LawAIApp.ProgressEngine;
+            if (!checks.progress) issues.push('ProgressEngine missing');
         } catch (e) {
             checks.progress = false;
-            details.progress = 'error';
-            issues.push({ module: 'ProgressEngine', severity: 'critical', message: 'ProgressEngine error: ' + e.message });
+            issues.push('ProgressEngine error');
         }
 
-        // 检查 EventBus
         try {
-            if (LawAIApp.EventBus) {
-                checks.eventBus = true;
-                details.eventBus = 'ok';
-                // 测试 emit 功能
-                if (typeof LawAIApp.EventBus.emit === 'function') {
-                    // 正常
-                }
-            } else {
-                checks.eventBus = false;
-                details.eventBus = 'missing';
-                issues.push({ module: 'EventBus', severity: 'high', message: 'EventBus missing' });
-            }
+            checks.eventBus = !!LawAIApp.EventBus;
+            if (!checks.eventBus) issues.push('EventBus missing');
         } catch (e) {
             checks.eventBus = false;
-            details.eventBus = 'error';
-            issues.push({ module: 'EventBus', severity: 'high', message: 'EventBus error: ' + e.message });
+            issues.push('EventBus error');
         }
 
-        // 检查 SystemComposer
         try {
-            if (LawAIApp.SystemComposer) {
-                checks.systemComposer = true;
-                details.systemComposer = 'ok';
-            } else {
-                checks.systemComposer = false;
-                details.systemComposer = 'missing';
-                issues.push({ module: 'SystemComposer', severity: 'high', message: 'SystemComposer missing' });
-            }
+            checks.systemComposer = !!LawAIApp.SystemComposer;
+            if (!checks.systemComposer) issues.push('SystemComposer missing');
         } catch (e) {
             checks.systemComposer = false;
-            details.systemComposer = 'error';
-            issues.push({ module: 'SystemComposer', severity: 'high', message: 'SystemComposer error: ' + e.message });
+            issues.push('SystemComposer error');
         }
 
-        // 检查 App
         try {
-            if (window.App) {
-                checks.app = true;
-                details.app = 'ok';
-            } else {
-                checks.app = false;
-                details.app = 'missing';
-                issues.push({ module: 'App', severity: 'critical', message: 'App missing' });
-            }
+            checks.app = !!window.App;
+            if (!checks.app) issues.push('App missing');
         } catch (e) {
             checks.app = false;
-            details.app = 'error';
-            issues.push({ module: 'App', severity: 'critical', message: 'App error: ' + e.message });
-        }
-
-        // 检查 localStorage
-        try {
-            if (localStorage) {
-                checks.localStorage = true;
-                details.localStorage = 'ok';
-                // 测试读写
-                localStorage.setItem('lawai_health_test', 'ok');
-                localStorage.removeItem('lawai_health_test');
-            }
-        } catch (e) {
-            checks.localStorage = false;
-            details.localStorage = 'error';
-            issues.push({ module: 'localStorage', severity: 'critical', message: 'localStorage unavailable: ' + e.message });
+            issues.push('App error');
         }
 
         var allPassed = Object.values(checks).every(function(v) { return v; });
 
-        // 生成修复建议
-        var recommendations = issues.map(function(issue) {
-            if (issue.module === 'StorageEngine') return 'Check StorageEngine initialization or create placeholder';
-            if (issue.module === 'ProgressEngine') return 'Ensure ProgressEngine is loaded before bootstrap';
-            if (issue.module === 'App') return 'Verify app.js is loaded and App object exists';
-            return 'Check module ' + issue.module + ' loading';
-        });
-
         return {
             checks: checks,
-            details: details,
             allPassed: allPassed,
             issues: issues,
-            recommendations: recommendations,
             status: allPassed ? 'healthy' : (issues.length < 3 ? 'degraded' : 'critical'),
             timestamp: new Date().toISOString()
         };
-    }
-
-    // ===========================================
-    // 自动修复
-    // ===========================================
-    function attemptRepair(issues) {
-        console.log('🔧 Attempting repairs...');
-        var repaired = 0;
-
-        issues.forEach(function(issue) {
-            if (issue.module === 'StorageEngine' && issue.severity === 'critical') {
-                if (!LawAIApp.StorageEngine) {
-                    LawAIApp.StorageEngine = {
-                        _placeholder: true,
-                        get: function(key, defaultValue) { 
-                            try { var val = localStorage.getItem('lawai_' + key); return val ? JSON.parse(val) : defaultValue; } 
-                            catch(e) { return defaultValue; }
-                        },
-                        set: function(key, value) { 
-                            try { localStorage.setItem('lawai_' + key, JSON.stringify(value)); return true; } 
-                            catch(e) { return false; }
-                        },
-                        init: function() { console.log('💾 StorageEngine placeholder initialized'); return this; }
-                    };
-                    repaired++;
-                }
-            }
-
-            if (issue.module === 'EventBus' && issue.severity === 'high') {
-                if (!LawAIApp.EventBus) {
-                    LawAIApp.EventBus = {
-                        _placeholder: true,
-                        emit: function(event, data) { 
-                            try { window.dispatchEvent(new CustomEvent(event, { detail: data })); } 
-                            catch(e) {}
-                            return true;
-                        },
-                        on: function(event, callback) { 
-                            try { window.addEventListener(event, function(e) { callback(e.detail); }); } 
-                            catch(e) {}
-                            return true;
-                        }
-                    };
-                    repaired++;
-                }
-            }
-        });
-
-        return repaired;
-    }
-
-    // ===========================================
-    // 初始化核心引擎
-    // ===========================================
-    function initializeCoreEngines() {
-        try {
-            if (LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.init === 'function') {
-                LawAIApp.StorageEngine.init();
-            }
-        } catch (e) { console.warn('StorageEngine init failed:', e); }
-
-        try {
-            if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.init === 'function') {
-                LawAIApp.ProgressEngine.init();
-            }
-        } catch (e) { console.warn('ProgressEngine init failed:', e); }
-
-        try {
-            if (LawAIApp.EventBus && typeof LawAIApp.EventBus.init === 'function') {
-                LawAIApp.EventBus.init();
-            }
-        } catch (e) { console.warn('EventBus init failed:', e); }
-    }
-
-    // ===========================================
-    // 验证数据完整性（Part A）
-    // ===========================================
-    function verifyDataIntegrity() {
-        try {
-            var progress = LawAIApp.ProgressEngine?.getProgress?.() || {};
-            
-            // 检查是否有异常数据
-            if (progress.xp < 0) {
-                console.warn('⚠️ Invalid XP value detected, resetting...');
-                progress.xp = 0;
-                if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.saveProgress === 'function') {
-                    LawAIApp.ProgressEngine.saveProgress(progress);
-                }
-            }
-
-            if (!Array.isArray(progress.completedLessons)) {
-                console.warn('⚠️ Invalid completedLessons detected, resetting...');
-                progress.completedLessons = [];
-                if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.saveProgress === 'function') {
-                    LawAIApp.ProgressEngine.saveProgress(progress);
-                }
-            }
-
-            console.log('✅ Data integrity verified');
-        } catch (e) {
-            console.warn('⚠️ Data integrity check failed:', e);
-        }
     }
 
     // ===========================================
@@ -366,16 +383,6 @@ window.LawAIApp = window.LawAIApp || {};
                         font-weight: 600;
                         cursor: pointer;
                     ">🔄 Refresh</button>
-                    <button onclick="if(LawAIApp.FactoryReset) LawAIApp.FactoryReset.execute()" style="
-                        margin-top: 10px;
-                        padding: 10px 30px;
-                        background: rgba(255,255,255,0.08);
-                        border: 1px solid rgba(255,255,255,0.1);
-                        border-radius: 10px;
-                        color: #94a3b8;
-                        font-size: 13px;
-                        cursor: pointer;
-                    ">🗑️ Factory Reset</button>
                 </div>
             `;
         }
@@ -388,11 +395,11 @@ window.LawAIApp = window.LawAIApp || {};
         start: function() {
             return new Promise(function(resolve) {
                 if (_booted) {
-                    resolve({ status: 'already_booted', health: _health });
+                    resolve({ status: 'already_booted', stages: _stages });
                     return;
                 }
                 boot();
-                resolve({ status: 'booted', health: _health });
+                resolve({ status: 'booted', stages: _stages });
             });
         },
         getHealth: function() { return _health; },
@@ -402,9 +409,11 @@ window.LawAIApp = window.LawAIApp || {};
             return {
                 booted: _booted,
                 attempts: _bootAttempts,
+                stages: _stages,
                 health: _health
             };
-        }
+        },
+        getStages: function() { return _stages; }
     };
 
     // ===========================================
@@ -412,10 +421,10 @@ window.LawAIApp = window.LawAIApp || {};
     // ===========================================
     function execute() {
         if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            setTimeout(boot, 100);
+            setTimeout(boot, 50);
         } else {
             document.addEventListener('DOMContentLoaded', function() {
-                setTimeout(boot, 100);
+                setTimeout(boot, 50);
             });
         }
     }
@@ -423,4 +432,4 @@ window.LawAIApp = window.LawAIApp || {};
     execute();
 })();
 
-console.log('🚀 Bootstrap V3.0 ready');
+console.log('🚀 Bootstrap V4.0 ready (Startup Pipeline)');
