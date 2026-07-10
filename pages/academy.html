@@ -14,69 +14,121 @@
     <link rel="stylesheet" href="/css/theme.css">
     <style>
         body { margin: 0; background: #0b1220; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; }
-        #app { min-height: 100vh; max-width: 1200px; margin: 0 auto; }
+        #app { min-height: 100vh; max-width: 1200px; margin: 0 auto; padding-bottom: 80px; }
         .academy-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; color: #94a3b8; text-align: center; }
         .academy-loading .spinner { width: 40px; height: 40px; border: 3px solid rgba(74,158,255,0.15); border-top-color: #4a9eff; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .back-header {
-            padding: 12px 20px;
-            background: rgba(0,0,0,0.3);
-            backdrop-filter: blur(8px);
-            border-bottom: 1px solid rgba(255,255,255,0.06);
+        .content-back-bar {
             display: flex;
             align-items: center;
-            gap: 12px;
-            position: sticky;
-            top: 0;
-            z-index: 50;
+            gap: 10px;
+            padding: 12px 16px;
+            margin: 12px 16px 20px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.06);
+            flex-wrap: wrap;
         }
-        .back-header a {
+        .content-back-bar .btn {
             display: flex;
             align-items: center;
             gap: 6px;
-            color: #94a3b8;
-            text-decoration: none;
-            font-size: 13px;
-            padding: 6px 14px;
+            padding: 8px 18px;
             border-radius: 8px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.06);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
             transition: all 0.2s;
+            text-decoration: none;
+            font-family: inherit;
+            border: none;
         }
-        .back-header a:hover {
+        .content-back-bar .btn-back {
+            background: rgba(74,158,255,0.1);
+            color: #4a9eff;
+            border: 1px solid rgba(74,158,255,0.15);
+        }
+        .content-back-bar .btn-back:hover {
+            background: rgba(74,158,255,0.2);
+            transform: scale(1.02);
+        }
+        .content-back-bar .btn-home {
+            background: rgba(255,255,255,0.04);
+            color: #94a3b8;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .content-back-bar .btn-home:hover {
             background: rgba(255,255,255,0.08);
             color: #e2e8f0;
         }
-        .back-header .separator {
+        .content-back-bar .separator {
+            color: #475569;
+            font-size: 14px;
+        }
+        .content-back-bar .page-title {
             color: #64748b;
             font-size: 13px;
-        }
-        .back-header .title {
-            color: #e2e8f0;
-            font-size: 14px;
-            font-weight: 500;
+            margin-left: auto;
         }
         @media (max-width: 480px) {
-            .back-header { padding: 8px 12px; flex-wrap: wrap; }
-            .back-header a { font-size: 12px; padding: 4px 10px; }
-            .back-header .title { font-size: 12px; }
+            .content-back-bar { padding: 10px 12px; gap: 6px; margin: 8px 10px 16px; }
+            .content-back-bar .btn { font-size: 12px; padding: 6px 12px; }
+            .content-back-bar .page-title { font-size: 11px; }
         }
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(20,20,40,0.92);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            justify-content: space-around;
+            padding: 6px 0 12px;
+            z-index: 100;
+        }
+        .bottom-nav a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 9px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.2s;
+            padding: 2px 12px;
+        }
+        .bottom-nav a:hover { color: #94a3b8; }
+        .bottom-nav a.active { color: #4a9eff; }
+        .bottom-nav a span:first-child { font-size: 18px; }
     </style>
 </head>
 <body>
-    <!-- ========================================================== -->
-    <!-- 🔙 固定返回栏（独立于 app，不依赖 router）                  -->
-    <!-- ========================================================== -->
-    <div class="back-header">
-        <a href="/">
-            <span style="font-size:16px;">←</span> 
-            <span>Back to Dashboard</span>
-        </a>
-        <span class="separator">|</span>
-        <span class="title">🏛️ Academy</span>
-    </div>
-
     <div id="app"></div>
+
+    <!-- ========================================================== -->
+    <!-- 底部导航（固定）                                           -->
+    <!-- ========================================================== -->
+    <nav class="bottom-nav">
+        <a href="/" class="nav-item" data-tab="home">
+            <span>🏠</span><span>Home</span>
+        </a>
+        <a href="/pages/academy.html" class="nav-item active" data-tab="academy">
+            <span>📚</span><span>Academy</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="calendar">
+            <span>📅</span><span>Calendar</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="notes">
+            <span>📝</span><span>Notes</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="settings">
+            <span>⚙️</span><span>Settings</span>
+        </a>
+    </nav>
 
     <!-- ========================================================== -->
     <!-- 脚本加载                                                  -->
@@ -92,29 +144,91 @@
 
     <script>
         (function() {
-            console.log('📄 Academy page loaded (with back button)');
+            console.log('📄 Academy page loaded');
 
+            // ==========================================================
+            // 底部导航点击处理
+            // ==========================================================
+            function setupNav() {
+                document.querySelectorAll('.nav-item').forEach(function(item) {
+                    item.addEventListener('click', function(e) {
+                        var tab = this.dataset.tab;
+                        
+                        if (tab === 'home') {
+                            window.location.href = '/';
+                            return;
+                        }
+                        if (tab === 'academy') {
+                            window.location.href = '/pages/academy.html';
+                            return;
+                        }
+                        
+                        e.preventDefault();
+                        var tabNames = {
+                            'calendar': '📅 Calendar',
+                            'notes': '📝 Notes',
+                            'settings': '⚙️ Settings'
+                        };
+                        if (window.LawAIApp?.Toast && typeof LawAIApp.Toast.info === 'function') {
+                            LawAIApp.Toast.info(tabNames[tab] + ' coming soon! 🚧');
+                        } else {
+                            alert(tabNames[tab] + ' coming soon! 🚧');
+                        }
+                    });
+                });
+            }
+
+            // ==========================================================
+            // 渲染 Academy
+            // ==========================================================
             function renderAcademy() {
                 var app = document.getElementById('app');
                 if (!app) return;
 
+                // 清空 app（保留后续内容）
+                app.innerHTML = '';
+
+                // 添加返回栏
+                var backBar = document.createElement('div');
+                backBar.className = 'content-back-bar';
+                backBar.innerHTML = `
+                    <button class="btn btn-back" onclick="window.history.back()">
+                        <span style="font-size:16px;">←</span> Back
+                    </button>
+                    <span class="separator">|</span>
+                    <a href="/" class="btn btn-home">
+                        <span style="font-size:14px;">🏠</span> Dashboard
+                    </a>
+                    <span class="page-title">🏛️ Academy</span>
+                `;
+                app.appendChild(backBar);
+
+                // 渲染 Academy 内容
                 if (window.LawAIApp?.Views?.AcademyAIView && 
                     typeof window.LawAIApp.Views.AcademyAIView.render === 'function') {
-                    app.innerHTML = '';
-                    window.LawAIApp.Views.AcademyAIView.render(app);
+                    var contentContainer = document.createElement('div');
+                    contentContainer.id = 'academy-content';
+                    app.appendChild(contentContainer);
+                    window.LawAIApp.Views.AcademyAIView.render(contentContainer);
                     console.log('✅ Academy rendered via Views.AcademyAIView');
                     return;
                 }
 
                 if (window.LawAIApp?.AcademyAIView && 
                     typeof window.LawAIApp.AcademyAIView.render === 'function') {
-                    app.innerHTML = '';
-                    window.LawAIApp.AcademyAIView.render(app);
+                    var contentContainer = document.createElement('div');
+                    contentContainer.id = 'academy-content';
+                    app.appendChild(contentContainer);
+                    window.LawAIApp.AcademyAIView.render(contentContainer);
                     console.log('✅ Academy rendered via AcademyAIView');
                     return;
                 }
 
-                app.innerHTML = `
+                // 如果视图还没加载
+                var contentContainer = document.createElement('div');
+                contentContainer.id = 'academy-content';
+                app.appendChild(contentContainer);
+                contentContainer.innerHTML = `
                     <div class="academy-loading">
                         <div class="spinner"></div>
                         <p>Loading Academy...</p>
@@ -127,8 +241,12 @@
                 setTimeout(renderAcademy, 500);
             }
 
+            // ==========================================================
+            // 等待就绪
+            // ==========================================================
             function waitForReady() {
                 if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                    setupNav();
                     if (window.LawAIApp?.Views?.AcademyAIView || window.LawAIApp?.AcademyAIView) {
                         renderAcademy();
                     } else {
@@ -139,6 +257,7 @@
                     }
                 } else {
                     document.addEventListener('DOMContentLoaded', function() {
+                        setupNav();
                         setTimeout(renderAcademy, 500);
                     });
                 }
