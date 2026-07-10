@@ -40,16 +40,21 @@ LawAIApp.Views.LessonView = {
     },
 
     /**
-     * 加载课程数据
+     * 加载课程数据（支持多种 day 格式）
      */
     _loadLesson: function(lessonId) {
+        // 🔥 解析 day —— 支持 "day-1", "day1", "1" 等多种格式
+        var day = parseInt(lessonId.replace('day-', '').replace('day', ''));
+        if (isNaN(day)) {
+            day = parseInt(lessonId);
+        }
+        if (isNaN(day) || day < 1) day = 1;
+        if (day > 365) day = 365;
+
         try {
             if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
-                var day = parseInt(lessonId.replace('day-', ''));
-                if (!isNaN(day) && day >= 1 && day <= 365) {
-                    var lesson = LawAIApp.LessonEngine.getLessonByDay(day);
-                    if (lesson) return lesson;
-                }
+                var lesson = LawAIApp.LessonEngine.getLessonByDay(day);
+                if (lesson) return lesson;
             }
         } catch (e) {}
 
@@ -70,25 +75,25 @@ LawAIApp.Views.LessonView = {
             }
         } catch (e) {}
 
-        var dayNum = parseInt(lessonId.replace('day-', ''));
-        if (!isNaN(dayNum)) {
-            return {
-                lessonId: lessonId,
-                day: dayNum,
-                title: 'Day ' + dayNum,
-                shortTitle: 'Day ' + dayNum,
-                description: 'Continue your AI learning journey.',
-                category: 'General',
-                difficulty: 'Beginner',
-                estimatedMinutes: 10,
-                estimatedXP: 20,
-                tags: ['AI', 'Learning'],
-                keywords: ['AI', 'learning'],
-                moduleId: 'module_ai_foundation'
-            };
+        // Fallback: 从 LessonEngine 生成默认课程
+        if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.createLesson === 'function') {
+            return LawAIApp.LessonEngine.createLesson(day);
         }
 
-        return null;
+        return {
+            lessonId: 'day-' + day,
+            day: day,
+            title: 'Day ' + day,
+            shortTitle: 'Day ' + day,
+            description: 'Continue your AI learning journey.',
+            category: 'General',
+            difficulty: 'Beginner',
+            estimatedMinutes: 10,
+            estimatedXP: 20,
+            tags: ['AI', 'Learning'],
+            keywords: ['AI', 'learning'],
+            moduleId: 'module_ai_foundation'
+        };
     },
 
     /**
