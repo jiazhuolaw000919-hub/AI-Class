@@ -1,14 +1,79 @@
 // ================================================================
-// systemComposer.js – V5.0 FINAL
-// 重构：DOM Cache + Panel Registry + Render Queue + Dirty Refresh + Recovery
-// 100% 保留所有现有功能（含 Phase 7/8/9/10 全部 UI）
+// ENGINE: SystemComposer
+// LAYER: UI Layer
+// DOMAIN: System Composition & UI Rendering
+// RECOVERY STATUS: 🟢 Canon Locked
+// VERSION: 5.0.1
+// ================================================================
+//
+// PURPOSE
+// ================================================================
+//   Owns the composition and rendering of the entire UI.
+//   Orchestrates panels, manages render queues, and coordinates
+//   the visual presentation of all learning content.
+//   Serves as the bridge between data engines and the user interface.
+//
+// PUBLIC API
+// ================================================================
+//   init(boot)                             -> void
+//   refresh()                              -> void
+//   refreshPanel(name)                     -> void
+//   destroy()                              -> void
+//   registerPanel(name, renderer)          -> void
+//   resolvePanel(name)                     -> function | null
+//   scheduleRender(panelName)              -> void
+//   recover()                              -> void
+//   getDOM(key)                            -> HTMLElement | null
+//   getStatus()                            -> Status object
+//   isReady()                              -> boolean
+//   getStatus()                            -> object
+//
+// DEPENDENCIES
+// ================================================================
+//   - StorageEngine (optional) : For reading stored data
+//   - EventBus (optional)     : For emitting and listening to events
+//   - ProgressEngine (optional) : For progress data
+//   - LessonEngine (optional) : For lesson data
+//
+// STORAGE
+// ================================================================
+//   - None (renders UI, does not store data)
+//   - UI state is ephemeral and recreated on refresh
+//
+// EVENTS
+// ================================================================
+//   EMITTED:
+//   - 'COMPOSER_MOUNTED'     : When composer finishes mounting
+//     Payload: { version, initialized, root }
+//
+//   CONSUMED:
+//   - 'SYSTEM_READY'         : From Loader/App, triggers initialization
+//   - 'PROFILE_UPDATED'      : From ProfileEngine, refreshes learning panel
+//   - 'LEARNING_UI_REFRESH'  : Triggers learning panel refresh
+//   - 'RUNTIME_READY'        : Triggers runtime panel refresh
+//   - 'WORKSPACE_UPDATED'    : Triggers workspace panel refresh
+//
+// FUTURE COMPATIBILITY
+// ================================================================
+//   - New panels can be added via registerPanel()
+//   - Existing panels must maintain render() signature
+//   - Render queue can be extended with new scheduling strategies
+//   - DOM cache can be expanded for new UI elements
+//
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.SystemComposer = {
 
-    version: "5.0.0",
+    // ============================================================
+    // ENGINE METADATA
+    // ============================================================
+    _engineName: 'SystemComposer',
+    _engineVersion: '5.0.1',
+    _recoveryStatus: '🟢 Canon Locked',
+    _layer: 'UI Layer',
+    _domain: 'System Composition & UI Rendering',
 
     // ============================================================
     // 1. Runtime State
@@ -923,8 +988,38 @@ LawAIApp.SystemComposer = {
         var el = this.getDOM('modules');
         if (!el) return;
         el.innerHTML = `<div style="background:#1e293b;padding:18px;border-radius:12px;"><h2 style="margin:0 0 8px;">📦 Modules</h2><p style="color:#94a3b8;font-size:13px;">All systems ready</p></div>`;
-    }
+    },
 
+    // ============================================================
+    // ENGINE STATUS
+    // ============================================================
+    getStatus: function() {
+        var allPanels = Object.keys(this.panels);
+        var dirtyPanels = Array.from(this._dirtyPanels);
+        return {
+            name: this._engineName,
+            version: this._engineVersion,
+            recoveryStatus: this._recoveryStatus,
+            layer: this._layer,
+            domain: this._domain,
+            initialized: this.initialized,
+            mounted: this._mountedNotified,
+            totalPanels: allPanels.length,
+            panels: allPanels,
+            dirtyPanels: dirtyPanels,
+            recoveryAttempts: this._recoveryAttempts,
+            maxRecoveryAttempts: this._maxRecoveryAttempts,
+            rootExists: !!this.root,
+            domCacheSize: Object.keys(this.cache).length
+        };
+    },
+
+    // ============================================================
+    // IS READY
+    // ============================================================
+    isReady: function() {
+        return this.initialized && this._mountedNotified;
+    }
 };
 
 // ============================================================
