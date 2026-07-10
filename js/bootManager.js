@@ -1,5 +1,5 @@
 // ================================================================
-// bootManager.js – V3.0.0 - Simplified Scheduler (Phase 0.3)
+// bootManager.js – V3.0.0 - Simplified Scheduler + Profiler (Phase P.1)
 // 只做一件事：调度启动，不执行具体逻辑
 // ================================================================
 
@@ -23,13 +23,16 @@ LawAIApp.BootManager = {
         }
         this._booted = true;
 
+        // 🔥 Profiler: 注册 BootManager
+        if (LawAIApp.DevTools?.RuntimeProfiler) {
+            LawAIApp.DevTools.RuntimeProfiler.registerEngine('BootManager');
+        }
+
         // 触发启动事件
         try {
             LawAIApp.EventBus?.emit?.('BootStarted');
         } catch (e) { /* 静默 */ }
 
-        // 由 bootstrap 或 loader 实际执行加载
-        // BootManager 只做调度跟踪
         console.log('🚀 BootManager: Startup scheduled');
 
         return Promise.resolve({ status: 'started' });
@@ -70,4 +73,4 @@ LawAIApp.BootManager = {
     }
 };
 
-console.log('🚀 BootManager V3.0 ready');
+console.log('🚀 BootManager V3.0 ready (Profiler)');
