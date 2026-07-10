@@ -14,28 +14,36 @@
     <link rel="stylesheet" href="/css/theme.css">
     <style>
         * { box-sizing: border-box; }
-        body { margin: 0; background: #0b1220; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; }
-        #app { min-height: 100vh; padding: 20px 20px 90px; max-width: 1000px; margin: 0 auto; }
+        body { 
+            margin: 0; 
+            background: #0b1220; 
+            color: #e2e8f0; 
+            font-family: 'Inter', -apple-system, sans-serif; 
+        }
+        #app { 
+            min-height: 100vh; 
+            padding: 16px 20px 90px; 
+            max-width: 1000px; 
+            margin: 0 auto; 
+        }
+
         #breadcrumb-nav, .back-header { display: none !important; }
 
-        .lesson-header {
+        /* ===== 顶部：返回 + 时间（独立，不在 bar 里） ===== */
+        .lesson-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 16px 0 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 12px;
+            margin-bottom: 12px;
+            padding: 0 2px;
         }
-        .lesson-header .left { display: flex; align-items: center; gap: 14px; }
-        .lesson-header .left .back-btn {
+        .lesson-top .back-btn {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            border-radius: 10px;
-            font-size: 13px;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 12px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
@@ -45,102 +53,155 @@
             background: rgba(255,255,255,0.03);
             color: #94a3b8;
         }
-        .lesson-header .left .back-btn:hover {
+        .lesson-top .back-btn:hover {
             background: rgba(255,255,255,0.08);
             color: #e2e8f0;
         }
-        .lesson-header .left .back-btn span { font-size: 16px; }
-        .lesson-header .center {
+        .lesson-top .back-btn span { font-size: 14px; }
+
+        .lesson-top .time-group {
             display: flex;
             align-items: center;
-            gap: 10px;
-            background: rgba(255,255,255,0.04);
-            padding: 8px 20px;
-            border-radius: 30px;
-            border: 1px solid rgba(255,255,255,0.06);
+            gap: 8px;
+            font-variant-numeric: tabular-nums;
+            font-family: 'Inter', monospace;
         }
-        .lesson-header .center .icon { font-size: 20px; }
-        .lesson-header .center .day-label {
-            font-size: 15px;
+        .lesson-top .time-group .weekday {
+            font-size: 11px;
+            font-weight: 500;
+            color: #4a9eff;
+            background: rgba(74,158,255,0.08);
+            padding: 0 8px;
+            border-radius: 4px;
+            line-height: 18px;
+        }
+        .lesson-top .time-group .date {
+            font-size: 12px;
+            font-weight: 400;
+            color: #94a3b8;
+        }
+        .lesson-top .time-group .time-display {
+            font-size: 14px;
             font-weight: 600;
             color: #e2e8f0;
             letter-spacing: 0.3px;
         }
-        .lesson-header .center .day-number {
-            font-size: 18px;
+        .lesson-top .time-group .seconds {
+            font-size: 11px;
+            font-weight: 400;
+            color: #64748b;
+            background: rgba(255,255,255,0.04);
+            padding: 0 6px;
+            border-radius: 4px;
+            line-height: 18px;
+            min-width: 22px;
+            text-align: center;
+        }
+        .lesson-top .time-group .ampm {
+            font-size: 10px;
+            font-weight: 500;
+            color: #64748b;
+            background: rgba(255,255,255,0.03);
+            padding: 0 6px;
+            border-radius: 4px;
+            line-height: 16px;
+        }
+
+        /* ===== Day Bar（独立小 bar） ===== */
+        .day-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.03);
+            padding: 6px 16px 6px 14px;
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.05);
+            margin-bottom: 20px;
+            width: fit-content;
+        }
+        .day-bar .icon { 
+            font-size: 14px; 
+            opacity: 0.6;
+        }
+        .day-bar .label {
+            font-size: 10px;
+            font-weight: 500;
+            color: #64748b;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .day-bar .number {
+            font-size: 14px;
             font-weight: 700;
             color: #4a9eff;
             background: rgba(74,158,255,0.12);
-            padding: 2px 12px;
-            border-radius: 20px;
+            padding: 0 10px;
+            border-radius: 12px;
+            line-height: 22px;
+            min-width: 26px;
+            text-align: center;
         }
-        .lesson-header .right {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 2px;
-        }
-        .lesson-header .right .date { font-size: 14px; font-weight: 500; color: #e2e8f0; }
-        .lesson-header .right .time { font-size: 12px; color: #64748b; font-variant-numeric: tabular-nums; }
 
+        /* ===== 课程内容 ===== */
         .lesson-content {
             animation: fadeIn 0.4s ease;
         }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(12px); }
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
         .lesson-content .title {
-            font-size: 26px;
+            font-size: 24px;
             font-weight: 700;
             color: #e2e8f0;
-            margin: 0 0 8px;
+            margin: 0 0 6px;
             line-height: 1.2;
         }
         .lesson-content .subtitle {
-            font-size: 16px;
+            font-size: 15px;
             color: #94a3b8;
-            margin: 0 0 20px;
+            margin: 0 0 18px;
             line-height: 1.5;
         }
         .lesson-content .section {
             background: rgba(255,255,255,0.03);
             border-radius: 12px;
-            padding: 16px 20px;
-            margin-bottom: 14px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
             border: 1px solid rgba(255,255,255,0.04);
         }
         .lesson-content .section h3 {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             color: #e2e8f0;
-            margin: 0 0 8px;
+            margin: 0 0 6px;
         }
         .lesson-content .section ul {
             margin: 0;
-            padding-left: 20px;
+            padding-left: 18px;
             color: #94a3b8;
-            font-size: 14px;
+            font-size: 13px;
             line-height: 1.8;
         }
         .lesson-content .section ul li { list-style-type: disc; }
         .lesson-content .complete-btn {
             display: inline-block;
-            padding: 12px 32px;
+            padding: 11px 28px;
             background: #4a9eff;
             border: none;
             border-radius: 10px;
             color: white;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
-            margin-top: 8px;
+            margin-top: 6px;
             font-family: inherit;
         }
         .lesson-content .complete-btn:hover { background: #3b8be8; transform: scale(1.02); }
         .lesson-content .complete-btn:active { transform: scale(0.97); }
 
+        /* ===== 底部导航 ===== */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -174,15 +235,22 @@
         .bottom-nav a.active { color: #4a9eff; }
         .bottom-nav a span:first-child { font-size: 18px; }
 
+        /* ===== 响应式 ===== */
         @media (max-width: 600px) {
-            .lesson-header { flex-direction: column; align-items: stretch; gap: 10px; }
-            .lesson-header .left { justify-content: flex-start; }
-            .lesson-header .center { justify-content: center; padding: 6px 16px; }
-            .lesson-header .center .day-number { font-size: 15px; padding: 0 10px; }
-            .lesson-header .right { align-items: center; flex-direction: row; justify-content: space-between; width: 100%; }
-            .lesson-header .right .date { font-size: 13px; }
-            .lesson-header .right .time { font-size: 11px; }
+            .lesson-top { flex-wrap: wrap; gap: 6px; }
+            .lesson-top .time-group .weekday { font-size: 10px; }
+            .lesson-top .time-group .date { font-size: 11px; }
+            .lesson-top .time-group .time-display { font-size: 13px; }
+            .lesson-top .time-group .seconds { font-size: 10px; min-width: 18px; }
+            .day-bar { padding: 4px 12px 4px 10px; }
+            .day-bar .number { font-size: 13px; line-height: 20px; min-width: 22px; }
             .lesson-content .title { font-size: 20px; }
+        }
+        @media (max-width: 420px) {
+            .lesson-top .back-btn { font-size: 11px; padding: 4px 10px; }
+            .lesson-top .time-group { gap: 4px; }
+            .day-bar .number { font-size: 12px; min-width: 20px; }
+            .day-bar .label { font-size: 9px; }
         }
     </style>
 </head>
@@ -210,15 +278,62 @@
 
     <script>
         (function() {
-            console.log('📄 Lesson page loaded (JS-driven)');
+            console.log('📄 Lesson page loaded (Day Bar + Time outside)');
 
+            // ===== 获取 Lesson ID =====
             function getLessonIdFromURL() {
                 var params = new URLSearchParams(window.location.search);
                 return params.get('lessonId') || params.get('id') || params.get('day') || null;
             }
 
             var lessonId = getLessonIdFromURL() || 'day-1';
+            var dayNumber = lessonId.replace('day-', '').replace('day', '');
             console.log('📖 Loading lesson:', lessonId);
+
+            // ===== 动态时间 =====
+            var timeInterval = null;
+
+            function getFormattedDateTime() {
+                var now = new Date();
+                var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                
+                var weekday = days[now.getDay()];
+                var month = months[now.getMonth()];
+                var date = now.getDate();
+                var year = now.getFullYear();
+
+                var hours = now.getHours();
+                var ampm = hours >= 12 ? 'PM' : 'AM';
+                var displayHours = hours % 12 || 12;
+                var minutes = String(now.getMinutes()).padStart(2, '0');
+                var seconds = String(now.getSeconds()).padStart(2, '0');
+
+                return {
+                    weekday: weekday,
+                    date: month + ' ' + date + ', ' + year,
+                    time: displayHours + ':' + minutes,
+                    seconds: seconds,
+                    ampm: ampm
+                };
+            }
+
+            function updateTime() {
+                var weekdayEl = document.getElementById('lesson-weekday');
+                var dateEl = document.getElementById('lesson-date');
+                var timeEl = document.getElementById('lesson-time');
+                var secondsEl = document.getElementById('lesson-seconds');
+                var ampmEl = document.getElementById('lesson-ampm');
+
+                if (!timeEl) return;
+
+                var dt = getFormattedDateTime();
+                if (weekdayEl) weekdayEl.textContent = dt.weekday;
+                if (dateEl) dateEl.textContent = dt.date;
+                if (timeEl) timeEl.textContent = dt.time;
+                if (secondsEl) secondsEl.textContent = dt.seconds;
+                if (ampmEl) ampmEl.textContent = dt.ampm;
+            }
 
             // ===== 导航 =====
             function setupNav() {
@@ -235,55 +350,70 @@
                 });
             }
 
-            // ===== 格式化时间 =====
-            function getFormattedDateTime() {
-                var now = new Date();
-                var dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' });
-                var timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                return { date: dateStr, time: timeStr };
-            }
+            // ===== 渲染 Top（返回 + 时间） =====
+            function renderTop(app) {
+                if (document.getElementById('lesson-top')) return;
 
-            // ===== 渲染 Header =====
-            function renderHeader(app, dayNumber) {
-                if (document.getElementById('lesson-header')) return;
                 var dt = getFormattedDateTime();
-                var header = document.createElement('div');
-                header.id = 'lesson-header';
-                header.className = 'lesson-header';
-                header.innerHTML = `
-                    <div class="left">
-                        <button class="back-btn" onclick="window.history.back()"><span>←</span> Back</button>
-                    </div>
-                    <div class="center">
-                        <span class="icon">📖</span>
-                        <span class="day-label">Day</span>
-                        <span class="day-number">${dayNumber}</span>
-                    </div>
-                    <div class="right">
-                        <span class="date">${dt.date}</span>
-                        <span class="time">${dt.time}</span>
+
+                var top = document.createElement('div');
+                top.id = 'lesson-top';
+                top.className = 'lesson-top';
+                top.innerHTML = `
+                    <button class="back-btn" onclick="window.history.back()">
+                        <span>←</span> Back
+                    </button>
+                    <div class="time-group">
+                        <span class="weekday" id="lesson-weekday">${dt.weekday}</span>
+                        <span class="date" id="lesson-date">${dt.date}</span>
+                        <span class="time-display" id="lesson-time">${dt.time}</span>
+                        <span class="seconds" id="lesson-seconds">${dt.seconds}</span>
+                        <span class="ampm" id="lesson-ampm">${dt.ampm}</span>
                     </div>
                 `;
-                app.insertBefore(header, app.firstChild);
+
+                app.appendChild(top);
+
+                if (timeInterval) clearInterval(timeInterval);
+                timeInterval = setInterval(updateTime, 1000);
             }
 
-            // ===== 🚀 核心：用 JS 驱动渲染 Lesson =====
+            // ===== 渲染 Day Bar（独立小 bar） =====
+            function renderDayBar(app) {
+                if (document.getElementById('day-bar')) return;
+
+                var bar = document.createElement('div');
+                bar.id = 'day-bar';
+                bar.className = 'day-bar';
+                bar.innerHTML = `
+                    <span class="icon">📖</span>
+                    <span class="label">Day</span>
+                    <span class="number">${dayNumber}</span>
+                `;
+
+                app.appendChild(bar);
+            }
+
+            // ===== 渲染 Lesson =====
             function renderLesson() {
                 var app = document.getElementById('app');
                 if (!app) return;
 
-                // 清空并渲染 Header
                 app.innerHTML = '';
-                var dayNumber = lessonId.replace('day-', '').replace('day', '');
-                renderHeader(app, dayNumber);
 
-                // 内容容器
+                // 1. Top: 返回 + 时间
+                renderTop(app);
+
+                // 2. Day Bar（独立小 bar）
+                renderDayBar(app);
+
+                // 3. 内容容器
                 var container = document.createElement('div');
                 container.id = 'lesson-content';
                 container.className = 'lesson-content';
                 app.appendChild(container);
 
-                // ===== 尝试从 LessonView 渲染 =====
+                // 尝试用 LessonView 渲染
                 if (window.LawAIApp?.Views?.LessonView && 
                     typeof window.LawAIApp.Views.LessonView.render === 'function') {
                     window.LawAIApp.Views.LessonView.render(lessonId, container);
@@ -291,75 +421,29 @@
                     return;
                 }
 
-                if (window.LawAIApp?.LessonView && 
-                    typeof window.LawAIApp.LessonView.render === 'function') {
-                    window.LawAIApp.LessonView.render(lessonId, container);
-                    console.log('✅ Lesson rendered via LessonView');
-                    return;
-                }
-
-                // ===== 如果 LessonView 不存在，用 LessonEngine 数据 =====
-                var lessonData = null;
-                if (window.LawAIApp?.LessonEngine && 
-                    typeof window.LawAIApp.LessonEngine.getLessonByDay === 'function') {
-                    var dayNum = parseInt(dayNumber);
-                    if (!isNaN(dayNum)) {
-                        lessonData = LawAIApp.LessonEngine.getLessonByDay(dayNum);
-                    }
-                }
-
-                if (lessonData) {
-                    // 用 Engine 数据渲染
-                    container.innerHTML = `
-                        <h1 class="title">${lessonData.title || 'Lesson ' + dayNumber}</h1>
-                        <p class="subtitle">${lessonData.subtitle || lessonData.summary || 'Continue building your AI knowledge.'}</p>
-                        ${lessonData.objectives ? `
-                        <div class="section">
-                            <h3>🎯 Learning Objectives</h3>
-                            <ul>${lessonData.objectives.map(function(o) { return '<li>' + o + '</li>'; }).join('')}</ul>
-                        </div>` : ''}
-                        ${lessonData.topics ? `
-                        <div class="section">
-                            <h3>📚 Topics Covered</h3>
-                            <ul>${lessonData.topics.map(function(t) { return '<li>' + t + '</li>'; }).join('')}</ul>
-                        </div>` : ''}
-                        ${lessonData.resources ? `
-                        <div class="section">
-                            <h3>📖 Resources</h3>
-                            <ul>${lessonData.resources.map(function(r) { return '<li>' + r + '</li>'; }).join('')}</ul>
-                        </div>` : ''}
-                        <button class="complete-btn" onclick="window.markLessonComplete('${lessonId}')">✅ Mark Complete</button>
-                    `;
-                    console.log('✅ Lesson rendered via LessonEngine data');
-                    return;
-                }
-
-                // ===== 最终 Fallback：显示示例内容（提示需要添加数据） =====
+                // Fallback
                 container.innerHTML = `
-                    <div style="text-align:center;padding:40px 20px;color:#94a3b8;">
+                    <div style="text-align:center;padding:60px 20px;color:#94a3b8;">
                         <div style="font-size:48px;margin-bottom:16px;">📖</div>
                         <h2 style="color:#e2e8f0;font-size:20px;">Lesson ${dayNumber}</h2>
-                        <p>No content loaded yet.</p>
+                        <p>Loading lesson content...</p>
                         <p style="font-size:13px;color:#64748b;margin-top:8px;">
-                            Add data to <code>LessonEngine</code> or <code>lessonView.js</code>
+                            <button class="complete-btn" onclick="window.markLessonComplete()">✅ Mark Complete</button>
                         </p>
-                        <button class="complete-btn" style="margin-top:20px;" onclick="window.markLessonComplete('${lessonId}')">✅ Mark Complete</button>
                     </div>
                 `;
-                console.warn('⚠️ No lesson data found, showing fallback');
             }
 
             // ===== 标记完成 =====
-            window.markLessonComplete = function(id) {
-                var dayNum = id.replace('day-', '').replace('day', '');
+            window.markLessonComplete = function() {
                 if (window.LawAIApp?.Toast?.success) {
-                    LawAIApp.Toast.success('✅ Day ' + dayNum + ' completed! +20 XP');
+                    LawAIApp.Toast.success('✅ Day ' + dayNumber + ' completed! +20 XP');
                 } else {
-                    alert('✅ Day ' + dayNum + ' completed! +20 XP');
+                    alert('✅ Day ' + dayNumber + ' completed! +20 XP');
                 }
                 try {
                     if (window.LawAIApp?.ProgressEngine?.completeLesson) {
-                        LawAIApp.ProgressEngine.completeLesson(id);
+                        LawAIApp.ProgressEngine.completeLesson(lessonId);
                     }
                 } catch (e) { console.warn('Progress save failed:', e); }
             };
@@ -368,7 +452,7 @@
             function waitForReady() {
                 if (document.readyState === 'complete' || document.readyState === 'interactive') {
                     setupNav();
-                    if (window.LawAIApp?.Views?.LessonView || window.LawAIApp?.LessonView || window.LawAIApp?.LessonEngine) {
+                    if (window.LawAIApp?.Views?.LessonView || window.LawAIApp?.LessonEngine) {
                         renderLesson();
                     } else {
                         document.addEventListener('SYSTEM_READY', function() { setTimeout(renderLesson, 300); });
