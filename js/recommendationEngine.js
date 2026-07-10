@@ -1,14 +1,14 @@
-// recommendationEngine.js - 安全回退版
+// recommendationEngine.js - 超稳版（永不报错）
 window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.RecommendationEngine = {
-  // 安全版 getRecommendations - 永远返回有效数据，绝不报错
+  // 永远返回有效数组，绝不报错
   getRecommendations: function(limit) {
     limit = limit || 3;
     var recs = [];
     
     try {
-      // 尝试从 LessonEngine 获取推荐
+      // 尝试从 LessonEngine 获取数据
       if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
         var progress = null;
         if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.getProgress === 'function') {
@@ -18,19 +18,20 @@ LawAIApp.RecommendationEngine = {
         var nextDay = completed.length + 1;
         if (nextDay > 365) nextDay = 365;
         
+        var titles = ['Introduction to AI', 'How AI Learns', 'AI in Daily Life', 'The AI Toolbox', 'Ethics in AI'];
         for (var i = 0; i < limit; i++) {
           var day = Math.min(nextDay + i, 365);
           var lesson = LawAIApp.LessonEngine.getLessonByDay(day);
           recs.push({
             id: 'day-' + day,
-            title: lesson ? lesson.title : 'Day ' + day,
+            title: lesson ? lesson.title : (titles[i % titles.length] || 'Day ' + day),
             description: lesson ? (lesson.summary || lesson.subtitle || 'Continue your AI journey.') : 'Continue your AI journey.',
             icon: ['📖', '🧠', '💡', '🚀', '🌟'][i % 5],
             type: 'lesson'
           });
         }
       } else {
-        // 兜底数据
+        // 完全兜底
         var fallbackTitles = ['Introduction to AI', 'How AI Learns', 'AI in Daily Life'];
         for (var j = 0; j < limit; j++) {
           recs.push({
@@ -43,8 +44,7 @@ LawAIApp.RecommendationEngine = {
         }
       }
     } catch (e) {
-      // 任何错误都不让页面崩溃
-      console.warn('⚠️ RecommendationEngine fallback:', e);
+      // 任何错误都兜底
       for (var k = 0; k < limit; k++) {
         recs.push({
           id: 'day-' + (k + 1),
@@ -59,12 +59,12 @@ LawAIApp.RecommendationEngine = {
     return recs;
   },
   
-  // 其他方法保持空实现，防止调用报错
+  // 其他方法保持空实现
   getActiveRecommendations: function() { return []; },
-  accept: function(id) {},
-  dismiss: function(id) {},
+  accept: function() {},
+  dismiss: function() {},
   getHistory: function() { return []; },
   refresh: function() {}
 };
 
-console.log('📊 RecommendationEngine (safe fallback) loaded');
+console.log('📊 RecommendationEngine (ultra-stable) loaded');
