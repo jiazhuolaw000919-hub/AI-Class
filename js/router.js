@@ -1,5 +1,5 @@
 // ===========================================
-// router.js – V4.7 - Instant First Paint (Phase 0.1.1)
+// router.js – V4.7 - Instant First Paint + Profiler (Phase P.1)
 // 优化：非关键初始化延迟到首屏后
 // ===========================================
 
@@ -31,6 +31,11 @@ LawAIApp.Router = {
         this._initialized = true;
 
         console.log('🧭 Router V4.7 initializing (critical only)...');
+
+        // 🔥 Profiler: 注册 Router
+        if (LawAIApp.DevTools?.RuntimeProfiler) {
+            LawAIApp.DevTools.RuntimeProfiler.registerEngine('Router');
+        }
 
         // ============================================================
         // 1. 关键：立即恢复当前页面状态（从 URL 解析）
@@ -69,7 +74,6 @@ LawAIApp.Router = {
      * 🔥 绑定事件监听（延迟执行）
      */
     _bindEventListeners: function() {
-        // 导航点击
         document.querySelectorAll('.nav-item').forEach(function(btn) {
             btn.addEventListener('click', function(e) {
                 var page = this.dataset.page;
@@ -80,7 +84,6 @@ LawAIApp.Router = {
             });
         });
 
-        // popstate
         window.addEventListener('popstate', function(e) {
             if (this._popstateHandling || this._isNavigating) return;
             this._popstateHandling = true;
@@ -104,12 +107,9 @@ LawAIApp.Router = {
     },
 
     // ============================================================
-    // 以下方法保持不变（全部保留）
+    // 导航
     // ============================================================
 
-    /**
-     * 导航到指定页面
-     */
     navigate: function(page, params, options) {
         options = options || {};
         params = params || {};
@@ -205,10 +205,19 @@ LawAIApp.Router = {
     },
 
     /**
-     * 加载页面（保持不变）
+     * 加载页面（含 Profiler 渲染计数）
      */
     loadPage: function(page) {
         var app = document.getElementById('app') || document.getElementById('law-runtime-root');
+
+        // 🔥 Profiler: 记录页面渲染
+        if (LawAIApp.DevTools?.RuntimeProfiler) {
+            var pageName = page;
+            if (page === 'academy' || page === 'academy.html' || page === 'pages') pageName = 'academy';
+            else if (page === 'lesson' || page === 'lesson.html') pageName = 'lesson';
+            else if (page === 'dashboard') pageName = 'dashboard';
+            LawAIApp.DevTools.RuntimeProfiler.recordRender(pageName);
+        }
 
         if (page === 'academy' || page === 'academy.html' || page === 'pages') {
             if (app) {
@@ -438,7 +447,7 @@ LawAIApp.Router = {
             return;
         }
 
-        // Dashboard 特殊处理
+        // Dashboard
         if (page === 'dashboard') {
             console.log('📌 Loading Dashboard...');
             
@@ -632,7 +641,7 @@ LawAIApp.Router = {
     },
 
     /**
-     * 渲染面包屑（使用硬链接）
+     * 渲染面包屑
      */
     _renderBreadcrumb: function() {
         var oldBreadcrumb = document.getElementById('breadcrumb-nav');
@@ -740,10 +749,9 @@ LawAIApp.Router = {
 };
 
 // ============================================================
-// 自动初始化 — 关键功能立即执行，非关键功能延迟
+// 自动初始化
 // ============================================================
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    // 立即初始化关键功能
     setTimeout(function() {
         if (LawAIApp.Router && typeof LawAIApp.Router.init === 'function') {
             LawAIApp.Router.init();
@@ -759,4 +767,4 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     });
 }
 
-console.log('🧭 Router V4.7 ready (instant first paint)');
+console.log('🧭 Router V4.7 ready (instant first paint + profiler)');
