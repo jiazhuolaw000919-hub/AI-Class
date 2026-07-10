@@ -3,7 +3,7 @@
 // LAYER: Infrastructure Layer
 // DOMAIN: Event Communication & Pub/Sub
 // RECOVERY STATUS: 🟢 Canon Locked
-// VERSION: 2.0.0
+// VERSION: 2.0.1 — Profiler Instrumentation
 // ================================================================
 //
 // PURPOSE
@@ -71,7 +71,7 @@ LawAIApp.EventBus = (function() {
     // ENGINE METADATA
     // ============================================================
     var _engineName = 'EventBus';
-    var _engineVersion = '2.0.0';
+    var _engineVersion = '2.0.1';
     var _recoveryStatus = '🟢 Canon Locked';
     var _layer = 'Infrastructure Layer';
     var _domain = 'Event Communication & Pub/Sub';
@@ -86,6 +86,25 @@ LawAIApp.EventBus = (function() {
     var debugMode = false;
 
     // ============================================================
+    // Profiler 辅助
+    // ============================================================
+    function _recordListener(event) {
+        try {
+            if (LawAIApp.DevTools?.RuntimeProfiler) {
+                LawAIApp.DevTools.RuntimeProfiler.recordEventRegistration(event);
+            }
+        } catch (e) {}
+    }
+
+    function _recordEmission(event) {
+        try {
+            if (LawAIApp.DevTools?.RuntimeProfiler) {
+                LawAIApp.DevTools.RuntimeProfiler.recordEventEmission(event);
+            }
+        } catch (e) {}
+    }
+
+    // ============================================================
     // PRIORITY CONSTANTS
     // ============================================================
     var Priority = {
@@ -96,14 +115,14 @@ LawAIApp.EventBus = (function() {
     };
 
     // ============================================================
-    // PUBLIC API
+    // PUBLIC API（带 Profiler 埋点）
     // ============================================================
 
     function on(event, callback, priority) {
+        _recordListener(event);
         priority = priority || Priority.NORMAL;
         if (!listeners[event]) listeners[event] = [];
         
-        // 按优先级插入
         var entry = { callback: callback, priority: priority };
         var list = listeners[event];
         var inserted = false;
@@ -120,6 +139,7 @@ LawAIApp.EventBus = (function() {
     }
 
     function once(event, callback, priority) {
+        _recordListener(event);
         var wrapper = function(data) {
             callback(data);
             off(event, wrapper);
@@ -139,6 +159,7 @@ LawAIApp.EventBus = (function() {
     }
 
     function onWildcard(callback) {
+        _recordListener('*');
         wildcardListeners.push(callback);
     }
 
@@ -147,7 +168,8 @@ LawAIApp.EventBus = (function() {
     }
 
     function emit(event, data) {
-        // 记录历史
+        _recordEmission(event);
+
         var entry = { event: event, data: data, timestamp: Date.now() };
         history.push(entry);
         if (history.length > maxHistory) {
@@ -158,12 +180,10 @@ LawAIApp.EventBus = (function() {
             console.log('📡 EventBus emit:', event, data);
         }
 
-        // 触发通配符监听器
         wildcardListeners.forEach(function(cb) {
             try { cb(event, data); } catch (e) { console.error('EventBus wildcard error:', e); }
         });
 
-        // 触发普通监听器
         if (!listeners[event]) return;
         var list = listeners[event];
         for (var i = 0; i < list.length; i++) {
@@ -225,7 +245,7 @@ LawAIApp.EventBus = (function() {
             historySize: history.length,
             maxHistory: maxHistory,
             debugMode: debugMode,
-            events: allEvents.slice(0, 10) // Limit to 10 for readability
+            events: allEvents.slice(0, 10)
         };
     }
 
@@ -250,4 +270,4 @@ LawAIApp.EventBus = (function() {
     };
 })();
 
-console.log('📡 EventBus V2.0 ready');
+console.log('📡 EventBus V2.0.1 ready (profiler)');
