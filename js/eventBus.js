@@ -1,24 +1,103 @@
-// ===========================================
-// eventBus.js
-// 事件总线引擎 - 支持优先级、通配符（Phase 12 完善版）
-// ===========================================
+// ================================================================
+// ENGINE: EventBus
+// LAYER: Infrastructure Layer
+// DOMAIN: Event Communication & Pub/Sub
+// RECOVERY STATUS: 🟢 Canon Locked
+// VERSION: 2.0.0
+// ================================================================
+//
+// PURPOSE
+// ================================================================
+//   Provides a centralized event communication system.
+//   Decouples engines by enabling publish/subscribe pattern.
+//   Supports priority-based ordering, wildcard listeners,
+//   and event history for debugging.
+//
+// PUBLIC API
+// ================================================================
+//   on(event, callback, priority)          -> void
+//   once(event, callback, priority)        -> void
+//   off(event, callback)                   -> void
+//   emit(event, data)                      -> void
+//   onWildcard(callback)                   -> void
+//   offWildcard(callback)                  -> void
+//   getHistory()                           -> array
+//   clearHistory()                         -> void
+//   setDebugMode(enabled)                  -> void
+//   getAllEvents()                         -> array
+//   getListenerCount(event)                -> number
+//   clearAll()                             -> void
+//   getStatus()                            -> Status object
+//
+//   Priority Constants:
+//   - Priority.LOW      = 10
+//   - Priority.NORMAL   = 50 (default)
+//   - Priority.HIGH     = 80
+//   - Priority.CRITICAL = 100
+//
+// DEPENDENCIES
+// ================================================================
+//   - None (standalone engine)
+//
+// STORAGE
+// ================================================================
+//   - None (in-memory only)
+//   - Event history is kept in memory for debugging
+//   - Max history: 100 entries
+//
+// EVENTS
+// ================================================================
+//   EMITTED:
+//   - All events are emitted by external engines
+//   - EventBus itself does not emit events (passive infrastructure)
+//
+//   CONSUMED:
+//   - All events are consumed via on() and onWildcard()
+//   - Each engine declares its consumed events in its Canon
+//
+// FUTURE COMPATIBILITY
+// ================================================================
+//   - New priorities can be added to Priority object
+//   - Event history max can be configurable
+//   - Wildcard pattern matching can be extended
+//   - Existing event names must remain stable
+//
+// ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.EventBus = (function() {
+    // ============================================================
+    // ENGINE METADATA
+    // ============================================================
+    var _engineName = 'EventBus';
+    var _engineVersion = '2.0.0';
+    var _recoveryStatus = '🟢 Canon Locked';
+    var _layer = 'Infrastructure Layer';
+    var _domain = 'Event Communication & Pub/Sub';
+
+    // ============================================================
+    // INTERNAL STATE
+    // ============================================================
     var listeners = {};
     var wildcardListeners = [];
     var history = [];
     var maxHistory = 100;
     var debugMode = false;
 
-    // 优先级常量
+    // ============================================================
+    // PRIORITY CONSTANTS
+    // ============================================================
     var Priority = {
         LOW: 10,
         NORMAL: 50,
         HIGH: 80,
         CRITICAL: 100
     };
+
+    // ============================================================
+    // PUBLIC API
+    // ============================================================
 
     function on(event, callback, priority) {
         priority = priority || Priority.NORMAL;
@@ -123,6 +202,36 @@ LawAIApp.EventBus = (function() {
         history = [];
     }
 
+    // ============================================================
+    // ENGINE STATUS
+    // ============================================================
+    function getStatus() {
+        var allEvents = getAllEvents();
+        var totalListeners = 0;
+        allEvents.forEach(function(ev) {
+            totalListeners += getListenerCount(ev);
+        });
+        totalListeners += wildcardListeners.length;
+
+        return {
+            name: _engineName,
+            version: _engineVersion,
+            recoveryStatus: _recoveryStatus,
+            layer: _layer,
+            domain: _domain,
+            totalEvents: allEvents.length,
+            totalListeners: totalListeners,
+            wildcardListeners: wildcardListeners.length,
+            historySize: history.length,
+            maxHistory: maxHistory,
+            debugMode: debugMode,
+            events: allEvents.slice(0, 10) // Limit to 10 for readability
+        };
+    }
+
+    // ============================================================
+    // EXPORTS
+    // ============================================================
     return {
         on: on,
         once: once,
@@ -136,6 +245,7 @@ LawAIApp.EventBus = (function() {
         getAllEvents: getAllEvents,
         getListenerCount: getListenerCount,
         clearAll: clearAll,
+        getStatus: getStatus,
         Priority: Priority
     };
 })();
