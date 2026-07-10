@@ -1,12 +1,91 @@
-// ===========================================
-// progressEngine.js
-// 进度引擎 - 追踪用户学习进度（完善版）
-// ===========================================
+// ================================================================
+// ENGINE: ProgressEngine
+// LAYER: Core Logic Layer
+// DOMAIN: Learning Progress Tracking & Management
+// RECOVERY STATUS: 🟢 Canon Locked
+// VERSION: 2.0.0
+// ================================================================
+//
+// PURPOSE
+// ================================================================
+//   Owns all user learning progress data.
+//   Tracks completed lessons, XP, levels, streaks, and stages.
+//   Provides the single source of truth for learner progress.
+//
+// PUBLIC API
+// ================================================================
+//   init()                                      -> this
+//   getProgress()                               -> Progress object
+//   saveProgress(progress)                      -> boolean
+//   getState()                                  -> State object
+//   getXP()                                     -> number
+//   getLevel()                                  -> number
+//   getDay()                                    -> number
+//   getStreak()                                 -> number
+//   getCompletionPercent()                      -> number
+//   getCurrentStage()                           -> string
+//   getCompletedLessons()                       -> array
+//   getRemainingLessons()                       -> number
+//   isLessonCompleted(lessonId)                 -> boolean
+//   setXP(totalXP)                              -> boolean
+//   completeLesson(lessonId)                    -> Progress object | null
+//   resetProgress()                             -> Progress object
+//   getStatus()                                 -> Status object
+//
+// DEPENDENCIES
+// ================================================================
+//   - StorageEngine (required) : For persistent storage
+//     If unavailable, progress is stored in memory only.
+//   - EventBus (optional)     : For emitting events
+//     If unavailable, uses window.dispatchEvent as fallback.
+//
+// STORAGE
+// ================================================================
+//   - Key: 'progress'         : Full user progress object
+//   - Format: JSON object
+//   - Schema version: 2.0.0
+//   - Fields: completedLessons, currentLesson, completionPercent,
+//             currentStage, xp, totalLessons, day, level, streak,
+//             lastActive, createdAt
+//
+// EVENTS
+// ================================================================
+//   EMITTED:
+//   - 'LessonCompleted'       : When a lesson is completed
+//     Payload: { lessonId, xpGain }
+//   - 'ProgressUpdated'       : When progress is updated
+//     Payload: { lessonId, progress: Progress object }
+//
+//   CONSUMED:
+//   - None (passive engine)
+//
+// FUTURE COMPATIBILITY
+// ================================================================
+//   - New progress fields can be added to defaultProgress()
+//   - Existing fields must remain unchanged
+//   - completeLesson() must always return a Progress object
+//   - getProgress() must always return a valid object
+//   - Storage schema can evolve with migration support
+//
+// ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.ProgressEngine = {
+    // ============================================================
+    // ENGINE METADATA
+    // ============================================================
+    _engineName: 'ProgressEngine',
+    _engineVersion: '2.0.0',
+    _recoveryStatus: '🟢 Canon Locked',
+    _layer: 'Core Logic Layer',
+    _domain: 'Learning Progress Tracking & Management',
+
     initialized: false,
+
+    // ============================================================
+    // PUBLIC API
+    // ============================================================
 
     init: function() {
         if (this.initialized) return;
@@ -242,6 +321,28 @@ LawAIApp.ProgressEngine = {
         this._safeSet('progress', null);
         console.log('🔄 Progress reset');
         return this.defaultProgress();
+    },
+
+    // ============================================================
+    // ENGINE STATUS
+    // ============================================================
+    getStatus: function() {
+        var prog = this.getProgress();
+        return {
+            name: this._engineName,
+            version: this._engineVersion,
+            recoveryStatus: this._recoveryStatus,
+            layer: this._layer,
+            domain: this._domain,
+            initialized: this.initialized,
+            totalLessons: prog.totalLessons || 365,
+            completedLessons: (prog.completedLessons || []).length,
+            xp: prog.xp || 0,
+            level: prog.level || 1,
+            streak: prog.streak || 0,
+            storageAvailable: !!(LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.get === 'function'),
+            eventBusAvailable: !!(LawAIApp.EventBus && typeof LawAIApp.EventBus.emit === 'function')
+        };
     }
 };
 
