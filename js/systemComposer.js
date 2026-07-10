@@ -3,15 +3,14 @@
 // LAYER: UI Layer
 // DOMAIN: System Composition & UI Rendering
 // RECOVERY STATUS: 🟢 Canon Locked
-// VERSION: 5.2.1 - Instant Runtime + Profiler + Dependency (Phase P.2)
+// VERSION: 5.3.0 - First Paint Recovery (Phase 0.4)
 // ================================================================
 //
 // PURPOSE
 // ================================================================
-//   Owns the composition and rendering of the entire UI.
-//   Orchestrates panels, manages render queues, and coordinates
-//   the visual presentation of all learning content.
-//   Serves as the bridge between data engines and the user interface.
+//   Renders the Dashboard immediately. No waiting for any engine.
+//   First Paint contains: Header, Greeting, Continue Learning, Hero, Navigation.
+//   Everything else loads progressively after First Paint.
 //
 // PUBLIC API
 // ================================================================
@@ -27,38 +26,6 @@
 //   getStatus()                            -> Status object
 //   isReady()                              -> boolean
 //
-// DEPENDENCIES
-// ================================================================
-//   - StorageEngine (optional) : For reading stored data
-//   - EventBus (optional)     : For emitting and listening to events
-//   - ProgressEngine (optional) : For progress data
-//   - LessonEngine (optional) : For lesson data
-//
-// STORAGE
-// ================================================================
-//   - None (renders UI, does not store data)
-//   - UI state is ephemeral and recreated on refresh
-//
-// EVENTS
-// ================================================================
-//   EMITTED:
-//   - 'COMPOSER_MOUNTED'     : When composer finishes mounting
-//     Payload: { version, initialized, root }
-//
-//   CONSUMED:
-//   - 'SYSTEM_READY'         : From Loader/App, triggers initialization
-//   - 'PROFILE_UPDATED'      : From ProfileEngine, refreshes learning panel
-//   - 'LEARNING_UI_REFRESH'  : Triggers learning panel refresh
-//   - 'RUNTIME_READY'        : Triggers runtime panel refresh
-//   - 'WORKSPACE_UPDATED'    : Triggers workspace panel refresh
-//
-// FUTURE COMPATIBILITY
-// ================================================================
-//   - New panels can be added via registerPanel()
-//   - Existing panels must maintain render() signature
-//   - Render queue can be extended with new scheduling strategies
-//   - DOM cache can be expanded for new UI elements
-//
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -69,7 +36,7 @@ LawAIApp.SystemComposer = {
     // ENGINE METADATA
     // ============================================================
     _engineName: 'SystemComposer',
-    _engineVersion: '5.2.1',
+    _engineVersion: '5.3.0',
     _recoveryStatus: '🟢 Canon Locked',
     _layer: 'UI Layer',
     _domain: 'System Composition & UI Rendering',
@@ -90,9 +57,10 @@ LawAIApp.SystemComposer = {
     _maxRecoveryAttempts: 3,
     _deferredRendered: false,
     _panelsRegistered: false,
+    _firstPaintComplete: false,
 
     // ============================================================
-    // 2. DOM Cache（一次性查询）
+    // 2. DOM Cache
     // ============================================================
     _cacheDOM: function() {
         if (Object.keys(this.cache).length > 0) return this.cache;
@@ -131,7 +99,7 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 4. Render Queue（防重复渲染）
+    // 4. Render Queue
     // ============================================================
     scheduleRender: function(panelName) {
         if (panelName && this.panels[panelName]) {
@@ -162,7 +130,7 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 5. Dirty Panel Render（容错：单个面板失败不影响其他）
+    // 5. Dirty Panel Render
     // ============================================================
     _renderPanel: function(name) {
         var renderer = this.panels[name];
@@ -181,7 +149,7 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 6. Recovery（面板级容错）
+    // 6. Recovery
     // ============================================================
     recover: function() {
         if (this._recoveryAttempts >= this._maxRecoveryAttempts) {
@@ -229,15 +197,6 @@ LawAIApp.SystemComposer = {
         this._mountedNotified = false;
         console.log("🧩 SystemComposer V" + this.version + " initializing...");
 
-        // 🔥 Profiler + Dependency: 注册 SystemComposer 并记录依赖
-        if (LawAIApp.DevTools?.RuntimeProfiler) {
-            LawAIApp.DevTools.RuntimeProfiler.registerEngine('SystemComposer');
-            LawAIApp.DevTools.RuntimeProfiler._currentCaller = 'SystemComposer';
-            // 记录 SystemComposer 依赖 ProgressEngine 和 LessonEngine
-            LawAIApp.DevTools.RuntimeProfiler.addDependency('SystemComposer', 'ProgressEngine');
-            LawAIApp.DevTools.RuntimeProfiler.addDependency('SystemComposer', 'LessonEngine');
-        }
-
         try {
             this.initialized = true;
             this.root = document.getElementById("law-runtime-root") || document.body;
@@ -268,10 +227,12 @@ LawAIApp.SystemComposer = {
                 console.log("✅ SystemComposer panels refreshed (after render)");
             }, 300);
 
-            // 通知 mounted（但延迟一下，确保 UI 已经显示）
             setTimeout(function() {
                 self._notifyMounted();
             }, 100);
+
+            // 🔥 标记首屏完成
+            this._firstPaintComplete = true;
 
             console.log("✅ SystemComposer V" + this.version + " initialized successfully");
 
@@ -290,7 +251,6 @@ LawAIApp.SystemComposer = {
         if (this._panelsRegistered) return;
         this._panelsRegistered = true;
 
-        // 使用 requestIdleCallback 或 setTimeout 延迟注册
         var scheduleFn = window.requestIdleCallback || function(cb) { setTimeout(cb, 200); };
         
         scheduleFn(function() {
@@ -338,6 +298,7 @@ LawAIApp.SystemComposer = {
         this._renderScheduled = false;
         this._deferredRendered = false;
         this._panelsRegistered = false;
+        this._firstPaintComplete = false;
         console.log("🧩 SystemComposer destroyed");
     },
 
@@ -363,14 +324,11 @@ LawAIApp.SystemComposer = {
     // ============================================================
 
     _getState: function() {
-        // 🔥 直接使用 fallback 数据，不等待任何引擎
-        // 这样首屏渲染完全不受引擎加载影响
         var state = {};
         var completedList = [];
         var hasProgress = false;
 
         try {
-            // 尝试从 ProgressEngine 获取，但不阻塞
             if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.getState === 'function') {
                 state = LawAIApp.ProgressEngine.getState();
                 completedList = state.completedLessons || [];
@@ -560,7 +518,7 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 12. 🔥 Instant Render — 立即渲染，零等待
+    // 12. 🔥 First Paint — 立即渲染，零等待
     // ============================================================
 
     _renderMainUI: function() {
@@ -570,14 +528,10 @@ LawAIApp.SystemComposer = {
             return;
         }
 
-        // 🔥 Profiler: 标记渲染开始
-        if (LawAIApp.DevTools?.RuntimeProfiler) {
-            LawAIApp.DevTools.RuntimeProfiler.mark('composer_render_start');
-            LawAIApp.DevTools.RuntimeProfiler.recordRender('dashboard');
-        }
+        console.log("⚡ First Paint: Rendering immediately...");
 
         // ============================================================
-        // 1. 获取所有数据（纯函数，不阻塞）
+        // 1. 获取所有数据（纯函数，立即返回）
         // ============================================================
         var data = this._getState();
         var isDemo = data.isDemo;
@@ -632,19 +586,13 @@ LawAIApp.SystemComposer = {
             fullMentorMsg += ' ' + encouragement;
         }
 
-        // 进度百分比
         var percent = Math.round(completionPercent || 0);
         var progressDisplay = percent + '%';
-
-        // Streak 显示
         var streakDisplay = streak > 0 ? '🔥 ' + streak + 'd' : '🌱 0d';
-
-        // 完成状态
         var completedCount = completedList.length || 0;
         var totalCount = 365;
         var lessonCountDisplay = completedCount + '/' + totalCount;
 
-        // 下一课
         var nextDay = day + 1;
         if (completedList.length >= 365) {
             nextDay = 365;
@@ -655,7 +603,7 @@ LawAIApp.SystemComposer = {
         var btnText = isDemo ? '📖 Start' : (completedList.length >= 365 ? '🎉 Review' : '📖 Continue');
 
         // ============================================================
-        // 2. 构建 WOW Dashboard HTML（纯字符串，零依赖）
+        // 2. 构建 First Paint HTML（纯字符串，零依赖）
         // ============================================================
         var coreHTML = `
         <div id="systemComposerRoot" style="
@@ -669,9 +617,7 @@ LawAIApp.SystemComposer = {
         ">
             <div style="padding: 0 20px 100px; max-width: 1000px; margin: 0 auto;">
 
-                <!-- ========================================================== -->
-                <!-- 🔥 HERO 区 —— 占主导，干净，优雅 -->
-                <!-- ========================================================== -->
+                <!-- 🔥 HERO 区 -->
                 <div style="
                     margin: 0 -20px 24px;
                     padding: 40px 32px 32px;
@@ -682,7 +628,6 @@ LawAIApp.SystemComposer = {
                     isolation: isolate;
                     min-height: 220px;
                 ">
-                    <!-- 装饰光晕 -->
                     <div style="
                         position: absolute;
                         top: -120px;
@@ -706,20 +651,8 @@ LawAIApp.SystemComposer = {
                         z-index: 0;
                     "></div>
 
-                    <!-- 装饰小点 -->
-                    <div style="
-                        position: absolute;
-                        top: 20px;
-                        right: 30px;
-                        font-size: 80px;
-                        opacity: 0.06;
-                        pointer-events: none;
-                        z-index: 0;
-                    ">✦</div>
-
                     <div style="position:relative;z-index:1;">
 
-                        <!-- 顶部问候 -->
                         <div style="
                             display: flex;
                             align-items: center;
@@ -749,7 +682,6 @@ LawAIApp.SystemComposer = {
                             </div>
                         </div>
 
-                        <!-- 主标题 + 状态徽章 -->
                         <div style="
                             display: flex;
                             align-items: center;
@@ -799,7 +731,6 @@ LawAIApp.SystemComposer = {
                             </div>
                         </div>
 
-                        <!-- 进度条 + 课程计数 -->
                         <div style="margin-top: 4px;">
                             <div style="
                                 display: flex;
@@ -830,9 +761,7 @@ LawAIApp.SystemComposer = {
                     </div>
                 </div>
 
-                <!-- ========================================================== -->
                 <!-- 🔥 Continue Learning —— 唯一主行动按钮 -->
-                <!-- ========================================================== -->
                 <a href="${lessonLink}" style="
                     display: block;
                     background: linear-gradient(135deg, #4a9eff, #6366f1);
@@ -889,9 +818,7 @@ LawAIApp.SystemComposer = {
                     </div>
                 </a>
 
-                <!-- ========================================================== -->
-                <!-- ⏳ 延迟加载区（优雅骨架） -->
-                <!-- ========================================================== -->
+                <!-- ⏳ 延迟加载区（骨架占位） -->
                 <div id="deferred-dashboard-content" style="
                     display: grid;
                     grid-template-columns: 1fr 1fr;
@@ -899,7 +826,6 @@ LawAIApp.SystemComposer = {
                     min-height: 140px;
                     opacity: 0.6;
                 ">
-                    <!-- Skill Mastery 骨架 -->
                     <div id="skill-mastery-placeholder" style="
                         background: rgba(255,255,255,0.02);
                         border-radius: 16px;
@@ -925,7 +851,6 @@ LawAIApp.SystemComposer = {
                         </div>
                     </div>
 
-                    <!-- Knowledge Graph 骨架 -->
                     <div id="knowledge-graph-placeholder" style="
                         background: rgba(255,255,255,0.02);
                         border-radius: 16px;
@@ -949,9 +874,7 @@ LawAIApp.SystemComposer = {
                     </div>
                 </div>
 
-                <!-- ========================================================== -->
-                <!-- 底部导航（固定） -->
-                <!-- ========================================================== -->
+                <!-- 底部导航（固定，立即可点击） -->
                 <nav style="
                     position: fixed;
                     bottom: 0;
@@ -997,18 +920,10 @@ LawAIApp.SystemComposer = {
         this._setupNavGuard();
         this._deferredRendered = false;
 
-        // 🔥 Profiler: 标记渲染结束
-        if (LawAIApp.DevTools?.RuntimeProfiler) {
-            LawAIApp.DevTools.RuntimeProfiler.mark('composer_render_end');
-            LawAIApp.DevTools.RuntimeProfiler.measure(
-                'composer_render_duration',
-                'composer_render_start',
-                'composer_render_end'
-            );
-        }
+        console.log("✅ First Paint complete");
 
         // ============================================================
-        // 4. 延迟渲染次要内容（200ms 后，不阻塞首屏）
+        // 4. 延迟渲染次要内容（200ms 后）
         // ============================================================
         var self = this;
         setTimeout(function() {
@@ -1017,11 +932,13 @@ LawAIApp.SystemComposer = {
     },
 
     /**
-     * 延迟渲染 Skill Mastery + Knowledge Graph（轻量、优雅）
+     * 延迟渲染 Skill Mastery + Knowledge Graph
      */
     _renderDeferredContent: function(data, completedList, isDemo) {
         if (this._deferredRendered) return;
         this._deferredRendered = true;
+
+        console.log("📊 Hydrating deferred content...");
 
         var skills = this._getSkillMastery(completedList, isDemo);
         var skillsHtml = skills.map(function(s) {
@@ -1137,7 +1054,7 @@ LawAIApp.SystemComposer = {
             }
         }
 
-        console.log('📊 Deferred content rendered (WOW Edition)');
+        console.log('📊 Deferred content hydrated');
     },
 
     // ============================================================
@@ -1181,12 +1098,13 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 14. 导航守卫
+    // 14. 导航守卫 — 立即可用
     // ============================================================
     _setupNavGuard: function() {
         var navItems = document.querySelectorAll('.nav-item');
         var self = this;
         navItems.forEach(function(item) {
+            // 移除旧监听，避免重复
             item.removeEventListener('click', self._navClickHandler);
             item.addEventListener('click', self._navClickHandler = function(e) {
                 var tab = this.getAttribute('data-tab');
@@ -1221,7 +1139,7 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 15. 原有 Panel 方法（保留，但延迟注册）
+    // 15. 原有 Panel 方法
     // ============================================================
     mountLearning: function() {
         var el = this.getDOM('learning');
@@ -1275,7 +1193,8 @@ LawAIApp.SystemComposer = {
             rootExists: !!this.root,
             domCacheSize: Object.keys(this.cache).length,
             deferredRendered: this._deferredRendered,
-            panelsRegistered: this._panelsRegistered
+            panelsRegistered: this._panelsRegistered,
+            firstPaintComplete: this._firstPaintComplete
         };
     },
 
