@@ -3,7 +3,7 @@
 // LAYER: UI Layer
 // DOMAIN: System Composition & UI Rendering
 // RECOVERY STATUS: 🟢 Canon Locked
-// VERSION: 5.2.0 - Instant Runtime (Phase 0.1) + Profiler (Phase P)
+// VERSION: 5.2.1 - Instant Runtime + Profiler + Dependency (Phase P.2)
 // ================================================================
 //
 // PURPOSE
@@ -69,7 +69,7 @@ LawAIApp.SystemComposer = {
     // ENGINE METADATA
     // ============================================================
     _engineName: 'SystemComposer',
-    _engineVersion: '5.2.0',
+    _engineVersion: '5.2.1',
     _recoveryStatus: '🟢 Canon Locked',
     _layer: 'UI Layer',
     _domain: 'System Composition & UI Rendering',
@@ -228,6 +228,15 @@ LawAIApp.SystemComposer = {
         this._mounting = true;
         this._mountedNotified = false;
         console.log("🧩 SystemComposer V" + this.version + " initializing...");
+
+        // 🔥 Profiler + Dependency: 注册 SystemComposer 并记录依赖
+        if (LawAIApp.DevTools?.RuntimeProfiler) {
+            LawAIApp.DevTools.RuntimeProfiler.registerEngine('SystemComposer');
+            LawAIApp.DevTools.RuntimeProfiler._currentCaller = 'SystemComposer';
+            // 记录 SystemComposer 依赖 ProgressEngine 和 LessonEngine
+            LawAIApp.DevTools.RuntimeProfiler.addDependency('SystemComposer', 'ProgressEngine');
+            LawAIApp.DevTools.RuntimeProfiler.addDependency('SystemComposer', 'LessonEngine');
+        }
 
         try {
             this.initialized = true;
