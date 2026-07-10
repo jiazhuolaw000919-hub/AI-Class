@@ -1,7 +1,5 @@
 // ================================================================
-// loader.js – V5.0 FINAL
-// 新增：Boot Timeline + Dependency Graph + Health Report
-// 100% 保留 require/requireAll API
+// loader.js – V5.0 FINAL（路径检测修复版）
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -29,9 +27,10 @@ var _loadedModules = {};
 var _missingModules = [];
 
 // ============================================================
-// 获取当前脚本的目录路径
+// 获取当前脚本的目录路径（增强版）
 // ============================================================
 function getBasePath() {
+    // 方法1：从当前 script 标签提取
     var scripts = document.getElementsByTagName('script');
     var currentScript = scripts[scripts.length - 1];
     var src = currentScript.src || '';
@@ -41,10 +40,14 @@ function getBasePath() {
         return match[1] + '/js/';
     }
     
+    // 方法2：从页面路径推断
     var path = window.location.pathname;
     if (path.includes('/pages/')) {
+        // 如果在 /pages/ 下，回到根目录的 /js/
         return '/js/';
     }
+    
+    // 方法3：默认
     return 'js/';
 }
 
@@ -52,7 +55,7 @@ var BASE_PATH = getBasePath();
 console.log('📂 Loader base path:', BASE_PATH);
 
 // ============================================================
-// 加载脚本
+// 加载脚本（绝对路径优先）
 // ============================================================
 function loadScript(src) {
     if (_loadCache[src]) {
@@ -64,46 +67,30 @@ function loadScript(src) {
     }
 
     var promise = new Promise(function(resolve) {
-        var path = BASE_PATH + src;
+        // 优先尝试绝对路径
+        var pathsToTry = [
+            '/js/' + src,           // 根目录绝对路径
+            BASE_PATH + src,        // 检测到的路径
+            'js/' + src,            // 相对路径
+            '../js/' + src          // 上级目录
+        ];
         
-        var existing = document.querySelector('script[src="' + path + '"]');
-        if (existing) {
-            _loadCache[src] = true;
-            _loadedModules[src] = { loaded: true, time: 0 };
-            resolve({ file: src, status: "ok", cached: true });
-            return;
+        // 去重
+        var uniquePaths = [];
+        for (var i = 0; i < pathsToTry.length; i++) {
+            if (uniquePaths.indexOf(pathsToTry[i]) === -1) {
+                uniquePaths.push(pathsToTry[i]);
+            }
         }
-
-        var script = document.createElement("script");
-        script.src = path;
-
-        script.onload = function() {
-            _loadCache[src] = true;
-            _loadedModules[src] = { loaded: true, time: Date.now() };
-            resolve({ file: src, status: "ok" });
-        };
-
-        script.onerror = function() {
-            console.warn("⚠️ Failed to load:", src, "from", path);
-            
-            var fallbackPaths = [
-                '/js/' + src,
-                '../js/' + src,
-                'js/' + src
-            ];
-            
-            var tried = 0;
-            tryNext(fallbackPaths, tried, resolve, src);
-        };
-
-        document.head.appendChild(script);
+        
+        tryLoadPaths(uniquePaths, 0, resolve, src);
     });
 
     _loadingPromises[src] = promise;
     return promise;
 }
 
-function tryNext(paths, index, resolve, src) {
+function tryLoadPaths(paths, index, resolve, src) {
     if (index >= paths.length) {
         _missingModules.push(src);
         _health.warnings.push('Module not found: ' + src);
@@ -112,17 +99,19 @@ function tryNext(paths, index, resolve, src) {
     }
     
     var path = paths[index];
-    console.log('🔄 Trying fallback:', path);
+    console.log('🔄 Trying path:', path);
     
     var script = document.createElement("script");
     script.src = path;
     script.onload = function() {
         _loadCache[src] = true;
         _loadedModules[src] = { loaded: true, time: Date.now() };
+        console.log('✅ Loaded:', src, 'from', path);
         resolve({ file: src, status: "ok" });
     };
     script.onerror = function() {
-        tryNext(paths, index + 1, resolve, src);
+        console.warn('⚠️ Failed:', path);
+        tryLoadPaths(paths, index + 1, resolve, src);
     };
     document.head.appendChild(script);
 }
@@ -145,7 +134,7 @@ LawAIApp.requireAll = function(moduleNames) {
 };
 
 // ============================================================
-// 获取加载状态（原有 API）
+// 获取加载状态
 // ============================================================
 LawAIApp.getLoadStatus = function() {
     return {
@@ -187,48 +176,6 @@ LawAIApp.getBootStatus = function() {
             return _loadedModules[k].loaded;
         }),
         missingModules: _missingModules.slice()
-    };
-};
-
-// ============================================================
-// 新增：Dependency Graph
-// ============================================================
-LawAIApp.getDependencyGraph = function() {
-    var graph = {};
-    var modules = Object.keys(_loadedModules);
-    
-    for (var i = 0; i < modules.length; i++) {
-        var name = modules[i];
-        var module = _loadedModules[name];
-        if (module.loaded) {
-            graph[name] = {
-                loaded: true,
-                dependencies: []
-            };
-        }
-    }
-    return graph;
-};
-
-// ============================================================
-// 新增：Health Report
-// ============================================================
-LawAIApp.getHealthReport = function() {
-    var status = LawAIApp.getBootStatus();
-    var runtimeHealth = LawAIApp.Runtime ? LawAIApp.Runtime.getHealth() : null;
-    var composerStatus = LawAIApp.SystemComposer ? LawAIApp.SystemComposer.getStatus() : null;
-
-    return {
-        loader: {
-            status: status,
-            version: '5.0.0'
-        },
-        runtime: runtimeHealth,
-        composer: composerStatus,
-        overall: _health.healthy && 
-                (runtimeHealth ? runtimeHealth.healthy : false) &&
-                (composerStatus ? composerStatus.ready !== false : true),
-        timestamp: Date.now()
     };
 };
 
@@ -276,7 +223,6 @@ async function boot() {
             }
         }));
         console.log("✅ System ready (" + elapsed + "ms)");
-        console.log("📌 Other modules load on demand via LawAIApp.require()");
     }, 200);
 }
 
