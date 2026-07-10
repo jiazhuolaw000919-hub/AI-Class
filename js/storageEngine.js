@@ -3,7 +3,7 @@
 // LAYER: Infrastructure Layer
 // DOMAIN: Persistent Storage Abstraction
 // RECOVERY STATUS: 🟢 Canon Locked
-// VERSION: 2.0.0
+// VERSION: 2.0.1 — Profiler Instrumentation
 // ================================================================
 //
 // PURPOSE
@@ -57,7 +57,7 @@ LawAIApp.StorageEngine = {
     // ENGINE METADATA
     // ============================================================
     _engineName: 'StorageEngine',
-    _engineVersion: '2.0.0',
+    _engineVersion: '2.0.1',
     _recoveryStatus: '🟢 Canon Locked',
     _layer: 'Infrastructure Layer',
     _domain: 'Persistent Storage Abstraction',
@@ -65,6 +65,25 @@ LawAIApp.StorageEngine = {
     prefix: 'lawai_',
     _schemaVersions: {},
     _initialized: false,
+
+    // ============================================================
+    // Profiler 辅助
+    // ============================================================
+    _recordRead: function() {
+        try {
+            if (LawAIApp.DevTools?.RuntimeProfiler) {
+                LawAIApp.DevTools.RuntimeProfiler.recordStorageRead();
+            }
+        } catch (e) {}
+    },
+
+    _recordWrite: function() {
+        try {
+            if (LawAIApp.DevTools?.RuntimeProfiler) {
+                LawAIApp.DevTools.RuntimeProfiler.recordStorageWrite();
+            }
+        } catch (e) {}
+    },
 
     // ============================================================
     // INIT
@@ -109,10 +128,11 @@ LawAIApp.StorageEngine = {
     },
 
     // ============================================================
-    // CORE API
+    // CORE API（带 Profiler 埋点）
     // ============================================================
 
     get: function(key, defaultValue) {
+        this._recordRead();
         if (defaultValue === undefined) defaultValue = null;
         try {
             var raw = localStorage.getItem(this.prefix + key);
@@ -123,6 +143,7 @@ LawAIApp.StorageEngine = {
     },
 
     set: function(key, value) {
+        this._recordWrite();
         try {
             localStorage.setItem(this.prefix + key, JSON.stringify(value));
             return true;
@@ -132,10 +153,12 @@ LawAIApp.StorageEngine = {
     },
 
     remove: function(key) {
+        this._recordWrite();
         localStorage.removeItem(this.prefix + key);
     },
 
     getAllKeys: function() {
+        this._recordRead();
         return Object.keys(localStorage)
             .filter(k => k.startsWith(this.prefix))
             .map(k => k.slice(this.prefix.length));
@@ -146,6 +169,7 @@ LawAIApp.StorageEngine = {
     // ============================================================
 
     getWithSchema: function(key) {
+        this._recordRead();
         var data = this.get(key, null);
         var version = this.getSchemaVersion(key);
         return {
@@ -156,6 +180,7 @@ LawAIApp.StorageEngine = {
     },
 
     setWithSchema: function(key, data, version) {
+        this._recordWrite();
         var result = this.set(key, data);
         if (result && version !== undefined) {
             this.setSchemaVersion(key, version);
@@ -202,7 +227,6 @@ LawAIApp.StorageEngine = {
             };
         }
 
-        // Include schema versions
         allData['_meta_schema_versions'] = {
             data: this._schemaVersions,
             schemaVersion: 1
@@ -251,7 +275,6 @@ LawAIApp.StorageEngine = {
 
     createBackup: function() {
         var backup = this.exportAll();
-        // Also save to localStorage as a backup snapshot
         try {
             localStorage.setItem(this.prefix + 'backup_latest', backup);
         } catch (e) {}
@@ -297,4 +320,4 @@ setTimeout(function() {
     }
 }, 50);
 
-console.log('💾 StorageEngine V2.0 ready');
+console.log('💾 StorageEngine V2.0.1 ready (profiler)');
