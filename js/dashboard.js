@@ -1,316 +1,772 @@
-// dashboard.js - 仪表盘页面（Phase 0.4 First Paint 优化版）
-// ✅ 保留所有原有功能
-// ✅ 新增骨架占位支持
-// ✅ 数据加载后自动刷新
+// ================================================================
+// dashboard.js – Phase 1 Dashboard Recovery
+// 恢复 Season 1 的情感体验：活着、简单、高级、有动力、专注
+// 保留所有原有功能，只优化视觉层次和情感设计
+// ================================================================
+
+window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.Dashboard = {
   _rendered: false,
 
-  render() {
-    // ========== 从引擎获取真实数据 ==========
-    const user = LawAIApp.Data ? LawAIApp.Data.fakeUser() : { name: 'Learner' };
-
-    const progress = LawAIApp.ProgressEngine
-      ? LawAIApp.ProgressEngine.getProgress()
-      : { xp: 0, completedLessons: [], currentLesson: 1, completionPercent: 0, currentStage: 'Foundation' };
-
-    const streakData = LawAIApp.StreakEngine
-      ? LawAIApp.StreakEngine.getStreakData()
-      : { currentStreak: 0, longestStreak: 0, lastLearningDate: null };
-
-    const levelInfo = LawAIApp.LevelEngine
-      ? LawAIApp.LevelEngine.calculateLevel()
-      : { level: 1, currentLevelXP: 0, nextLevelXP: 100 };
-
-    const achievements = LawAIApp.AchievementEngine
-      ? LawAIApp.AchievementEngine.getUnlocked()
-      : [];
-
-    const allLessons = LawAIApp.LessonEngine
-      ? LawAIApp.LessonEngine.getAllLessons()
-      : [];
-
-    const todayLesson = allLessons.length > 0
-      ? (allLessons[progress.currentLesson - 1] || allLessons[0])
-      : null;
-
-    const favorites = LawAIApp.StorageEngine
-      ? (LawAIApp.StorageEngine.get('favorites') || [])
-      : (LawAIApp.Storage ? (LawAIApp.Storage.get('favorites') || []) : []);
+  /**
+   * 渲染 Dashboard — Phase 1 情感恢复版
+   * 视觉层次：Hero → Continue Learning → Today's Mission → Quick Actions → 推荐 → 其他
+   */
+  render: function() {
+    // ============================================================
+    // 数据获取（所有引擎继续运行）
+    // ============================================================
+    const progress = this._getProgress();
+    const streakData = this._getStreakData();
+    const levelInfo = this._getLevelInfo();
+    const achievements = this._getAchievements();
+    const allLessons = this._getAllLessons();
+    const favorites = this._getFavorites();
+    const todayLesson = this._getTodayLesson(allLessons, progress);
+    const dailyBriefingHTML = this._getDailyBriefing();
 
     const completionRate = progress.completedLessons.length > 0
       ? ((progress.completedLessons.length / 365) * 100).toFixed(1)
       : '0.0';
 
     const currentStage = progress.currentStage || 'Foundation';
+    const lastCompletedDate = this._getLastCompletedDate(streakData);
 
-    const lastCompletedDate = streakData.lastLearningDate
-      ? new Date(streakData.lastLearningDate).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric'
-        })
-      : 'Not started';
+    // ============================================================
+    // 构建 UI — 层级清晰，情感驱动
+    // ============================================================
+    const html = this._buildHTML({
+      progress,
+      streakData,
+      levelInfo,
+      achievements,
+      todayLesson,
+      favorites,
+      completionRate,
+      currentStage,
+      lastCompletedDate,
+      dailyBriefingHTML,
+      allLessons
+    });
 
-    const challenge = LawAIApp.Data && LawAIApp.Data.weeklyChallenge
-      ? LawAIApp.Data.weeklyChallenge()
-      : { title: 'Build a mini chatbot', xp: 500, progress: 0 };
-
-    const dailyBriefingCardHTML = LawAIApp.DailyBriefing
-      ? LawAIApp.DailyBriefing.getCompactCardHTML()
-      : '';
-
-    // ========== 构建 UI（含骨架占位） ==========
-    const html = `
-      <div class="page" id="dashboard-root">
-        <!-- 问候语 -->
-        <h2 class="greeting">Good Morning ${user.name} 👋</h2>
-
-        <!-- 学习统计摘要 -->
-        <div style="display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap;">
-          <span style="background:var(--card); border-radius:20px; padding:0.3rem 0.8rem; font-size:0.75rem;">
-            🎯 ${currentStage}
-          </span>
-          <span style="background:var(--card); border-radius:20px; padding:0.3rem 0.8rem; font-size:0.75rem;">
-            📊 ${completionRate}%
-          </span>
-          <span style="background:var(--card); border-radius:20px; padding:0.3rem 0.8rem; font-size:0.75rem;">
-            ⭐ ${favorites.length} 收藏
-          </span>
-          <span style="background:var(--card); border-radius:20px; padding:0.3rem 0.8rem; font-size:0.75rem;">
-            🏆 ${achievements.length} 成就
-          </span>
-        </div>
-
-        <!-- Daily Briefing -->
-        ${dailyBriefingCardHTML}
-
-        <!-- 小部件网格 -->
-        <div class="widget-grid">
-          <!-- Streak 卡片 -->
-          <div class="widget-card">
-            <h3>🔥 Streak</h3>
-            <p style="font-size:1.5rem; font-weight:bold;">${streakData.currentStreak} <span style="font-size:0.8rem;">天</span></p>
-            <div class="streak-bar">
-              <div class="xp-fill" style="width:${Math.min(100, (streakData.currentStreak / 30) * 100)}%"></div>
-            </div>
-            <small style="color:var(--text-secondary);">
-              🏅 最长: ${streakData.longestStreak} 天
-            </small>
-            ${streakData.lastLearningDate ? `
-              <small style="color:var(--text-secondary); display:block;">
-                📅 上次: ${lastCompletedDate}
-              </small>
-            ` : ''}
-          </div>
-
-          <!-- XP 卡片 -->
-          <div class="widget-card">
-            <h3>⭐ XP</h3>
-            <p style="font-size:1.5rem; font-weight:bold;">${progress.xp} <span style="font-size:0.8rem;">XP</span></p>
-            ${LawAIApp.Components ? LawAIApp.Components.progressBar(
-              levelInfo.currentLevelXP,
-              levelInfo.nextLevelXP
-            ).outerHTML : `<div style="height:6px;background:rgba(255,255,255,0.06);border-radius:10px;"><div style="width:${Math.round((levelInfo.currentLevelXP / levelInfo.nextLevelXP) * 100)}%;height:100%;background:#4a9eff;border-radius:10px;"></div></div>`}
-            <small style="color:var(--text-secondary);">
-              ${levelInfo.currentLevelXP} / ${levelInfo.nextLevelXP} XP
-            </small>
-          </div>
-
-          <!-- Level 卡片 -->
-          <div class="widget-card">
-            <h3>📊 Level</h3>
-            <p style="font-size:1.5rem; font-weight:bold;">Level ${levelInfo.level}</p>
-            <small style="color:var(--text-secondary);">
-              还需 ${levelInfo.nextLevelXP - levelInfo.currentLevelXP} XP 升级
-            </small>
-            <small style="color:var(--text-secondary); display:block;">
-              📚 ${progress.completedLessons.length} / 365 课完成
-            </small>
-          </div>
-        </div>
-
-        <!-- 今日课程卡片 -->
-        <div class="lesson-card" onclick="LawAIApp.Router.navigate('learning')">
-          <div>
-            <strong>📖 继续学习</strong>
-            <br>
-            <small>Day ${progress.currentLesson} – ${todayLesson ? todayLesson.title : 'Start Learning'}</small>
-            ${todayLesson && todayLesson.category ? `
-              <br><small style="color:rgba(255,255,255,0.7);">📂 ${todayLesson.category} • ⏱️ ${todayLesson.duration || '8 min'}</small>
-            ` : ''}
-          </div>
-          <span style="font-size:1.5rem;">▶️</span>
-        </div>
-
-        <!-- 学习进度概览 -->
-        <h3 style="margin-top:1rem;">📈 学习进度</h3>
-        <div class="widget-card">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span>总体完成度</span>
-            <span style="font-weight:bold;">${completionRate}%</span>
-          </div>
-          ${LawAIApp.Components ? LawAIApp.Components.progressBar(
-            progress.completedLessons.length,
-            365
-          ).outerHTML : `<div style="height:6px;background:rgba(255,255,255,0.06);border-radius:10px;"><div style="width:${(progress.completedLessons.length / 365) * 100}%;height:100%;background:linear-gradient(90deg,#4a9eff,#7c3aed);border-radius:10px;"></div></div>`}
-          <div style="display:flex; justify-content:space-between; margin-top:0.5rem;">
-            <small style="color:var(--text-secondary);">
-              ✅ ${progress.completedLessons.length} 已完成
-            </small>
-            <small style="color:var(--text-secondary);">
-              📖 ${365 - progress.completedLessons.length} 剩余
-            </small>
-          </div>
-        </div>
-
-        <!-- 每周挑战 -->
-        <h3 style="margin-top:1rem;">🎯 Weekly Challenge</h3>
-        <div class="widget-card">
-          <strong>${challenge.title}</strong>
-          <br>
-          <small style="color:var(--warning);">+${challenge.xp} XP</small>
-          ${LawAIApp.Components ? LawAIApp.Components.progressBar(challenge.progress, 100).outerHTML : `<div style="height:4px;background:rgba(255,255,255,0.06);border-radius:10px;"><div style="width:${challenge.progress}%;height:100%;background:#f59e0b;border-radius:10px;"></div></div>`}
-          <small style="color:var(--text-secondary);">${challenge.progress}% 完成</small>
-        </div>
-
-        <!-- 成就展示 -->
-        ${achievements.length > 0 ? `
-          <h3 style="margin-top:1rem;">🏆 已解锁成就 (${achievements.length})</h3>
-          <div class="widget-grid">
-            ${achievements.slice(0, 4).map(id => {
-              const ach = LawAIApp.AchievementEngine?.achievements?.find(a => a.id === id);
-              return ach ? `
-                <div class="widget-card" style="text-align:center;">
-                  <div style="font-size:1.5rem;">🏅</div>
-                  <strong style="font-size:0.8rem;">${ach.name}</strong>
-                  <br>
-                  <small style="color:var(--text-secondary); font-size:0.7rem;">${ach.desc}</small>
-                </div>
-              ` : '';
-            }).join('')}
-          </div>
-          ${achievements.length > 4 ? `
-            <small style="color:var(--primary); display:block; text-align:center; margin-top:0.3rem;">
-              还有 ${achievements.length - 4} 个成就已解锁
-            </small>
-          ` : ''}
-        ` : `
-          <h3 style="margin-top:1rem;">🏆 成就</h3>
-          <div class="widget-card" style="text-align:center; padding:1.5rem;">
-            <p style="font-size:2rem;">🔒</p>
-            <p style="color:var(--text-secondary);">完成第一节课解锁首个成就</p>
-          </div>
-        `}
-
-        <!-- 最近笔记（空状态） -->
-        <h3 style="margin-top:1rem;">📝 笔记</h3>
-        <div class="widget-card" style="text-align:center; padding:1.5rem;">
-          <p style="font-size:2rem;">📝</p>
-          <p style="color:var(--text-secondary);">打开课程页面记笔记</p>
-        </div>
-
-        <!-- 快捷入口 -->
-        <h3 style="margin-top:1rem;">Quick Access</h3>
-        <div class="quick-access">
-          <button class="quick-btn" onclick="LawAIApp.Router.navigate('tools')">🛠️ Tools</button>
-          <button class="quick-btn" onclick="LawAIApp.Router.navigate('prompt')">📋 Prompts</button>
-          <button class="quick-btn" onclick="LawAIApp.Router.navigate('learning')">📚 All Lessons</button>
-          <button class="quick-btn" onclick="LawAIApp.Router.navigate('notes')">📝 Notes</button>
-          <button class="quick-btn" onclick="LawAIApp.Router.navigate('academy')">🏫 Academies</button>
-          <button class="quick-btn" onclick="LawAIApp.Router.navigate('intelligence')">🧠 Intelligence</button>
-          <button class="quick-btn" onclick="LawAIApp.DailyBriefing?.showFullExperience ? LawAIApp.DailyBriefing.showFullExperience() : alert('Daily Briefing coming soon!')">☀️ Daily Briefing</button>
-          <button class="quick-btn" onclick="LawAIApp.Router.navigate('mentor-brain')">🤖 Mentor Brain</button>
-          <button class="quick-btn" onclick="LawAIApp.Router.navigate('conversations')">💬 Chat</button>
-          <button class="quick-btn" onclick="LawAIApp.Router.navigate('planner')">📅 Planner</button>
-          <button class="quick-btn" onclick="LawAIApp.Router.navigate('goal-intelligence')">🎯 Goals</button>
-          <button class="quick-btn" onclick="LawAIApp.Router.navigate('command-center')">🚀 Command Center</button>
-          <button class="quick-btn" onclick="LawAIApp.Router.navigate('career-showcase')">🚀 Showcase</button>
-        </div>
-
-        <!-- 页脚统计 -->
-        <div style="text-align:center; margin-top:2rem; padding:1rem; color:var(--text-secondary); font-size:0.75rem;">
-          <p>Law AI Academy • Season 2 Final</p>
-          <p>Level ${levelInfo.level} • ${completionRate}% Complete • 🔥 ${streakData.currentStreak} Day Streak</p>
-        </div>
-      </div>
-    `;
-
-    var app = document.getElementById('app') || document.getElementById('law-runtime-root');
+    const app = document.getElementById('app') || document.getElementById('law-runtime-root');
     if (app) {
       app.innerHTML = html;
       this._rendered = true;
+      this._initAnimations();
     }
   },
 
+  // ============================================================
+  // 数据获取方法（保留所有引擎调用）
+  // ============================================================
+
+  _getProgress: function() {
+    try {
+      if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.getProgress === 'function') {
+        return LawAIApp.ProgressEngine.getProgress();
+      }
+    } catch (e) {}
+    return { xp: 0, completedLessons: [], currentLesson: 1, completionPercent: 0, currentStage: 'Foundation' };
+  },
+
+  _getStreakData: function() {
+    try {
+      if (LawAIApp.StreakEngine && typeof LawAIApp.StreakEngine.getStreakData === 'function') {
+        return LawAIApp.StreakEngine.getStreakData();
+      }
+    } catch (e) {}
+    return { currentStreak: 0, longestStreak: 0, lastLearningDate: null };
+  },
+
+  _getLevelInfo: function() {
+    try {
+      if (LawAIApp.LevelEngine && typeof LawAIApp.LevelEngine.calculateLevel === 'function') {
+        return LawAIApp.LevelEngine.calculateLevel();
+      }
+    } catch (e) {}
+    return { level: 1, currentLevelXP: 0, nextLevelXP: 100 };
+  },
+
+  _getAchievements: function() {
+    try {
+      if (LawAIApp.AchievementEngine && typeof LawAIApp.AchievementEngine.getUnlocked === 'function') {
+        return LawAIApp.AchievementEngine.getUnlocked();
+      }
+    } catch (e) {}
+    return [];
+  },
+
+  _getAllLessons: function() {
+    try {
+      if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getAllLessons === 'function') {
+        return LawAIApp.LessonEngine.getAllLessons();
+      }
+    } catch (e) {}
+    return [];
+  },
+
+  _getFavorites: function() {
+    try {
+      if (LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.get === 'function') {
+        return LawAIApp.StorageEngine.get('favorites') || [];
+      }
+    } catch (e) {}
+    return [];
+  },
+
+  _getTodayLesson: function(allLessons, progress) {
+    if (!allLessons || allLessons.length === 0) return null;
+    return allLessons[progress.currentLesson - 1] || allLessons[0] || null;
+  },
+
+  _getDailyBriefing: function() {
+    try {
+      if (LawAIApp.DailyBriefing && typeof LawAIApp.DailyBriefing.getCompactCardHTML === 'function') {
+        return LawAIApp.DailyBriefing.getCompactCardHTML();
+      }
+    } catch (e) {}
+    return '';
+  },
+
+  _getLastCompletedDate: function(streakData) {
+    if (!streakData.lastLearningDate) return 'Not started';
+    try {
+      return new Date(streakData.lastLearningDate).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (e) {
+      return 'Not started';
+    }
+  },
+
+  // ============================================================
+  // HTML 构建 — 层级清晰，情感驱动
+  // ============================================================
+
+  _buildHTML: function(data) {
+    const {
+      progress,
+      streakData,
+      levelInfo,
+      achievements,
+      todayLesson,
+      favorites,
+      completionRate,
+      currentStage,
+      lastCompletedDate,
+      dailyBriefingHTML,
+      allLessons
+    } = data;
+
+    // ---- 问候语 ----
+    const greeting = this._getGreeting();
+    const userName = this._getUserName();
+    const motivation = this._getMotivation(progress, streakData);
+
+    // ---- 状态徽章 ----
+    const levelDisplay = 'Lv.' + (levelInfo.level || 1);
+    const xpDisplay = (progress.xp || 0) + ' XP';
+    const streakDisplay = (streakData.currentStreak || 0) + 'd';
+
+    // ---- 进度 ----
+    const percent = Math.round(progress.completionPercent || 0);
+    const completedCount = progress.completedLessons?.length || 0;
+    const totalCount = 365;
+
+    // ---- 继续学习 ----
+    const nextDay = Math.min(completedCount + 1, 365);
+    const lessonLink = completedCount === 0 ? '/pages/academy.html' : '/pages/lesson.html?day=' + nextDay;
+    const btnText = completedCount === 0 ? '📖 Start Learning' : (completedCount >= 365 ? '🎉 Review' : '📖 Continue');
+
+    const nextTitle = this._getLessonTitle(nextDay);
+    const nextSummary = this._getLessonSummary(nextDay);
+
+    // ---- 周挑战 ----
+    const challenge = this._getWeeklyChallenge();
+
+    // ---- 推荐 ----
+    const recommendations = this._getRecommendations();
+
+    // ============================================================
+    // HTML 模板（视觉优先，情感驱动）
+    // ============================================================
+    return `
+    <div id="dashboard-root" style="
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 12px 20px 100px;
+      color: #e2e8f0;
+      font-family: 'Inter', -apple-system, sans-serif;
+    ">
+
+      <!-- ========================================================== -->
+      <!-- 🔥 HERO 区 —— 视觉焦点 -->
+      <!-- ========================================================== -->
+      <div id="dashboard-hero" style="
+        background: linear-gradient(145deg, #1a2a4a, #0f1a2e);
+        border-radius: 24px;
+        padding: 32px 28px 28px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+        min-height: 180px;
+        animation: dashboardFade 0.5s ease;
+      ">
+        <!-- 装饰 -->
+        <div style="
+          position: absolute;
+          top: -80px;
+          right: -60px;
+          width: 300px;
+          height: 300px;
+          background: radial-gradient(circle, rgba(74,158,255,0.04), transparent 70%);
+          border-radius: 50%;
+          pointer-events: none;
+          z-index: 0;
+        "></div>
+        <div style="
+          position: absolute;
+          bottom: -60px;
+          left: -40px;
+          width: 200px;
+          height: 200px;
+          background: radial-gradient(circle, rgba(124,58,237,0.03), transparent 70%);
+          border-radius: 50%;
+          pointer-events: none;
+          z-index: 0;
+        "></div>
+
+        <div style="position:relative;z-index:1;">
+
+          <!-- 问候 + 状态 -->
+          <div style="
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 12px;
+          ">
+            <div>
+              <div style="
+                font-size: 13px;
+                font-weight: 400;
+                opacity: 0.6;
+                letter-spacing: 0.3px;
+                margin-bottom: 2px;
+              ">${greeting}</div>
+              <h1 style="
+                margin: 0;
+                font-size: 24px;
+                font-weight: 700;
+                letter-spacing: -0.3px;
+                line-height: 1.1;
+                background: linear-gradient(90deg, #e2e8f0, #94a3b8);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+              ">${userName}</h1>
+            </div>
+            <div style="
+              display: flex;
+              gap: 6px;
+              flex-wrap: wrap;
+            ">
+              <span style="
+                font-size: 11px;
+                background: rgba(74,158,255,0.1);
+                padding: 3px 12px;
+                border-radius: 100px;
+                color: #4a9eff;
+                font-weight: 500;
+                border: 1px solid rgba(74,158,255,0.06);
+              ">${levelDisplay}</span>
+              <span style="
+                font-size: 11px;
+                background: rgba(251,191,36,0.08);
+                padding: 3px 12px;
+                border-radius: 100px;
+                color: #fbbf24;
+                font-weight: 500;
+                border: 1px solid rgba(251,191,36,0.06);
+              ">${xpDisplay}</span>
+              <span style="
+                font-size: 11px;
+                background: rgba(249,115,22,0.08);
+                padding: 3px 12px;
+                border-radius: 100px;
+                color: #f97316;
+                font-weight: 500;
+                border: 1px solid rgba(249,115,22,0.06);
+              ">🔥 ${streakDisplay}</span>
+            </div>
+          </div>
+
+          <!-- 激励语 -->
+          <div style="
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 14px;
+            max-width: 480px;
+            line-height: 1.4;
+          ">${motivation}</div>
+
+          <!-- 进度条 -->
+          <div style="max-width: 400px;">
+            <div style="
+              display: flex;
+              justify-content: space-between;
+              font-size: 11px;
+              opacity: 0.5;
+              margin-bottom: 3px;
+            ">
+              <span>Progress</span>
+              <span>${completedCount}/${totalCount} lessons</span>
+            </div>
+            <div style="
+              height: 3px;
+              background: rgba(255,255,255,0.06);
+              border-radius: 100px;
+              overflow: hidden;
+            ">
+              <div style="
+                width: ${percent}%;
+                height: 100%;
+                background: linear-gradient(90deg, #4a9eff, #7c3aed);
+                border-radius: 100px;
+                transition: width 0.8s ease;
+              "></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================================== -->
+      <!-- 🔥 Continue Learning —— 唯一主行动点 -->
+      <!-- ========================================================== -->
+      <a href="${lessonLink}" id="continue-learning" style="
+        display: block;
+        background: linear-gradient(135deg, #4a9eff, #6366f1);
+        border-radius: 18px;
+        padding: 18px 24px;
+        color: white;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 40px rgba(74,158,255,0.08);
+        margin-bottom: 20px;
+      " onmouseover="this.style.transform='scale(1.01)';this.style.boxShadow='0 12px 60px rgba(74,158,255,0.15)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 8px 40px rgba(74,158,255,0.08)'">
+        <div style="
+          position: absolute;
+          top: -40px;
+          right: -30px;
+          width: 160px;
+          height: 160px;
+          background: radial-gradient(circle, rgba(255,255,255,0.06), transparent 70%);
+          border-radius: 50%;
+          pointer-events: none;
+        "></div>
+        <div style="position:relative;z-index:1;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:100px;">
+            <div style="
+              font-size: 11px;
+              font-weight: 500;
+              opacity: 0.7;
+              letter-spacing: 0.5px;
+              text-transform: uppercase;
+            ">${completedCount >= 365 ? '🎉 Complete' : 'Next Lesson'}</div>
+            <div style="
+              font-size: 17px;
+              font-weight: 600;
+              margin: 1px 0;
+              line-height: 1.2;
+            ">${nextTitle}</div>
+            <div style="
+              font-size: 13px;
+              opacity: 0.8;
+            ">${completedCount === 0 ? 'Begin your AI journey.' : (completedCount >= 365 ? 'You\'ve mastered everything!' : nextSummary)}</div>
+          </div>
+          <div style="
+            padding: 8px 24px;
+            background: rgba(255,255,255,0.12);
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            backdrop-filter: blur(4px);
+            white-space: nowrap;
+            border: 1px solid rgba(255,255,255,0.06);
+          ">${btnText} →</div>
+        </div>
+      </a>
+
+      <!-- ========================================================== -->
+      <!-- ⚡ Quick Actions —— 紧凑，不抢戏 -->
+      <!-- ========================================================== -->
+      <div style="
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 20px;
+      ">
+        ${[
+          { icon: '📚', label: 'Academy', route: 'academy' },
+          { icon: '🧠', label: 'Intelligence', route: 'intelligence' },
+          { icon: '📓', label: 'Notes', route: 'knowledge-capture' },
+          { icon: '💬', label: 'Chat', route: 'conversations' },
+          { icon: '📅', label: 'Planner', route: 'planner' }
+        ].map(function(btn) {
+          return `
+          <button onclick="LawAIApp.Router?.navigate('${btn.route}')" style="
+            padding: 5px 14px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 100px;
+            color: #94a3b8;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+          " onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#e2e8f0'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.color='#94a3b8'">
+            ${btn.icon} ${btn.label}
+          </button>
+          `;
+        }).join('')}
+        <button onclick="this.style.display='none';document.getElementById('more-actions').style.display='flex'" style="
+          padding: 5px 12px;
+          background: rgba(255,255,255,0.02);
+          border: 1px solid rgba(255,255,255,0.03);
+          border-radius: 100px;
+          color: #64748b;
+          font-size: 10px;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+        " onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+          + more
+        </button>
+        <div id="more-actions" style="display:none;flex-wrap:wrap;gap:6px;">
+          ${[
+            { icon: '🛠️', label: 'Tools', route: 'tools' },
+            { icon: '📋', label: 'Prompts', route: 'prompt' },
+            { icon: '🎯', label: 'Goals', route: 'goal-intelligence' },
+            { icon: '🧠', label: 'Mentor', route: 'mentor-brain' },
+            { icon: '🚀', label: 'Showcase', route: 'career-showcase' }
+          ].map(function(btn) {
+            return `
+            <button onclick="LawAIApp.Router?.navigate('${btn.route}')" style="
+              padding: 5px 14px;
+              background: rgba(255,255,255,0.03);
+              border: 1px solid rgba(255,255,255,0.04);
+              border-radius: 100px;
+              color: #94a3b8;
+              font-size: 11px;
+              cursor: pointer;
+              transition: all 0.2s;
+              font-family: inherit;
+              display: flex;
+              align-items: center;
+              gap: 4px;
+            " onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#e2e8f0'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.color='#94a3b8'">
+              ${btn.icon} ${btn.label}
+            </button>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- ========================================================== -->
+      <!-- 📊 次要信息（轻量，不抢视觉） -->
+      <!-- ========================================================== -->
+      <div style="
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 16px;
+        opacity: 0.7;
+      ">
+        <!-- 进度卡片 -->
+        <div style="
+          background: rgba(255,255,255,0.02);
+          border-radius: 12px;
+          padding: 12px 16px;
+          border: 1px solid rgba(255,255,255,0.04);
+        ">
+          <div style="font-size: 11px;color:#64748b;font-weight:400;">📊 Completion</div>
+          <div style="font-size: 18px;font-weight:600;margin:2px 0;">${completionRate}%</div>
+          <div style="font-size: 10px;color:#64748b;">${completedCount} of ${totalCount} lessons</div>
+        </div>
+
+        <!-- 成就卡片 -->
+        <div style="
+          background: rgba(255,255,255,0.02);
+          border-radius: 12px;
+          padding: 12px 16px;
+          border: 1px solid rgba(255,255,255,0.04);
+        ">
+          <div style="font-size: 11px;color:#64748b;font-weight:400;">🏆 Achievements</div>
+          <div style="font-size: 18px;font-weight:600;margin:2px 0;">${achievements.length}</div>
+          <div style="font-size: 10px;color:#64748b;">${achievements.length === 0 ? 'Complete lessons to unlock' : 'Keep going!'}</div>
+        </div>
+      </div>
+
+      <!-- ========================================================== -->
+      <!-- 📖 推荐（延迟加载，不阻塞首屏） -->
+      <!-- ========================================================== -->
+      <div id="dashboard-recommendations" style="
+        background: rgba(255,255,255,0.02);
+        border-radius: 12px;
+        padding: 14px 16px;
+        border: 1px solid rgba(255,255,255,0.04);
+        min-height: 80px;
+        opacity: 0.6;
+        transition: opacity 0.4s ease;
+      ">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+          <span style="font-size:14px;">🌟</span>
+          <span style="font-size:12px;color:#94a3b8;font-weight:400;">Recommended for you</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          ${[0,1,2].map(function(i) {
+            return `
+            <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:${i < 2 ? '1px solid rgba(255,255,255,0.03)' : 'none'};">
+              <span style="font-size:12px;opacity:0.4;">⏳</span>
+              <div style="flex:1;height:8px;width:${70 - i * 15}%;background:rgba(255,255,255,0.04);border-radius:4px;animation:pulse 1.5s infinite ${i * 0.2}s;"></div>
+            </div>
+            `;
+          }).join('')}
+        </div>
+        <style>
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+          }
+          @keyframes dashboardFade {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        </style>
+      </div>
+
+      <!-- ========================================================== -->
+      <!-- 页脚 -->
+      <!-- ========================================================== -->
+      <div style="
+        text-align:center;
+        margin-top:20px;
+        padding:12px;
+        color:#64748b;
+        font-size:10px;
+        letter-spacing:0.5px;
+        border-top:1px solid rgba(255,255,255,0.03);
+      ">
+        Law AI Academy
+      </div>
+
+    </div>
+    `;
+  },
+
+  // ============================================================
+  // 辅助方法
+  // ============================================================
+
+  _getGreeting: function() {
+    var hour = new Date().getHours();
+    if (hour < 12) return '🌅 Good morning';
+    if (hour < 17) return '☀️ Good afternoon';
+    if (hour < 21) return '🌇 Good evening';
+    return '🌙 Good night';
+  },
+
+  _getUserName: function() {
+    try {
+      if (LawAIApp.IdentityEngine && typeof LawAIApp.IdentityEngine.getName === 'function') {
+        return LawAIApp.IdentityEngine.getName();
+      }
+    } catch (e) {}
+    return 'Learner';
+  },
+
+  _getMotivation: function(progress, streakData) {
+    var completed = progress.completedLessons?.length || 0;
+    var streak = streakData.currentStreak || 0;
+
+    if (completed >= 365) {
+      return '🏆 You\'ve completed everything! You\'re a legend.';
+    }
+    if (streak >= 30) {
+      return '🔥 ' + streak + '-day streak! You\'re unstoppable.';
+    }
+    if (streak >= 7) {
+      return '💪 ' + streak + ' days strong! Keep going.';
+    }
+    if (completed >= 10) {
+      return '🌟 ' + completed + ' lessons done! Every step counts.';
+    }
+    if (completed > 0) {
+      return '🌱 Every journey begins with a single step. Keep showing up.';
+    }
+    return '🚀 Ready to start your AI journey?';
+  },
+
+  _getLessonTitle: function(day) {
+    try {
+      if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
+        var lesson = LawAIApp.LessonEngine.getLessonByDay(day);
+        if (lesson && lesson.title) return lesson.title;
+      }
+    } catch (e) {}
+    return 'Day ' + day;
+  },
+
+  _getLessonSummary: function(day) {
+    try {
+      if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
+        var lesson = LawAIApp.LessonEngine.getLessonByDay(day);
+        if (lesson && lesson.summary) return lesson.summary;
+        if (lesson && lesson.subtitle) return lesson.subtitle;
+      }
+    } catch (e) {}
+    return 'Continue building your AI knowledge.';
+  },
+
+  _getWeeklyChallenge: function() {
+    try {
+      if (LawAIApp.Data && typeof LawAIApp.Data.weeklyChallenge === 'function') {
+        return LawAIApp.Data.weeklyChallenge();
+      }
+    } catch (e) {}
+    return { title: 'Complete 3 lessons this week', xp: 200, progress: 0 };
+  },
+
+  _getRecommendations: function() {
+    var recs = [];
+    try {
+      if (LawAIApp.RecommendationEngine && typeof LawAIApp.RecommendationEngine.getRecommendations === 'function') {
+        recs = LawAIApp.RecommendationEngine.getRecommendations(3) || [];
+      }
+    } catch (e) {}
+    return recs;
+  },
+
   /**
-   * 刷新 Dashboard（只更新数据，不重建整个 DOM）
+   * 初始化动画
+   */
+  _initAnimations: function() {
+    // 延迟加载推荐
+    var self = this;
+    setTimeout(function() {
+      self._loadRecommendations();
+    }, 300);
+  },
+
+  /**
+   * 加载推荐（延迟）
+   */
+  _loadRecommendations: function() {
+    var container = document.getElementById('dashboard-recommendations');
+    if (!container) return;
+
+    var recs = this._getRecommendations();
+    if (recs.length === 0) {
+      container.innerHTML = `
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+          <span style="font-size:14px;">🌟</span>
+          <span style="font-size:12px;color:#94a3b8;font-weight:400;">Recommended for you</span>
+        </div>
+        <div style="color:#64748b;font-size:12px;text-align:center;padding:8px 0;">
+          Complete more lessons to get personalized recommendations.
+        </div>
+      `;
+      container.style.opacity = '1';
+      return;
+    }
+
+    var recsHtml = recs.slice(0, 3).map(function(rec, index) {
+      var lessonId = rec.id || 'day-' + (index + 1);
+      var dayNum = lessonId.replace('day-', '');
+      var link = '/pages/lesson.html?day=' + dayNum;
+      var delay = index * 0.06;
+      return `
+        <div style="
+          display:flex;
+          align-items:center;
+          gap:8px;
+          padding:4px 0;
+          border-bottom:${index < 2 ? '1px solid rgba(255,255,255,0.03)' : 'none'};
+          animation:fadeIn 0.4s ease ${delay}s;
+        ">
+          <span style="font-size:14px;">${rec.icon || '📖'}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:500;color:#e2e8f0;">${rec.title || 'Lesson'}</div>
+            <div style="font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${rec.description || 'Continue your learning journey.'}</div>
+          </div>
+          <a href="${link}" style="
+            padding:3px 12px;
+            background:rgba(74,158,255,0.08);
+            border-radius:100px;
+            color:#4a9eff;
+            font-size:10px;
+            text-decoration:none;
+            transition:all 0.2s;
+          " onmouseover="this.style.background='rgba(74,158,255,0.15)'" onmouseout="this.style.background='rgba(74,158,255,0.08)'">
+            Start
+          </a>
+        </div>
+      `;
+    }).join('');
+
+    container.innerHTML = `
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <span style="font-size:14px;">🌟</span>
+        <span style="font-size:12px;color:#94a3b8;font-weight:400;">Recommended for you</span>
+      </div>
+      ${recsHtml}
+      <style>
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      </style>
+    `;
+    container.style.opacity = '1';
+    console.log('📊 Recommendations loaded (deferred)');
+  },
+
+  /**
+   * 刷新 Dashboard
    */
   refresh: function() {
-    // 如果 Dashboard 还没渲染，直接渲染
     if (!this._rendered) {
       this.render();
       return;
     }
-
-    // 获取最新数据
-    var progress = LawAIApp.ProgressEngine
-      ? LawAIApp.ProgressEngine.getProgress()
-      : { xp: 0, completedLessons: [], currentLesson: 1, completionPercent: 0, currentStage: 'Foundation' };
-
-    var streakData = LawAIApp.StreakEngine
-      ? LawAIApp.StreakEngine.getStreakData()
-      : { currentStreak: 0, longestStreak: 0, lastLearningDate: null };
-
-    var levelInfo = LawAIApp.LevelEngine
-      ? LawAIApp.LevelEngine.calculateLevel()
-      : { level: 1, currentLevelXP: 0, nextLevelXP: 100 };
-
-    var achievements = LawAIApp.AchievementEngine
-      ? LawAIApp.AchievementEngine.getUnlocked()
-      : [];
-
-    // 更新统计卡片
-    var stats = document.querySelectorAll('.widget-card');
-    if (stats.length >= 3) {
-      // Streak
-      var streakEl = stats[0];
-      if (streakEl) {
-        var streakNum = streakEl.querySelector('p');
-        if (streakNum) streakNum.innerHTML = streakData.currentStreak + ' <span style="font-size:0.8rem;">天</span>';
-        var streakBar = streakEl.querySelector('.xp-fill');
-        if (streakBar) streakBar.style.width = Math.min(100, (streakData.currentStreak / 30) * 100) + '%';
-        var streakLongest = streakEl.querySelector('small');
-        if (streakLongest) streakLongest.textContent = '🏅 最长: ' + streakData.longestStreak + ' 天';
-      }
-
-      // XP
-      var xpEl = stats[1];
-      if (xpEl) {
-        var xpNum = xpEl.querySelector('p');
-        if (xpNum) xpNum.innerHTML = progress.xp + ' <span style="font-size:0.8rem;">XP</span>';
-        var xpBar = xpEl.querySelector('.xp-fill');
-        if (xpBar) xpBar.style.width = Math.min(100, (levelInfo.currentLevelXP / levelInfo.nextLevelXP) * 100) + '%';
-        var xpText = xpEl.querySelectorAll('small');
-        if (xpText.length > 0) xpText[0].textContent = levelInfo.currentLevelXP + ' / ' + levelInfo.nextLevelXP + ' XP';
-      }
-
-      // Level
-      var levelEl = stats[2];
-      if (levelEl) {
-        var levelNum = levelEl.querySelector('p');
-        if (levelNum) levelNum.textContent = 'Level ' + levelInfo.level;
-        var levelTexts = levelEl.querySelectorAll('small');
-        if (levelTexts.length > 0) {
-          levelTexts[0].textContent = '还需 ' + (levelInfo.nextLevelXP - levelInfo.currentLevelXP) + ' XP 升级';
-          if (levelTexts.length > 1) {
-            levelTexts[1].textContent = '📚 ' + progress.completedLessons.length + ' / 365 课完成';
-          }
-        }
-      }
-    }
-
+    // 简单刷新：重新渲染
+    this.render();
     console.log('🔄 Dashboard refreshed');
   }
 };
 
-console.log('📊 Dashboard V2.0 ready (First Paint optimized)');
+// ============================================================
+// 自动初始化
+// ============================================================
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  setTimeout(function() {
+    if (LawAIApp.Dashboard && !LawAIApp.Dashboard._rendered) {
+      var app = document.getElementById('app') || document.getElementById('law-runtime-root');
+      if (app && app.innerHTML.trim() === '') {
+        LawAIApp.Dashboard.render();
+      }
+    }
+  }, 500);
+}
+
+console.log('📊 Dashboard V3.0 ready (Phase 1 - Emotional Recovery)');
