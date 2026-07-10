@@ -1,99 +1,384 @@
-/* academy.css */
-.academy-page {
-  padding: 1rem 1rem 2rem;
-  max-width: 800px;
-  margin: 0 auto;
-  animation: fadeIn 0.3s ease;
+/* ================================================================
+   academy.css – Academy 设计语言
+   ================================================================ */
+
+/* ==========================================================
+   Banner
+   ========================================================== */
+
+.academy-banner {
+    background: var(--gradient-hero);
+    border-radius: var(--radius-xl);
+    padding: var(--space-2xl) var(--space-3xl);
+    margin-bottom: var(--space-xl);
+    position: relative;
+    overflow: hidden;
 }
 
-.continue-card {
-  background: linear-gradient(135deg, var(--primary), #6366f1);
-  border-radius: 20px;
-  padding: 1.5rem;
-  color: white;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+.academy-banner-icon {
+    position: absolute;
+    right: -20px;
+    bottom: -40px;
+    font-size: 120px;
+    opacity: 0.06;
+    pointer-events: none;
+    z-index: 0;
 }
 
-.continue-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 15px 35px rgba(59, 130, 246, 0.4);
+.academy-banner-content {
+    position: relative;
+    z-index: 1;
 }
 
-.continue-card .academy-icon {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
+.academy-banner-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex-wrap: wrap;
 }
+
+.academy-banner-header-icon {
+    font-size: var(--font-size-3xl);
+}
+
+.academy-banner-header-title {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: -0.3px;
+    margin: 0;
+    color: var(--color-text-inverse);
+}
+
+.academy-banner-header-sub {
+    font-size: var(--font-size-sm);
+    opacity: 0.7;
+    margin: 0;
+    max-width: 480px;
+}
+
+.academy-banner-meta {
+    margin-left: auto;
+    display: flex;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+}
+
+.academy-banner-meta-item {
+    font-size: var(--font-size-2xs);
+    background: rgba(255, 255, 255, 0.08);
+    padding: var(--space-3xs) var(--space-md);
+    border-radius: var(--radius-full);
+    color: var(--color-text-inverse);
+}
+
+.academy-banner-progress {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xl);
+    flex-wrap: wrap;
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.academy-banner-progress-bar {
+    flex: 1;
+    min-width: 120px;
+}
+
+.academy-banner-progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--font-size-xs);
+    opacity: 0.6;
+    margin-bottom: var(--space-3xs);
+}
+
+.academy-banner-stats {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    font-size: var(--font-size-xs);
+    opacity: 0.8;
+}
+
+.academy-banner-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3xs);
+}
+
+/* ==========================================================
+   课程网格
+   ========================================================== */
 
 .academy-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md);
+    min-height: 200px;
+    margin-bottom: var(--space-xl);
 }
 
+.academy-grid-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+}
+
+.academy-grid-title {
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+}
+
+.academy-grid-count {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+}
+
+/* ==========================================================
+   课程卡片
+   ========================================================== */
+
 .academy-card {
-  background: var(--card);
-  border-radius: 20px;
-  padding: 1.2rem;
-  box-shadow: var(--shadow);
-  transition: transform 0.2s, box-shadow 0.2s;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
+    background: var(--color-bg-card);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg) var(--space-xl);
+    border: 1px solid var(--color-border-light);
+    transition: var(--transition-normal);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
 }
 
 .academy-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0,0,0,0.5);
+    transform: translateY(-2px);
+    border-color: var(--color-border-hover);
 }
 
-.academy-card:active {
-  transform: scale(0.98);
+.academy-card-locked {
+    opacity: 0.5;
+    cursor: default;
 }
 
-.academy-card .icon {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
+.academy-card-locked:hover {
+    transform: none;
 }
 
-.academy-card .title {
-  font-weight: 600;
-  margin-bottom: 0.3rem;
+.academy-card-lock {
+    position: absolute;
+    top: var(--space-md);
+    right: var(--space-md);
+    font-size: var(--font-size-sm);
+    opacity: 0.4;
 }
 
-.academy-card .desc {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.8rem;
+.academy-card-icon {
+    font-size: var(--font-size-xl);
+    margin-right: var(--space-sm);
 }
 
-.academy-card .progress-bar {
-  height: 6px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 3px;
-  margin: 0.5rem 0;
-  overflow: hidden;
+.academy-card-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
 }
 
-.academy-card .progress-fill {
-  background: var(--primary);
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.4s ease;
+.academy-card-sub {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
 }
 
-.status-badge {
-  display: inline-block;
-  padding: 0.2rem 0.7rem;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  font-weight: 600;
+.academy-card-meta {
+    display: flex;
+    gap: var(--space-sm);
+    font-size: var(--font-size-2xs);
+    color: var(--color-text-tertiary);
+    flex-wrap: wrap;
+    margin: var(--space-xs) 0;
 }
 
-.status-active { background: rgba(34,197,94,0.2); color: var(--success); }
-.status-coming { background: rgba(148,163,184,0.2); color: var(--text-secondary); }
-.status-locked { background: rgba(239,68,68,0.15); color: var(--danger); }
-.status-completed { background: rgba(59,130,246,0.2); color: var(--primary); }
+.academy-card-meta-difficulty {
+    font-weight: var(--font-weight-medium);
+}
+
+.academy-card-progress {
+    height: 2px;
+    background: var(--color-border-default);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.academy-card-progress-fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width var(--duration-slower) var(--ease-smooth);
+}
+
+.academy-card-progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--font-size-2xs);
+    color: var(--color-text-tertiary);
+    margin-top: var(--space-3xs);
+}
+
+/* ==========================================================
+   延迟加载区
+   ========================================================== */
+
+.academy-deferred {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    min-height: 120px;
+    opacity: 0.5;
+    transition: var(--transition-normal);
+}
+
+.academy-deferred.loaded {
+    opacity: 1;
+}
+
+.academy-deferred-card {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg) var(--space-xl);
+    border: 1px solid var(--color-border-light);
+}
+
+.academy-deferred-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-sm);
+}
+
+.academy-deferred-title {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-regular);
+}
+
+/* ==========================================================
+   推荐项
+   ========================================================== */
+
+.academy-recommendation {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-3xs) 0;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.academy-recommendation:last-child {
+    border-bottom: none;
+}
+
+.academy-recommendation-icon {
+    font-size: var(--font-size-sm);
+}
+
+.academy-recommendation-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.academy-recommendation-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
+}
+
+.academy-recommendation-desc {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.academy-recommendation-link {
+    padding: var(--space-3xs) var(--space-md);
+    background: rgba(74, 158, 255, 0.08);
+    border-radius: var(--radius-full);
+    color: var(--color-brand-primary);
+    font-size: var(--font-size-2xs);
+    text-decoration: none;
+    transition: var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.academy-recommendation-link:hover {
+    background: rgba(74, 158, 255, 0.15);
+}
+
+/* ==========================================================
+   学校标签
+   ========================================================== */
+
+.academy-school {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3xs);
+    padding: var(--space-3xs) var(--space-md) var(--space-3xs) var(--space-sm);
+    border-radius: var(--radius-full);
+    border: 1px solid var(--color-border-light);
+    transition: var(--transition-fast);
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+}
+
+.academy-school-active {
+    background: rgba(74, 158, 255, 0.06);
+    border-color: rgba(74, 158, 255, 0.08);
+}
+
+.academy-school-active:hover {
+    background: rgba(74, 158, 255, 0.12);
+}
+
+.academy-school-inactive {
+    background: var(--color-bg-elevated);
+}
+
+.academy-school-inactive:hover {
+    background: var(--color-bg-elevated-hover);
+}
+
+.academy-school-status {
+    font-size: var(--font-size-3xs);
+}
+
+.academy-school-status-active {
+    color: var(--color-success);
+}
+.academy-school-status-soon {
+    color: var(--color-text-tertiary);
+}
+
+/* ==========================================================
+   响应式
+   ========================================================== */
+
+@media (max-width: 600px) {
+    .academy-grid {
+        grid-template-columns: 1fr;
+    }
+    .academy-deferred {
+        grid-template-columns: 1fr;
+    }
+    .academy-banner {
+        padding: var(--space-xl) var(--space-lg);
+    }
+    .academy-banner-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .academy-banner-meta {
+        margin-left: 0;
+    }
+}
