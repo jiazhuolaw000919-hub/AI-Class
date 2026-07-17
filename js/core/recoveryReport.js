@@ -123,4 +123,104 @@ LawAIApp.RecoveryReport = {
       recs.push('Fix missing dependencies: ' + dep.missingDependencies.length + ' missing');
     }
     if (dep && dep.circularDependencies.length > 0) {
-      recs.push('Resolve circular dependencies: ' + dep.circularD
+      recs.push('Resolve circular dependencies: ' + dep.circularDependencies.length + ' found');
+    }
+    if (mod && mod.unusedModules.length > 0) {
+      recs.push('Review unused modules: ' + mod.unusedModules.length + ' modules not used');
+    }
+    if (mod && mod.brokenModules.length > 0) {
+      recs.push('Fix broken modules: ' + mod.brokenModules.length + ' modules broken');
+    }
+    
+    if (recs.length === 0) {
+      recs.push('All systems healthy. No recommendations.');
+    }
+    
+    return recs;
+  },
+
+  /**
+   * Display report in console
+   */
+  _display: function() {
+    var r = this.report;
+    console.log('═══════════════════════════════════════');
+    console.log('   RECOVERY HEALTH REPORT');
+    console.log('═══════════════════════════════════════');
+    console.log('Version: ' + r.version);
+    console.log('Timestamp: ' + new Date(r.timestamp).toLocaleString());
+    console.log('─────────────────────────────────────');
+    console.log('Overall Score: ' + r.overall.score + '% (' + r.overall.status + ')');
+    console.log('Pass: ' + (r.overall.pass ? '✅ PASS' : '❌ FAIL'));
+    console.log('─────────────────────────────────────');
+    
+    var sections = [
+      { name: 'Architecture', data: r.sections.architecture },
+      { name: 'Dependencies', data: r.sections.dependencies },
+      { name: 'Modules', data: r.sections.modules },
+      { name: 'Features', data: r.sections.features },
+      { name: 'UI', data: r.sections.ui }
+    ];
+    
+    for (var i = 0; i < sections.length; i++) {
+      var s = sections[i];
+      var icon = s.data.score >= 80 ? '✅' : s.data.score >= 50 ? '⚠️' : '❌';
+      console.log(icon + ' ' + s.name + ': ' + s.data.score + '% (' + s.data.status + ')');
+    }
+    
+    console.log('─────────────────────────────────────');
+    console.log('Recommendations:');
+    for (var j = 0; j < r.recommendations.length; j++) {
+      console.log('  • ' + r.recommendations[j]);
+    }
+    console.log('═══════════════════════════════════════');
+    
+    if (r.overall.pass) {
+      console.log('✅ RECOVERY HEALTH PASS');
+    } else {
+      console.warn('⚠️ RECOVERY HEALTH NEEDS ATTENTION');
+    }
+  },
+
+  /**
+   * Get report
+   */
+  getReport: function() {
+    if (!this.report) this.generate();
+    return this.report;
+  },
+
+  /**
+   * Get summary
+   */
+  getSummary: function() {
+    if (!this.report) this.generate();
+    return {
+      score: this.report.overall.score,
+      status: this.report.overall.status,
+      pass: this.report.overall.pass,
+      recommendations: this.report.recommendations.length
+    };
+  },
+
+  /**
+   * Get score
+   */
+  getScore: function() {
+    if (!this.report) this.generate();
+    return this.report.overall.score;
+  },
+
+  /**
+   * Check if recovery is healthy
+   */
+  isHealthy: function() {
+    if (!this.report) this.generate();
+    return this.report.overall.pass;
+  }
+};
+
+// 暴露到全局
+window.recoveryReport = LawAIApp.RecoveryReport;
+
+console.log('📊 RecoveryReport ready');
