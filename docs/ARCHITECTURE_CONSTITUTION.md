@@ -35,24 +35,30 @@ This rule is absolute and non-negotiable.
 window.LawAIApp = window.LawAIApp || {};
 LawAIApp.EngineName = { ... };
 LawAIApp.FeatureName = { ... };
+
 ❌ Forbidden:
 javascript
+
 window.MyEngine = { ... };
 window.FeatureX = { ... };
 window.someVariable = ...;
+
 No additional global namespaces.
 
 No window.xxx outside LawAIApp.
 
+---
+
 3. MODULE STANDARD
 Every engine, every module, every component MUST:
 
-Rule	Description
-Register Itself	Must be registered with its appropriate Registry
-One Responsibility	Does exactly one thing, and does it well
-One Domain	Belongs to exactly one domain (Core, Feature, UI, etc.)
-Never Self-Initiate	Never initializes itself automatically
-Never Direct Manipulation	Never directly manipulates another engine
+| Rule | Description |
+|------|-------------|
+| **Register Itself** | Must be registered with its appropriate Registry |
+| **One Responsibility** | Does exactly one thing, and does it well |
+| **One Domain** | Belongs to exactly one domain (Core, Feature, UI, etc.) |
+| **Never Self-Initiate** | Never initializes itself automatically |
+| **Never Direct Manipulation** | Never directly manipulates another engine |
 ✅ Correct:
 javascript
 LawAIApp.FeatureEngine = {
@@ -66,16 +72,20 @@ window.MyEngine = { ... }; // Wrong namespace
 LawAIApp.FeatureEngine.process(); // Doesn't register itself
 // or
 LawAIApp.FeatureEngine.doEverything(); // Multiple responsibilities
+
+---
+
 4. RUNTIME RULE
 Runtime coordinates only.
 
 The Runtime layer is the nervous system of the OS.
 
-Allowed	Forbidden
-Coordinate engines	Own business logic
-Orchestrate startup	Contain UI
-Manage health	Store user data
-Dispatch events	Render anything
+| Allowed | Forbidden |
+|---------|-----------|
+| Coordinate engines | Own business logic |
+| Orchestrate startup | Contain UI |
+| Manage health | Store user data |
+| Dispatch events | Render anything |
 ✅ Correct:
 javascript
 LawAIApp.RuntimeKernel = {
@@ -89,16 +99,20 @@ LawAIApp.RuntimeKernel = {
   renderUI: function() { /* contains UI rendering */ },
   saveData: function() { /* stores user data */ }
 };
+
+---
+
 5. SYSTEM COMPOSER RULE
 SystemComposer composes only.
 
 The Composer is the UI orchestration layer.
 
-Allowed	Forbidden
-Compose UI	Own business logic
-Mount components	Own storage
-Arrange layouts	Own routing
-Initialize widgets	Execute business rules
+| Allowed | Forbidden |
+|---------|-----------|
+| Compose UI | Own business logic |
+| Mount components | Own storage |
+| Arrange layouts | Own routing |
+| Initialize widgets | Execute business rules |
 ✅ Correct:
 javascript
 LawAIApp.SystemComposer = {
@@ -112,14 +126,18 @@ LawAIApp.SystemComposer = {
   saveUserData: function() { /* owns storage */ },
   handleRoute: function() { /* owns routing */ }
 };
+
+---
+
 6. REGISTRY RULE
 Each registry owns ONLY its own domain.
 
-Registry	Domain	Responsibility
-DomainRegistry	Domains	Track all domains
-RuntimeRegistry	Runtime Engines	Track runtime modules
-FeatureRegistry	Features	Track all features
-UIRegistry	UI Components	Track UI components
+| Registry | Domain | Responsibility |
+|----------|--------|----------------|
+| DomainRegistry | Domains | Track all domains |
+| RuntimeRegistry | Runtime Engines | Track runtime modules |
+| FeatureRegistry | Features | Track all features |
+| UIRegistry | UI Components | Track UI components |
 ✅ Correct:
 javascript
 // DomainRegistry only tracks domains
@@ -136,16 +154,19 @@ No cross registration.
 
 Each domain belongs to exactly one registry.
 
+---
+
 7. BOOT RULE
 BootManager coordinates only.
 
 The BootManager is the startup orchestration layer.
 
-Allowed	Forbidden
-Define boot sequence	Contain business logic
-Validate before boot	Execute features
-Initialize registries	Render UI
-Run health checks	Store data
+| Allowed | Forbidden |
+|---------|-----------|
+| Define boot sequence | Contain business logic |
+| Validate before boot | Execute features |
+| Initialize registries | Render UI |
+| Run health checks | Store data |
 ✅ Correct:
 javascript
 LawAIApp.BootManager = {
@@ -169,16 +190,19 @@ Health Check
 
 Never business logic.
 
+---
+
 8. DEVELOPER RULE
 Developer Panel is Read-Only.
 
 The DevPanel exists for inspection and debugging only.
 
-Allowed	Forbidden
-Display information	Write to storage
-Show status	Modify runtime
-Display health	Change state
-Show audit results	Execute mutations
+| Allowed | Forbidden |
+|---------|-----------|
+| Display information | Write to storage |
+| Show status | Modify runtime |
+| Display health | Change state |
+| Show audit results | Execute mutations |
 ✅ Correct:
 javascript
 // Display only
@@ -194,14 +218,17 @@ No storage writes.
 
 No runtime changes.
 
+---
+
 9. FUTURE RULE
 Every future engine MUST declare:
 
-Requirement	Description
-Domain	Which domain does it belong to?
-Version	What is the version?
-Owner	Who owns this engine?
-Dependencies	What does it depend on?
+| Requirement | Description |
+|-------------|-------------|
+| **Domain** | Which domain does it belong to? |
+| **Version** | What is the version? |
+| **Owner** | Who owns this engine? |
+| **Dependencies** | What does it depend on? |
 ✅ Correct:
 javascript
 LawAIApp.NewEngine = {
@@ -221,8 +248,9 @@ LawAIApp.NewEngine = {
 };
 All engines must declare metadata BEFORE implementation.
 
+---
+
 10. FREEZE STATEMENT
-text
 ┌──────────────────────────────────────────┐
 │     ARCHITECTURE FREEZE ACTIVE           │
 ├──────────────────────────────────────────┤
