@@ -12,6 +12,9 @@ import runtimeHealth from './runtimeHealth.js';
 import featureRegistry from './featureRegistry.js';
 import featureHealth from './featureHealth.js';
 import featureValidator from './featureValidator.js';
+import uiRegistry from './uiRegistry.js';
+import uiHealth from './uiHealth.js';
+import uiValidator from './uiValidator.js';
 
 class RuntimeInspector {
   constructor() {
@@ -133,13 +136,74 @@ class RuntimeInspector {
     console.log('═══════════════════════════════════════');
   }
 
+  // ============================================================
+  // 🔥 PART 4: UI CONSTITUTION METHODS
+  // ============================================================
+
   /**
-   * Display complete report (runtime + features)
+   * Get UI report
+   * @returns {Object} UI report
+   */
+  getUIReport() {
+    const health = uiHealth.getHealth ? uiHealth.getHealth() : {};
+    const summary = uiHealth.getSummary ? uiHealth.getSummary() : {};
+    const warnings = uiValidator.getWarnings ? uiValidator.getWarnings() : [];
+    
+    return {
+      totalComponents: uiRegistry.count ? uiRegistry.count() : 0,
+      healthScore: health.healthScore || 0,
+      healthy: health.healthyComponents || 0,
+      unhealthy: health.unhealthyComponents || 0,
+      unused: health.unusedComponents || 0,
+      brokenComponents: health.brokenComponents || [],
+      warnings: warnings.length || 0,
+      summary: summary,
+      categories: uiRegistry.getCategories ? uiRegistry.getCategories() : []
+    };
+  }
+
+  /**
+   * Display UI report in console
+   */
+  displayUIReport() {
+    const report = this.getUIReport();
+    
+    console.log('═══════════════════════════════════════');
+    console.log('   UI CONSTITUTION');
+    console.log('═══════════════════════════════════════');
+    console.log(`Total Components:  ${report.totalComponents}`);
+    console.log(`Health Score:      ${report.healthScore}%`);
+    console.log(`✅ Healthy:        ${report.healthy}`);
+    console.log(`❌ Unhealthy:      ${report.unhealthy}`);
+    console.log(`📭 Unused:         ${report.unused}`);
+    console.log(`⚠️  Warnings:       ${report.warnings}`);
+    console.log(`📁 Categories:     ${report.categories.length}`);
+    
+    if (report.brokenComponents.length > 0) {
+      console.warn('Broken Components:');
+      for (const broken of report.brokenComponents) {
+        console.warn(`  ${broken.name} (${broken.id})`);
+        if (broken.issues) {
+          for (const issue of broken.issues) {
+            console.warn(`    - ${issue}`);
+          }
+        }
+      }
+    } else {
+      console.log('✅ All UI components are healthy.');
+    }
+    console.log('═══════════════════════════════════════');
+  }
+
+  /**
+   * Display complete report (runtime + features + UI)
    */
   displayFull() {
     this.display();
     console.log('');
     this.displayFeatureReport();
+    console.log('');
+    this.displayUIReport();
   }
 
   /**
@@ -158,6 +222,24 @@ class RuntimeInspector {
    */
   getFeaturesByDomain(domain) {
     return featureRegistry.findByDomain ? featureRegistry.findByDomain(domain) : [];
+  }
+
+  /**
+   * Get UI component details by ID
+   * @param {string} componentId 
+   * @returns {Object|null} Component details
+   */
+  getUIComponent(componentId) {
+    return uiRegistry.find ? uiRegistry.find(componentId) : null;
+  }
+
+  /**
+   * Get UI components by category
+   * @param {string} category 
+   * @returns {Array} Components in category
+   */
+  getUIComponentsByCategory(category) {
+    return uiRegistry.findByCategory ? uiRegistry.findByCategory(category) : [];
   }
 }
 
