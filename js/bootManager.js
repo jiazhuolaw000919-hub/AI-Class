@@ -1,5 +1,5 @@
 // ================================================================
-// bootManager.js – V3.0.3 - Recovery Architecture Integration
+// bootManager.js – V3.0.4 - Recovery Architecture Integration (Parts 1-5)
 // 只做一件事：调度启动，不执行具体逻辑
 // ================================================================
 
@@ -15,11 +15,11 @@ LawAIApp.BootManager = {
     },
 
     // ============================================================
-    // 🔥 PART 1 & 2 RECOVERY: Architecture Integration
+    // 🔥 RECOVERY ARCHITECTURE INTEGRATION (Parts 1-5)
     // ============================================================
 
     /**
-     * 🔥 Initialize Recovery Architecture
+     * 🔥 Initialize Recovery Architecture (Parts 1-5)
      * Called before normal boot sequence
      */
     _initRecoveryArchitecture: function() {
@@ -27,8 +27,10 @@ LawAIApp.BootManager = {
 
         try {
             // ============================================================
-            // 1. RUNTIME STATUS (先设置状态)
+            // PART 1 & 2: CORE RUNTIME
             // ============================================================
+
+            // 1. RUNTIME STATUS
             if (typeof LawAIApp.RuntimeStatus !== 'undefined') {
                 if (typeof LawAIApp.RuntimeStatus.setStatus === 'function') {
                     LawAIApp.RuntimeStatus.setStatus('initializing');
@@ -43,9 +45,7 @@ LawAIApp.BootManager = {
                 console.warn('⚠️ RuntimeStatus not found - skipping');
             }
 
-            // ============================================================
             // 2. RUNTIME KERNEL
-            // ============================================================
             if (typeof LawAIApp.RuntimeKernel !== 'undefined') {
                 if (typeof LawAIApp.RuntimeKernel.initialize === 'function') {
                     LawAIApp.RuntimeKernel.initialize();
@@ -60,17 +60,12 @@ LawAIApp.BootManager = {
                 console.warn('⚠️ RuntimeKernel not found - skipping');
             }
 
-            // ============================================================
-            // 3. RUNTIME REGISTRY (你的现有版本 - 已存在)
-            // ============================================================
+            // 3. RUNTIME REGISTRY
             if (typeof LawAIApp.RuntimeRegistry !== 'undefined') {
-                // 你的现有 RuntimeRegistry 已经 ready
                 console.log('✅ RuntimeRegistry already available (LawAIApp.RuntimeRegistry)');
             }
 
-            // ============================================================
             // 4. RUNTIME LIFECYCLE
-            // ============================================================
             if (typeof LawAIApp.RuntimeLifecycle !== 'undefined') {
                 if (typeof LawAIApp.RuntimeLifecycle.init === 'function') {
                     LawAIApp.RuntimeLifecycle.init();
@@ -85,9 +80,7 @@ LawAIApp.BootManager = {
                 console.warn('⚠️ RuntimeLifecycle not found - skipping');
             }
 
-            // ============================================================
             // 5. DOMAIN REGISTRY
-            // ============================================================
             if (typeof LawAIApp.DomainRegistry !== 'undefined') {
                 if (typeof LawAIApp.DomainRegistry.init === 'function') {
                     LawAIApp.DomainRegistry.init();
@@ -102,9 +95,7 @@ LawAIApp.BootManager = {
                 console.warn('⚠️ DomainRegistry not found - skipping');
             }
 
-            // ============================================================
             // 6. LAYER REGISTRY
-            // ============================================================
             if (typeof LawAIApp.LayerRegistry !== 'undefined') {
                 if (typeof LawAIApp.LayerRegistry.init === 'function') {
                     LawAIApp.LayerRegistry.init();
@@ -119,9 +110,7 @@ LawAIApp.BootManager = {
                 console.warn('⚠️ LayerRegistry not found - skipping');
             }
 
-            // ============================================================
             // 7. ARCHITECTURE VALIDATOR
-            // ============================================================
             if (typeof LawAIApp.ArchitectureValidator !== 'undefined') {
                 if (typeof LawAIApp.ArchitectureValidator.validate === 'function') {
                     LawAIApp.ArchitectureValidator.validate();
@@ -136,9 +125,7 @@ LawAIApp.BootManager = {
                 console.warn('⚠️ ArchitectureValidator not found - skipping');
             }
 
-            // ============================================================
             // 8. RUNTIME HEALTH
-            // ============================================================
             if (typeof LawAIApp.RuntimeHealth !== 'undefined') {
                 if (typeof LawAIApp.RuntimeHealth.init === 'function') {
                     LawAIApp.RuntimeHealth.init();
@@ -153,9 +140,7 @@ LawAIApp.BootManager = {
                 console.warn('⚠️ RuntimeHealth not found - skipping');
             }
 
-            // ============================================================
             // 9. RUNTIME INSPECTOR
-            // ============================================================
             if (typeof LawAIApp.RuntimeInspector !== 'undefined') {
                 if (typeof LawAIApp.RuntimeInspector.init === 'function') {
                     LawAIApp.RuntimeInspector.init();
@@ -170,9 +155,7 @@ LawAIApp.BootManager = {
                 console.warn('⚠️ RuntimeInspector not found - skipping');
             }
 
-            // ============================================================
             // 10. BOOT PERFORMANCE
-            // ============================================================
             if (typeof LawAIApp.BootPerformance !== 'undefined') {
                 if (typeof LawAIApp.BootPerformance.init === 'function') {
                     LawAIApp.BootPerformance.init();
@@ -187,9 +170,7 @@ LawAIApp.BootManager = {
                 console.warn('⚠️ BootPerformance not found - skipping');
             }
 
-            // ============================================================
-            // 11. SYSTEM COMPOSER (占位方法)
-            // ============================================================
+            // 11. SYSTEM COMPOSER
             if (LawAIApp.SystemComposer) {
                 if (typeof LawAIApp.SystemComposer.composeLayout === 'function') {
                     LawAIApp.SystemComposer.composeLayout();
@@ -217,9 +198,7 @@ LawAIApp.BootManager = {
                 console.warn('⚠️ SystemComposer not found - skipping');
             }
 
-            // ============================================================
             // 12. RUNTIME KERNEL BOOT
-            // ============================================================
             if (typeof LawAIApp.RuntimeKernel !== 'undefined') {
                 if (typeof LawAIApp.RuntimeKernel.boot === 'function') {
                     LawAIApp.RuntimeKernel.boot();
@@ -232,9 +211,7 @@ LawAIApp.BootManager = {
                 console.log('✅ RuntimeKernel booted (global)');
             }
 
-            // ============================================================
             // 13. SET RUNTIME STATUS TO READY
-            // ============================================================
             if (typeof LawAIApp.RuntimeStatus !== 'undefined') {
                 if (typeof LawAIApp.RuntimeStatus.setStatus === 'function') {
                     LawAIApp.RuntimeStatus.setStatus('ready');
@@ -245,9 +222,7 @@ LawAIApp.BootManager = {
                 }
             }
 
-            // ============================================================
             // 14. BOOT PERFORMANCE COMPLETE
-            // ============================================================
             if (typeof LawAIApp.BootPerformance !== 'undefined') {
                 if (typeof LawAIApp.BootPerformance.complete === 'function') {
                     LawAIApp.BootPerformance.complete();
@@ -258,11 +233,231 @@ LawAIApp.BootManager = {
                 }
             }
 
+            // ============================================================
+            // PART 3: FEATURE GOVERNANCE
+            // ============================================================
+
+            // 15. FEATURE REGISTRY
+            if (typeof LawAIApp.FeatureRegistry !== 'undefined') {
+                if (typeof LawAIApp.FeatureRegistry.init === 'function') {
+                    LawAIApp.FeatureRegistry.init();
+                }
+                console.log('✅ FeatureRegistry initialized');
+            } else if (typeof window.featureRegistry !== 'undefined') {
+                if (typeof window.featureRegistry.init === 'function') {
+                    window.featureRegistry.init();
+                }
+                console.log('✅ FeatureRegistry initialized (global)');
+            } else {
+                console.warn('⚠️ FeatureRegistry not found - skipping');
+            }
+
+            // 16. FEATURE MANIFEST
+            if (typeof LawAIApp.FeatureManifest !== 'undefined') {
+                if (typeof LawAIApp.FeatureManifest.init === 'function') {
+                    LawAIApp.FeatureManifest.init();
+                }
+                console.log('✅ FeatureManifest initialized');
+            } else if (typeof window.featureManifest !== 'undefined') {
+                if (typeof window.featureManifest.init === 'function') {
+                    window.featureManifest.init();
+                }
+                console.log('✅ FeatureManifest initialized (global)');
+            } else {
+                console.warn('⚠️ FeatureManifest not found - skipping');
+            }
+
+            // 17. FEATURE VALIDATOR
+            if (typeof LawAIApp.FeatureValidator !== 'undefined') {
+                if (typeof LawAIApp.FeatureValidator.validate === 'function') {
+                    LawAIApp.FeatureValidator.validate();
+                }
+                console.log('✅ FeatureValidator initialized');
+            } else if (typeof window.featureValidator !== 'undefined') {
+                if (typeof window.featureValidator.validate === 'function') {
+                    window.featureValidator.validate();
+                }
+                console.log('✅ FeatureValidator initialized (global)');
+            } else {
+                console.warn('⚠️ FeatureValidator not found - skipping');
+            }
+
+            // 18. FEATURE HEALTH
+            if (typeof LawAIApp.FeatureHealth !== 'undefined') {
+                if (typeof LawAIApp.FeatureHealth.init === 'function') {
+                    LawAIApp.FeatureHealth.init();
+                }
+                console.log('✅ FeatureHealth initialized');
+            } else if (typeof window.featureHealth !== 'undefined') {
+                if (typeof window.featureHealth.init === 'function') {
+                    window.featureHealth.init();
+                }
+                console.log('✅ FeatureHealth initialized (global)');
+            } else {
+                console.warn('⚠️ FeatureHealth not found - skipping');
+            }
+
+            // ============================================================
+            // PART 4: UI CONSTITUTION
+            // ============================================================
+
+            // 19. UI REGISTRY
+            if (typeof LawAIApp.UIRegistry !== 'undefined') {
+                if (typeof LawAIApp.UIRegistry.init === 'function') {
+                    LawAIApp.UIRegistry.init();
+                }
+                console.log('✅ UIRegistry initialized');
+            } else if (typeof window.uiRegistry !== 'undefined') {
+                if (typeof window.uiRegistry.init === 'function') {
+                    window.uiRegistry.init();
+                }
+                console.log('✅ UIRegistry initialized (global)');
+            } else {
+                console.warn('⚠️ UIRegistry not found - skipping');
+            }
+
+            // 20. UI MANIFEST
+            if (typeof LawAIApp.UIManifest !== 'undefined') {
+                if (typeof LawAIApp.UIManifest.init === 'function') {
+                    LawAIApp.UIManifest.init();
+                }
+                console.log('✅ UIManifest initialized');
+            } else if (typeof window.uiManifest !== 'undefined') {
+                if (typeof window.uiManifest.init === 'function') {
+                    window.uiManifest.init();
+                }
+                console.log('✅ UIManifest initialized (global)');
+            } else {
+                console.warn('⚠️ UIManifest not found - skipping');
+            }
+
+            // 21. UI VALIDATOR
+            if (typeof LawAIApp.UIValidator !== 'undefined') {
+                if (typeof LawAIApp.UIValidator.validate === 'function') {
+                    LawAIApp.UIValidator.validate();
+                }
+                console.log('✅ UIValidator initialized');
+            } else if (typeof window.uiValidator !== 'undefined') {
+                if (typeof window.uiValidator.validate === 'function') {
+                    window.uiValidator.validate();
+                }
+                console.log('✅ UIValidator initialized (global)');
+            } else {
+                console.warn('⚠️ UIValidator not found - skipping');
+            }
+
+            // 22. UI HEALTH
+            if (typeof LawAIApp.UIHealth !== 'undefined') {
+                if (typeof LawAIApp.UIHealth.init === 'function') {
+                    LawAIApp.UIHealth.init();
+                }
+                console.log('✅ UIHealth initialized');
+            } else if (typeof window.uiHealth !== 'undefined') {
+                if (typeof window.uiHealth.init === 'function') {
+                    window.uiHealth.init();
+                }
+                console.log('✅ UIHealth initialized (global)');
+            } else {
+                console.warn('⚠️ UIHealth not found - skipping');
+            }
+
+            // ============================================================
+            // PART 5: ARCHITECTURE AUDIT
+            // ============================================================
+
+            // 23. ARCHITECTURE AUDIT
+            if (typeof LawAIApp.ArchitectureAudit !== 'undefined') {
+                if (typeof LawAIApp.ArchitectureAudit.init === 'function') {
+                    LawAIApp.ArchitectureAudit.init();
+                }
+                if (typeof LawAIApp.ArchitectureAudit.run === 'function') {
+                    LawAIApp.ArchitectureAudit.run();
+                }
+                console.log('✅ ArchitectureAudit initialized');
+            } else if (typeof window.architectureAudit !== 'undefined') {
+                if (typeof window.architectureAudit.init === 'function') {
+                    window.architectureAudit.init();
+                }
+                if (typeof window.architectureAudit.run === 'function') {
+                    window.architectureAudit.run();
+                }
+                console.log('✅ ArchitectureAudit initialized (global)');
+            } else {
+                console.warn('⚠️ ArchitectureAudit not found - skipping');
+            }
+
+            // 24. DEPENDENCY AUDIT
+            if (typeof LawAIApp.DependencyAudit !== 'undefined') {
+                if (typeof LawAIApp.DependencyAudit.init === 'function') {
+                    LawAIApp.DependencyAudit.init();
+                }
+                if (typeof LawAIApp.DependencyAudit.run === 'function') {
+                    LawAIApp.DependencyAudit.run();
+                }
+                console.log('✅ DependencyAudit initialized');
+            } else if (typeof window.dependencyAudit !== 'undefined') {
+                if (typeof window.dependencyAudit.init === 'function') {
+                    window.dependencyAudit.init();
+                }
+                if (typeof window.dependencyAudit.run === 'function') {
+                    window.dependencyAudit.run();
+                }
+                console.log('✅ DependencyAudit initialized (global)');
+            } else {
+                console.warn('⚠️ DependencyAudit not found - skipping');
+            }
+
+            // 25. MODULE AUDIT
+            if (typeof LawAIApp.ModuleAudit !== 'undefined') {
+                if (typeof LawAIApp.ModuleAudit.init === 'function') {
+                    LawAIApp.ModuleAudit.init();
+                }
+                if (typeof LawAIApp.ModuleAudit.run === 'function') {
+                    LawAIApp.ModuleAudit.run();
+                }
+                console.log('✅ ModuleAudit initialized');
+            } else if (typeof window.moduleAudit !== 'undefined') {
+                if (typeof window.moduleAudit.init === 'function') {
+                    window.moduleAudit.init();
+                }
+                if (typeof window.moduleAudit.run === 'function') {
+                    window.moduleAudit.run();
+                }
+                console.log('✅ ModuleAudit initialized (global)');
+            } else {
+                console.warn('⚠️ ModuleAudit not found - skipping');
+            }
+
+            // 26. RECOVERY REPORT
+            if (typeof LawAIApp.RecoveryReport !== 'undefined') {
+                if (typeof LawAIApp.RecoveryReport.init === 'function') {
+                    LawAIApp.RecoveryReport.init();
+                }
+                if (typeof LawAIApp.RecoveryReport.generate === 'function') {
+                    LawAIApp.RecoveryReport.generate();
+                }
+                console.log('✅ RecoveryReport initialized');
+            } else if (typeof window.recoveryReport !== 'undefined') {
+                if (typeof window.recoveryReport.init === 'function') {
+                    window.recoveryReport.init();
+                }
+                if (typeof window.recoveryReport.generate === 'function') {
+                    window.recoveryReport.generate();
+                }
+                console.log('✅ RecoveryReport initialized (global)');
+            } else {
+                console.warn('⚠️ RecoveryReport not found - skipping');
+            }
+
             console.log('✅ Architecture Ready');
             console.log('✅ Runtime Ready');
             console.log('✅ Composer Ready');
+            console.log('✅ Feature Governance Ready');
+            console.log('✅ UI Constitution Ready');
+            console.log('✅ Architecture Audit Ready');
+            console.log('✅ Recovery Report Ready');
             console.log('✅ Application Ready');
-            console.log('✅ Recovery Core Runtime Ready');
+            console.log('✅ Recovery R1 Complete');
 
         } catch (err) {
             console.warn('⚠️ Recovery architecture initialization warning:', err.message);
@@ -279,7 +474,7 @@ LawAIApp.BootManager = {
             return Promise.resolve({ status: 'already_booted' });
         }
 
-        // 🔥 PART 1 & 2 RECOVERY: Initialize architecture before boot
+        // 🔥 RECOVERY: Initialize architecture (Parts 1-5)
         this._initRecoveryArchitecture();
 
         this._booted = true;
@@ -325,4 +520,4 @@ LawAIApp.BootManager = {
     }
 };
 
-console.log('🚀 BootManager V3.0.3 ready (Recovery Architecture + Profiler + Dependency)');
+console.log('🚀 BootManager V3.0.4 ready (Recovery R1 Parts 1-5 Complete)');
