@@ -237,3 +237,24 @@ LawAIApp.RuntimeHealth = {
      * @returns {Object} Summary
      */
     getSummary: function() {
+        this.calculateScore();
+        return {
+            status: this.healthData.status,
+            healthScore: this.healthData.healthScore,
+            lastCheck: this.healthData.lastCheck,
+            times: {
+                boot: this.healthData.bootTime,
+                compose: this.healthData.composeTime,
+                validation: this.healthData.validationTime,
+                healthCheck: this.healthData.healthCheckTime,
+                registry: this.healthData.registryTime,
+                lifecycle: this.healthData.lifecycleTime
+            }
+        };
+    }
+};
+
+// 暴露到全局
+window.runtimeHealth = LawAIApp.RuntimeHealth;
+
+console.log('📋 RuntimeHealth ready');
