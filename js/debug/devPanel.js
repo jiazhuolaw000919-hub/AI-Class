@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+‘ 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -72,6 +72,9 @@ LawAIApp.Debug.DevPanel = {
         
         // Part 6: Architecture Freeze Info
         var freezeInfo = this._getFreezeInfo();
+        
+        // Part 7: Engine Standards Info
+        var engineInfo = this._getEngineInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -232,6 +235,36 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 7: ENGINE STANDARDS -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(251,146,60,0.04);border-radius:8px;border-left:2px solid #fb923c;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">⚙️ Engine Standards</span>
+                    <span style="font-size:10px;color:${engineInfo.healthScore >= 80 ? '#22c55e' : '#ef4444'};">${engineInfo.healthScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Total: ${engineInfo.total}</span>
+                    <span>✅ ${engineInfo.healthy}</span>
+                    <span>⚠️ ${engineInfo.deprecated}</span>
+                    <span>❌ ${engineInfo.incomplete}</span>
+                    <span>❓ ${engineInfo.unknown}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Constitution: ${engineInfo.constitutionLoaded ? '✅' : '⏳'}</span>
+                    <span>Validator: ${engineInfo.validatorReady ? '✅' : '⏳'}</span>
+                    <span>Manifest: ${engineInfo.manifestReady ? '✅' : '⏳'}</span>
+                </div>
+                <div style="font-size:8px;color:#475569;margin-top:2px;">
+                    Loaded: ${engineInfo.loaded} | Missing: ${engineInfo.missing} | Failed: ${engineInfo.failed}
+                </div>
+                ${engineInfo.incomplete > 0 ? `
+                    <div style="font-size:9px;color:#ef4444;margin-top:2px;">
+                        ⚠️ ${engineInfo.incomplete} incomplete engines detected
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -261,7 +294,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-6)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-7)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -285,6 +318,10 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Version: ${freezeInfo.version}</div>
                     <div style="padding-left:12px;">Status: ${freezeInfo.status}</div>
                     <div style="padding-left:12px;">Violations: ${freezeInfo.violations}</div>
+                    <div><strong>Part 7 - Engine Standards:</strong></div>
+                    <div style="padding-left:12px;">Total: ${engineInfo.total}</div>
+                    <div style="padding-left:12px;">Health: ${engineInfo.healthScore}%</div>
+                    <div style="padding-left:12px;">Incomplete: ${engineInfo.incomplete}</div>
                 </div>
             </details>
 
@@ -651,6 +688,62 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 7: ENGINE STANDARDS INFO
+    // ============================================================
+
+    _getEngineInfo: function() {
+        var info = {
+            total: 0,
+            healthy: 0,
+            deprecated: 0,
+            incomplete: 0,
+            unknown: 0,
+            healthScore: 0,
+            constitutionLoaded: false,
+            validatorReady: false,
+            manifestReady: false,
+            loaded: 0,
+            missing: 0,
+            failed: 0
+        };
+
+        try {
+            // Engine Health
+            var health = LawAIApp.EngineHealth || window.engineHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.total = data.totalEngines || 0;
+                info.healthy = data.healthyEngines || 0;
+                info.deprecated = data.deprecatedEngines || 0;
+                info.incomplete = data.incompleteEngines || 0;
+                info.unknown = data.unknownEngines || 0;
+                info.healthScore = data.healthScore || 0;
+                info.loaded = data.loaded ? data.loaded.length : 0;
+                info.missing = data.missing ? data.missing.length : 0;
+                info.failed = data.failed ? data.failed.length : 0;
+            }
+
+            // Engine Manifest
+            var manifest = LawAIApp.EngineManifest || window.engineManifest;
+            if (manifest && typeof manifest.getEngines === 'function') {
+                info.constitutionLoaded = true;
+                info.manifestReady = true;
+            }
+
+            // Engine Validator
+            var validator = LawAIApp.EngineValidator || window.engineValidator;
+            if (validator) {
+                info.validatorReady = true;
+            }
+
+        } catch (err) {
+            console.warn('Could not get engine info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -704,3 +797,4 @@ console.log('   ✅ Recovery R1 Part 3 - Feature Governance');
 console.log('   ✅ Recovery R1 Part 4 - UI Constitution');
 console.log('   ✅ Recovery R1 Part 5 - Architecture Audit');
 console.log('   ✅ Recovery R1 Part 6 - Architecture Freeze');
+console.log('   ✅ Recovery R1 Part 7 - Engine Standards');
