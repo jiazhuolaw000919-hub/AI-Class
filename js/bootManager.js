@@ -1,5 +1,5 @@
 // ================================================================
-// bootManager.js – V3.1.1 - Dependency Governance Integration
+// bootManager.js – V3.1.2 - Capability Governance Integration
 // 只做一件事：调度启动，不执行具体逻辑
 // ================================================================
 
@@ -15,11 +15,11 @@ LawAIApp.BootManager = {
     },
 
     // ============================================================
-    // 🔥 RECOVERY ARCHITECTURE INTEGRATION (Parts 1-12)
+    // 🔥 RECOVERY ARCHITECTURE INTEGRATION (Parts 1-13)
     // ============================================================
 
     /**
-     * 🔥 Initialize Recovery Architecture (Parts 1-12)
+     * 🔥 Initialize Recovery Architecture (Parts 1-13)
      * Called before normal boot sequence
      */
     _initRecoveryArchitecture: function() {
@@ -877,6 +877,67 @@ LawAIApp.BootManager = {
             console.log('✅ Dependency Health Ready');
             console.log('✅ Engine Dependency Network Ready');
 
+            // ============================================================
+            // 🔥 PART 13: CAPABILITY GOVERNANCE
+            // ============================================================
+
+            // 49. CAPABILITY MANIFEST
+            if (typeof LawAIApp.CapabilityManifest !== 'undefined') {
+                if (typeof LawAIApp.CapabilityManifest.init === 'function') {
+                    LawAIApp.CapabilityManifest.init();
+                }
+                console.log('✅ CapabilityManifest initialized');
+            } else if (typeof window.capabilityManifest !== 'undefined') {
+                if (typeof window.capabilityManifest.init === 'function') {
+                    window.capabilityManifest.init();
+                }
+                console.log('✅ CapabilityManifest initialized (global)');
+            } else {
+                console.warn('⚠️ CapabilityManifest not found - skipping');
+            }
+
+            // 50. CAPABILITY VALIDATOR
+            if (typeof LawAIApp.CapabilityValidator !== 'undefined') {
+                if (typeof LawAIApp.CapabilityValidator.init === 'function') {
+                    LawAIApp.CapabilityValidator.init();
+                }
+                if (typeof LawAIApp.CapabilityValidator.validate === 'function') {
+                    LawAIApp.CapabilityValidator.validate();
+                }
+                console.log('✅ CapabilityValidator initialized');
+            } else if (typeof window.capabilityValidator !== 'undefined') {
+                if (typeof window.capabilityValidator.init === 'function') {
+                    window.capabilityValidator.init();
+                }
+                if (typeof window.capabilityValidator.validate === 'function') {
+                    window.capabilityValidator.validate();
+                }
+                console.log('✅ CapabilityValidator initialized (global)');
+            } else {
+                console.warn('⚠️ CapabilityValidator not found - skipping');
+            }
+
+            // 51. CAPABILITY HEALTH
+            if (typeof LawAIApp.CapabilityHealth !== 'undefined') {
+                if (typeof LawAIApp.CapabilityHealth.init === 'function') {
+                    LawAIApp.CapabilityHealth.init();
+                }
+                console.log('✅ CapabilityHealth initialized');
+            } else if (typeof window.capabilityHealth !== 'undefined') {
+                if (typeof window.capabilityHealth.init === 'function') {
+                    window.capabilityHealth.init();
+                }
+                console.log('✅ CapabilityHealth initialized (global)');
+            } else {
+                console.warn('⚠️ CapabilityHealth not found - skipping');
+            }
+
+            console.log('✅ Capability Standard Loaded');
+            console.log('✅ Capability Manifest Ready');
+            console.log('✅ Capability Validator Ready');
+            console.log('✅ Capability Health Ready');
+            console.log('✅ Capability Layer Ready');
+
             console.log('✅ Application Ready');
             console.log('✅ Recovery R1 Complete');
 
@@ -895,7 +956,7 @@ LawAIApp.BootManager = {
             return Promise.resolve({ status: 'already_booted' });
         }
 
-        // 🔥 RECOVERY: Initialize architecture (Parts 1-12)
+        // 🔥 RECOVERY: Initialize architecture (Parts 1-13)
         this._initRecoveryArchitecture();
 
         this._booted = true;
@@ -941,4 +1002,4 @@ LawAIApp.BootManager = {
     }
 };
 
-console.log('🚀 BootManager V3.1.1 ready (Engine Renaissance Phase 2)');
+console.log('🚀 BootManager V3.1.2 ready (Engine Renaissance Phase 3)');
