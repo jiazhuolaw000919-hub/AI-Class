@@ -105,23 +105,26 @@ LawAIApp.FeatureRegistry.register('ui_card', { ... });
 ```
 
 ### 3.3 Duplicate Prevention Rule
+
 **No duplicate registrations.**
 
 - Same ID cannot be registered twice
 - Same object cannot be registered in multiple registries
 - Registry Validator detects duplicates (warnings only)
 
-4. REGISTRY HEALTH
-4.1 Health Indicators
+## 4. REGISTRY HEALTH
+### 4.1 Health Indicators
 | Indicator | Description |
 |-----------|-------------|
 | Healthy Registries | All required registries exist and are functional |
 | Duplicate Registries | Same object registered multiple times |
 | Unused Registries | Registry with no registered objects |
 | Invalid Registrations | Objects registered in wrong registry |
-4.2 Health Score
+### 4.2 Health Score
 Health Score is calculated as:
+
 Health Score = (Healthy Registries / Total Registries) * 100
+
 | Score Range | Status |
 |-------------|--------|
 | 80-100% | Excellent |
@@ -129,7 +132,7 @@ Health Score = (Healthy Registries / Total Registries) * 100
 | 40-59% | Degraded |
 | 0-39% | Critical |
 
-5. RESERVED NAMESPACES
+## 5. RESERVED NAMESPACES
 All registries must use the following namespaces:
 
 | Registry | Namespace |
@@ -139,7 +142,9 @@ All registries must use the following namespaces:
 | Feature Registry | `LawAIApp.FeatureRegistry` |
 | UI Registry | `LawAIApp.UIRegistry` |
 | Engine Manifest | `LawAIApp.EngineManifest` |
+
 ## 6. FREEZE STATEMENT
+```
 ┌──────────────────────────────────────────┐
 │     REGISTRY FREEZE ACTIVE               │
 ├──────────────────────────────────────────┤
@@ -150,6 +155,7 @@ All registries must use the following namespaces:
 │  Modification:    Requires Review        │
 │  Breaking Changes: Not Permitted         │
 └──────────────────────────────────────────┘
+```
 SIGNATURE
 | Role | Name |
 |------|------|
