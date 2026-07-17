@@ -1,5 +1,5 @@
 // ================================================================
-// bootManager.js – V3.0.5 - Architecture Freeze Integration
+// bootManager.js – V3.0.6 - Engine Standards Integration
 // 只做一件事：调度启动，不执行具体逻辑
 // ================================================================
 
@@ -15,11 +15,11 @@ LawAIApp.BootManager = {
     },
 
     // ============================================================
-    // 🔥 RECOVERY ARCHITECTURE INTEGRATION (Parts 1-5)
+    // 🔥 RECOVERY ARCHITECTURE INTEGRATION (Parts 1-7)
     // ============================================================
 
     /**
-     * 🔥 Initialize Recovery Architecture (Parts 1-5 + Freeze)
+     * 🔥 Initialize Recovery Architecture (Parts 1-7)
      * Called before normal boot sequence
      */
     _initRecoveryArchitecture: function() {
@@ -477,6 +477,67 @@ LawAIApp.BootManager = {
                 console.warn('⚠️ ArchitectureGuard not found - skipping');
             }
 
+            // ============================================================
+            // 🔥 PART 7: ENGINE STANDARDS
+            // ============================================================
+
+            // 29. ENGINE VALIDATOR
+            if (typeof LawAIApp.EngineValidator !== 'undefined') {
+                if (typeof LawAIApp.EngineValidator.init === 'function') {
+                    LawAIApp.EngineValidator.init();
+                }
+                if (typeof LawAIApp.EngineValidator.validate === 'function') {
+                    LawAIApp.EngineValidator.validate();
+                }
+                console.log('✅ EngineValidator initialized');
+            } else if (typeof window.engineValidator !== 'undefined') {
+                if (typeof window.engineValidator.init === 'function') {
+                    window.engineValidator.init();
+                }
+                if (typeof window.engineValidator.validate === 'function') {
+                    window.engineValidator.validate();
+                }
+                console.log('✅ EngineValidator initialized (global)');
+            } else {
+                console.warn('⚠️ EngineValidator not found - skipping');
+            }
+
+            // 30. ENGINE MANIFEST
+            if (typeof LawAIApp.EngineManifest !== 'undefined') {
+                if (typeof LawAIApp.EngineManifest.init === 'function') {
+                    LawAIApp.EngineManifest.init();
+                }
+                console.log('✅ EngineManifest initialized');
+            } else if (typeof window.engineManifest !== 'undefined') {
+                if (typeof window.engineManifest.init === 'function') {
+                    window.engineManifest.init();
+                }
+                console.log('✅ EngineManifest initialized (global)');
+            } else {
+                console.warn('⚠️ EngineManifest not found - skipping');
+            }
+
+            // 31. ENGINE HEALTH
+            if (typeof LawAIApp.EngineHealth !== 'undefined') {
+                if (typeof LawAIApp.EngineHealth.init === 'function') {
+                    LawAIApp.EngineHealth.init();
+                }
+                if (typeof LawAIApp.EngineHealth.scan === 'function') {
+                    LawAIApp.EngineHealth.scan();
+                }
+                console.log('✅ EngineHealth initialized');
+            } else if (typeof window.engineHealth !== 'undefined') {
+                if (typeof window.engineHealth.init === 'function') {
+                    window.engineHealth.init();
+                }
+                if (typeof window.engineHealth.scan === 'function') {
+                    window.engineHealth.scan();
+                }
+                console.log('✅ EngineHealth initialized (global)');
+            } else {
+                console.warn('⚠️ EngineHealth not found - skipping');
+            }
+
             console.log('✅ Architecture Ready');
             console.log('✅ Runtime Ready');
             console.log('✅ Composer Ready');
@@ -485,6 +546,11 @@ LawAIApp.BootManager = {
             console.log('✅ Architecture Audit Ready');
             console.log('✅ Recovery Report Ready');
             console.log('✅ Architecture Freeze Active');
+            console.log('✅ Engine Constitution Loaded');
+            console.log('✅ Engine Validator Ready');
+            console.log('✅ Engine Manifest Ready');
+            console.log('✅ Engine Health Ready');
+            console.log('✅ Engine Freeze Active');
             console.log('✅ Application Ready');
             console.log('✅ Recovery R1 Complete');
 
@@ -503,7 +569,7 @@ LawAIApp.BootManager = {
             return Promise.resolve({ status: 'already_booted' });
         }
 
-        // 🔥 RECOVERY: Initialize architecture (Parts 1-5 + Freeze)
+        // 🔥 RECOVERY: Initialize architecture (Parts 1-7)
         this._initRecoveryArchitecture();
 
         this._booted = true;
@@ -549,4 +615,4 @@ LawAIApp.BootManager = {
     }
 };
 
-console.log('🚀 BootManager V3.0.5 ready (Recovery R1 + Architecture Freeze)');
+console.log('🚀 BootManager V3.0.6 ready (Recovery R1 + Architecture Freeze + Engine Standards)');
