@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+A 调出
-// Recovery R1 Parts 1, 2, 3 Complete
+// Recovery R1 Parts 1, 2, 3, 4 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -63,6 +63,9 @@ LawAIApp.Debug.DevPanel = {
         
         // Part 3: Feature Governance Info
         var featureInfo = this._getFeatureInfo();
+        
+        // Part 4: UI Constitution Info
+        var uiInfo = this._getUIInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -156,6 +159,31 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 4: UI CONSTITUTION -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(236,72,153,0.04);border-radius:8px;border-left:2px solid #ec4899;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🎨 UI Constitution</span>
+                    <span style="font-size:10px;color:${uiInfo.healthScore >= 80 ? '#22c55e' : '#ef4444'};">${uiInfo.healthScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Total: ${uiInfo.total}</span>
+                    <span>✅ ${uiInfo.healthy}</span>
+                    <span>❌ ${uiInfo.unhealthy}</span>
+                    <span>📭 ${uiInfo.unused}</span>
+                    <span>⚠️ ${uiInfo.warnings}</span>
+                </div>
+                <div style="font-size:9px;color:#475569;margin-top:2px;">
+                    Categories: ${uiInfo.categories}
+                </div>
+                ${uiInfo.broken > 0 ? `
+                    <div style="font-size:9px;color:#ef4444;margin-top:2px;">
+                        ⚠️ ${uiInfo.broken} broken components detected
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -185,7 +213,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-3)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-4)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -197,6 +225,10 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Total: ${featureInfo.total}</div>
                     <div style="padding-left:12px;">Health: ${featureInfo.healthScore}%</div>
                     <div style="padding-left:12px;">Broken: ${featureInfo.broken}</div>
+                    <div><strong>Part 4 - UI Constitution:</strong></div>
+                    <div style="padding-left:12px;">Total: ${uiInfo.total}</div>
+                    <div style="padding-left:12px;">Health: ${uiInfo.healthScore}%</div>
+                    <div style="padding-left:12px;">Broken: ${uiInfo.broken}</div>
                 </div>
             </details>
 
@@ -314,8 +346,8 @@ LawAIApp.Debug.DevPanel = {
 
             // Runtime Registry
             var runtimeRegistry = LawAIApp.RuntimeRegistry || window.runtimeRegistry;
-            if (runtimeRegistry && typeof runtimeRegistry.list === 'function') {
-                var all = runtimeRegistry.list();
+            if (runtimeRegistry && typeof runtimeRegistry.getAll === 'function') {
+                var all = runtimeRegistry.getAll();
                 info.registryCount = all.length;
                 info.registryModules = all.map(function(e) { return e.name; }).join(', ');
             }
@@ -402,6 +434,79 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 4: UI CONSTITUTION INFO
+    // ============================================================
+
+    _getUIInfo: function() {
+        var info = {
+            total: 0,
+            healthy: 0,
+            unhealthy: 0,
+            unused: 0,
+            warnings: 0,
+            broken: 0,
+            healthScore: 0,
+            categories: 'N/A',
+            brokenList: []
+        };
+
+        try {
+            // UI Registry
+            var uiRegistry = LawAIApp.UIRegistry || window.uiRegistry;
+            if (uiRegistry && typeof uiRegistry.list === 'function') {
+                var components = uiRegistry.list();
+                info.total = components.length;
+                
+                // Count healthy/unhealthy
+                var healthyCount = 0;
+                var unhealthyCount = 0;
+                var unusedCount = 0;
+                var brokenList = [];
+                
+                for (var i = 0; i < components.length; i++) {
+                    var c = components[i];
+                    if (!c.used) unusedCount++;
+                    if (c.healthy === false) {
+                        unhealthyCount++;
+                        brokenList.push(c.name || c.id);
+                    } else {
+                        healthyCount++;
+                    }
+                }
+                
+                info.healthy = healthyCount;
+                info.unhealthy = unhealthyCount;
+                info.unused = unusedCount;
+                info.broken = brokenList.length;
+                info.brokenList = brokenList;
+                
+                // Health score
+                if (info.total > 0) {
+                    info.healthScore = Math.round((healthyCount / info.total) * 100);
+                }
+                
+                // Categories
+                if (typeof uiRegistry.getCategories === 'function') {
+                    var categories = uiRegistry.getCategories();
+                    info.categories = categories.join(', ');
+                }
+            }
+
+            // UI Validator warnings
+            var uiValidator = LawAIApp.UIValidator || window.uiValidator;
+            if (uiValidator && typeof uiValidator.getWarnings === 'function') {
+                var warnings = uiValidator.getWarnings();
+                info.warnings = warnings.length || 0;
+            }
+
+        } catch (err) {
+            console.warn('Could not get UI info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -429,11 +534,11 @@ LawAIApp.Debug.DevPanel = {
 };
 
 // ============================================================
-// KEYBOARD SHORTCUT
+// KEYBOARD SHORTCUT - Ctrl+Shift+A
 // ============================================================
 
 document.addEventListener('keydown', function(e) {
-    if (e.ctrlKey && e.shiftKey && (e.key === 'd' || e.key === 'D')) {
+    if (e.ctrlKey && e.shiftKey && (e.key === 'a' || e.key === 'A')) {
         e.preventDefault();
         LawAIApp.Debug.DevPanel.toggle();
     }
@@ -451,3 +556,4 @@ console.log('🛠️ DevPanel ready (Ctrl+Shift+A)');
 console.log('   ✅ Recovery R1 Part 1 - Architecture');
 console.log('   ✅ Recovery R1 Part 2 - Runtime');
 console.log('   ✅ Recovery R1 Part 3 - Feature Governance');
+console.log('   ✅ Recovery R1 Part 4 - UI Constitution');
