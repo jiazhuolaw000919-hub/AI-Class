@@ -143,7 +143,6 @@ LawAIApp.SystemComposer = {
   handleRoute: function() { /* owns routing */ }
 };
 ```
-
 ---
 
 6. REGISTRY RULE
@@ -172,7 +171,6 @@ LawAIApp.DomainRegistry.registerFeature(...);
 // FeatureRegistry should NOT track UI
 LawAIApp.FeatureRegistry.registerUIComponent(...);
 ```
-
 No cross registration.
 
 Each domain belongs to exactly one registry.
