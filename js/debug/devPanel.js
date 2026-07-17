@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+‘ 调出
-// Recovery R1 Parts 1, 2, 3, 4 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -66,6 +66,9 @@ LawAIApp.Debug.DevPanel = {
         
         // Part 4: UI Constitution Info
         var uiInfo = this._getUIInfo();
+        
+        // Part 5: Audit Center Info
+        var auditInfo = this._getAuditInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -184,6 +187,29 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 5: ARCHITECTURE AUDIT -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(251,191,36,0.04);border-radius:8px;border-left:2px solid #f59e0b;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🔍 Architecture Audit</span>
+                    <span style="font-size:10px;color:${auditInfo.pass ? '#22c55e' : '#ef4444'};">${auditInfo.pass ? '✅ PASS' : '❌ NEEDS WORK'}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Score: ${auditInfo.score}%</span>
+                    <span>Status: ${auditInfo.status}</span>
+                    <span>⚠️ ${auditInfo.warnings}</span>
+                    <span>❌ ${auditInfo.errors}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Arch: ${auditInfo.architecture}%</span>
+                    <span>Dep: ${auditInfo.dependencies}%</span>
+                    <span>Mod: ${auditInfo.modules}%</span>
+                    <span>Feat: ${auditInfo.features}%</span>
+                    <span>UI: ${auditInfo.ui}%</span>
+                </div>
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -213,7 +239,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-4)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-5)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -229,6 +255,10 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Total: ${uiInfo.total}</div>
                     <div style="padding-left:12px;">Health: ${uiInfo.healthScore}%</div>
                     <div style="padding-left:12px;">Broken: ${uiInfo.broken}</div>
+                    <div><strong>Part 5 - Audit Center:</strong></div>
+                    <div style="padding-left:12px;">Score: ${auditInfo.score}%</div>
+                    <div style="padding-left:12px;">Status: ${auditInfo.status}</div>
+                    <div style="padding-left:12px;">Pass: ${auditInfo.pass ? '✅' : '❌'}</div>
                 </div>
             </details>
 
@@ -507,6 +537,50 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 5: AUDIT CENTER INFO
+    // ============================================================
+
+    _getAuditInfo: function() {
+        var info = {
+            score: 0,
+            status: 'unknown',
+            pass: false,
+            architecture: 0,
+            dependencies: 0,
+            modules: 0,
+            features: 0,
+            ui: 0,
+            warnings: 0,
+            errors: 0
+        };
+
+        try {
+            var recReport = LawAIApp.RecoveryReport || window.recoveryReport;
+            if (recReport && typeof recReport.getReport === 'function') {
+                var report = recReport.getReport();
+                if (report && report.overall) {
+                    info.score = report.overall.score;
+                    info.status = report.overall.status;
+                    info.pass = report.overall.pass;
+                    info.warnings = report.overall.warnings || 0;
+                    info.errors = report.overall.errors || 0;
+                }
+                if (report && report.sections) {
+                    info.architecture = report.sections.architecture ? report.sections.architecture.score || 0 : 0;
+                    info.dependencies = report.sections.dependencies ? report.sections.dependencies.score || 0 : 0;
+                    info.modules = report.sections.modules ? report.sections.modules.score || 0 : 0;
+                    info.features = report.sections.features ? report.sections.features.score || 0 : 0;
+                    info.ui = report.sections.ui ? report.sections.ui.score || 0 : 0;
+                }
+            }
+        } catch (err) {
+            console.warn('Could not get audit info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -538,7 +612,8 @@ LawAIApp.Debug.DevPanel = {
 // ============================================================
 
 document.addEventListener('keydown', function(e) {
-    if (e.ctrlKey && e.shiftKey && (e.key === 'a' || e.key === 'A')) {
+    // 检测 Ctrl+Shift+‘ (键码 222 对应单引号/反引号)
+    if (e.ctrlKey && e.shiftKey && (e.key === '\'' || e.key === '`' || e.key === '‘' || e.key === '’' || e.keyCode === 222)) {
         e.preventDefault();
         LawAIApp.Debug.DevPanel.toggle();
     }
@@ -557,3 +632,4 @@ console.log('   ✅ Recovery R1 Part 1 - Architecture');
 console.log('   ✅ Recovery R1 Part 2 - Runtime');
 console.log('   ✅ Recovery R1 Part 3 - Feature Governance');
 console.log('   ✅ Recovery R1 Part 4 - UI Constitution');
+console.log('   ✅ Recovery R1 Part 5 - Architecture Audit');
