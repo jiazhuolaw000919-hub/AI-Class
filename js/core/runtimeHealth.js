@@ -1,221 +1,239 @@
 /**
  * Runtime Health
  * 
- * Collects and displays information about loaded engines,
- * domains, features, boot time, and missing dependencies.
- * Developer tool only.
- * 
- * 🔥 PART 2: Added boot performance reporting
+ * Monitors runtime health including boot time, compose time,
+ * validation time, health time, registry time, and lifecycle time.
  */
 
-import domainRegistry from './domainRegistry.js';
-import layerRegistry from './layerRegistry.js';
+window.LawAIApp = window.LawAIApp || {};
 
-class RuntimeHealth {
-  constructor() {
-    this.bootTime = Date.now();
-    this.loadedEngines = new Set();
-    this.loadedDomains = new Set();
-    this.loadedFeatures = new Set();
-    this.missingDependencies = [];
-    this.initialized = false;
-    this._bootSteps = [];
-    this._moduleTimes = [];
-  }
-
-  /**
-   * Initialize health monitor
-   */
-  init() {
-    if (this.initialized) return;
-    this._collectLoadedItems();
-    this._checkDependencies();
-    this.initialized = true;
-    this.display();
-    console.log('[RuntimeHealth] Initialized.');
-  }
-
-  /**
-   * Record a boot step for performance tracking
-   * @param {string} stepName - Name of the step
-   */
-  recordStep(stepName) {
-    this._bootSteps.push({
-      step: stepName,
-      timestamp: Date.now(),
-      elapsed: Date.now() - this.bootTime
-    });
-  }
-
-  /**
-   * Record a module initialization time
-   * @param {string} moduleName - Module name
-   * @param {number} duration - Duration in ms
-   */
-  recordModule(moduleName, duration) {
-    this._moduleTimes.push({
-      module: moduleName,
-      duration: duration
-    });
-  }
-
-  /**
-   * Scan global scope for known engines and features
-   */
-  _collectLoadedItems() {
-    // Detect loaded engines from window (or module scope)
-    const globals = typeof window !== 'undefined' ? window : global;
-    const knownEngineNames = [
-      'eventBus', 'coreLearningEngine', 'progressEngine', 'xpEngine',
-      'analyticsEngine', 'statisticsEngine', 'recommendationEngine',
-      'mentorEngine', 'habitEngine', 'practiceEngine', 'memoryEngine',
-      'learningPathEngine', 'resourceEngine', 'workspaceEngine',
-      'knowledgeGraph', 'secondBrainEngine', 'goalEngine', 'projectEngine',
-      'skillEngine', 'careerEngine'
-    ];
-    for (const name of knownEngineNames) {
-      if (globals[name] || (typeof module !== 'undefined' && module.exports && module.exports[name])) {
-        this.loadedEngines.add(name);
-      }
-    }
-    // Domains from registry
-    const domains = domainRegistry.list();
-    domains.forEach(d => this.loadedDomains.add(d.name));
-    // Features (could be detected from feature modules)
-  }
-
-  _checkDependencies() {
-    // Placeholder - could check if required engines are loaded
-    const required = ['coreLearningEngine', 'progressEngine'];
-    for (const req of required) {
-      if (!this.loadedEngines.has(req)) {
-        this.missingDependencies.push(req);
-      }
-    }
-  }
-
-  /**
-   * Display health report in console
-   */
-  display() {
-    const elapsed = Date.now() - this.bootTime;
-    const report = {
-      'Boot Time (ms)': elapsed,
-      'Loaded Engines': this.loadedEngines.size,
-      'Loaded Domains': this.loadedDomains.size,
-      'Missing Dependencies': this.missingDependencies.length > 0 ? this.missingDependencies : 'None',
-      'Engines': Array.from(this.loadedEngines),
-      'Domains': Array.from(this.loadedDomains)
-    };
-    console.table(report);
-    if (this.missingDependencies.length > 0) {
-      console.warn('[RuntimeHealth] Missing dependencies:', this.missingDependencies);
-    } else {
-      console.log('[RuntimeHealth] All dependencies satisfied.');
-    }
-
-    // Display performance report if available
-    this.displayPerformance();
-  }
-
-  /**
-   * 🔥 PART 2: Display boot performance report
-   */
-  displayPerformance() {
-    const stepCount = this._bootSteps.length;
-    const moduleCount = this._moduleTimes.length;
+LawAIApp.RuntimeHealth = {
+    initialized: false,
     
-    if (stepCount === 0 && moduleCount === 0) {
-      return; // No performance data
-    }
+    // ============================================================
+    // HEALTH DATA
+    // ============================================================
+    
+    healthData: {
+        lastCheck: null,
+        bootTime: 0,
+        composeTime: 0,
+        validationTime: 0,
+        healthCheckTime: 0,
+        registryTime: 0,
+        lifecycleTime: 0,
+        healthScore: 100,
+        status: 'unknown',
+        details: {}
+    },
 
-    // Find slowest step
-    let slowestStep = null;
-    let maxDuration = 0;
-    for (let i = 1; i < this._bootSteps.length; i++) {
-      const prev = this._bootSteps[i - 1];
-      const curr = this._bootSteps[i];
-      const duration = curr.timestamp - prev.timestamp;
-      if (duration > maxDuration) {
-        maxDuration = duration;
-        slowestStep = curr.step;
-      }
-    }
+    // ============================================================
+    // INITIALIZATION
+    // ============================================================
 
-    // Find slowest module
-    let slowestModule = null;
-    let maxModuleDuration = 0;
-    for (const mod of this._moduleTimes) {
-      if (mod.duration > maxModuleDuration) {
-        maxModuleDuration = mod.duration;
-        slowestModule = mod.module;
-      }
-    }
+    init: function() {
+        if (this.initialized) return;
+        this.initialized = true;
+        console.log('[RuntimeHealth] Initialized.');
+    },
 
-    const avgModuleDuration = moduleCount > 0 
-      ? this._moduleTimes.reduce((sum, m) => sum + m.duration, 0) / moduleCount 
-      : 0;
+    // ============================================================
+    // HEALTH METHODS
+    // ============================================================
 
-    console.log('═══════════════════════════════════════');
-    console.log('   BOOT PERFORMANCE REPORT');
-    console.log('═══════════════════════════════════════');
-    console.table({
-      'Total Boot Time': `${Date.now() - this.bootTime}ms`,
-      'Steps': stepCount,
-      'Modules Initialized': moduleCount,
-      'Slowest Step': slowestStep ? `${slowestStep} (${maxDuration}ms)` : 'N/A',
-      'Slowest Module': slowestModule ? `${slowestModule} (${maxModuleDuration}ms)` : 'N/A',
-      'Average Module Init': `${Math.round(avgModuleDuration)}ms`
-    });
+    /**
+     * Record boot time
+     * @param {number} time - Time in milliseconds
+     */
+    recordBootTime: function(time) {
+        this.healthData.bootTime = time || Date.now();
+        this.healthData.lastCheck = Date.now();
+    },
 
-    // Detailed step list
-    if (stepCount > 0) {
-      console.log('\n┌─ Boot Steps ──────────────────────┐');
-      for (const step of this._bootSteps) {
-        console.log(`│ ${step.step.padEnd(30)} ${String(step.elapsed).padStart(5)}ms │`);
-      }
-      console.log('└────────────────────────────────────┘');
-    }
+    /**
+     * Record compose time
+     * @param {number} time - Time in milliseconds
+     */
+    recordComposeTime: function(time) {
+        this.healthData.composeTime = time || Date.now();
+    },
 
-    // Detailed module list
-    if (moduleCount > 0) {
-      console.log('\n┌─ Module Init Times ──────────────┐');
-      const sorted = [...this._moduleTimes].sort((a, b) => b.duration - a.duration);
-      for (const mod of sorted) {
-        console.log(`│ ${mod.module.padEnd(30)} ${String(mod.duration).padStart(5)}ms │`);
-      }
-      console.log('└────────────────────────────────────┘');
-    }
+    /**
+     * Record validation time
+     * @param {number} time - Time in milliseconds
+     */
+    recordValidationTime: function(time) {
+        this.healthData.validationTime = time || Date.now();
+    },
 
-    console.log('═══════════════════════════════════════');
-  }
+    /**
+     * Record health check time
+     * @param {number} time - Time in milliseconds
+     */
+    recordHealthCheckTime: function(time) {
+        this.healthData.healthCheckTime = time || Date.now();
+    },
 
-  /**
-   * Get health data as object
-   */
-  getHealth() {
-    return {
-      bootTime: this.bootTime,
-      elapsed: Date.now() - this.bootTime,
-      loadedEngines: Array.from(this.loadedEngines),
-      loadedDomains: Array.from(this.loadedDomains),
-      missingDependencies: this.missingDependencies,
-      bootSteps: this._bootSteps,
-      moduleTimes: this._moduleTimes
-    };
-  }
+    /**
+     * Record registry time
+     * @param {number} time - Time in milliseconds
+     */
+    recordRegistryTime: function(time) {
+        this.healthData.registryTime = time || Date.now();
+    },
 
-  /**
-   * Get boot performance report
-   */
-  getBootPerformance() {
-    return {
-      totalTime: Date.now() - this.bootTime,
-      steps: this._bootSteps,
-      modules: this._moduleTimes
-    };
-  }
-}
+    /**
+     * Record lifecycle time
+     * @param {number} time - Time in milliseconds
+     */
+    recordLifecycleTime: function(time) {
+        this.healthData.lifecycleTime = time || Date.now();
+    },
 
-const runtimeHealth = new RuntimeHealth();
-export default runtimeHealth;
+    /**
+     * Calculate health score
+     * @returns {number} Health score 0-100
+     */
+    calculateScore: function() {
+        var score = 100;
+        var data = this.healthData;
+
+        // Check if all times are recorded
+        if (!data.bootTime) score -= 20;
+        if (!data.composeTime) score -= 10;
+        if (!data.validationTime) score -= 10;
+        if (!data.registryTime) score -= 10;
+        if (!data.lifecycleTime) score -= 10;
+
+        // Check if health check was performed
+        if (!data.healthCheckTime) score -= 20;
+
+        // Check if last check is recent (within 5 minutes)
+        if (data.lastCheck && (Date.now() - data.lastCheck) > 300000) {
+            score -= 10;
+        }
+
+        this.healthData.healthScore = Math.max(0, Math.min(100, score));
+        
+        // Set status
+        if (this.healthData.healthScore >= 80) {
+            this.healthData.status = 'excellent';
+        } else if (this.healthData.healthScore >= 60) {
+            this.healthData.status = 'good';
+        } else if (this.healthData.healthScore >= 40) {
+            this.healthData.status = 'degraded';
+        } else {
+            this.healthData.status = 'critical';
+        }
+
+        return this.healthData.healthScore;
+    },
+
+    /**
+     * Get health data
+     * @returns {Object} Health data
+     */
+    getHealth: function() {
+        this.calculateScore();
+        return {
+            bootTime: this.healthData.bootTime,
+            composeTime: this.healthData.composeTime,
+            validationTime: this.healthData.validationTime,
+            healthCheckTime: this.healthData.healthCheckTime,
+            registryTime: this.healthData.registryTime,
+            lifecycleTime: this.healthData.lifecycleTime,
+            healthScore: this.healthData.healthScore,
+            status: this.healthData.status,
+            lastCheck: this.healthData.lastCheck,
+            details: this.healthData.details
+        };
+    },
+
+    /**
+     * Get health score
+     * @returns {number} Health score
+     */
+    getScore: function() {
+        return this.calculateScore();
+    },
+
+    /**
+     * Get status
+     * @returns {string} Status
+     */
+    getStatus: function() {
+        this.calculateScore();
+        return this.healthData.status;
+    },
+
+    /**
+     * Display health report
+     */
+    display: function() {
+        var h = this.getHealth();
+        console.log('═══════════════════════════════════════');
+        console.log('   RUNTIME HEALTH');
+        console.log('═══════════════════════════════════════');
+        console.log('Status: ' + h.status.toUpperCase());
+        console.log('Health Score: ' + h.healthScore + '%');
+        console.log('─────────────────────────────────────');
+        console.log('Boot Time: ' + (h.bootTime ? new Date(h.bootTime).toLocaleTimeString() : 'N/A'));
+        console.log('Compose Time: ' + (h.composeTime ? new Date(h.composeTime).toLocaleTimeString() : 'N/A'));
+        console.log('Validation Time: ' + (h.validationTime ? new Date(h.validationTime).toLocaleTimeString() : 'N/A'));
+        console.log('Health Check Time: ' + (h.healthCheckTime ? new Date(h.healthCheckTime).toLocaleTimeString() : 'N/A'));
+        console.log('Registry Time: ' + (h.registryTime ? new Date(h.registryTime).toLocaleTimeString() : 'N/A'));
+        console.log('Lifecycle Time: ' + (h.lifecycleTime ? new Date(h.lifecycleTime).toLocaleTimeString() : 'N/A'));
+        console.log('─────────────────────────────────────');
+        
+        if (h.healthScore >= 80) {
+            console.log('✅ Runtime is healthy.');
+        } else if (h.healthScore >= 60) {
+            console.log('⚠️ Runtime is degraded.');
+        } else {
+            console.warn('❌ Runtime needs attention.');
+        }
+        console.log('═══════════════════════════════════════');
+    },
+
+    /**
+     * Add detail
+     * @param {string} key - Detail key
+     * @param {*} value - Detail value
+     */
+    addDetail: function(key, value) {
+        this.healthData.details[key] = value;
+    },
+
+    /**
+     * Get detail
+     * @param {string} key - Detail key
+     * @returns {*} Detail value
+     */
+    getDetail: function(key) {
+        return this.healthData.details[key];
+    },
+
+    /**
+     * Reset health data
+     */
+    reset: function() {
+        this.healthData = {
+            lastCheck: null,
+            bootTime: 0,
+            composeTime: 0,
+            validationTime: 0,
+            healthCheckTime: 0,
+            registryTime: 0,
+            lifecycleTime: 0,
+            healthScore: 100,
+            status: 'unknown',
+            details: {}
+        };
+        console.log('[RuntimeHealth] Reset.');
+    },
+
+    /**
+     * Get summary
+     * @returns {Object} Summary
+     */
+    getSummary: function() {
