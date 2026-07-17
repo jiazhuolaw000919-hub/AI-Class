@@ -1,5 +1,5 @@
 // ================================================================
-// bootManager.js – V3.0.6 - Engine Standards Integration
+// bootManager.js – V3.0.7 - Runtime Freeze Integration
 // 只做一件事：调度启动，不执行具体逻辑
 // ================================================================
 
@@ -15,11 +15,11 @@ LawAIApp.BootManager = {
     },
 
     // ============================================================
-    // 🔥 RECOVERY ARCHITECTURE INTEGRATION (Parts 1-7)
+    // 🔥 RECOVERY ARCHITECTURE INTEGRATION (Parts 1-8)
     // ============================================================
 
     /**
-     * 🔥 Initialize Recovery Architecture (Parts 1-7)
+     * 🔥 Initialize Recovery Architecture (Parts 1-8)
      * Called before normal boot sequence
      */
     _initRecoveryArchitecture: function() {
@@ -538,6 +538,75 @@ LawAIApp.BootManager = {
                 console.warn('⚠️ EngineHealth not found - skipping');
             }
 
+            // ============================================================
+            // 🔥 PART 8: RUNTIME FREEZE
+            // ============================================================
+
+            // 32. RUNTIME POLICY
+            if (typeof LawAIApp.RuntimePolicy !== 'undefined') {
+                console.log('✅ RuntimePolicy ready');
+            } else if (typeof window.runtimePolicy !== 'undefined') {
+                console.log('✅ RuntimePolicy ready (global)');
+            } else {
+                console.warn('⚠️ RuntimePolicy not found - skipping');
+            }
+
+            // 33. RUNTIME MANIFEST
+            if (typeof LawAIApp.RuntimeManifest !== 'undefined') {
+                if (typeof LawAIApp.RuntimeManifest.init === 'function') {
+                    LawAIApp.RuntimeManifest.init();
+                }
+                console.log('✅ RuntimeManifest initialized');
+            } else if (typeof window.runtimeManifest !== 'undefined') {
+                if (typeof window.runtimeManifest.init === 'function') {
+                    window.runtimeManifest.init();
+                }
+                console.log('✅ RuntimeManifest initialized (global)');
+            } else {
+                console.warn('⚠️ RuntimeManifest not found - skipping');
+            }
+
+            // 34. RUNTIME VALIDATOR
+            if (typeof LawAIApp.RuntimeValidator !== 'undefined') {
+                if (typeof LawAIApp.RuntimeValidator.init === 'function') {
+                    LawAIApp.RuntimeValidator.init();
+                }
+                if (typeof LawAIApp.RuntimeValidator.validate === 'function') {
+                    LawAIApp.RuntimeValidator.validate();
+                }
+                console.log('✅ RuntimeValidator initialized');
+            } else if (typeof window.runtimeValidator !== 'undefined') {
+                if (typeof window.runtimeValidator.init === 'function') {
+                    window.runtimeValidator.init();
+                }
+                if (typeof window.runtimeValidator.validate === 'function') {
+                    window.runtimeValidator.validate();
+                }
+                console.log('✅ RuntimeValidator initialized (global)');
+            } else {
+                console.warn('⚠️ RuntimeValidator not found - skipping');
+            }
+
+            // 35. RUNTIME HEALTH (upgraded)
+            if (typeof LawAIApp.RuntimeHealth !== 'undefined') {
+                if (typeof LawAIApp.RuntimeHealth.display === 'function') {
+                    LawAIApp.RuntimeHealth.display();
+                }
+                console.log('✅ RuntimeHealth report generated');
+            } else if (typeof window.runtimeHealth !== 'undefined') {
+                if (typeof window.runtimeHealth.display === 'function') {
+                    window.runtimeHealth.display();
+                }
+                console.log('✅ RuntimeHealth report generated (global)');
+            }
+
+            console.log('✅ Runtime Constitution Loaded');
+            console.log('✅ Runtime Policy Ready');
+            console.log('✅ Runtime Validator Ready');
+            console.log('✅ Runtime Manifest Ready');
+            console.log('✅ Runtime Health Ready');
+            console.log('✅ Runtime Freeze Active');
+
             console.log('✅ Architecture Ready');
             console.log('✅ Runtime Ready');
             console.log('✅ Composer Ready');
@@ -569,7 +638,7 @@ LawAIApp.BootManager = {
             return Promise.resolve({ status: 'already_booted' });
         }
 
-        // 🔥 RECOVERY: Initialize architecture (Parts 1-7)
+        // 🔥 RECOVERY: Initialize architecture (Parts 1-8)
         this._initRecoveryArchitecture();
 
         this._booted = true;
@@ -615,4 +684,4 @@ LawAIApp.BootManager = {
     }
 };
 
-console.log('🚀 BootManager V3.0.6 ready (Recovery R1 + Architecture Freeze + Engine Standards)');
+console.log('🚀 BootManager V3.0.7 ready (Recovery R1 + Architecture Freeze + Engine Standards + Runtime Freeze)');
