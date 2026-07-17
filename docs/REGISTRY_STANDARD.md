@@ -86,57 +86,57 @@ No duplicated responsibility.
 
 Every object must be registered with the correct registry.
 
-**Correct:**
+### ✅ Correct:
+
 ```javascript
 // Feature registered with FeatureRegistry
 LawAIApp.FeatureRegistry.register('feature_dashboard', { ... });
 // UI Component registered with UIRegistry
 LawAIApp.UIRegistry.register('ui_card', { ... });
-Incorrect:
+```
 
-javascript
+### ❌ Incorrect:
+
+```javascript
 // Feature registered with UIRegistry (WRONG!)
 LawAIApp.UIRegistry.register('feature_dashboard', { ... });
 // UI Component registered with FeatureRegistry (WRONG!)
 LawAIApp.FeatureRegistry.register('ui_card', { ... });
+```
+
 3.3 Duplicate Prevention Rule
-No duplicate registrations.
+**No duplicate registrations.**
 
-Same ID cannot be registered twice
-
-Same object cannot be registered in multiple registries
-
-Registry Validator detects duplicates (warnings only)
+- Same ID cannot be registered twice
+- Same object cannot be registered in multiple registries
+- Registry Validator detects duplicates (warnings only)
 
 4. REGISTRY HEALTH
 4.1 Health Indicators
-Indicator	Description
-Healthy Registries	All required registries exist and are functional
-Duplicate Registries	Same object registered multiple times
-Unused Registries	Registry with no registered objects
-Invalid Registrations	Objects registered in wrong registry
+| Indicator | Description |
+|-----------|-------------|
+| Healthy Registries | All required registries exist and are functional |
+| Duplicate Registries | Same object registered multiple times |
+| Unused Registries | Registry with no registered objects |
+| Invalid Registrations | Objects registered in wrong registry |
 4.2 Health Score
 Health Score is calculated as:
-
-text
 Health Score = (Healthy Registries / Total Registries) * 100
 80-100%: Excellent
-
 60-79%: Good
-
 40-59%: Degraded
-
 0-39%: Critical
 
 5. RESERVED NAMESPACES
 All registries must use the following namespaces:
 
-Registry	Namespace
-Architecture Registry	LawAIApp.DomainRegistry, LawAIApp.LayerRegistry
-Runtime Registry	LawAIApp.RuntimeRegistry
-Feature Registry	LawAIApp.FeatureRegistry
-UI Registry	LawAIApp.UIRegistry
-Engine Manifest	LawAIApp.EngineManifest
+| Registry | Namespace |
+|----------|-----------|
+| Architecture Registry | `LawAIApp.DomainRegistry`, `LawAIApp.LayerRegistry` |
+| Runtime Registry | `LawAIApp.RuntimeRegistry` |
+| Feature Registry | `LawAIApp.FeatureRegistry` |
+| UI Registry | `LawAIApp.UIRegistry` |
+| Engine Manifest | `LawAIApp.EngineManifest` |
 6. FREEZE STATEMENT
 text
 ┌──────────────────────────────────────────┐
@@ -150,9 +150,10 @@ text
 │  Breaking Changes: Not Permitted         │
 └──────────────────────────────────────────┘
 SIGNATURE
-Role	Name
-Architecture Owner	Law AI Academy
-Freeze Approver	Law AI Academy
-Effective Date	Current Build
-Standard Version	1.0
+| Role | Name |
+|------|------|
+| Architecture Owner | Law AI Academy |
+| Freeze Approver | Law AI Academy |
+| Effective Date | Current Build |
+| Standard Version | 1.0 |
 END OF REGISTRY STANDARD
