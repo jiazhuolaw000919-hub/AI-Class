@@ -104,7 +104,7 @@ LawAIApp.UIRegistry.register('feature_dashboard', { ... });
 LawAIApp.FeatureRegistry.register('ui_card', { ... });
 ```
 
-3.3 Duplicate Prevention Rule
+### 3.3 Duplicate Prevention Rule
 **No duplicate registrations.**
 
 - Same ID cannot be registered twice
@@ -122,10 +122,12 @@ LawAIApp.FeatureRegistry.register('ui_card', { ... });
 4.2 Health Score
 Health Score is calculated as:
 Health Score = (Healthy Registries / Total Registries) * 100
-80-100%: Excellent
-60-79%: Good
-40-59%: Degraded
-0-39%: Critical
+| Score Range | Status |
+|-------------|--------|
+| 80-100% | Excellent |
+| 60-79% | Good |
+| 40-59% | Degraded |
+| 0-39% | Critical |
 
 5. RESERVED NAMESPACES
 All registries must use the following namespaces:
@@ -137,8 +139,7 @@ All registries must use the following namespaces:
 | Feature Registry | `LawAIApp.FeatureRegistry` |
 | UI Registry | `LawAIApp.UIRegistry` |
 | Engine Manifest | `LawAIApp.EngineManifest` |
-6. FREEZE STATEMENT
-text
+## 6. FREEZE STATEMENT
 ┌──────────────────────────────────────────┐
 │     REGISTRY FREEZE ACTIVE               │
 ├──────────────────────────────────────────┤
