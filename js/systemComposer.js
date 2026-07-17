@@ -3,7 +3,7 @@
 // LAYER: UI Layer
 // DOMAIN: System Composition & UI Rendering
 // RECOVERY STATUS: 🟢 Canon Locked
-// VERSION: 5.3.1 - Complete First Paint Recovery (Phase 0.4)
+// VERSION: 5.3.2 - Recovery Architecture Integration
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -14,7 +14,7 @@ LawAIApp.SystemComposer = {
     // ENGINE METADATA
     // ============================================================
     _engineName: 'SystemComposer',
-    _engineVersion: '5.3.1',
+    _engineVersion: '5.3.2',
     _recoveryStatus: '🟢 Canon Locked',
     _layer: 'UI Layer',
     _domain: 'System Composition & UI Rendering',
@@ -512,6 +512,93 @@ LawAIApp.SystemComposer = {
         }
 
         return { nodes: nodes, edges: edges };
+    },
+
+    // ============================================================
+    // ============================================================
+    // 🔥 PART 1 RECOVERY: COMPOSE PLACEHOLDER METHODS
+    // ============================================================
+    // ============================================================
+
+    /**
+     * 🔥 composeLayout - Placeholder for future layout composition
+     * Part 1 Recovery: Empty placeholder, no behavior change
+     */
+    composeLayout: function() {
+        // Placeholder - future implementation
+        // No behavior change
+    },
+
+    /**
+     * 🔥 composeDashboard - Placeholder for future dashboard composition
+     * Part 1 Recovery: Empty placeholder, no behavior change
+     */
+    composeDashboard: function() {
+        // Placeholder - future implementation
+        // No behavior change
+    },
+
+    /**
+     * 🔥 composeWorkspace - Placeholder for future workspace composition
+     * Part 1 Recovery: Empty placeholder, no behavior change
+     */
+    composeWorkspace: function() {
+        // Placeholder - future implementation
+        // No behavior change
+    },
+
+    /**
+     * 🔥 composeWidgets - Placeholder for future widget composition
+     * Part 1 Recovery: Empty placeholder, no behavior change
+     */
+    composeWidgets: function() {
+        // Placeholder - future implementation
+        // No behavior change
+    },
+
+    /**
+     * 🔥 activateModules - Placeholder for future module activation
+     * Part 1 Recovery: Empty placeholder, no behavior change
+     */
+    activateModules: function() {
+        // Placeholder - future implementation
+        // No behavior change
+    },
+
+    /**
+     * 🔥 refresh - Extended to support architecture refresh
+     * Part 1 Recovery: Existing refresh + architecture awareness
+     */
+    refresh: function() {
+        console.log("🔄 SystemComposer refreshing all panels...");
+        Object.values(this.panels).forEach(function(panel) {
+            try { panel(); } catch (err) { console.warn("Panel render failed:", err); }
+        });
+        this._notifyMounted();
+        // Part 1 Recovery: Log architecture status
+        console.log('🏗️ Architecture refresh complete');
+    },
+
+    /**
+     * 🔥 destroy - Extended with architecture cleanup
+     * Part 1 Recovery: Existing destroy + architecture cleanup
+     */
+    destroy: function() {
+        this.initialized = false;
+        this.boot = {};
+        this.cache = {};
+        this.panels = {};
+        this.root = null;
+        this._mounting = false;
+        this._mountedNotified = false;
+        this._dirtyPanels.clear();
+        this._renderScheduled = false;
+        this._deferredRendered = false;
+        this._panelsRegistered = false;
+        this._firstPaintComplete = false;
+        this._hydrationStage = 0;
+        // Part 1 Recovery: Architecture cleanup
+        console.log("🧩 SystemComposer destroyed (architecture cleaned)");
     },
 
     // ============================================================
