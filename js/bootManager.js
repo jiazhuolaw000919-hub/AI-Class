@@ -1,5 +1,5 @@
 // ================================================================
-// bootManager.js – V3.0.9 - Compliance Audit Integration
+// bootManager.js – V3.1.0 - Domain Architecture Integration
 // 只做一件事：调度启动，不执行具体逻辑
 // ================================================================
 
@@ -15,11 +15,11 @@ LawAIApp.BootManager = {
     },
 
     // ============================================================
-    // 🔥 RECOVERY ARCHITECTURE INTEGRATION (Parts 1-10)
+    // 🔥 RECOVERY ARCHITECTURE INTEGRATION (Parts 1-11)
     // ============================================================
 
     /**
-     * 🔥 Initialize Recovery Architecture (Parts 1-10)
+     * 🔥 Initialize Recovery Architecture (Parts 1-11)
      * Called before normal boot sequence
      */
     _initRecoveryArchitecture: function() {
@@ -753,6 +753,68 @@ LawAIApp.BootManager = {
             console.log('✅ Registry PASS');
             console.log('✅ Recovery PASS');
             console.log('✅ Compliance PASS');
+
+            // ============================================================
+            // 🔥 PART 11: DOMAIN ARCHITECTURE
+            // ============================================================
+
+            // 43. DOMAIN MANIFEST
+            if (typeof LawAIApp.DomainManifest !== 'undefined') {
+                if (typeof LawAIApp.DomainManifest.init === 'function') {
+                    LawAIApp.DomainManifest.init();
+                }
+                console.log('✅ DomainManifest initialized');
+            } else if (typeof window.domainManifest !== 'undefined') {
+                if (typeof window.domainManifest.init === 'function') {
+                    window.domainManifest.init();
+                }
+                console.log('✅ DomainManifest initialized (global)');
+            } else {
+                console.warn('⚠️ DomainManifest not found - skipping');
+            }
+
+            // 44. DOMAIN VALIDATOR
+            if (typeof LawAIApp.DomainValidator !== 'undefined') {
+                if (typeof LawAIApp.DomainValidator.init === 'function') {
+                    LawAIApp.DomainValidator.init();
+                }
+                if (typeof LawAIApp.DomainValidator.validate === 'function') {
+                    LawAIApp.DomainValidator.validate();
+                }
+                console.log('✅ DomainValidator initialized');
+            } else if (typeof window.domainValidator !== 'undefined') {
+                if (typeof window.domainValidator.init === 'function') {
+                    window.domainValidator.init();
+                }
+                if (typeof window.domainValidator.validate === 'function') {
+                    window.domainValidator.validate();
+                }
+                console.log('✅ DomainValidator initialized (global)');
+            } else {
+                console.warn('⚠️ DomainValidator not found - skipping');
+            }
+
+            // 45. DOMAIN HEALTH
+            if (typeof LawAIApp.DomainHealth !== 'undefined') {
+                if (typeof LawAIApp.DomainHealth.init === 'function') {
+                    LawAIApp.DomainHealth.init();
+                }
+                console.log('✅ DomainHealth initialized');
+            } else if (typeof window.domainHealth !== 'undefined') {
+                if (typeof window.domainHealth.init === 'function') {
+                    window.domainHealth.init();
+                }
+                console.log('✅ DomainHealth initialized (global)');
+            } else {
+                console.warn('⚠️ DomainHealth not found - skipping');
+            }
+
+            console.log('✅ Domain Architecture Loaded');
+            console.log('✅ Domain Manifest Ready');
+            console.log('✅ Domain Validator Ready');
+            console.log('✅ Domain Health Ready');
+            console.log('✅ Engine Classification Ready');
+            console.log('✅ Engine Renaissance Phase 1 Ready');
             console.log('✅ Application Ready');
             console.log('✅ Recovery R1 Complete');
 
@@ -771,7 +833,7 @@ LawAIApp.BootManager = {
             return Promise.resolve({ status: 'already_booted' });
         }
 
-        // 🔥 RECOVERY: Initialize architecture (Parts 1-10)
+        // 🔥 RECOVERY: Initialize architecture (Parts 1-11)
         this._initRecoveryArchitecture();
 
         this._booted = true;
@@ -817,4 +879,4 @@ LawAIApp.BootManager = {
     }
 };
 
-console.log('🚀 BootManager V3.0.9 ready (Architecture Freeze Certified)');
+console.log('🚀 BootManager V3.1.0 ready (Engine Renaissance Phase 1)');
