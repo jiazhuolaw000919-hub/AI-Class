@@ -1,5 +1,5 @@
 // ================================================================
-// bootManager.js – V3.0.4 - Recovery Architecture Integration (Parts 1-5)
+// bootManager.js – V3.0.5 - Architecture Freeze Integration
 // 只做一件事：调度启动，不执行具体逻辑
 // ================================================================
 
@@ -19,7 +19,7 @@ LawAIApp.BootManager = {
     // ============================================================
 
     /**
-     * 🔥 Initialize Recovery Architecture (Parts 1-5)
+     * 🔥 Initialize Recovery Architecture (Parts 1-5 + Freeze)
      * Called before normal boot sequence
      */
     _initRecoveryArchitecture: function() {
@@ -449,6 +449,34 @@ LawAIApp.BootManager = {
                 console.warn('⚠️ RecoveryReport not found - skipping');
             }
 
+            // ============================================================
+            // 🔥 PART 6: ARCHITECTURE FREEZE
+            // ============================================================
+
+            // 27. ARCHITECTURE CONSTITUTION
+            // (Document loaded - no runtime init needed)
+
+            // 28. ARCHITECTURE GUARD
+            if (typeof LawAIApp.ArchitectureGuard !== 'undefined') {
+                if (typeof LawAIApp.ArchitectureGuard.init === 'function') {
+                    LawAIApp.ArchitectureGuard.init();
+                }
+                if (typeof LawAIApp.ArchitectureGuard.validate === 'function') {
+                    LawAIApp.ArchitectureGuard.validate();
+                }
+                console.log('✅ ArchitectureGuard initialized');
+            } else if (typeof window.architectureGuard !== 'undefined') {
+                if (typeof window.architectureGuard.init === 'function') {
+                    window.architectureGuard.init();
+                }
+                if (typeof window.architectureGuard.validate === 'function') {
+                    window.architectureGuard.validate();
+                }
+                console.log('✅ ArchitectureGuard initialized (global)');
+            } else {
+                console.warn('⚠️ ArchitectureGuard not found - skipping');
+            }
+
             console.log('✅ Architecture Ready');
             console.log('✅ Runtime Ready');
             console.log('✅ Composer Ready');
@@ -456,6 +484,7 @@ LawAIApp.BootManager = {
             console.log('✅ UI Constitution Ready');
             console.log('✅ Architecture Audit Ready');
             console.log('✅ Recovery Report Ready');
+            console.log('✅ Architecture Freeze Active');
             console.log('✅ Application Ready');
             console.log('✅ Recovery R1 Complete');
 
@@ -474,7 +503,7 @@ LawAIApp.BootManager = {
             return Promise.resolve({ status: 'already_booted' });
         }
 
-        // 🔥 RECOVERY: Initialize architecture (Parts 1-5)
+        // 🔥 RECOVERY: Initialize architecture (Parts 1-5 + Freeze)
         this._initRecoveryArchitecture();
 
         this._booted = true;
@@ -520,4 +549,4 @@ LawAIApp.BootManager = {
     }
 };
 
-console.log('🚀 BootManager V3.0.4 ready (Recovery R1 Parts 1-5 Complete)');
+console.log('🚀 BootManager V3.0.5 ready (Recovery R1 + Architecture Freeze)');
