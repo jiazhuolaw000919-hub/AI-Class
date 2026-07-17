@@ -35,17 +35,19 @@ This rule is absolute and non-negotiable.
 window.LawAIApp = window.LawAIApp || {};
 LawAIApp.EngineName = { ... };
 LawAIApp.FeatureName = { ... };
+```
 
-❌ Forbidden:
-javascript
+### ❌ Forbidden:
 
+```javascript
 window.MyEngine = { ... };
 window.FeatureX = { ... };
 window.someVariable = ...;
+```
 
-No additional global namespaces.
+**No additional global namespaces.**
 
-No window.xxx outside LawAIApp.
+**No `window.xxx` outside `LawAIApp`.**
 
 ---
 
@@ -59,19 +61,24 @@ Every engine, every module, every component MUST:
 | **One Domain** | Belongs to exactly one domain (Core, Feature, UI, etc.) |
 | **Never Self-Initiate** | Never initializes itself automatically |
 | **Never Direct Manipulation** | Never directly manipulates another engine |
-✅ Correct:
-javascript
+### ✅ Correct:
+
+```javascript
 LawAIApp.FeatureEngine = {
   init: function() { /* called by BootManager */ },
   process: function(data) { /* does one thing */ }
 };
-❌ Incorrect:
-javascript
+```
+
+### ❌ Incorrect:
+
+```javascript
 window.MyEngine = { ... }; // Wrong namespace
 // or
 LawAIApp.FeatureEngine.process(); // Doesn't register itself
 // or
 LawAIApp.FeatureEngine.doEverything(); // Multiple responsibilities
+```
 
 ---
 
@@ -86,19 +93,24 @@ The Runtime layer is the nervous system of the OS.
 | Orchestrate startup | Contain UI |
 | Manage health | Store user data |
 | Dispatch events | Render anything |
-✅ Correct:
-javascript
+### ✅ Correct:
+
+```javascript
 LawAIApp.RuntimeKernel = {
   boot: function() { /* coordinates other engines */ },
   health: function() { /* returns status */ }
 };
-❌ Incorrect:
-javascript
+```
+
+### ❌ Incorrect:
+
+```javascript
 LawAIApp.RuntimeKernel = {
   boot: function() { /* contains business logic */ },
   renderUI: function() { /* contains UI rendering */ },
   saveData: function() { /* stores user data */ }
 };
+```
 
 ---
 
@@ -113,19 +125,24 @@ The Composer is the UI orchestration layer.
 | Mount components | Own storage |
 | Arrange layouts | Own routing |
 | Initialize widgets | Execute business rules |
-✅ Correct:
-javascript
+### ✅ Correct:
+
+```javascript
 LawAIApp.SystemComposer = {
   composeLayout: function() { /* arranges UI */ },
   composeWidgets: function() { /* places widgets */ }
 };
-❌ Incorrect:
-javascript
+```
+
+### ❌ Incorrect:
+
+```javascript
 LawAIApp.SystemComposer = {
   composeLayout: function() { /* contains business logic */ },
   saveUserData: function() { /* owns storage */ },
   handleRoute: function() { /* owns routing */ }
 };
+```
 
 ---
 
@@ -138,18 +155,24 @@ Each registry owns ONLY its own domain.
 | RuntimeRegistry | Runtime Engines | Track runtime modules |
 | FeatureRegistry | Features | Track all features |
 | UIRegistry | UI Components | Track UI components |
-✅ Correct:
-javascript
+### ✅ Correct:
+
+```javascript
 // DomainRegistry only tracks domains
 LawAIApp.DomainRegistry.register('Academy', { ... });
 // FeatureRegistry only tracks features
 LawAIApp.FeatureRegistry.register('feature_dashboard', { ... });
-❌ Incorrect:
-javascript
+```
+
+### ❌ Incorrect:
+
+```javascript
 // DomainRegistry should NOT track features
 LawAIApp.DomainRegistry.registerFeature(...);
 // FeatureRegistry should NOT track UI
 LawAIApp.FeatureRegistry.registerUIComponent(...);
+```
+
 No cross registration.
 
 Each domain belongs to exactly one registry.
@@ -167,17 +190,22 @@ The BootManager is the startup orchestration layer.
 | Validate before boot | Execute features |
 | Initialize registries | Render UI |
 | Run health checks | Store data |
-✅ Correct:
-javascript
+### ✅ Correct:
+
+```javascript
 LawAIApp.BootManager = {
   start: function() { /* orchestrates boot sequence */ }
 };
-❌ Incorrect:
-javascript
+```
+
+### ❌ Incorrect:
+
+```javascript
 LawAIApp.BootManager = {
   start: function() { /* contains business logic */ },
   processData: function() { /* processes user data */ }
 };
+```
 Maximum responsibility:
 
 Boot sequence
@@ -203,15 +231,20 @@ The DevPanel exists for inspection and debugging only.
 | Show status | Modify runtime |
 | Display health | Change state |
 | Show audit results | Execute mutations |
-✅ Correct:
-javascript
+### ✅ Correct:
+
+```javascript
 // Display only
 LawAIApp.DevPanel.show = function() { /* displays info */ };
-❌ Incorrect:
-javascript
+```
+
+### ❌ Incorrect:
+
+```javascript
 // Should NOT modify state
 LawAIApp.DevPanel.resetEverything = function() { /* mutates state */ };
 LawAIApp.DevPanel.editStorage = function() { /* writes to storage */ };
+```
 No mutations.
 
 No storage writes.
@@ -229,8 +262,9 @@ Every future engine MUST declare:
 | **Version** | What is the version? |
 | **Owner** | Who owns this engine? |
 | **Dependencies** | What does it depend on? |
-✅ Correct:
-javascript
+### ✅ Correct:
+
+```javascript
 LawAIApp.NewEngine = {
   __meta: {
     domain: 'Feature',
@@ -240,12 +274,16 @@ LawAIApp.NewEngine = {
   },
   init: function() { ... }
 };
-❌ Incorrect:
-javascript
+```
+
+### ❌ Incorrect:
+
+```javascript
 LawAIApp.NewEngine = {
   // No metadata declared
   init: function() { ... }
 };
+```
 All engines must declare metadata BEFORE implementation.
 
 ---
