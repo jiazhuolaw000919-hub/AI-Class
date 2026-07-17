@@ -51,49 +51,69 @@ LawAIApp.LessonEngine = {
         capabilityStatus: 'active'
     }
 };
+```
 
-4. CAPABILITY TYPES
-4.1 Primary Capabilities
-Capability	Description
-lesson_management	Manage lessons
-course_management	Manage courses
-progress_tracking	Track learning progress
-knowledge_retrieval	Retrieve knowledge
-mentor_guidance	Provide mentor guidance
-memory_management	Manage memory
-goal_tracking	Track goals
-skill_assessment	Assess skills
-4.2 Secondary Capabilities
-Capability	Description
-data_filtering	Filter data
-data_retrieval	Retrieve data
-event_emission	Emit events
-state_management	Manage state
-validation	Validate data
-5. CAPABILITY RULES
-5.1 Unique Capability Rule
+## 4. CAPABILITY TYPES
+
+### 4.1 Primary Capabilities
+
+| Capability | Description |
+|------------|-------------|
+| lesson_management | Manage lessons |
+| course_management | Manage courses |
+| progress_tracking | Track learning progress |
+| knowledge_retrieval | Retrieve knowledge |
+| mentor_guidance | Provide mentor guidance |
+| memory_management | Manage memory |
+| goal_tracking | Track goals |
+| skill_assessment | Assess skills |
+
+### 4.2 Secondary Capabilities
+
+| Capability | Description |
+|------------|-------------|
+| data_filtering | Filter data |
+| data_retrieval | Retrieve data |
+| event_emission | Emit events |
+| state_management | Manage state |
+| validation | Validate data |
+
+## 5. CAPABILITY RULES
+
+### 5.1 Unique Capability Rule
+
 Each capability must be unique within its domain.
 
-✅ Correct:
+### ✅ Correct:
+
+```javascript
 LawAIApp.LessonEngine.__meta.primaryCapability = 'lesson_management';
 LawAIApp.CourseEngine.__meta.primaryCapability = 'course_management';
+```
 
-❌ Incorrect:
+### ❌ Incorrect:
+
+```javascript
 LawAIApp.LessonEngine.__meta.primaryCapability = 'data_processing';
 LawAIApp.CourseEngine.__meta.primaryCapability = 'data_processing';
+```
 
-5.2 Capability Owner Rule
+### 5.2 Capability Owner Rule
+
 Each capability must have an owner.
 
-Owner	Responsibility
-Law AI Academy	Core platform capabilities
-Law AI Academy AI Team	AI-related capabilities
-Law AI Academy Content Team	Content-related capabilities
-5.3 Version Rule
+| Owner | Responsibility |
+|-------|----------------|
+| Law AI Academy | Core platform capabilities |
+| Law AI Academy AI Team | AI-related capabilities |
+| Law AI Academy Content Team | Content-related capabilities |
+
+### 5.3 Version Rule
+
 Each capability must have a semantic version (x.y.z).
 
-6. FREEZE STATEMENT
-
+### 6. FREEZE STATEMENT
+```
 ┌──────────────────────────────────────────┐
 │     CAPABILITY FREEZE ACTIVE             │
 ├──────────────────────────────────────────┤
@@ -102,11 +122,14 @@ Each capability must have a semantic version (x.y.z).
 │  Enforcement:    Capability Validator    │
 │  Capabilities:   Declared                │
 └──────────────────────────────────────────┘
+```
+## SIGNATURE
 
-SIGNATURE
-Role	Name
-Architecture Owner	Law AI Academy
-Capability Approver	Law AI Academy
-Effective Date	Current Build
-Standard Version	1.0
+| Role | Name |
+|------|------|
+| Architecture Owner | Law AI Academy |
+| Capability Approver | Law AI Academy |
+| Effective Date | Current Build |
+| Standard Version | 1.0 |
+
 END OF CAPABILITY STANDARD
