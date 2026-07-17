@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+‘ 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -75,6 +75,9 @@ LawAIApp.Debug.DevPanel = {
         
         // Part 7: Engine Standards Info
         var engineInfo = this._getEngineInfo();
+        
+        // Part 8: Runtime Freeze Info
+        var runtimeFreezeInfo = this._getRuntimeFreezeInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -265,6 +268,30 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 8: RUNTIME FREEZE -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">⚡ Runtime Freeze</span>
+                    <span style="font-size:10px;color:${runtimeFreezeInfo.status === 'compliant' ? '#22c55e' : '#f59e0b'};">${runtimeFreezeInfo.status.toUpperCase()}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Constitution: ${runtimeFreezeInfo.constitutionLoaded ? '✅' : '⏳'}</span>
+                    <span>Policy: ${runtimeFreezeInfo.policyReady ? '✅' : '⏳'}</span>
+                    <span>Validator: ${runtimeFreezeInfo.validatorReady ? '✅' : '⏳'}</span>
+                    <span>Manifest: ${runtimeFreezeInfo.manifestReady ? '✅' : '⏳'}</span>
+                    <span>Health: ${runtimeFreezeInfo.healthReady ? '✅' : '⏳'}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Modules: ${runtimeFreezeInfo.modulesExists}/${runtimeFreezeInfo.modulesTotal}</span>
+                    <span>Health Score: ${runtimeFreezeInfo.healthScore}%</span>
+                    ${runtimeFreezeInfo.modulesMissing > 0 ? `
+                        <span style="color:#ef4444;">Missing: ${runtimeFreezeInfo.modulesMissing}</span>
+                    ` : ''}
+                </div>
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -294,7 +321,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-7)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-8)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -322,6 +349,10 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Total: ${engineInfo.total}</div>
                     <div style="padding-left:12px;">Health: ${engineInfo.healthScore}%</div>
                     <div style="padding-left:12px;">Incomplete: ${engineInfo.incomplete}</div>
+                    <div><strong>Part 8 - Runtime Freeze:</strong></div>
+                    <div style="padding-left:12px;">Status: ${runtimeFreezeInfo.status}</div>
+                    <div style="padding-left:12px;">Modules: ${runtimeFreezeInfo.modulesExists}/${runtimeFreezeInfo.modulesTotal}</div>
+                    <div style="padding-left:12px;">Health Score: ${runtimeFreezeInfo.healthScore}%</div>
                 </div>
             </details>
 
@@ -744,6 +775,69 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 8: RUNTIME FREEZE INFO
+    // ============================================================
+
+    _getRuntimeFreezeInfo: function() {
+        var info = {
+            constitutionLoaded: false,
+            policyReady: false,
+            validatorReady: false,
+            manifestReady: false,
+            healthReady: false,
+            status: 'unknown',
+            healthScore: 0,
+            modulesTotal: 0,
+            modulesExists: 0,
+            modulesMissing: 0
+        };
+
+        try {
+            // Runtime Policy
+            var policy = LawAIApp.RuntimePolicy || window.runtimePolicy;
+            if (policy) {
+                info.policyReady = true;
+                info.constitutionLoaded = true;
+            }
+
+            // Runtime Validator
+            var validator = LawAIApp.RuntimeValidator || window.runtimeValidator;
+            if (validator) {
+                info.validatorReady = true;
+                if (typeof validator.isCompliant === 'function') {
+                    info.status = validator.isCompliant() ? 'compliant' : 'violations';
+                }
+            }
+
+            // Runtime Manifest
+            var manifest = LawAIApp.RuntimeManifest || window.runtimeManifest;
+            if (manifest && typeof manifest.getModules === 'function') {
+                info.manifestReady = true;
+                var modules = manifest.getModules();
+                info.modulesTotal = modules.length;
+                info.modulesExists = modules.filter(function(m) { return m.exists; }).length;
+                info.modulesMissing = modules.filter(function(m) { return !m.exists; }).length;
+            }
+
+            // Runtime Health
+            var health = LawAIApp.RuntimeHealth || window.runtimeHealth;
+            if (health && typeof health.getHealth === 'function') {
+                info.healthReady = true;
+                var data = health.getHealth();
+                info.healthScore = data.healthScore || 0;
+                if (!info.status || info.status === 'unknown') {
+                    info.status = data.status || 'unknown';
+                }
+            }
+
+        } catch (err) {
+            console.warn('Could not get runtime freeze info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -798,3 +892,4 @@ console.log('   ✅ Recovery R1 Part 4 - UI Constitution');
 console.log('   ✅ Recovery R1 Part 5 - Architecture Audit');
 console.log('   ✅ Recovery R1 Part 6 - Architecture Freeze');
 console.log('   ✅ Recovery R1 Part 7 - Engine Standards');
+console.log('   ✅ Recovery R1 Part 8 - Runtime Freeze');
