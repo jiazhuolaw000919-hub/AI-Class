@@ -241,6 +241,98 @@ class RuntimeInspector {
   getUIComponentsByCategory(category) {
     return uiRegistry.findByCategory ? uiRegistry.findByCategory(category) : [];
   }
+
+  // ============================================================
+  // 🔥 PART 5: AUDIT CENTER METHODS
+  // ============================================================
+
+  /**
+   * Get audit report
+   * @returns {Object} Audit report
+   */
+  getAuditReport() {
+    var archAudit = window.architectureAudit || LawAIApp.ArchitectureAudit;
+    var depAudit = window.dependencyAudit || LawAIApp.DependencyAudit;
+    var modAudit = window.moduleAudit || LawAIApp.ModuleAudit;
+    var recReport = window.recoveryReport || LawAIApp.RecoveryReport;
+    
+    var archResult = archAudit ? archAudit.report() : null;
+    var depResult = depAudit ? depAudit.report() : null;
+    var modResult = modAudit ? modAudit.report() : null;
+    var recResult = recReport ? recReport.getReport() : null;
+    
+    return {
+      architecture: archResult ? archResult.overall : null,
+      dependencies: depResult ? {
+        score: depResult.score,
+        status: depResult.status,
+        missing: depResult.missingDependencies ? depResult.missingDependencies.length : 0,
+        circular: depResult.circularDependencies ? depResult.circularDependencies.length : 0
+      } : null,
+      modules: modResult ? {
+        score: modResult.score,
+        status: modResult.status,
+        total: modResult.totalModules || 0,
+        unused: modResult.unusedModules ? modResult.unusedModules.length : 0,
+        deprecated: modResult.deprecatedModules ? modResult.deprecatedModules.length : 0,
+        broken: modResult.brokenModules ? modResult.brokenModules.length : 0
+      } : null,
+      recovery: recResult ? recResult.overall : null
+    };
+  }
+
+  /**
+   * Display audit report in console
+   */
+  displayAuditReport() {
+    var recReport = window.recoveryReport || LawAIApp.RecoveryReport;
+    if (recReport && recReport.getReport) {
+      recReport.getReport();
+    } else {
+      console.warn('[RuntimeInspector] RecoveryReport not available');
+    }
+  }
+
+  /**
+   * Get architecture score
+   * @returns {number} Architecture score
+   */
+  getArchitectureScore() {
+    var archAudit = window.architectureAudit || LawAIApp.ArchitectureAudit;
+    return archAudit ? archAudit.score() : 0;
+  }
+
+  /**
+   * Get recovery score
+   * @returns {number} Recovery score
+   */
+  getRecoveryScore() {
+    var recReport = window.recoveryReport || LawAIApp.RecoveryReport;
+    return recReport ? recReport.getScore() : 0;
+  }
+
+  /**
+   * Get dependency status
+   * @returns {string} Dependency status
+   */
+  getDependencyStatus() {
+    var depAudit = window.dependencyAudit || LawAIApp.DependencyAudit;
+    if (!depAudit) return 'unknown';
+    var result = depAudit.report();
+    return result.status || 'unknown';
+  }
+
+  /**
+   * Get audit summary
+   * @returns {Object} Audit summary
+   */
+  getAuditSummary() {
+    var recReport = window.recoveryReport || LawAIApp.RecoveryReport;
+    if (recReport && recReport.getSummary) {
+      return recReport.getSummary();
+    }
+    return { score: 0, status: 'unknown', pass: false };
+  }
 }
 
 // Singleton instance
