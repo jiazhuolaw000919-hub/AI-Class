@@ -1,4 +1,3 @@
-```javascript
 /**
  * ENGINE TEMPLATE
  * 
