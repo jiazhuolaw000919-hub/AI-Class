@@ -1,6 +1,6 @@
 // ===========================================
 // devPanel.js
-// 开发者面板 - Ctrl+Shift+D 调出（Season 1.5 Part L 最终版 + Recovery Architecture）
+// 开发者面板 - Ctrl+Shift+D 调出（Season 1.5 Part L 最终版 + Recovery Architecture Part 2）
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -40,7 +40,7 @@ LawAIApp.Debug.DevPanel = {
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 14px;
             padding: 20px;
-            max-width: 320px;
+            max-width: 360px;
             max-height: 80vh;
             overflow-y: auto;
             box-shadow: 0 20px 60px rgba(0,0,0,0.8);
@@ -70,9 +70,10 @@ LawAIApp.Debug.DevPanel = {
         var version = LawAIApp.SystemComposer?.version || '4.0.17';
 
         // ============================================================
-        // 🔥 PART 1 RECOVERY: Get Architecture Info
+        // 🔥 PART 1 & 2 RECOVERY: Get Architecture Info + Runtime Status
         // ============================================================
         var archInfo = this._getArchitectureInfo();
+        var runtimeInfo = this._getRuntimeInfo();
 
         this._panel.innerHTML = `
             <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px;margin-bottom:12px;">
@@ -80,8 +81,21 @@ LawAIApp.Debug.DevPanel = {
                 <button onclick="LawAIApp.Debug.DevPanel.hide()" style="background:none;border:none;color:#64748b;font-size:18px;cursor:pointer;">✕</button>
             </div>
 
-            <!-- 🔥 Architecture Status -->
+            <!-- 🔥 Runtime Status -->
             <div style="margin-bottom:10px;padding:8px 12px;background:rgba(74,158,255,0.06);border-radius:8px;border-left:2px solid #4a9eff;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">⚡ Runtime</span>
+                    <span style="font-size:10px;color:${runtimeInfo.ready ? '#22c55e' : '#f59e0b'};">${runtimeInfo.ready ? '✅ Ready' : '⏳ ' + runtimeInfo.status}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: ${runtimeInfo.status}</span>
+                    <span>Uptime: ${runtimeInfo.uptime}</span>
+                    <span>Version: ${runtimeInfo.version}</span>
+                </div>
+            </div>
+
+            <!-- 🔥 Architecture Status -->
+            <div style="margin-bottom:10px;padding:8px 12px;background:rgba(74,158,255,0.04);border-radius:8px;border-left:2px solid #64748b;">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                     <span style="font-size:11px;color:#94a3b8;font-weight:600;">🏗️ Architecture</span>
                     <span style="font-size:10px;color:${archInfo.ready ? '#22c55e' : '#f59e0b'};">${archInfo.ready ? '✅ Ready' : '⏳ Initializing'}</span>
@@ -90,6 +104,17 @@ LawAIApp.Debug.DevPanel = {
                     <span>Domains: ${archInfo.domains}</span>
                     <span>Layers: ${archInfo.layers}</span>
                     <span>Warnings: ${archInfo.warnings}</span>
+                </div>
+            </div>
+
+            <!-- 🔥 Runtime Registry Info -->
+            <div style="margin-bottom:10px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">📦 Runtime Registry</span>
+                    <span style="font-size:10px;color:#94a3b8;">${runtimeInfo.registryCount} modules</span>
+                </div>
+                <div style="font-size:10px;color:#64748b;margin-top:4px;max-height:40px;overflow-y:auto;">
+                    ${runtimeInfo.registryModules || 'No modules registered'}
                 </div>
             </div>
 
@@ -124,6 +149,8 @@ LawAIApp.Debug.DevPanel = {
                     <div>Domains: ${archInfo.domainList || 'N/A'}</div>
                     <div>Layers: ${archInfo.layerList || 'N/A'}</div>
                     <div>Recovery Flags: ${archInfo.flags || 'N/A'}</div>
+                    <div>Runtime Status: ${runtimeInfo.status}</div>
+                    <div>Runtime Version: ${runtimeInfo.version}</div>
                 </div>
             </details>
 
@@ -198,6 +225,50 @@ LawAIApp.Debug.DevPanel = {
     },
 
     /**
+     * 🔥 PART 2 RECOVERY: Get runtime info
+     */
+    _getRuntimeInfo: function() {
+        var info = {
+            ready: false,
+            status: 'unknown',
+            uptime: '0s',
+            version: 'N/A',
+            registryCount: 0,
+            registryModules: ''
+        };
+
+        try {
+            // Runtime Status
+            var runtimeStatus = LawAIApp.RuntimeStatus || window.runtimeStatus;
+            if (runtimeStatus && typeof runtimeStatus.getStatus === 'function') {
+                info.status = runtimeStatus.getStatus();
+                info.ready = runtimeStatus.isReady ? runtimeStatus.isReady() : false;
+            }
+
+            // Runtime Kernel
+            var runtimeKernel = LawAIApp.RuntimeKernel || window.runtimeKernel;
+            if (runtimeKernel && typeof runtimeKernel.health === 'function') {
+                var health = runtimeKernel.health();
+                info.version = health.version || 'N/A';
+                info.uptime = health.uptime ? Math.round(health.uptime / 1000) + 's' : '0s';
+            }
+
+            // Runtime Registry (你的现有版本)
+            var runtimeRegistry = LawAIApp.RuntimeRegistry || window.runtimeRegistry;
+            if (runtimeRegistry && typeof runtimeRegistry.getAll === 'function') {
+                var all = runtimeRegistry.getAll();
+                info.registryCount = all.length;
+                info.registryModules = all.map(function(e) { return e.name; }).join(', ');
+            }
+
+        } catch (err) {
+            console.warn('Could not get runtime info:', err);
+        }
+
+        return info;
+    },
+
+    /**
      * 隐藏面板
      */
     hide: function() {
@@ -247,4 +318,4 @@ if (!LawAIApp.DevPanel) {
     LawAIApp.DevPanel = LawAIApp.Debug.DevPanel;
 }
 
-console.log('🛠️ DevPanel ready (Ctrl+Shift+D) [Recovery Architecture Enabled]');
+console.log('🛠️ DevPanel ready (Ctrl+Shift+D) [Recovery Architecture Part 2 Enabled]');
