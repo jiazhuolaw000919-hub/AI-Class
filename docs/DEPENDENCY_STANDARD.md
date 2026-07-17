@@ -27,7 +27,6 @@ Dependencies must follow layer hierarchy:
 
 Infrastructure → Runtime → System → Core → Business → Support
 
-
 | Direction | Allowed? |
 |-----------|----------|
 | Infrastructure → Runtime | ✅ Allowed |
@@ -75,8 +74,8 @@ Engines may depend on engines in other domains ONLY if:
 
 Engine A → Engine B → Engine C → Engine A
 
-
 ### ✅ Correct Example:
+
 Engine A → Engine B → Engine C
 Engine A → Engine D
 Engine B → Engine D
@@ -126,8 +125,10 @@ LawAIApp.EngineName = {
         ]
     }
 };
+```
 
-8. FREEZE STATEMENT
+## 8. FREEZE STATEMENT
+```
 ┌──────────────────────────────────────────┐
 │     DEPENDENCY FREEZE ACTIVE             │
 ├──────────────────────────────────────────┤
@@ -137,11 +138,13 @@ LawAIApp.EngineName = {
 │  Max Depth:      3                       │
 │  Circular:       FORBIDDEN               │
 └──────────────────────────────────────────┘
+```
 
-SIGNATURE
-Role	Name
-Architecture Owner	Law AI Academy
-Dependency Approver	Law AI Academy
-Effective Date	Current Build
-Standard Version	1.0
-END OF DEPENDENCY STANDARD
+## SIGNATURE
+
+| Role | Name |
+|------|------|
+| Architecture Owner | Law AI Academy |
+| Dependency Approver | Law AI Academy |
+| Effective Date | Current Build |
+| Standard Version | 1.0 |
