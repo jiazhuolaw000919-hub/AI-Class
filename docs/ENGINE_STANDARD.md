@@ -7,9 +7,7 @@
 
 ---
 
-## ═══════════════════════════════════════
 ## 1. PURPOSE
-## ═══════════════════════════════════════
 
 This document defines the required structure for EVERY future engine in the Law AI Academy Operating System.
 
@@ -46,6 +44,51 @@ Every engine MUST contain the following metadata:
 ## ═══════════════════════════════════════
 ## 3. STANDARD STRUCTURE
 ## ═══════════════════════════════════════
+
+Every engine must follow this structure:
+
+# LAW AI ACADEMY - ENGINE STANDARD SPECIFICATION
+
+**Version:** 1.0
+**Status:** ENTERPRISE ARCHITECTURE FREEZE
+**Effective Date:** Current Build
+**Enforcement:** Engine Validator
+
+---
+
+## 1. PURPOSE
+
+This document defines the required structure for EVERY future engine in the Law AI Academy Operating System.
+
+Every engine must follow this standard.
+
+No exceptions.
+
+---
+
+## 2. REQUIRED METADATA
+
+Every engine MUST contain the following metadata:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `__meta` | Object | ✅ Yes | Root metadata container |
+| `__meta.name` | String | ✅ Yes | Unique engine name |
+| `__meta.domain` | String | ✅ Yes | Core, Feature, UI, AI, Content, App |
+| `__meta.layer` | String | ✅ Yes | App, Core, Feature, Content, UI, AI |
+| `__meta.owner` | String | ✅ Yes | "Law AI Academy" or team name |
+| `__meta.version` | String | ✅ Yes | Semantic version (x.y.z) |
+| `__meta.status` | String | ✅ Yes | active, beta, deprecated, archived |
+| `__meta.dependencies` | Array | ✅ Yes | List of engine names |
+| `__meta.registry` | String | ✅ Yes | Registry name (e.g., "RuntimeRegistry") |
+| `__meta.description` | String | ✅ Yes | One sentence describing purpose |
+| `__meta.initPolicy` | String | ✅ Yes | "auto", "manual", "lazy" |
+| `__meta.createdAt` | String | ✅ Yes | Creation timestamp |
+| `__meta.updatedAt` | String | ✅ Yes | Last update timestamp |
+
+---
+
+## 3. STANDARD STRUCTURE
 
 Every engine must follow this structure:
 
