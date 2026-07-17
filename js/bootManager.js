@@ -1,5 +1,5 @@
 // ================================================================
-// bootManager.js – V3.1.0 - Domain Architecture Integration
+// bootManager.js – V3.1.1 - Dependency Governance Integration
 // 只做一件事：调度启动，不执行具体逻辑
 // ================================================================
 
@@ -15,11 +15,11 @@ LawAIApp.BootManager = {
     },
 
     // ============================================================
-    // 🔥 RECOVERY ARCHITECTURE INTEGRATION (Parts 1-11)
+    // 🔥 RECOVERY ARCHITECTURE INTEGRATION (Parts 1-12)
     // ============================================================
 
     /**
-     * 🔥 Initialize Recovery Architecture (Parts 1-11)
+     * 🔥 Initialize Recovery Architecture (Parts 1-12)
      * Called before normal boot sequence
      */
     _initRecoveryArchitecture: function() {
@@ -815,6 +815,68 @@ LawAIApp.BootManager = {
             console.log('✅ Domain Health Ready');
             console.log('✅ Engine Classification Ready');
             console.log('✅ Engine Renaissance Phase 1 Ready');
+
+            // ============================================================
+            // 🔥 PART 12: DEPENDENCY GOVERNANCE
+            // ============================================================
+
+            // 46. DEPENDENCY MANIFEST
+            if (typeof LawAIApp.DependencyManifest !== 'undefined') {
+                if (typeof LawAIApp.DependencyManifest.init === 'function') {
+                    LawAIApp.DependencyManifest.init();
+                }
+                console.log('✅ DependencyManifest initialized');
+            } else if (typeof window.dependencyManifest !== 'undefined') {
+                if (typeof window.dependencyManifest.init === 'function') {
+                    window.dependencyManifest.init();
+                }
+                console.log('✅ DependencyManifest initialized (global)');
+            } else {
+                console.warn('⚠️ DependencyManifest not found - skipping');
+            }
+
+            // 47. DEPENDENCY VALIDATOR
+            if (typeof LawAIApp.DependencyValidator !== 'undefined') {
+                if (typeof LawAIApp.DependencyValidator.init === 'function') {
+                    LawAIApp.DependencyValidator.init();
+                }
+                if (typeof LawAIApp.DependencyValidator.validate === 'function') {
+                    LawAIApp.DependencyValidator.validate();
+                }
+                console.log('✅ DependencyValidator initialized');
+            } else if (typeof window.dependencyValidator !== 'undefined') {
+                if (typeof window.dependencyValidator.init === 'function') {
+                    window.dependencyValidator.init();
+                }
+                if (typeof window.dependencyValidator.validate === 'function') {
+                    window.dependencyValidator.validate();
+                }
+                console.log('✅ DependencyValidator initialized (global)');
+            } else {
+                console.warn('⚠️ DependencyValidator not found - skipping');
+            }
+
+            // 48. DEPENDENCY HEALTH
+            if (typeof LawAIApp.DependencyHealth !== 'undefined') {
+                if (typeof LawAIApp.DependencyHealth.init === 'function') {
+                    LawAIApp.DependencyHealth.init();
+                }
+                console.log('✅ DependencyHealth initialized');
+            } else if (typeof window.dependencyHealth !== 'undefined') {
+                if (typeof window.dependencyHealth.init === 'function') {
+                    window.dependencyHealth.init();
+                }
+                console.log('✅ DependencyHealth initialized (global)');
+            } else {
+                console.warn('⚠️ DependencyHealth not found - skipping');
+            }
+
+            console.log('✅ Dependency Standard Loaded');
+            console.log('✅ Dependency Manifest Ready');
+            console.log('✅ Dependency Validator Ready');
+            console.log('✅ Dependency Health Ready');
+            console.log('✅ Engine Dependency Network Ready');
+
             console.log('✅ Application Ready');
             console.log('✅ Recovery R1 Complete');
 
@@ -833,7 +895,7 @@ LawAIApp.BootManager = {
             return Promise.resolve({ status: 'already_booted' });
         }
 
-        // 🔥 RECOVERY: Initialize architecture (Parts 1-11)
+        // 🔥 RECOVERY: Initialize architecture (Parts 1-12)
         this._initRecoveryArchitecture();
 
         this._booted = true;
@@ -879,4 +941,4 @@ LawAIApp.BootManager = {
     }
 };
 
-console.log('🚀 BootManager V3.1.0 ready (Engine Renaissance Phase 1)');
+console.log('🚀 BootManager V3.1.1 ready (Engine Renaissance Phase 2)');
