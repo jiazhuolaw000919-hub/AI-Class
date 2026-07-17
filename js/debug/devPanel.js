@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+‘ 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -90,6 +90,9 @@ LawAIApp.Debug.DevPanel = {
         
         // Part 12: Dependency Info
         var dependencyInfo = this._getDependencyInfo();
+        
+        // Part 13: Capability Info
+        var capabilityInfo = this._getCapabilityInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -404,6 +407,33 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 13: CAPABILITY GOVERNANCE -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">⚡ Capability Governance</span>
+                    <span style="font-size:10px;color:${capabilityInfo.capabilityScore >= 80 ? '#22c55e' : '#f59e0b'};">${capabilityInfo.capabilityScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Engines: ${capabilityInfo.totalEngines}</span>
+                    <span>✅ ${capabilityInfo.definedCapabilities}</span>
+                    <span>❌ ${capabilityInfo.undefinedCapabilities}</span>
+                    <span>🔄 ${capabilityInfo.duplicateCapabilities}</span>
+                    <span>📊 ${capabilityInfo.coveragePercentage}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Unique: ${capabilityInfo.uniqueCapabilities}</span>
+                    <span>Largest: ${capabilityInfo.largestCapability} (${capabilityInfo.largestCount})</span>
+                    <span>Status: ${capabilityInfo.capabilityStatus}</span>
+                </div>
+                ${capabilityInfo.undefinedCapabilities > 0 ? `
+                    <div style="font-size:9px;color:#ef4444;margin-top:2px;">
+                        ⚠️ ${capabilityInfo.undefinedCapabilities} engines with undefined capabilities
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -433,7 +463,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-12)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-13)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -479,6 +509,9 @@ LawAIApp.Debug.DevPanel = {
                     <div><strong>Part 12 - Dependency Governance:</strong></div>
                     <div style="padding-left:12px;">Score: ${dependencyInfo.dependencyScore}%</div>
                     <div style="padding-left:12px;">Circular: ${dependencyInfo.circularCount}</div>
+                    <div><strong>Part 13 - Capability Governance:</strong></div>
+                    <div style="padding-left:12px;">Score: ${capabilityInfo.capabilityScore}%</div>
+                    <div style="padding-left:12px;">Coverage: ${capabilityInfo.coveragePercentage}%</div>
                 </div>
             </details>
 
@@ -1181,6 +1214,49 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 13: CAPABILITY INFO
+    // ============================================================
+
+    _getCapabilityInfo: function() {
+        var info = {
+            totalEngines: 0,
+            capabilityScore: 0,
+            capabilityStatus: 'unknown',
+            definedCapabilities: 0,
+            undefinedCapabilities: 0,
+            duplicateCapabilities: 0,
+            uniqueCapabilities: 0,
+            largestCapability: 'None',
+            largestCount: 0,
+            coveragePercentage: 0,
+            engineDetails: []
+        };
+
+        try {
+            var health = LawAIApp.CapabilityHealth || window.capabilityHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.totalEngines = data.totalEngines || 0;
+                info.capabilityScore = data.capabilityScore || 0;
+                info.capabilityStatus = data.capabilityStatus || 'unknown';
+                info.definedCapabilities = data.definedCapabilities || 0;
+                info.undefinedCapabilities = data.undefinedCapabilities || 0;
+                info.duplicateCapabilities = data.duplicateCapabilities || 0;
+                info.uniqueCapabilities = data.uniqueCapabilities || 0;
+                info.largestCapability = data.largestCapability || 'None';
+                info.largestCount = data.largestCount || 0;
+                info.coveragePercentage = data.coveragePercentage || 0;
+                info.engineDetails = data.engineDetails || [];
+            }
+
+        } catch (err) {
+            console.warn('Could not get capability info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -1240,7 +1316,8 @@ console.log('   ✅ Recovery R1 Part 9 - Registry Freeze');
 console.log('   ✅ Recovery R1 Part 10 - Compliance Audit');
 console.log('   ✅ Recovery R1 Part 11 - Domain Architecture');
 console.log('   ✅ Recovery R1 Part 12 - Dependency Governance');
+console.log('   ✅ Recovery R1 Part 13 - Capability Governance');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
 console.log('   ✅ Law AI Academy Architecture Stable');
-console.log('   ✅ Engine Renaissance Phase 2 Ready');
+console.log('   ✅ Engine Renaissance Phase 3 Ready');
