@@ -17,9 +17,7 @@ No exceptions.
 
 ---
 
-## ═══════════════════════════════════════
 ## 2. REQUIRED METADATA
-## ═══════════════════════════════════════
 
 Every engine MUST contain the following metadata:
 
@@ -41,9 +39,7 @@ Every engine MUST contain the following metadata:
 
 ---
 
-## ═══════════════════════════════════════
 ## 3. STANDARD STRUCTURE
-## ═══════════════════════════════════════
 
 Every engine must follow this structure:
 
