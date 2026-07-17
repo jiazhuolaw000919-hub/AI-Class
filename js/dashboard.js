@@ -185,6 +185,9 @@ LawAIApp.Dashboard = {
     const nextTitle = this._getLessonTitle(nextDay);
     const nextSummary = this._getLessonSummary(nextDay);
 
+    // ---- 周挑战（保留变量，原逻辑不动） ----
+    const challenge = this._getWeeklyChallenge();
+
     // ---- 推荐（保留变量，传给 _loadRecommendations 用） ----
     const recommendations = this._getRecommendations();
 
