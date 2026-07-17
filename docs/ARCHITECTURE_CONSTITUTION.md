@@ -286,7 +286,9 @@ All engines must declare metadata BEFORE implementation.
 
 ---
 
-10. FREEZE STATEMENT
+## 10. FREEZE STATEMENT
+
+```
 ┌──────────────────────────────────────────┐
 │     ARCHITECTURE FREEZE ACTIVE           │
 ├──────────────────────────────────────────┤
@@ -297,24 +299,25 @@ All engines must declare metadata BEFORE implementation.
 │  Modification:    Requires Review        │
 │  Breaking Changes: Not Permitted         │
 └──────────────────────────────────────────┘
-This document is the highest-level development law.
+```
 
-All code must conform to this Constitution.
+**This document is the highest-level development law.**
 
-Violations are Architecture Guard warnings.
+**All code must conform to this Constitution.**
 
-Breaking the Freeze requires:
+**Violations are Architecture Guard warnings.**
 
-Documented justification
+**Breaking the Freeze requires:**
 
-Review by Architecture Owner
+1. Documented justification
+2. Review by Architecture Owner
+3. Constitution Amendment
 
-Constitution Amendment
+## SIGNATURE
 
-SIGNATURE
-Role	Name
-Architecture Owner	Law AI Academy
-Freeze Approver	Law AI Academy
-Effective Date	Current Build
-Constitution Version	1.0
-END OF ARCHITECTURE CONSTITUTION
+| Role | Name |
+|------|------|
+| Architecture Owner | Law AI Academy |
+| Freeze Approver | Law AI Academy |
+| Effective Date | Current Build |
+| Constitution Version | 1.0 |
