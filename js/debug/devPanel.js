@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+‘ 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -69,6 +69,9 @@ LawAIApp.Debug.DevPanel = {
         
         // Part 5: Audit Center Info
         var auditInfo = this._getAuditInfo();
+        
+        // Part 6: Architecture Freeze Info
+        var freezeInfo = this._getFreezeInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -210,6 +213,25 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 6: ARCHITECTURE FREEZE -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(34,197,94,0.04);border-radius:8px;border-left:2px solid #22c55e;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">❄️ Architecture Freeze</span>
+                    <span style="font-size:10px;color:${freezeInfo.active ? '#22c55e' : '#f59e0b'};">${freezeInfo.active ? '✅ ACTIVE' : '⏳ PENDING'}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Version: ${freezeInfo.version}</span>
+                    <span>Status: ${freezeInfo.status}</span>
+                    <span>Guard: ${freezeInfo.guardStatus}</span>
+                    <span>Constitution: ${freezeInfo.constitutionLoaded ? '✅' : '⏳'}</span>
+                </div>
+                <div style="font-size:9px;color:#475569;margin-top:2px;">
+                    ${freezeInfo.violations === 0 ? '✅ No violations' : '⚠️ ' + freezeInfo.violations + ' violations found'}
+                </div>
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -239,7 +261,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-5)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-6)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -259,6 +281,10 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Score: ${auditInfo.score}%</div>
                     <div style="padding-left:12px;">Status: ${auditInfo.status}</div>
                     <div style="padding-left:12px;">Pass: ${auditInfo.pass ? '✅' : '❌'}</div>
+                    <div><strong>Part 6 - Architecture Freeze:</strong></div>
+                    <div style="padding-left:12px;">Version: ${freezeInfo.version}</div>
+                    <div style="padding-left:12px;">Status: ${freezeInfo.status}</div>
+                    <div style="padding-left:12px;">Violations: ${freezeInfo.violations}</div>
                 </div>
             </details>
 
@@ -581,6 +607,50 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 6: ARCHITECTURE FREEZE INFO
+    // ============================================================
+
+    _getFreezeInfo: function() {
+        var info = {
+            active: false,
+            version: '1.0',
+            status: 'unknown',
+            guardStatus: 'unknown',
+            constitutionLoaded: false,
+            violations: 0,
+            passed: false
+        };
+
+        try {
+            // Check Architecture Guard
+            var guard = LawAIApp.ArchitectureGuard || window.architectureGuard;
+            if (guard) {
+                info.guardStatus = 'Ready';
+                if (typeof guard.isCompliant === 'function') {
+                    info.passed = guard.isCompliant();
+                    info.violations = guard.getViolationCount ? guard.getViolationCount() : 0;
+                }
+                if (typeof guard.getSummary === 'function') {
+                    var summary = guard.getSummary();
+                    info.violations = summary.violationCount || 0;
+                    info.passed = summary.passed || false;
+                }
+            }
+
+            // Determine freeze status
+            if (guard) {
+                info.active = true;
+                info.status = info.passed ? 'Compliant' : 'Violations Detected';
+            }
+
+        } catch (err) {
+            console.warn('Could not get freeze info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -633,3 +703,4 @@ console.log('   ✅ Recovery R1 Part 2 - Runtime');
 console.log('   ✅ Recovery R1 Part 3 - Feature Governance');
 console.log('   ✅ Recovery R1 Part 4 - UI Constitution');
 console.log('   ✅ Recovery R1 Part 5 - Architecture Audit');
+console.log('   ✅ Recovery R1 Part 6 - Architecture Freeze');
