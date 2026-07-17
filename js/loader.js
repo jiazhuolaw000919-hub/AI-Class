@@ -1,6 +1,6 @@
 // ================================================================
-// loader.js – V5.3.1 - Simplified Startup + Profiler + Dependency (Phase P.2)
-// 精简阶段结构 + 性能标记 + 依赖追踪
+// loader.js – V5.3.2 - Simplified Startup + Profiler + Dependency + Recovery Checkpoints
+// 精简阶段结构 + 性能标记 + 依赖追踪 + Recovery 检查点
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -132,9 +132,15 @@ function loadStage(name, files, delay) {
                 LawAIApp.DevTools.RuntimeProfiler.mark('stage_' + name + '_start');
             }
 
+            // 🔥 RECOVERY: 记录 Runtime 检查点
+            console.log(`[Loader] ⏳ Stage ${name}: Loading...`);
+
             Promise.all(files.map(loadScript)).then(function(results) {
                 var loaded = results.filter(function(r) { return r.status === "ok"; }).length;
                 console.log('✅ Stage ' + name + ': ' + loaded + '/' + files.length + ' loaded');
+
+                // 🔥 RECOVERY: 阶段完成检查点
+                console.log(`[Loader] ✅ Stage ${name} Ready`);
 
                 if (LawAIApp.DevTools?.RuntimeProfiler) {
                     LawAIApp.DevTools.RuntimeProfiler.mark('stage_' + name + '_end');
@@ -157,9 +163,16 @@ async function boot() {
     if (LawAIApp.DevTools?.RuntimeProfiler) {
         LawAIApp.DevTools.RuntimeProfiler.mark('loader_boot_start');
     }
-    console.log("🚀 Loader V5.3.1 starting...");
+
+    // 🔥 RECOVERY: 记录 Runtime Loading 开始
+    console.log('[Loader] ⏳ Runtime Loading...');
+
+    console.log("🚀 Loader V5.3.2 starting...");
 
     await loadStage('critical', STAGES.critical, 0);
+
+    // 🔥 RECOVERY: Runtime Ready 检查点
+    console.log('[Loader] ✅ Runtime Ready');
 
     var status = {
         loaded: Object.keys(_loadedModules),
@@ -168,13 +181,22 @@ async function boot() {
     window.LawAIApp.bootStatus = status;
     window.__ENGINE_STATUS__ = status;
 
+    // 🔥 RECOVERY: Composer Ready 检查点
+    console.log('[Loader] ✅ Composer Ready');
+
     setTimeout(function() {
         window.dispatchEvent(new CustomEvent("SYSTEM_READY", {
             detail: { boot: status, timestamp: Date.now() }
         }));
+
+        // 🔥 RECOVERY: Application Ready 检查点
+        console.log('[Loader] ✅ Application Ready');
+        console.log('[Loader] ✅ Recovery Core Runtime Ready');
+
         console.log("✅ SYSTEM_READY dispatched");
     }, 50);
 
+    // 异步加载其他阶段
     loadStage('ux', STAGES.ux, 100);
     loadStage('intelligence', STAGES.intelligence, 500);
     loadStage('background', STAGES.background, 1000);
@@ -218,4 +240,4 @@ if (document.readyState === "complete" || document.readyState === "interactive")
     });
 }
 
-console.log("🚀 Loader V5.3.1 ready (simplified + profiler + dependency)");
+console.log("🚀 Loader V5.3.2 ready (simplified + profiler + dependency + recovery)");
