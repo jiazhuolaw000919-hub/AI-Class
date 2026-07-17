@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+‘ 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -93,6 +93,9 @@ LawAIApp.Debug.DevPanel = {
         
         // Part 13: Capability Info
         var capabilityInfo = this._getCapabilityInfo();
+
+        // Part 14: Lifecycle Info
+        var lifecycleInfo = this._getLifecycleInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -434,6 +437,38 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 14: LIFECYCLE GOVERNANCE -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(34,197,94,0.04);border-radius:8px;border-left:2px solid #22c55e;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🔄 Lifecycle Governance</span>
+                    <span style="font-size:10px;color:${lifecycleInfo.lifecycleScore >= 80 ? '#22c55e' : '#f59e0b'};">${lifecycleInfo.lifecycleScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Engines: ${lifecycleInfo.totalEngines}</span>
+                    <span>✅ ${lifecycleInfo.runningCount}</span>
+                    <span>💤 ${lifecycleInfo.sleepingCount}</span>
+                    <span>⏸️ ${lifecycleInfo.pausedCount}</span>
+                    <span>⚠️ ${lifecycleInfo.deprecatedCount}</span>
+                    <span>❌ ${lifecycleInfo.invalidCount}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Status: ${lifecycleInfo.lifecycleStatus}</span>
+                    <span>Healthy: ${lifecycleInfo.healthyEngines}</span>
+                </div>
+                ${lifecycleInfo.deprecatedCount > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${lifecycleInfo.deprecatedCount} deprecated engines
+                    </div>
+                ` : ''}
+                ${lifecycleInfo.invalidCount > 0 ? `
+                    <div style="font-size:9px;color:#ef4444;margin-top:2px;">
+                        ❌ ${lifecycleInfo.invalidCount} invalid engine states
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -463,7 +498,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-13)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-14)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -512,6 +547,9 @@ LawAIApp.Debug.DevPanel = {
                     <div><strong>Part 13 - Capability Governance:</strong></div>
                     <div style="padding-left:12px;">Score: ${capabilityInfo.capabilityScore}%</div>
                     <div style="padding-left:12px;">Coverage: ${capabilityInfo.coveragePercentage}%</div>
+                    <div><strong>Part 14 - Lifecycle Governance:</strong></div>
+                    <div style="padding-left:12px;">Score: ${lifecycleInfo.lifecycleScore}%</div>
+                    <div style="padding-left:12px;">Running: ${lifecycleInfo.runningCount}</div>
                 </div>
             </details>
 
@@ -1256,6 +1294,48 @@ LawAIApp.Debug.DevPanel = {
 
         return info;
     },
+        // ============================================================
+    // 🔥 PART 14: LIFECYCLE INFO
+    // ============================================================
+
+    _getLifecycleInfo: function() {
+        var info = {
+            totalEngines: 0,
+            lifecycleScore: 0,
+            lifecycleStatus: 'unknown',
+            runningCount: 0,
+            sleepingCount: 0,
+            pausedCount: 0,
+            deprecatedCount: 0,
+            destroyedCount: 0,
+            invalidCount: 0,
+            healthyEngines: 0,
+            stateDistribution: []
+        };
+
+        try {
+            var health = LawAIApp.LifecycleHealth || window.lifecycleHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.totalEngines = data.totalEngines || 0;
+                info.lifecycleScore = data.lifecycleScore || 0;
+                info.lifecycleStatus = data.lifecycleStatus || 'unknown';
+                info.runningCount = data.runningCount || 0;
+                info.sleepingCount = data.sleepingCount || 0;
+                info.pausedCount = data.pausedCount || 0;
+                info.deprecatedCount = data.deprecatedCount || 0;
+                info.destroyedCount = data.destroyedCount || 0;
+                info.invalidCount = data.invalidCount || 0;
+                info.healthyEngines = data.healthyEngines || 0;
+                info.stateDistribution = data.stateDistribution || [];
+            }
+
+        } catch (err) {
+            console.warn('Could not get lifecycle info:', err);
+        }
+
+        return info;
+    },
 
     /**
      * 导入备份（备选方法）
@@ -1317,7 +1397,8 @@ console.log('   ✅ Recovery R1 Part 10 - Compliance Audit');
 console.log('   ✅ Recovery R1 Part 11 - Domain Architecture');
 console.log('   ✅ Recovery R1 Part 12 - Dependency Governance');
 console.log('   ✅ Recovery R1 Part 13 - Capability Governance');
+console.log('   ✅ Recovery R1 Part 14 - Lifecycle Governance');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
 console.log('   ✅ Law AI Academy Architecture Stable');
-console.log('   ✅ Engine Renaissance Phase 3 Ready');
+console.log('   ✅ Engine Renaissance Phase 4 Ready');
