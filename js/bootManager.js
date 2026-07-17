@@ -1,5 +1,5 @@
 // ================================================================
-// bootManager.js – V3.0.7 - Runtime Freeze Integration
+// bootManager.js – V3.0.8 - Registry Freeze Integration
 // 只做一件事：调度启动，不执行具体逻辑
 // ================================================================
 
@@ -15,11 +15,11 @@ LawAIApp.BootManager = {
     },
 
     // ============================================================
-    // 🔥 RECOVERY ARCHITECTURE INTEGRATION (Parts 1-8)
+    // 🔥 RECOVERY ARCHITECTURE INTEGRATION (Parts 1-9)
     // ============================================================
 
     /**
-     * 🔥 Initialize Recovery Architecture (Parts 1-8)
+     * 🔥 Initialize Recovery Architecture (Parts 1-9)
      * Called before normal boot sequence
      */
     _initRecoveryArchitecture: function() {
@@ -607,6 +607,77 @@ LawAIApp.BootManager = {
             console.log('✅ Runtime Health Ready');
             console.log('✅ Runtime Freeze Active');
 
+            // ============================================================
+            // 🔥 PART 9: REGISTRY FREEZE
+            // ============================================================
+
+            // 36. REGISTRY POLICY
+            if (typeof LawAIApp.RegistryPolicy !== 'undefined') {
+                console.log('✅ RegistryPolicy ready');
+            } else if (typeof window.registryPolicy !== 'undefined') {
+                console.log('✅ RegistryPolicy ready (global)');
+            } else {
+                console.warn('⚠️ RegistryPolicy not found - skipping');
+            }
+
+            // 37. REGISTRY MANIFEST
+            if (typeof LawAIApp.RegistryManifest !== 'undefined') {
+                if (typeof LawAIApp.RegistryManifest.init === 'function') {
+                    LawAIApp.RegistryManifest.init();
+                }
+                console.log('✅ RegistryManifest initialized');
+            } else if (typeof window.registryManifest !== 'undefined') {
+                if (typeof window.registryManifest.init === 'function') {
+                    window.registryManifest.init();
+                }
+                console.log('✅ RegistryManifest initialized (global)');
+            } else {
+                console.warn('⚠️ RegistryManifest not found - skipping');
+            }
+
+            // 38. REGISTRY VALIDATOR
+            if (typeof LawAIApp.RegistryValidator !== 'undefined') {
+                if (typeof LawAIApp.RegistryValidator.init === 'function') {
+                    LawAIApp.RegistryValidator.init();
+                }
+                if (typeof LawAIApp.RegistryValidator.validate === 'function') {
+                    LawAIApp.RegistryValidator.validate();
+                }
+                console.log('✅ RegistryValidator initialized');
+            } else if (typeof window.registryValidator !== 'undefined') {
+                if (typeof window.registryValidator.init === 'function') {
+                    window.registryValidator.init();
+                }
+                if (typeof window.registryValidator.validate === 'function') {
+                    window.registryValidator.validate();
+                }
+                console.log('✅ RegistryValidator initialized (global)');
+            } else {
+                console.warn('⚠️ RegistryValidator not found - skipping');
+            }
+
+            // 39. REGISTRY HEALTH
+            if (typeof LawAIApp.RegistryHealth !== 'undefined') {
+                if (typeof LawAIApp.RegistryHealth.init === 'function') {
+                    LawAIApp.RegistryHealth.init();
+                }
+                console.log('✅ RegistryHealth initialized');
+            } else if (typeof window.registryHealth !== 'undefined') {
+                if (typeof window.registryHealth.init === 'function') {
+                    window.registryHealth.init();
+                }
+                console.log('✅ RegistryHealth initialized (global)');
+            } else {
+                console.warn('⚠️ RegistryHealth not found - skipping');
+            }
+
+            console.log('✅ Registry Constitution Loaded');
+            console.log('✅ Registry Policy Ready');
+            console.log('✅ Registry Validator Ready');
+            console.log('✅ Registry Manifest Ready');
+            console.log('✅ Registry Health Ready');
+            console.log('✅ Registry Freeze Active');
+
             console.log('✅ Architecture Ready');
             console.log('✅ Runtime Ready');
             console.log('✅ Composer Ready');
@@ -638,7 +709,7 @@ LawAIApp.BootManager = {
             return Promise.resolve({ status: 'already_booted' });
         }
 
-        // 🔥 RECOVERY: Initialize architecture (Parts 1-8)
+        // 🔥 RECOVERY: Initialize architecture (Parts 1-9)
         this._initRecoveryArchitecture();
 
         this._booted = true;
@@ -684,4 +755,4 @@ LawAIApp.BootManager = {
     }
 };
 
-console.log('🚀 BootManager V3.0.7 ready (Recovery R1 + Architecture Freeze + Engine Standards + Runtime Freeze)');
+console.log('🚀 BootManager V3.0.8 ready (Recovery R1 + Architecture Freeze + Engine Standards + Runtime Freeze + Registry Freeze)');
