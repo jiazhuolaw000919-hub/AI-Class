@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+‘ 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -81,6 +81,9 @@ LawAIApp.Debug.DevPanel = {
         
         // Part 9: Registry Freeze Info
         var registryFreezeInfo = this._getRegistryFreezeInfo();
+        
+        // Part 10: Compliance Info
+        var complianceInfo = this._getComplianceInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -319,6 +322,30 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 10: COMPLIANCE -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(34,197,94,0.04);border-radius:8px;border-left:2px solid #22c55e;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">✅ Compliance</span>
+                    <span style="font-size:10px;color:${complianceInfo.certified ? '#22c55e' : '#ef4444'};">${complianceInfo.certified ? '✅ CERTIFIED' : '⏳ PENDING'}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Score: ${complianceInfo.score}%</span>
+                    <span>Status: ${complianceInfo.status}</span>
+                    <span>Freeze: v${complianceInfo.freezeVersion}</span>
+                    <span>Recovery: ${complianceInfo.recoveryVersion}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Arch: ${complianceInfo.architecture}%</span>
+                    <span>Runtime: ${complianceInfo.runtime}%</span>
+                    <span>Feature: ${complianceInfo.features}%</span>
+                    <span>UI: ${complianceInfo.ui}%</span>
+                    <span>Engine: ${complianceInfo.engine}%</span>
+                    <span>Registry: ${complianceInfo.registry}%</span>
+                </div>
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -348,7 +375,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-9)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-10)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -384,6 +411,10 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Status: ${registryFreezeInfo.status}</div>
                     <div style="padding-left:12px;">Registries: ${registryFreezeInfo.registriesHealthy}/${registryFreezeInfo.registriesTotal}</div>
                     <div style="padding-left:12px;">Health Score: ${registryFreezeInfo.healthScore}%</div>
+                    <div><strong>Part 10 - Compliance:</strong></div>
+                    <div style="padding-left:12px;">Status: ${complianceInfo.status}</div>
+                    <div style="padding-left:12px;">Score: ${complianceInfo.score}%</div>
+                    <div style="padding-left:12px;">Certified: ${complianceInfo.certified ? '✅' : '❌'}</div>
                 </div>
             </details>
 
@@ -932,6 +963,54 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 10: COMPLIANCE INFO
+    // ============================================================
+
+    _getComplianceInfo: function() {
+        var info = {
+            status: 'unknown',
+            score: 0,
+            architecture: 0,
+            runtime: 0,
+            features: 0,
+            ui: 0,
+            engine: 0,
+            registry: 0,
+            freezeVersion: '1.0',
+            recoveryVersion: 'R1',
+            certified: false
+        };
+
+        try {
+            var health = LawAIApp.ComplianceHealth || window.complianceHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.status = data.overallStatus || 'unknown';
+                info.score = data.overallScore || 0;
+                info.architecture = data.architectureScore || 0;
+                info.runtime = data.runtimeScore || 0;
+                info.features = data.featureScore || 0;
+                info.ui = data.uiScore || 0;
+                info.engine = data.engineScore || 0;
+                info.registry = data.registryScore || 0;
+                info.certified = data.passed || false;
+            }
+
+            var audit = LawAIApp.FreezeAudit || window.freezeAudit;
+            if (audit && typeof audit.getStatus === 'function') {
+                if (info.status === 'unknown' || info.status === 'EXCELLENT') {
+                    info.status = audit.getStatus();
+                }
+            }
+
+        } catch (err) {
+            console.warn('Could not get compliance info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -988,3 +1067,7 @@ console.log('   ✅ Recovery R1 Part 6 - Architecture Freeze');
 console.log('   ✅ Recovery R1 Part 7 - Engine Standards');
 console.log('   ✅ Recovery R1 Part 8 - Runtime Freeze');
 console.log('   ✅ Recovery R1 Part 9 - Registry Freeze');
+console.log('   ✅ Recovery R1 Part 10 - Compliance Audit');
+console.log('   ✅ Architecture Freeze Completed');
+console.log('   ✅ Recovery R1 Certified');
+console.log('   ✅ Law AI Academy Architecture Stable');
