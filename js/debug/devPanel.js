@@ -1,6 +1,6 @@
 // ===========================================
 // devPanel.js
-// 开发者面板 - Ctrl+Shift+D 调出
+// 开发者面板 - Ctrl+Shift+A 调出
 // Recovery R1 Parts 1, 2, 3 Complete
 // ===========================================
 
@@ -201,7 +201,7 @@ LawAIApp.Debug.DevPanel = {
             </details>
 
             <div style="font-size:10px;color:#475569;text-align:center;border-top:1px solid rgba(255,255,255,0.04);padding-top:10px;margin-top:12px;">
-                Press Ctrl+Shift+D to close
+                Press Ctrl+Shift+A to close
             </div>
 
             <input type="file" id="dev-import-input" accept=".json" style="display:none" onchange="LawAIApp.FactoryReset?.importBackup?.(this.files[0]) || LawAIApp.Debug?.DevPanel?._importBackup?.(this.files[0])">
@@ -447,7 +447,7 @@ if (!LawAIApp.DevPanel) {
     LawAIApp.DevPanel = LawAIApp.Debug.DevPanel;
 }
 
-console.log('🛠️ DevPanel ready (Ctrl+Shift+D)');
+console.log('🛠️ DevPanel ready (Ctrl+Shift+A)');
 console.log('   ✅ Recovery R1 Part 1 - Architecture');
 console.log('   ✅ Recovery R1 Part 2 - Runtime');
 console.log('   ✅ Recovery R1 Part 3 - Feature Governance');
