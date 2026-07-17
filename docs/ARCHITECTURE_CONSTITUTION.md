@@ -7,9 +7,7 @@
 
 ---
 
-## ═══════════════════════════════════════
 ## 1. CORE PHILOSOPHY
-## ═══════════════════════════════════════
 
 The Academy is an Operating System.
 
@@ -25,31 +23,28 @@ The OS is the single source of truth.
 
 ---
 
-## ═══════════════════════════════════════
 ## 2. GLOBAL NAMESPACE RULE
-## ═══════════════════════════════════════
 
 **The entire application uses `window.LawAIApp` as the single global namespace.**
 
 This rule is absolute and non-negotiable.
 
 ### ✅ Allowed:
+
 ```javascript
 window.LawAIApp = window.LawAIApp || {};
 LawAIApp.EngineName = { ... };
 LawAIApp.FeatureName = { ... };
-
 ❌ Forbidden:
 javascript
 window.MyEngine = { ... };
 window.FeatureX = { ... };
 window.someVariable = ...;
 No additional global namespaces.
+
 No window.xxx outside LawAIApp.
 
-═══════════════════════════════════════
 3. MODULE STANDARD
-═══════════════════════════════════════
 Every engine, every module, every component MUST:
 
 Rule	Description
@@ -71,9 +66,7 @@ window.MyEngine = { ... }; // Wrong namespace
 LawAIApp.FeatureEngine.process(); // Doesn't register itself
 // or
 LawAIApp.FeatureEngine.doEverything(); // Multiple responsibilities
-═══════════════════════════════════════
 4. RUNTIME RULE
-═══════════════════════════════════════
 Runtime coordinates only.
 
 The Runtime layer is the nervous system of the OS.
@@ -96,9 +89,7 @@ LawAIApp.RuntimeKernel = {
   renderUI: function() { /* contains UI rendering */ },
   saveData: function() { /* stores user data */ }
 };
-═══════════════════════════════════════
 5. SYSTEM COMPOSER RULE
-═══════════════════════════════════════
 SystemComposer composes only.
 
 The Composer is the UI orchestration layer.
@@ -121,9 +112,7 @@ LawAIApp.SystemComposer = {
   saveUserData: function() { /* owns storage */ },
   handleRoute: function() { /* owns routing */ }
 };
-═══════════════════════════════════════
 6. REGISTRY RULE
-═══════════════════════════════════════
 Each registry owns ONLY its own domain.
 
 Registry	Domain	Responsibility
@@ -147,9 +136,7 @@ No cross registration.
 
 Each domain belongs to exactly one registry.
 
-═══════════════════════════════════════
 7. BOOT RULE
-═══════════════════════════════════════
 BootManager coordinates only.
 
 The BootManager is the startup orchestration layer.
@@ -182,9 +169,7 @@ Health Check
 
 Never business logic.
 
-═══════════════════════════════════════
 8. DEVELOPER RULE
-═══════════════════════════════════════
 Developer Panel is Read-Only.
 
 The DevPanel exists for inspection and debugging only.
@@ -209,9 +194,7 @@ No storage writes.
 
 No runtime changes.
 
-═══════════════════════════════════════
 9. FUTURE RULE
-═══════════════════════════════════════
 Every future engine MUST declare:
 
 Requirement	Description
@@ -238,9 +221,7 @@ LawAIApp.NewEngine = {
 };
 All engines must declare metadata BEFORE implementation.
 
-═══════════════════════════════════════
 10. FREEZE STATEMENT
-═══════════════════════════════════════
 text
 ┌──────────────────────────────────────────┐
 │     ARCHITECTURE FREEZE ACTIVE           │
@@ -266,9 +247,7 @@ Review by Architecture Owner
 
 Constitution Amendment
 
-═══════════════════════════════════════
 SIGNATURE
-═══════════════════════════════════════
 Role	Name
 Architecture Owner	Law AI Academy
 Freeze Approver	Law AI Academy
