@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+‘ 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -84,6 +84,9 @@ LawAIApp.Debug.DevPanel = {
         
         // Part 10: Compliance Info
         var complianceInfo = this._getComplianceInfo();
+        
+        // Part 11: Domain Info
+        var domainInfo = this._getDomainInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -346,6 +349,31 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 11: DOMAIN ARCHITECTURE -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🏛️ Domain Architecture</span>
+                    <span style="font-size:10px;color:${domainInfo.domainScore >= 80 ? '#22c55e' : '#f59e0b'};">${domainInfo.domainScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Domains: ${domainInfo.populatedDomains}/${domainInfo.totalDomains}</span>
+                    <span>Engines: ${domainInfo.totalEngines}</span>
+                    <span>Status: ${domainInfo.domainStatus}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Largest: ${domainInfo.largestDomain} (${domainInfo.largestCount})</span>
+                    <span>Smallest: ${domainInfo.smallestDomain} (${domainInfo.smallestCount})</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Core: ${domainInfo.classificationSummary.Core}</span>
+                    <span>Business: ${domainInfo.classificationSummary.Business}</span>
+                    <span>Support: ${domainInfo.classificationSummary.Support}</span>
+                    <span>Experimental: ${domainInfo.classificationSummary.Experimental}</span>
+                </div>
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -375,7 +403,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-10)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-11)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -415,6 +443,9 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Status: ${complianceInfo.status}</div>
                     <div style="padding-left:12px;">Score: ${complianceInfo.score}%</div>
                     <div style="padding-left:12px;">Certified: ${complianceInfo.certified ? '✅' : '❌'}</div>
+                    <div><strong>Part 11 - Domain Architecture:</strong></div>
+                    <div style="padding-left:12px;">Domains: ${domainInfo.populatedDomains}/${domainInfo.totalDomains}</div>
+                    <div style="padding-left:12px;">Score: ${domainInfo.domainScore}%</div>
                 </div>
             </details>
 
@@ -1011,6 +1042,69 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 11: DOMAIN INFO
+    // ============================================================
+
+    _getDomainInfo: function() {
+        var info = {
+            totalDomains: 0,
+            populatedDomains: 0,
+            emptyDomains: 0,
+            totalEngines: 0,
+            domainScore: 0,
+            domainStatus: 'unknown',
+            largestDomain: 'None',
+            largestCount: 0,
+            smallestDomain: 'None',
+            smallestCount: 0,
+            domainList: [],
+            classificationSummary: {
+                Core: 0,
+                Business: 0,
+                Support: 0,
+                Experimental: 0,
+                Deprecated: 0
+            }
+        };
+
+        try {
+            var health = LawAIApp.DomainHealth || window.domainHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.totalDomains = data.totalDomains || 0;
+                info.populatedDomains = data.populatedDomains || 0;
+                info.emptyDomains = data.emptyDomains || 0;
+                info.totalEngines = data.totalEngines || 0;
+                info.domainScore = data.domainScore || 0;
+                info.domainStatus = data.domainStatus || 'unknown';
+                info.largestDomain = data.largestDomain || 'None';
+                info.largestCount = data.largestCount || 0;
+                info.smallestDomain = data.smallestDomain || 'None';
+                info.smallestCount = data.smallestCount || 0;
+                info.domainList = data.domainList || [];
+            }
+
+            // Classification summary from engine metadata
+            for (var key in LawAIApp) {
+                if (LawAIApp.hasOwnProperty(key)) {
+                    var value = LawAIApp[key];
+                    if (value && typeof value === 'object' && value.__meta) {
+                        var classification = value.__meta.classification || 'Support';
+                        if (info.classificationSummary.hasOwnProperty(classification)) {
+                            info.classificationSummary[classification]++;
+                        }
+                    }
+                }
+            }
+
+        } catch (err) {
+            console.warn('Could not get domain info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -1068,6 +1162,8 @@ console.log('   ✅ Recovery R1 Part 7 - Engine Standards');
 console.log('   ✅ Recovery R1 Part 8 - Runtime Freeze');
 console.log('   ✅ Recovery R1 Part 9 - Registry Freeze');
 console.log('   ✅ Recovery R1 Part 10 - Compliance Audit');
+console.log('   ✅ Recovery R1 Part 11 - Domain Architecture');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
 console.log('   ✅ Law AI Academy Architecture Stable');
+console.log('   ✅ Engine Renaissance Phase 1 Ready');
