@@ -1,7 +1,6 @@
 // ================================================================
-// dashboard.js – Phase 1 Dashboard Recovery
-// 恢复 Season 1 的情感体验：活着、简单、高级、有动力、专注
-// 保留所有原有功能，只优化视觉层次和情感设计
+// dashboard.js – Phase 1 Dashboard Recovery → First Impression Canon V2.0
+// 保留所有原有功能，重构视觉层次：Hero → Continue → Progress → Recommendations
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -10,12 +9,12 @@ LawAIApp.Dashboard = {
   _rendered: false,
 
   /**
-   * 渲染 Dashboard — Phase 1 情感恢复版
-   * 视觉层次：Hero → Continue Learning → Today's Mission → Quick Actions → 推荐 → 其他
+   * 渲染 Dashboard — Canon V2.0 第一印象重构版
+   * 视觉层次：Hero (40%) → Continue Learning → Today's Progress → Recommendations
    */
   render: function() {
     // ============================================================
-    // 数据获取（所有引擎继续运行）
+    // 数据获取（所有引擎继续运行，不改）
     // ============================================================
     const progress = this._getProgress();
     const streakData = this._getStreakData();
@@ -34,7 +33,7 @@ LawAIApp.Dashboard = {
     const lastCompletedDate = this._getLastCompletedDate(streakData);
 
     // ============================================================
-    // 构建 UI — 层级清晰，情感驱动
+    // 构建 UI — Canon V2.0 层级
     // ============================================================
     const html = this._buildHTML({
       progress,
@@ -59,7 +58,7 @@ LawAIApp.Dashboard = {
   },
 
   // ============================================================
-  // 数据获取方法（保留所有引擎调用）
+  // 数据获取方法（全部保留，不改）
   // ============================================================
 
   _getProgress: function() {
@@ -143,7 +142,9 @@ LawAIApp.Dashboard = {
   },
 
   // ============================================================
-  // HTML 构建 — 层级清晰，情感驱动
+  // HTML 构建 — Canon V2.0 第一印象重构
+  // 视觉层次：Hero(40%) → Continue Learning → Today's Progress → Recommendations
+  // 所有卡片统一圆角 16px，统一背景色，统一边框
   // ============================================================
 
   _buildHTML: function(data) {
@@ -179,62 +180,71 @@ LawAIApp.Dashboard = {
     // ---- 继续学习 ----
     const nextDay = Math.min(completedCount + 1, 365);
     const lessonLink = completedCount === 0 ? '/pages/academy.html' : '/pages/lesson.html?day=' + nextDay;
-    const btnText = completedCount === 0 ? '📖 Start Learning' : (completedCount >= 365 ? '🎉 Review' : '📖 Continue');
+    const btnText = completedCount === 0 ? 'Start Learning' : (completedCount >= 365 ? 'Review All' : 'Continue');
 
     const nextTitle = this._getLessonTitle(nextDay);
     const nextSummary = this._getLessonSummary(nextDay);
 
-    // ---- 周挑战 ----
-    const challenge = this._getWeeklyChallenge();
-
-    // ---- 推荐 ----
+    // ---- 推荐（保留变量，传给 _loadRecommendations 用） ----
     const recommendations = this._getRecommendations();
 
     // ============================================================
-    // HTML 模板（视觉优先，情感驱动）
+    // 统一卡片设计语言 (Canon Rule 004)
+    // ============================================================
+    const CARD_RADIUS = '16px';
+    const CARD_BG = 'rgba(255,255,255,0.025)';
+    const CARD_BORDER = '1px solid rgba(255,255,255,0.04)';
+    const CARD_PADDING = '20px';
+
+    // ============================================================
+    // HTML 模板（Canon V2.0 第一印象重构）
     // ============================================================
     return `
     <div id="dashboard-root" style="
-      max-width: 1000px;
+      max-width: 960px;
       margin: 0 auto;
-      padding: 12px 20px 100px;
+      padding: 16px 20px 100px;
       color: #e2e8f0;
       font-family: 'Inter', -apple-system, sans-serif;
     ">
 
       <!-- ========================================================== -->
-      <!-- 🔥 HERO 区 —— 视觉焦点 -->
+      <!-- 🔥 HERO — 占首屏 38-42%，唯一视觉焦点 (Rule 001)            -->
+      <!-- 纯净：只有问候 + 名字 + 激励语 + 3 个轻量徽章               -->
       <!-- ========================================================== -->
-      <div id="dashboard-hero" style="
-        background: linear-gradient(145deg, #1a2a4a, #0f1a2e);
-        border-radius: 24px;
-        padding: 32px 28px 28px;
+      <section id="dashboard-hero" style="
+        min-height: 38vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 44px 24px 36px;
         margin-bottom: 24px;
         position: relative;
-        overflow: hidden;
         isolation: isolate;
-        min-height: 180px;
-        animation: dashboardFade 0.5s ease;
+        animation: heroFadeIn 0.6s ease;
       ">
-        <!-- 装饰 -->
+        <!-- 背景光晕（柔和，不抢戏） -->
         <div style="
           position: absolute;
-          top: -80px;
-          right: -60px;
-          width: 300px;
-          height: 300px;
-          background: radial-gradient(circle, rgba(74,158,255,0.04), transparent 70%);
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 420px;
+          height: 420px;
+          background: radial-gradient(circle, rgba(74,158,255,0.05), transparent 70%);
           border-radius: 50%;
           pointer-events: none;
           z-index: 0;
         "></div>
         <div style="
           position: absolute;
-          bottom: -60px;
-          left: -40px;
-          width: 200px;
-          height: 200px;
-          background: radial-gradient(circle, rgba(124,58,237,0.03), transparent 70%);
+          top: 30%;
+          right: 20%;
+          width: 180px;
+          height: 180px;
+          background: radial-gradient(circle, rgba(124,58,237,0.04), transparent 70%);
           border-radius: 50%;
           pointer-events: none;
           z-index: 0;
@@ -242,218 +252,231 @@ LawAIApp.Dashboard = {
 
         <div style="position:relative;z-index:1;">
 
-          <!-- 问候 + 状态 -->
-          <div style="
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 12px;
-          ">
-            <div>
-              <div style="
-                font-size: 13px;
-                font-weight: 400;
-                opacity: 0.6;
-                letter-spacing: 0.3px;
-                margin-bottom: 2px;
-              ">${greeting}</div>
-              <h1 style="
-                margin: 0;
-                font-size: 24px;
-                font-weight: 700;
-                letter-spacing: -0.3px;
-                line-height: 1.1;
-                background: linear-gradient(90deg, #e2e8f0, #94a3b8);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
-              ">${userName}</h1>
-            </div>
-            <div style="
-              display: flex;
-              gap: 6px;
-              flex-wrap: wrap;
-            ">
-              <span style="
-                font-size: 11px;
-                background: rgba(74,158,255,0.1);
-                padding: 3px 12px;
-                border-radius: 100px;
-                color: #4a9eff;
-                font-weight: 500;
-                border: 1px solid rgba(74,158,255,0.06);
-              ">${levelDisplay}</span>
-              <span style="
-                font-size: 11px;
-                background: rgba(251,191,36,0.08);
-                padding: 3px 12px;
-                border-radius: 100px;
-                color: #fbbf24;
-                font-weight: 500;
-                border: 1px solid rgba(251,191,36,0.06);
-              ">${xpDisplay}</span>
-              <span style="
-                font-size: 11px;
-                background: rgba(249,115,22,0.08);
-                padding: 3px 12px;
-                border-radius: 100px;
-                color: #f97316;
-                font-weight: 500;
-                border: 1px solid rgba(249,115,22,0.06);
-              ">🔥 ${streakDisplay}</span>
-            </div>
-          </div>
+          <!-- 问候语（轻量小字） -->
+          <p style="
+            margin: 0 0 4px;
+            font-size: 14px;
+            color: #64748b;
+            letter-spacing: 0.4px;
+            font-weight: 400;
+          ">${greeting}</p>
+
+          <!-- 名字（Hero 核心，大字号） -->
+          <h1 style="
+            margin: 0 0 14px;
+            font-size: clamp(28px, 5vw, 42px);
+            font-weight: 700;
+            letter-spacing: -0.6px;
+            line-height: 1.1;
+            background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+          ">${userName}</h1>
 
           <!-- 激励语 -->
-          <div style="
-            font-size: 14px;
+          <p style="
+            margin: 0 0 22px;
+            font-size: 15px;
             color: #94a3b8;
-            margin-bottom: 14px;
-            max-width: 480px;
-            line-height: 1.4;
-          ">${motivation}</div>
+            max-width: 440px;
+            line-height: 1.5;
+          ">${motivation}</p>
 
-          <!-- 进度条 -->
-          <div style="max-width: 400px;">
-            <div style="
-              display: flex;
-              justify-content: space-between;
-              font-size: 11px;
-              opacity: 0.5;
-              margin-bottom: 3px;
-            ">
-              <span>Progress</span>
-              <span>${completedCount}/${totalCount} lessons</span>
-            </div>
-            <div style="
-              height: 3px;
-              background: rgba(255,255,255,0.06);
+          <!-- 状态徽章（轻量，不抢名字焦点） -->
+          <div style="
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+          ">
+            <span style="
+              font-size: 12px;
+              background: rgba(74,158,255,0.08);
+              padding: 5px 18px;
               border-radius: 100px;
-              overflow: hidden;
-            ">
-              <div style="
-                width: ${percent}%;
-                height: 100%;
-                background: linear-gradient(90deg, #4a9eff, #7c3aed);
-                border-radius: 100px;
-                transition: width 0.8s ease;
-              "></div>
-            </div>
+              color: #4a9eff;
+              font-weight: 500;
+            ">${levelDisplay}</span>
+            <span style="
+              font-size: 12px;
+              background: rgba(251,191,36,0.06);
+              padding: 5px 18px;
+              border-radius: 100px;
+              color: #fbbf24;
+              font-weight: 500;
+            ">${xpDisplay}</span>
+            <span style="
+              font-size: 12px;
+              background: rgba(249,115,22,0.06);
+              padding: 5px 18px;
+              border-radius: 100px;
+              color: #f97316;
+              font-weight: 500;
+            ">🔥 ${streakDisplay}</span>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- ========================================================== -->
-      <!-- 🔥 Continue Learning —— 唯一主行动点 -->
+      <!-- 🔥 CONTINUE LEARNING — 第二视觉重点，紧贴 Hero (Rule 002)    -->
+      <!-- 更大卡片，一个主操作按钮                                     -->
       <!-- ========================================================== -->
       <a href="${lessonLink}" id="continue-learning" style="
         display: block;
-        background: linear-gradient(135deg, #4a9eff, #6366f1);
-        border-radius: 18px;
-        padding: 18px 24px;
+        background: linear-gradient(135deg, #1e3555, #162040);
+        border-radius: ${CARD_RADIUS};
+        padding: 24px 28px;
         color: white;
         text-decoration: none;
         transition: all 0.3s ease;
+        border: 1px solid rgba(74,158,255,0.12);
+        box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+        margin-bottom: 24px;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 8px 40px rgba(74,158,255,0.08);
-        margin-bottom: 20px;
-      " onmouseover="this.style.transform='scale(1.01)';this.style.boxShadow='0 12px 60px rgba(74,158,255,0.15)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 8px 40px rgba(74,158,255,0.08)'">
+      " onmouseover="this.style.borderColor='rgba(74,158,255,0.3)';this.style.boxShadow='0 8px 40px rgba(74,158,255,0.12)'" onmouseout="this.style.borderColor='rgba(74,158,255,0.12)';this.style.boxShadow='0 4px 24px rgba(0,0,0,0.25)'">
+        <!-- 装饰光晕 -->
         <div style="
           position: absolute;
-          top: -40px;
+          top: -50px;
           right: -30px;
-          width: 160px;
-          height: 160px;
-          background: radial-gradient(circle, rgba(255,255,255,0.06), transparent 70%);
+          width: 200px;
+          height: 200px;
+          background: radial-gradient(circle, rgba(74,158,255,0.07), transparent 70%);
           border-radius: 50%;
           pointer-events: none;
         "></div>
-        <div style="position:relative;z-index:1;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-          <div style="flex:1;min-width:100px;">
-            <div style="
+
+        <div style="position:relative;z-index:1;display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:150px;">
+            <p style="
+              margin: 0 0 4px;
               font-size: 11px;
               font-weight: 500;
-              opacity: 0.7;
-              letter-spacing: 0.5px;
+              color: #4a9eff;
+              letter-spacing: 0.8px;
               text-transform: uppercase;
-            ">${completedCount >= 365 ? '🎉 Complete' : 'Next Lesson'}</div>
-            <div style="
-              font-size: 17px;
+            ">${completedCount >= 365 ? '🎉 All Complete' : 'Continue Learning'}</p>
+            <h2 style="
+              margin: 0 0 4px;
+              font-size: 20px;
               font-weight: 600;
-              margin: 1px 0;
-              line-height: 1.2;
-            ">${nextTitle}</div>
-            <div style="
+              line-height: 1.3;
+            ">${nextTitle}</h2>
+            <p style="
+              margin: 0;
               font-size: 13px;
-              opacity: 0.8;
-            ">${completedCount === 0 ? 'Begin your AI journey.' : (completedCount >= 365 ? 'You\'ve mastered everything!' : nextSummary)}</div>
+              color: #94a3b8;
+            ">${nextSummary}</p>
           </div>
           <div style="
-            padding: 8px 24px;
-            background: rgba(255,255,255,0.12);
+            padding: 10px 28px;
+            background: #4a9eff;
             border-radius: 100px;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
-            backdrop-filter: blur(4px);
             white-space: nowrap;
-            border: 1px solid rgba(255,255,255,0.06);
+            transition: background 0.2s;
+            box-shadow: 0 2px 12px rgba(74,158,255,0.3);
           ">${btnText} →</div>
         </div>
       </a>
 
       <!-- ========================================================== -->
-      <!-- ⚡ Quick Actions —— 紧凑，不抢戏 -->
+      <!-- 📊 TODAY'S PROGRESS — 第三视觉层，三列等宽卡片               -->
       <!-- ========================================================== -->
-      <div style="
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
+      <section style="
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
         margin-bottom: 20px;
       ">
-        ${[
-          { icon: '📚', label: 'Academy', route: 'academy' },
-          { icon: '🧠', label: 'Intelligence', route: 'intelligence' },
-          { icon: '📓', label: 'Notes', route: 'knowledge-capture' },
-          { icon: '💬', label: 'Chat', route: 'conversations' },
-          { icon: '📅', label: 'Planner', route: 'planner' }
-        ].map(function(btn) {
-          return `
-          <button onclick="LawAIApp.Router?.navigate('${btn.route}')" style="
-            padding: 5px 14px;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.04);
-            border-radius: 100px;
-            color: #94a3b8;
-            font-size: 11px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-          " onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#e2e8f0'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.color='#94a3b8'">
-            ${btn.icon} ${btn.label}
-          </button>
-          `;
-        }).join('')}
-        <button onclick="this.style.display='none';document.getElementById('more-actions').style.display='flex'" style="
-          padding: 5px 12px;
-          background: rgba(255,255,255,0.02);
-          border: 1px solid rgba(255,255,255,0.03);
-          border-radius: 100px;
-          color: #64748b;
-          font-size: 10px;
-          cursor: pointer;
-          font-family: inherit;
-          transition: all 0.2s;
-        " onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
-          + more
-        </button>
-        <div id="more-actions" style="display:none;flex-wrap:wrap;gap:6px;">
+        <!-- 完成率 -->
+        <div style="
+          background: ${CARD_BG};
+          border-radius: ${CARD_RADIUS};
+          padding: ${CARD_PADDING};
+          border: ${CARD_BORDER};
+          text-align: center;
+        ">
+          <p style="margin:0 0 6px;font-size:11px;color:#64748b;">📊 Progress</p>
+          <p style="margin:0;font-size:24px;font-weight:700;">${completionRate}%</p>
+          <p style="margin:4px 0 0;font-size:10px;color:#64748b;">${completedCount}/${totalCount} lessons</p>
+        </div>
+
+        <!-- 连续签到 -->
+        <div style="
+          background: ${CARD_BG};
+          border-radius: ${CARD_RADIUS};
+          padding: ${CARD_PADDING};
+          border: ${CARD_BORDER};
+          text-align: center;
+        ">
+          <p style="margin:0 0 6px;font-size:11px;color:#64748b;">🔥 Streak</p>
+          <p style="margin:0;font-size:24px;font-weight:700;">${streakData.currentStreak || 0}</p>
+          <p style="margin:4px 0 0;font-size:10px;color:#64748b;">days</p>
+        </div>
+
+        <!-- 成就 -->
+        <div style="
+          background: ${CARD_BG};
+          border-radius: ${CARD_RADIUS};
+          padding: ${CARD_PADDING};
+          border: ${CARD_BORDER};
+          text-align: center;
+        ">
+          <p style="margin:0 0 6px;font-size:11px;color:#64748b;">🏆 Achievements</p>
+          <p style="margin:0;font-size:24px;font-weight:700;">${achievements.length}</p>
+          <p style="margin:4px 0 0;font-size:10px;color:#64748b;">unlocked</p>
+        </div>
+      </section>
+
+      <!-- ========================================================== -->
+      <!-- 📖 RECOMMENDATIONS — 第四视觉层，延迟加载内容               -->
+      <!-- ========================================================== -->
+      <section id="dashboard-recommendations" style="
+        background: ${CARD_BG};
+        border-radius: ${CARD_RADIUS};
+        padding: ${CARD_PADDING};
+        border: ${CARD_BORDER};
+        margin-bottom: 20px;
+        min-height: 60px;
+        transition: opacity 0.4s ease;
+      ">
+        <p style="margin:0 0 12px;font-size:12px;color:#94a3b8;font-weight:500;">
+          🌟 Recommended for you
+        </p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${[0,1,2].map(function(i) {
+            return `
+            <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:${i < 2 ? '1px solid rgba(255,255,255,0.02)' : 'none'};">
+              <span style="font-size:14px;opacity:0.3;">⏳</span>
+              <div style="flex:1;height:10px;width:${75 - i * 18}%;background:rgba(255,255,255,0.03);border-radius:4px;animation:pulse 1.5s infinite ${i * 0.2}s;"></div>
+            </div>
+            `;
+          }).join('')}
+        </div>
+      </section>
+
+      <!-- ========================================================== -->
+      <!-- ⚡ QUICK ACTIONS — 所有导航入口，首屏下方                   -->
+      <!-- ========================================================== -->
+      <section style="margin-bottom: 16px;">
+        <p style="margin:0 0 10px;font-size:11px;color:#64748b;font-weight:500;letter-spacing:0.6px;">
+          EXPLORE
+        </p>
+        <div style="
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        ">
           ${[
+            { icon: '📚', label: 'Academy', route: 'academy' },
+            { icon: '🧠', label: 'Intelligence', route: 'intelligence' },
+            { icon: '📓', label: 'Notes', route: 'knowledge-capture' },
+            { icon: '💬', label: 'Chat', route: 'conversations' },
+            { icon: '📅', label: 'Planner', route: 'planner' },
             { icon: '🛠️', label: 'Tools', route: 'tools' },
             { icon: '📋', label: 'Prompts', route: 'prompt' },
             { icon: '🎯', label: 'Goals', route: 'goal-intelligence' },
@@ -462,120 +485,121 @@ LawAIApp.Dashboard = {
           ].map(function(btn) {
             return `
             <button onclick="LawAIApp.Router?.navigate('${btn.route}')" style="
-              padding: 5px 14px;
-              background: rgba(255,255,255,0.03);
-              border: 1px solid rgba(255,255,255,0.04);
+              padding: 6px 16px;
+              background: ${CARD_BG};
+              border: ${CARD_BORDER};
               border-radius: 100px;
               color: #94a3b8;
               font-size: 11px;
               cursor: pointer;
               transition: all 0.2s;
               font-family: inherit;
-              display: flex;
-              align-items: center;
-              gap: 4px;
-            " onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#e2e8f0'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.color='#94a3b8'">
+            " onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#e2e8f0'" onmouseout="this.style.background='${CARD_BG}';this.style.color='#94a3b8'">
               ${btn.icon} ${btn.label}
             </button>
             `;
           }).join('')}
         </div>
-      </div>
+      </section>
 
       <!-- ========================================================== -->
-      <!-- 📊 次要信息（轻量，不抢视觉） -->
+      <!-- 📈 进度条 + 详情（Hero 外的进度条）                         -->
       <!-- ========================================================== -->
-      <div style="
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
+      <section style="
+        background: ${CARD_BG};
+        border-radius: ${CARD_RADIUS};
+        padding: 14px ${CARD_PADDING};
+        border: ${CARD_BORDER};
+        margin-bottom: 20px;
+      ">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+          <span style="font-size:11px;color:#94a3b8;">Overall Progress</span>
+          <span style="font-size:12px;font-weight:600;">${percent}%</span>
+        </div>
+        <div style="
+          height: 4px;
+          background: rgba(255,255,255,0.04);
+          border-radius: 100px;
+          overflow: hidden;
+        ">
+          <div style="
+            width: ${percent}%;
+            height: 100%;
+            background: linear-gradient(90deg, #4a9eff, #7c3aed);
+            border-radius: 100px;
+            transition: width 0.8s ease;
+          "></div>
+        </div>
+      </section>
+
+      <!-- ========================================================== -->
+      <!-- 📈 LEARNING INSIGHTS — 次要详情，自然在滚动下方             -->
+      <!-- ========================================================== -->
+      <section style="
+        background: ${CARD_BG};
+        border-radius: ${CARD_RADIUS};
+        padding: ${CARD_PADDING};
+        border: ${CARD_BORDER};
         margin-bottom: 16px;
-        opacity: 0.7;
       ">
-        <!-- 进度卡片 -->
-        <div style="
-          background: rgba(255,255,255,0.02);
-          border-radius: 12px;
-          padding: 12px 16px;
-          border: 1px solid rgba(255,255,255,0.04);
-        ">
-          <div style="font-size: 11px;color:#64748b;font-weight:400;">📊 Completion</div>
-          <div style="font-size: 18px;font-weight:600;margin:2px 0;">${completionRate}%</div>
-          <div style="font-size: 10px;color:#64748b;">${completedCount} of ${totalCount} lessons</div>
+        <p style="margin:0 0 10px;font-size:11px;color:#64748b;font-weight:500;letter-spacing:0.6px;">
+          📈 LEARNING INSIGHTS
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div>
+            <span style="font-size:10px;color:#64748b;">Current Stage</span>
+            <p style="margin:2px 0 0;font-size:14px;font-weight:500;">${currentStage}</p>
+          </div>
+          <div>
+            <span style="font-size:10px;color:#64748b;">Last Active</span>
+            <p style="margin:2px 0 0;font-size:14px;font-weight:500;">${lastCompletedDate}</p>
+          </div>
+          <div>
+            <span style="font-size:10px;color:#64748b;">Longest Streak</span>
+            <p style="margin:2px 0 0;font-size:14px;font-weight:500;">${streakData.longestStreak || 0} days</p>
+          </div>
+          <div>
+            <span style="font-size:10px;color:#64748b;">Level Progress</span>
+            <p style="margin:2px 0 0;font-size:14px;font-weight:500;">${levelInfo.currentLevelXP || 0} / ${levelInfo.nextLevelXP || 100} XP</p>
+          </div>
         </div>
-
-        <!-- 成就卡片 -->
-        <div style="
-          background: rgba(255,255,255,0.02);
-          border-radius: 12px;
-          padding: 12px 16px;
-          border: 1px solid rgba(255,255,255,0.04);
-        ">
-          <div style="font-size: 11px;color:#64748b;font-weight:400;">🏆 Achievements</div>
-          <div style="font-size: 18px;font-weight:600;margin:2px 0;">${achievements.length}</div>
-          <div style="font-size: 10px;color:#64748b;">${achievements.length === 0 ? 'Complete lessons to unlock' : 'Keep going!'}</div>
-        </div>
-      </div>
-
-      <!-- ========================================================== -->
-      <!-- 📖 推荐（延迟加载，不阻塞首屏） -->
-      <!-- ========================================================== -->
-      <div id="dashboard-recommendations" style="
-        background: rgba(255,255,255,0.02);
-        border-radius: 12px;
-        padding: 14px 16px;
-        border: 1px solid rgba(255,255,255,0.04);
-        min-height: 80px;
-        opacity: 0.6;
-        transition: opacity 0.4s ease;
-      ">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-          <span style="font-size:14px;">🌟</span>
-          <span style="font-size:12px;color:#94a3b8;font-weight:400;">Recommended for you</span>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:4px;">
-          ${[0,1,2].map(function(i) {
-            return `
-            <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:${i < 2 ? '1px solid rgba(255,255,255,0.03)' : 'none'};">
-              <span style="font-size:12px;opacity:0.4;">⏳</span>
-              <div style="flex:1;height:8px;width:${70 - i * 15}%;background:rgba(255,255,255,0.04);border-radius:4px;animation:pulse 1.5s infinite ${i * 0.2}s;"></div>
-            </div>
-            `;
-          }).join('')}
-        </div>
-        <style>
-          @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-          }
-          @keyframes dashboardFade {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-        </style>
-      </div>
+      </section>
 
       <!-- ========================================================== -->
       <!-- 页脚 -->
       <!-- ========================================================== -->
-      <div style="
+      <footer style="
         text-align:center;
-        margin-top:20px;
-        padding:12px;
+        padding:16px;
         color:#64748b;
         font-size:10px;
         letter-spacing:0.5px;
         border-top:1px solid rgba(255,255,255,0.03);
       ">
-        Law AI Academy
-      </div>
+        Law AI Academy · V${window.App?.version || '5.1.1'}
+      </footer>
 
     </div>
+
+    <style>
+      @keyframes heroFadeIn {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    </style>
     `;
   },
 
   // ============================================================
-  // 辅助方法
+  // 辅助方法（全部保留，不改）
   // ============================================================
 
   _getGreeting: function() {
@@ -658,10 +682,9 @@ LawAIApp.Dashboard = {
   },
 
   /**
-   * 初始化动画
+   * 初始化动画（保留，不改）
    */
   _initAnimations: function() {
-    // 延迟加载推荐
     var self = this;
     setTimeout(function() {
       self._loadRecommendations();
@@ -669,7 +692,7 @@ LawAIApp.Dashboard = {
   },
 
   /**
-   * 加载推荐（延迟）
+   * 加载推荐延迟（保留全部原有逻辑，不改）
    */
   _loadRecommendations: function() {
     var container = document.getElementById('dashboard-recommendations');
@@ -742,21 +765,20 @@ LawAIApp.Dashboard = {
   },
 
   /**
-   * 刷新 Dashboard
+   * 刷新 Dashboard（保留，不改）
    */
   refresh: function() {
     if (!this._rendered) {
       this.render();
       return;
     }
-    // 简单刷新：重新渲染
     this.render();
     console.log('🔄 Dashboard refreshed');
   }
 };
 
 // ============================================================
-// 自动初始化
+// 自动初始化（保留，不改）
 // ============================================================
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
   setTimeout(function() {
@@ -769,4 +791,4 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
   }, 500);
 }
 
-console.log('📊 Dashboard V3.0 ready (Phase 1 - Emotional Recovery)');
+console.log('📊 Dashboard V4.0 ready (Canon V2.0 - First Impression)');
