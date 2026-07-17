@@ -1,6 +1,7 @@
 // ===========================================
 // devPanel.js
-// 开发者面板 - Ctrl+Shift+D 调出（Season 1.5 Part L 最终版 + Recovery Architecture Part 2）
+// 开发者面板 - Ctrl+Shift+D 调出
+// Recovery R1 Parts 1, 2, 3 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -40,8 +41,8 @@ LawAIApp.Debug.DevPanel = {
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 14px;
             padding: 20px;
-            max-width: 360px;
-            max-height: 80vh;
+            max-width: 380px;
+            max-height: 85vh;
             overflow-y: auto;
             box-shadow: 0 20px 60px rgba(0,0,0,0.8);
             color: #e2e8f0;
@@ -50,7 +51,20 @@ LawAIApp.Debug.DevPanel = {
             backdrop-filter: blur(20px);
         `;
 
-        // 获取状态
+        // ============================================================
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3)
+        // ============================================================
+        
+        // Part 1: Architecture Info
+        var archInfo = this._getArchitectureInfo();
+        
+        // Part 2: Runtime Info
+        var runtimeInfo = this._getRuntimeInfo();
+        
+        // Part 3: Feature Governance Info
+        var featureInfo = this._getFeatureInfo();
+
+        // Engine Status
         var engineStatus = [];
         try {
             if (LawAIApp.StartupValidator && typeof LawAIApp.StartupValidator.validate === 'function') {
@@ -58,6 +72,7 @@ LawAIApp.Debug.DevPanel = {
             }
         } catch (e) { engineStatus = ['StartupValidator not available']; }
 
+        // Storage Report
         var storageReport = { totalKeys: 0, orphanKeys: [] };
         try {
             if (LawAIApp.Debug?.StorageAudit && typeof LawAIApp.Debug.StorageAudit.audit === 'function') {
@@ -70,19 +85,19 @@ LawAIApp.Debug.DevPanel = {
         var version = LawAIApp.SystemComposer?.version || '4.0.17';
 
         // ============================================================
-        // 🔥 PART 1 & 2 RECOVERY: Get Architecture Info + Runtime Status
+        // BUILD PANEL HTML
         // ============================================================
-        var archInfo = this._getArchitectureInfo();
-        var runtimeInfo = this._getRuntimeInfo();
-
         this._panel.innerHTML = `
             <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px;margin-bottom:12px;">
                 <span style="font-size:16px;font-weight:700;color:#4a9eff;">🛠️ Dev Panel</span>
+                <span style="font-size:10px;color:#475569;">v${version}</span>
                 <button onclick="LawAIApp.Debug.DevPanel.hide()" style="background:none;border:none;color:#64748b;font-size:18px;cursor:pointer;">✕</button>
             </div>
 
-            <!-- 🔥 Runtime Status -->
-            <div style="margin-bottom:10px;padding:8px 12px;background:rgba(74,158,255,0.06);border-radius:8px;border-left:2px solid #4a9eff;">
+            <!-- ========================================================== -->
+            <!-- 🔥 PART 2: RUNTIME STATUS -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(74,158,255,0.06);border-radius:8px;border-left:2px solid #4a9eff;">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                     <span style="font-size:11px;color:#94a3b8;font-weight:600;">⚡ Runtime</span>
                     <span style="font-size:10px;color:${runtimeInfo.ready ? '#22c55e' : '#f59e0b'};">${runtimeInfo.ready ? '✅ Ready' : '⏳ ' + runtimeInfo.status}</span>
@@ -92,10 +107,15 @@ LawAIApp.Debug.DevPanel = {
                     <span>Uptime: ${runtimeInfo.uptime}</span>
                     <span>Version: ${runtimeInfo.version}</span>
                 </div>
+                <div style="font-size:9px;color:#475569;margin-top:2px;">
+                    Registry: ${runtimeInfo.registryCount} modules loaded
+                </div>
             </div>
 
-            <!-- 🔥 Architecture Status -->
-            <div style="margin-bottom:10px;padding:8px 12px;background:rgba(74,158,255,0.04);border-radius:8px;border-left:2px solid #64748b;">
+            <!-- ========================================================== -->
+            <!-- 🔥 PART 1: ARCHITECTURE STATUS -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(74,158,255,0.04);border-radius:8px;border-left:2px solid #64748b;">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                     <span style="font-size:11px;color:#94a3b8;font-weight:600;">🏗️ Architecture</span>
                     <span style="font-size:10px;color:${archInfo.ready ? '#22c55e' : '#f59e0b'};">${archInfo.ready ? '✅ Ready' : '⏳ Initializing'}</span>
@@ -105,24 +125,40 @@ LawAIApp.Debug.DevPanel = {
                     <span>Layers: ${archInfo.layers}</span>
                     <span>Warnings: ${archInfo.warnings}</span>
                 </div>
+                <div style="font-size:9px;color:#475569;margin-top:2px;max-height:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    Layers: ${archInfo.layerList || 'N/A'}
+                </div>
             </div>
 
-            <!-- 🔥 Runtime Registry Info -->
-            <div style="margin-bottom:10px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+            <!-- ========================================================== -->
+            <!-- 🔥 PART 3: FEATURE GOVERNANCE -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">📦 Runtime Registry</span>
-                    <span style="font-size:10px;color:#94a3b8;">${runtimeInfo.registryCount} modules</span>
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">📦 Feature Governance</span>
+                    <span style="font-size:10px;color:${featureInfo.healthScore >= 80 ? '#22c55e' : '#ef4444'};">${featureInfo.healthScore}%</span>
                 </div>
-                <div style="font-size:10px;color:#64748b;margin-top:4px;max-height:40px;overflow-y:auto;">
-                    ${runtimeInfo.registryModules || 'No modules registered'}
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Total: ${featureInfo.total}</span>
+                    <span>✅ ${featureInfo.healthy}</span>
+                    <span>❌ ${featureInfo.unhealthy}</span>
+                    <span>⛔ ${featureInfo.disabled}</span>
+                    <span>⚠️ ${featureInfo.warnings}</span>
                 </div>
+                <div style="font-size:9px;color:#475569;margin-top:2px;">
+                    Domains: ${featureInfo.domains}
+                </div>
+                ${featureInfo.broken > 0 ? `
+                    <div style="font-size:9px;color:#ef4444;margin-top:2px;">
+                        ⚠️ ${featureInfo.broken} broken features detected
+                    </div>
+                ` : ''}
             </div>
 
+            <!-- ========================================================== -->
+            <!-- SYSTEM INFO -->
+            <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
-                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
-                    <span style="color:#64748b;">Version</span>
-                    <span style="color:#e2e8f0;font-weight:600;">${version}</span>
-                </div>
                 <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
                     <span style="color:#64748b;">Engines</span>
                     <span style="color:${engineStatus.length > 0 ? '#ef4444' : '#22c55e'};font-weight:600;">${engineStatus.length > 0 ? engineStatus.join(', ') : '✅ All loaded'}</span>
@@ -133,6 +169,9 @@ LawAIApp.Debug.DevPanel = {
                 </div>
             </div>
 
+            <!-- ========================================================== -->
+            <!-- ACTIONS -->
+            <!-- ========================================================== -->
             <div style="display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;">
                 <button onclick="if(confirm('⚠️ Delete ALL data?')){LawAIApp.FactoryReset?.resetAll?.() || LawAIApp.FactoryReset?.execute?.()}" style="padding:6px 14px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.2);border-radius:8px;color:#ef4444;font-size:12px;cursor:pointer;">🗑️ Reset</button>
                 <button onclick="LawAIApp.FactoryReset?.exportBackup?.() || LawAIApp.Debug?.StorageAudit?.exportAll?.()" style="padding:6px 14px;background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.15);border-radius:8px;color:#4a9eff;font-size:12px;cursor:pointer;">💾 Export</button>
@@ -142,15 +181,22 @@ LawAIApp.Debug.DevPanel = {
                 <button onclick="location.reload()" style="padding:6px 14px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.15);border-radius:8px;color:#22c55e;font-size:12px;cursor:pointer;">🔄 Reload</button>
             </div>
 
-            <!-- 🔥 Architecture Details (collapsible) -->
+            <!-- ========================================================== -->
+            <!-- 🔥 DETAILS (Collapsible) -->
+            <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">🏗️ Architecture Details</summary>
-                <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.6;max-height:120px;overflow-y:auto;">
-                    <div>Domains: ${archInfo.domainList || 'N/A'}</div>
-                    <div>Layers: ${archInfo.layerList || 'N/A'}</div>
-                    <div>Recovery Flags: ${archInfo.flags || 'N/A'}</div>
-                    <div>Runtime Status: ${runtimeInfo.status}</div>
-                    <div>Runtime Version: ${runtimeInfo.version}</div>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-3)</summary>
+                <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
+                    <div><strong>Part 1 - Architecture:</strong></div>
+                    <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
+                    <div style="padding-left:12px;">Flags: ${archInfo.flags || 'N/A'}</div>
+                    <div><strong>Part 2 - Runtime:</strong></div>
+                    <div style="padding-left:12px;">Status: ${runtimeInfo.status}</div>
+                    <div style="padding-left:12px;">Registry: ${runtimeInfo.registryCount} modules</div>
+                    <div><strong>Part 3 - Features:</strong></div>
+                    <div style="padding-left:12px;">Total: ${featureInfo.total}</div>
+                    <div style="padding-left:12px;">Health: ${featureInfo.healthScore}%</div>
+                    <div style="padding-left:12px;">Broken: ${featureInfo.broken}</div>
                 </div>
             </details>
 
@@ -166,8 +212,20 @@ LawAIApp.Debug.DevPanel = {
     },
 
     /**
-     * 🔥 PART 1 RECOVERY: Get architecture info from registries
+     * 隐藏面板
      */
+    hide: function() {
+        if (this._panel) {
+            this._panel.remove();
+            this._panel = null;
+        }
+        this._isOpen = false;
+    },
+
+    // ============================================================
+    // 🔥 PART 1: ARCHITECTURE INFO
+    // ============================================================
+
     _getArchitectureInfo: function() {
         var info = {
             ready: false,
@@ -224,9 +282,10 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
-    /**
-     * 🔥 PART 2 RECOVERY: Get runtime info
-     */
+    // ============================================================
+    // 🔥 PART 2: RUNTIME INFO
+    // ============================================================
+
     _getRuntimeInfo: function() {
         var info = {
             ready: false,
@@ -253,10 +312,10 @@ LawAIApp.Debug.DevPanel = {
                 info.uptime = health.uptime ? Math.round(health.uptime / 1000) + 's' : '0s';
             }
 
-            // Runtime Registry (你的现有版本)
+            // Runtime Registry
             var runtimeRegistry = LawAIApp.RuntimeRegistry || window.runtimeRegistry;
-            if (runtimeRegistry && typeof runtimeRegistry.getAll === 'function') {
-                var all = runtimeRegistry.getAll();
+            if (runtimeRegistry && typeof runtimeRegistry.list === 'function') {
+                var all = runtimeRegistry.list();
                 info.registryCount = all.length;
                 info.registryModules = all.map(function(e) { return e.name; }).join(', ');
             }
@@ -268,15 +327,79 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
-    /**
-     * 隐藏面板
-     */
-    hide: function() {
-        if (this._panel) {
-            this._panel.remove();
-            this._panel = null;
+    // ============================================================
+    // 🔥 PART 3: FEATURE GOVERNANCE INFO
+    // ============================================================
+
+    _getFeatureInfo: function() {
+        var info = {
+            total: 0,
+            healthy: 0,
+            unhealthy: 0,
+            disabled: 0,
+            warnings: 0,
+            broken: 0,
+            healthScore: 0,
+            domains: 'N/A',
+            brokenList: []
+        };
+
+        try {
+            // Feature Registry
+            var featureRegistry = LawAIApp.FeatureRegistry || window.featureRegistry;
+            if (featureRegistry && typeof featureRegistry.list === 'function') {
+                var features = featureRegistry.list();
+                info.total = features.length;
+                
+                // Count healthy/unhealthy
+                var healthyCount = 0;
+                var unhealthyCount = 0;
+                var disabledCount = 0;
+                var brokenList = [];
+                
+                for (var i = 0; i < features.length; i++) {
+                    var f = features[i];
+                    if (f.status === 'disabled') {
+                        disabledCount++;
+                    } else if (f.healthy === false) {
+                        unhealthyCount++;
+                        brokenList.push(f.name || f.id);
+                    } else {
+                        healthyCount++;
+                    }
+                }
+                
+                info.healthy = healthyCount;
+                info.unhealthy = unhealthyCount;
+                info.disabled = disabledCount;
+                info.broken = brokenList.length;
+                info.brokenList = brokenList;
+                
+                // Health score
+                var total = features.length - disabledCount;
+                if (total > 0) {
+                    info.healthScore = Math.round((healthyCount / total) * 100);
+                }
+                
+                // Domains
+                if (typeof featureRegistry.getDomains === 'function') {
+                    var domains = featureRegistry.getDomains();
+                    info.domains = domains.join(', ');
+                }
+            }
+
+            // Feature Validator warnings
+            var featureValidator = LawAIApp.FeatureValidator || window.featureValidator;
+            if (featureValidator && typeof featureValidator.getWarnings === 'function') {
+                var warnings = featureValidator.getWarnings();
+                info.warnings = warnings.length || 0;
+            }
+
+        } catch (err) {
+            console.warn('Could not get feature info:', err);
         }
-        this._isOpen = false;
+
+        return info;
     },
 
     /**
@@ -305,7 +428,10 @@ LawAIApp.Debug.DevPanel = {
     }
 };
 
-// 快捷键
+// ============================================================
+// KEYBOARD SHORTCUT
+// ============================================================
+
 document.addEventListener('keydown', function(e) {
     if (e.ctrlKey && e.shiftKey && (e.key === 'd' || e.key === 'D')) {
         e.preventDefault();
@@ -313,9 +439,15 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// 备选：如果 LawAIApp.DevPanel 还没定义，创建别名
+// ============================================================
+// ALIASES
+// ============================================================
+
 if (!LawAIApp.DevPanel) {
     LawAIApp.DevPanel = LawAIApp.Debug.DevPanel;
 }
 
-console.log('🛠️ DevPanel ready (Ctrl+Shift+D) [Recovery Architecture Part 2 Enabled]');
+console.log('🛠️ DevPanel ready (Ctrl+Shift+D)');
+console.log('   ✅ Recovery R1 Part 1 - Architecture');
+console.log('   ✅ Recovery R1 Part 2 - Runtime');
+console.log('   ✅ Recovery R1 Part 3 - Feature Governance');
