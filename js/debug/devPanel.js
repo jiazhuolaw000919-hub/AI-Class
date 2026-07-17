@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+‘ 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -78,6 +78,9 @@ LawAIApp.Debug.DevPanel = {
         
         // Part 8: Runtime Freeze Info
         var runtimeFreezeInfo = this._getRuntimeFreezeInfo();
+        
+        // Part 9: Registry Freeze Info
+        var registryFreezeInfo = this._getRegistryFreezeInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -292,6 +295,30 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 9: REGISTRY FREEZE -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(34,197,94,0.04);border-radius:8px;border-left:2px solid #22c55e;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">📋 Registry Freeze</span>
+                    <span style="font-size:10px;color:${registryFreezeInfo.status === 'compliant' ? '#22c55e' : '#f59e0b'};">${registryFreezeInfo.status.toUpperCase()}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Constitution: ${registryFreezeInfo.constitutionLoaded ? '✅' : '⏳'}</span>
+                    <span>Policy: ${registryFreezeInfo.policyReady ? '✅' : '⏳'}</span>
+                    <span>Validator: ${registryFreezeInfo.validatorReady ? '✅' : '⏳'}</span>
+                    <span>Manifest: ${registryFreezeInfo.manifestReady ? '✅' : '⏳'}</span>
+                    <span>Health: ${registryFreezeInfo.healthReady ? '✅' : '⏳'}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Registries: ${registryFreezeInfo.registriesHealthy}/${registryFreezeInfo.registriesTotal}</span>
+                    <span>Health Score: ${registryFreezeInfo.healthScore}%</span>
+                    ${registryFreezeInfo.registriesMissing > 0 ? `
+                        <span style="color:#ef4444;">Missing: ${registryFreezeInfo.registriesMissing}</span>
+                    ` : ''}
+                </div>
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -321,7 +348,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-8)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-9)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -353,6 +380,10 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Status: ${runtimeFreezeInfo.status}</div>
                     <div style="padding-left:12px;">Modules: ${runtimeFreezeInfo.modulesExists}/${runtimeFreezeInfo.modulesTotal}</div>
                     <div style="padding-left:12px;">Health Score: ${runtimeFreezeInfo.healthScore}%</div>
+                    <div><strong>Part 9 - Registry Freeze:</strong></div>
+                    <div style="padding-left:12px;">Status: ${registryFreezeInfo.status}</div>
+                    <div style="padding-left:12px;">Registries: ${registryFreezeInfo.registriesHealthy}/${registryFreezeInfo.registriesTotal}</div>
+                    <div style="padding-left:12px;">Health Score: ${registryFreezeInfo.healthScore}%</div>
                 </div>
             </details>
 
@@ -838,6 +869,69 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 9: REGISTRY FREEZE INFO
+    // ============================================================
+
+    _getRegistryFreezeInfo: function() {
+        var info = {
+            constitutionLoaded: false,
+            policyReady: false,
+            validatorReady: false,
+            manifestReady: false,
+            healthReady: false,
+            status: 'unknown',
+            healthScore: 0,
+            registriesTotal: 0,
+            registriesHealthy: 0,
+            registriesMissing: 0
+        };
+
+        try {
+            // Registry Policy
+            var policy = LawAIApp.RegistryPolicy || window.registryPolicy;
+            if (policy) {
+                info.policyReady = true;
+                info.constitutionLoaded = true;
+            }
+
+            // Registry Validator
+            var validator = LawAIApp.RegistryValidator || window.registryValidator;
+            if (validator) {
+                info.validatorReady = true;
+                if (typeof validator.isCompliant === 'function') {
+                    info.status = validator.isCompliant() ? 'compliant' : 'violations';
+                }
+            }
+
+            // Registry Manifest
+            var manifest = LawAIApp.RegistryManifest || window.registryManifest;
+            if (manifest && typeof manifest.getRegistries === 'function') {
+                info.manifestReady = true;
+                var registries = manifest.getRegistries();
+                info.registriesTotal = registries.length;
+                info.registriesHealthy = registries.filter(function(r) { return r.exists && r.hasMeta; }).length;
+                info.registriesMissing = registries.filter(function(r) { return !r.exists; }).length;
+            }
+
+            // Registry Health
+            var health = LawAIApp.RegistryHealth || window.registryHealth;
+            if (health && typeof health.getHealth === 'function') {
+                info.healthReady = true;
+                var data = health.getHealth();
+                info.healthScore = data.healthScore || 0;
+                if (!info.status || info.status === 'unknown') {
+                    info.status = data.status || 'unknown';
+                }
+            }
+
+        } catch (err) {
+            console.warn('Could not get registry freeze info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -893,3 +987,4 @@ console.log('   ✅ Recovery R1 Part 5 - Architecture Audit');
 console.log('   ✅ Recovery R1 Part 6 - Architecture Freeze');
 console.log('   ✅ Recovery R1 Part 7 - Engine Standards');
 console.log('   ✅ Recovery R1 Part 8 - Runtime Freeze');
+console.log('   ✅ Recovery R1 Part 9 - Registry Freeze');
