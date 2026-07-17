@@ -1,6 +1,6 @@
 // ===========================================
 // devPanel.js
-// 开发者面板 - Ctrl+Shift+D 调出（Season 1.5 Part L 最终版）
+// 开发者面板 - Ctrl+Shift+D 调出（Season 1.5 Part L 最终版 + Recovery Architecture）
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -69,10 +69,28 @@ LawAIApp.Debug.DevPanel = {
 
         var version = LawAIApp.SystemComposer?.version || '4.0.17';
 
+        // ============================================================
+        // 🔥 PART 1 RECOVERY: Get Architecture Info
+        // ============================================================
+        var archInfo = this._getArchitectureInfo();
+
         this._panel.innerHTML = `
             <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px;margin-bottom:12px;">
                 <span style="font-size:16px;font-weight:700;color:#4a9eff;">🛠️ Dev Panel</span>
                 <button onclick="LawAIApp.Debug.DevPanel.hide()" style="background:none;border:none;color:#64748b;font-size:18px;cursor:pointer;">✕</button>
+            </div>
+
+            <!-- 🔥 Architecture Status -->
+            <div style="margin-bottom:10px;padding:8px 12px;background:rgba(74,158,255,0.06);border-radius:8px;border-left:2px solid #4a9eff;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🏗️ Architecture</span>
+                    <span style="font-size:10px;color:${archInfo.ready ? '#22c55e' : '#f59e0b'};">${archInfo.ready ? '✅ Ready' : '⏳ Initializing'}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Domains: ${archInfo.domains}</span>
+                    <span>Layers: ${archInfo.layers}</span>
+                    <span>Warnings: ${archInfo.warnings}</span>
+                </div>
             </div>
 
             <div style="margin-bottom:12px;">
@@ -99,6 +117,16 @@ LawAIApp.Debug.DevPanel = {
                 <button onclick="location.reload()" style="padding:6px 14px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.15);border-radius:8px;color:#22c55e;font-size:12px;cursor:pointer;">🔄 Reload</button>
             </div>
 
+            <!-- 🔥 Architecture Details (collapsible) -->
+            <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">🏗️ Architecture Details</summary>
+                <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.6;max-height:120px;overflow-y:auto;">
+                    <div>Domains: ${archInfo.domainList || 'N/A'}</div>
+                    <div>Layers: ${archInfo.layerList || 'N/A'}</div>
+                    <div>Recovery Flags: ${archInfo.flags || 'N/A'}</div>
+                </div>
+            </details>
+
             <div style="font-size:10px;color:#475569;text-align:center;border-top:1px solid rgba(255,255,255,0.04);padding-top:10px;margin-top:12px;">
                 Press Ctrl+Shift+D to close
             </div>
@@ -108,6 +136,65 @@ LawAIApp.Debug.DevPanel = {
 
         document.body.appendChild(this._panel);
         this._isOpen = true;
+    },
+
+    /**
+     * 🔥 PART 1 RECOVERY: Get architecture info from registries
+     */
+    _getArchitectureInfo: function() {
+        var info = {
+            ready: false,
+            domains: 0,
+            layers: 0,
+            warnings: 0,
+            domainList: '',
+            layerList: '',
+            flags: ''
+        };
+
+        try {
+            // Domain Registry
+            var domainRegistry = LawAIApp.DomainRegistry || window.domainRegistry;
+            if (domainRegistry && typeof domainRegistry.list === 'function') {
+                var domains = domainRegistry.list();
+                info.domains = domains.length;
+                info.domainList = domains.map(function(d) { return d.name; }).join(', ');
+            }
+
+            // Layer Registry
+            var layerRegistry = LawAIApp.LayerRegistry || window.layerRegistry;
+            if (layerRegistry && typeof layerRegistry.list === 'function') {
+                var layers = layerRegistry.list();
+                info.layers = Object.keys(layers).length;
+                info.layerList = Object.keys(layers).join(', ');
+            }
+
+            // Architecture Validator - check warnings
+            var archValidator = LawAIApp.ArchitectureValidator || window.architectureValidator;
+            if (archValidator && archValidator.warnings) {
+                info.warnings = archValidator.warnings.length || 0;
+            }
+
+            // Recovery Flags
+            var constants = LawAIApp.ArchitectureConstants || window.architectureConstants;
+            if (constants && constants.RECOVERY_FLAGS) {
+                var flags = constants.RECOVERY_FLAGS;
+                var flagStr = [];
+                for (var key in flags) {
+                    if (flags.hasOwnProperty(key)) {
+                        flagStr.push(key + ':' + (flags[key] ? '✅' : '⏳'));
+                    }
+                }
+                info.flags = flagStr.join(' ');
+            }
+
+            info.ready = info.domains > 0 && info.layers > 0;
+
+        } catch (err) {
+            console.warn('Could not get architecture info:', err);
+        }
+
+        return info;
     },
 
     /**
@@ -160,4 +247,4 @@ if (!LawAIApp.DevPanel) {
     LawAIApp.DevPanel = LawAIApp.Debug.DevPanel;
 }
 
-console.log('🛠️ DevPanel ready (Ctrl+Shift+D)');
+console.log('🛠️ DevPanel ready (Ctrl+Shift+D) [Recovery Architecture Enabled]');
