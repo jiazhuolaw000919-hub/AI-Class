@@ -38,13 +38,13 @@ This rule is absolute and non-negotiable.
 window.LawAIApp = window.LawAIApp || {};
 LawAIApp.EngineName = { ... };
 LawAIApp.FeatureName = { ... };
+
 ❌ Forbidden:
 javascript
 window.MyEngine = { ... };
 window.FeatureX = { ... };
 window.someVariable = ...;
 No additional global namespaces.
-
 No window.xxx outside LawAIApp.
 
 ═══════════════════════════════════════
