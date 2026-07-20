@@ -1369,7 +1369,8 @@ LawAIApp.Debug.DevPanel = {
 
         return info;
     },
-        // ============================================================
+    
+    // ============================================================
     // 🔥 PART 14: LIFECYCLE INFO
     // ============================================================
 
@@ -1407,6 +1408,126 @@ LawAIApp.Debug.DevPanel = {
 
         } catch (err) {
             console.warn('Could not get lifecycle info:', err);
+        }
+
+        return info;
+    },
+    
+    // ============================================================
+    // 🔥 PART 15: ENGINE AUDIT INFO
+    // ============================================================
+
+    _getEngineAuditInfo: function() {
+        var info = {
+            totalEngines: 0,
+            auditScore: 0,
+            auditStatus: 'unknown',
+            passingEngines: 0,
+            failingEngines: 0,
+            healthyEngines: 0,
+            brokenEngines: 0,
+            warningEngines: 0,
+            coveragePercentage: 0,
+            recommendations: [],
+            coverage: {
+                identity: 0,
+                domain: 0,
+                capability: 0,
+                version: 0,
+                owner: 0,
+                status: 0
+            }
+        };
+
+        try {
+            var report = LawAIApp.EngineAuditReport || window.engineAuditReport;
+            if (report && typeof report.getReport === 'function') {
+                var data = report.getReport();
+                if (data) {
+                    info.totalEngines = data.developerSummary ? data.developerSummary.totalEngines || 0 : 0;
+                    info.auditScore = data.developerSummary ? data.developerSummary.auditScore || 0 : 0;
+                    info.auditStatus = data.developerSummary ? data.developerSummary.auditStatus || 'unknown' : 'unknown';
+                    info.passingEngines = data.developerSummary ? data.developerSummary.passingEngines || 0 : 0;
+                    info.failingEngines = data.developerSummary ? data.developerSummary.failingEngines || 0 : 0;
+                    info.healthyEngines = data.healthSummary ? data.healthSummary.healthyEngines || 0 : 0;
+                    info.brokenEngines = data.healthSummary ? data.healthSummary.brokenEngines || 0 : 0;
+                    info.warningEngines = data.healthSummary ? data.healthSummary.warningEngines || 0 : 0;
+                    info.coveragePercentage = data.healthSummary ? data.healthSummary.coveragePercentage || 0 : 0;
+                    info.recommendations = data.recommendations || [];
+                    
+                    if (data.coverageSummary) {
+                        info.coverage.identity = data.coverageSummary.identity ? data.coverageSummary.identity.percentage || 0 : 0;
+                        info.coverage.domain = data.coverageSummary.domain ? data.coverageSummary.domain.percentage || 0 : 0;
+                        info.coverage.capability = data.coverageSummary.capability ? data.coverageSummary.capability.percentage || 0 : 0;
+                        info.coverage.version = data.coverageSummary.version ? data.coverageSummary.version.percentage || 0 : 0;
+                        info.coverage.owner = data.coverageSummary.owner ? data.coverageSummary.owner.percentage || 0 : 0;
+                        info.coverage.status = data.coverageSummary.status ? data.coverageSummary.status.percentage || 0 : 0;
+                    }
+                }
+            }
+
+        } catch (err) {
+            console.warn('Could not get engine audit info:', err);
+        }
+
+        return info;
+    },
+
+    // ============================================================
+    // 🔥 PART 16: ENGINE GOVERNANCE CENTER INFO
+    // ============================================================
+
+    _getGovernanceInfo: function() {
+        var info = {
+            score: 0,
+            status: 'unknown',
+            coverage: 0,
+            totalEngines: 0,
+            healthyEngines: 0,
+            incompleteEngines: 0,
+            brokenEngines: 0,
+            topHealthy: [],
+            needsAttention: [],
+            recommendations: [],
+            maturity: {
+                core: 0,
+                business: 0,
+                support: 0,
+                experimental: 0,
+                deprecated: 0
+            },
+            violations: 0
+        };
+
+        try {
+            var dashboard = LawAIApp.GovernanceDashboard || window.governanceDashboard;
+            if (dashboard && typeof dashboard.getDashboard === 'function') {
+                var data = dashboard.getDashboard();
+                if (data) {
+                    info.score = data.governanceScore ? data.governanceScore.overall || 0 : 0;
+                    info.status = data.governanceScore ? data.governanceScore.status || 'unknown' : 'unknown';
+                    info.coverage = data.governanceScore ? data.governanceScore.coverage || 0 : 0;
+                    info.totalEngines = data.engineCount ? data.engineCount.total || 0 : 0;
+                    info.healthyEngines = data.engineCount ? data.engineCount.healthy || 0 : 0;
+                    info.incompleteEngines = data.engineCount ? data.engineCount.incomplete || 0 : 0;
+                    info.brokenEngines = data.engineCount ? data.engineCount.broken || 0 : 0;
+                    info.topHealthy = data.topHealthy || [];
+                    info.needsAttention = data.needsAttention || [];
+                    info.recommendations = data.recommendations || [];
+                    info.violations = data.violations ? data.violations.count || 0 : 0;
+                    
+                    if (data.maturityDistribution) {
+                        info.maturity.core = data.maturityDistribution.core || 0;
+                        info.maturity.business = data.maturityDistribution.business || 0;
+                        info.maturity.support = data.maturityDistribution.support || 0;
+                        info.maturity.experimental = data.maturityDistribution.experimental || 0;
+                        info.maturity.deprecated = data.maturityDistribution.deprecated || 0;
+                    }
+                }
+            }
+
+        } catch (err) {
+            console.warn('Could not get governance info:', err);
         }
 
         return info;
