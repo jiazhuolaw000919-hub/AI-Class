@@ -63,7 +63,187 @@ LawAIApp.MemoryEngine = (function() {
         } catch (e) {}
     }
 
-    // ... 其余代码保持不变 ...
+    // ===========================================
+    // 🔥 核心记忆函数 (修复 getMemory 未定义)
+    // ===========================================
+
+    /**
+     * 获取记忆条目
+     * @param {string} lessonId - 课程 ID
+     * @returns {Object} 记忆条目
+     */
+    function getMemory(lessonId) {
+        var memories = getAll();
+        if (!memories[lessonId]) {
+            // 创建默认记忆条目
+            memories[lessonId] = {
+                lessonId: lessonId,
+                strength: 0,
+                lastReviewed: null,
+                reviewCount: 0,
+                nextReview: null,
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            };
+            saveAll(memories);
+        }
+        return memories[lessonId];
+    }
+
+    /**
+     * 获取记忆强度
+     * @param {string} lessonId - 课程 ID
+     * @returns {number} 记忆强度 (0-100)
+     */
+    function getMemoryStrength(lessonId) {
+        var memory = getMemory(lessonId);
+        return memory ? memory.strength || 0 : 0;
+    }
+
+    /**
+     * 更新记忆
+     * @param {string} lessonId - 课程 ID
+     * @param {number} score - 分数 (0-100)
+     */
+    function updateMemory(lessonId, score) {
+        var memories = getAll();
+        if (!memories[lessonId]) {
+            memories[lessonId] = {
+                lessonId: lessonId,
+                strength: 0,
+                lastReviewed: null,
+                reviewCount: 0,
+                nextReview: null,
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            };
+        }
+
+        // 更新记忆强度 (加权平均)
+        var currentStrength = memories[lessonId].strength || 0;
+        var newStrength = Math.round((currentStrength * 0.6) + (score * 0.4));
+        memories[lessonId].strength = Math.min(100, Math.max(0, newStrength));
+        memories[lessonId].updatedAt = Date.now();
+
+        saveAll(memories);
+        return memories[lessonId];
+    }
+
+    /**
+     * 记录复习
+     * @param {string} lessonId - 课程 ID
+     * @param {number} performance - 表现 (0-1)
+     */
+    function recordReview(lessonId, performance) {
+        var memories = getAll();
+        if (!memories[lessonId]) {
+            memories[lessonId] = {
+                lessonId: lessonId,
+                strength: 0,
+                lastReviewed: null,
+                reviewCount: 0,
+                nextReview: null,
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            };
+        }
+
+        memories[lessonId].lastReviewed = Date.now();
+        memories[lessonId].reviewCount = (memories[lessonId].reviewCount || 0) + 1;
+        
+        // 根据表现更新强度
+        var score = Math.round(performance * 100);
+        updateMemory(lessonId, score);
+        
+        // 计算下次复习时间 (根据表现调整间隔)
+        var days = 1;
+        if (performance >= 0.9) days = 7;
+        else if (performance >= 0.7) days = 3;
+        else if (performance >= 0.5) days = 1;
+        else days = 0.5;
+        
+        memories[lessonId].nextReview = Date.now() + (days * 24 * 60 * 60 * 1000);
+        saveAll(memories);
+        
+        console.log('🧠 MemoryEngine: Review recorded for ' + lessonId + ' (performance: ' + Math.round(performance * 100) + '%)');
+        return memories[lessonId];
+    }
+
+    /**
+     * 安排复习
+     * @param {number} days - 天数范围
+     * @returns {Array} 需要复习的课程列表
+     */
+    function scheduleReviews(days) {
+        days = days || 7;
+        var now = Date.now();
+        var memories = getAll();
+        var due = [];
+        var limit = now + (days * 24 * 60 * 60 * 1000);
+
+        for (var key in memories) {
+            var memory = memories[key];
+            if (memory.nextReview && memory.nextReview <= limit) {
+                due.push({
+                    lessonId: key,
+                    strength: memory.strength || 0,
+                    reviewCount: memory.reviewCount || 0,
+                    daysOverdue: Math.round((now - memory.nextReview) / (24 * 60 * 60 * 1000))
+                });
+            }
+        }
+
+        // 按强度排序 (弱的先复习)
+        due.sort(function(a, b) {
+            return a.strength - b.strength;
+        });
+
+        return due;
+    }
+
+    /**
+     * 获取今日复习
+     * @returns {Array} 今日复习列表
+     */
+    function getTodayReviews() {
+        return scheduleReviews(1);
+    }
+
+    /**
+     * 获取热图数据 (用于日历显示)
+     * @param {number} days - 天数范围
+     * @returns {Array} 热图数据
+     */
+    function getHeatmap(days) {
+        days = days || 90;
+        var memories = getAll();
+        var heatmap = [];
+        var now = Date.now();
+        var dayMs = 24 * 60 * 60 * 1000;
+
+        for (var i = days - 1; i >= 0; i--) {
+            var date = new Date(now - (i * dayMs));
+            var dateStr = date.toISOString().split('T')[0];
+            var count = 0;
+            
+            for (var key in memories) {
+                var memory = memories[key];
+                if (memory.lastReviewed) {
+                    var reviewDate = new Date(memory.lastReviewed).toISOString().split('T')[0];
+                    if (reviewDate === dateStr) {
+                        count++;
+                    }
+                }
+            }
+            
+            heatmap.push({
+                date: dateStr,
+                count: count
+            });
+        }
+
+        return heatmap;
+    }
 
     // ===========================================
     // ENGINE STATUS
@@ -109,28 +289,74 @@ LawAIApp.MemoryEngine = (function() {
         } catch (e) {}
 
         // 监听课程完成
-        LawAIApp.EventBus?.on?.('LessonCompleted', function(data) {
-            var lessonId = data.lessonId;
-            if (lessonId) {
-                updateMemory(lessonId, 50);
-            }
-        });
+        var eventBus = LawAIApp.EventBus || window.eventBus;
+        if (eventBus && typeof eventBus.on === 'function') {
+            eventBus.on('LessonCompleted', function(data) {
+                var lessonId = data && data.lessonId;
+                if (lessonId) {
+                    updateMemory(lessonId, 50);
+                }
+            });
 
-        // 监听复习完成
-        LawAIApp.EventBus?.on?.('ReviewCompleted', function(data) {
-            if (data.lessonId) {
-                recordReview(data.lessonId, data.performance || 0.7);
-            }
-        });
+            // 监听复习完成
+            eventBus.on('ReviewCompleted', function(data) {
+                if (data && data.lessonId) {
+                    recordReview(data.lessonId, data.performance || 0.7);
+                }
+            });
+        }
 
         console.log('🧠 MemoryEngine v' + _engineVersion + ' initialized');
     }
 
-    // ... 其余代码保持不变（getMemory, getMemoryStrength, updateMemory, recordReview, scheduleReviews, getTodayReviews, getHeatmap）...
+    // ===========================================
+    // 🔥 额外辅助函数 (防止其他缺失)
+    // ===========================================
 
+    /**
+     * 获取所有记忆条目 (别名)
+     */
+    function getAllMemories() {
+        return getAll();
+    }
+
+    /**
+     * 重置记忆
+     */
+    function reset() {
+        _memories = {};
+        try {
+            LawAIApp.StorageEngine?.set?.(_storageKey, { _schemaVersion: _schemaVersion });
+            console.log('🧠 MemoryEngine: Reset complete');
+        } catch (e) {}
+    }
+
+    /**
+     * 导出记忆数据
+     */
+    function exportData() {
+        return getAll();
+    }
+
+    /**
+     * 导入记忆数据
+     */
+    function importData(data) {
+        if (data && typeof data === 'object') {
+            saveAll(data);
+            console.log('🧠 MemoryEngine: Import complete');
+            return true;
+        }
+        return false;
+    }
+
+    // ===========================================
+    // PUBLIC API
+    // ===========================================
     return {
         init: init,
         getAll: getAll,
+        getAllMemories: getAllMemories,
         getMemory: getMemory,
         getMemoryStrength: getMemoryStrength,
         updateMemory: updateMemory,
@@ -138,7 +364,10 @@ LawAIApp.MemoryEngine = (function() {
         scheduleReviews: scheduleReviews,
         getTodayReviews: getTodayReviews,
         getHeatmap: getHeatmap,
-        getStatus: getStatus
+        getStatus: getStatus,
+        reset: reset,
+        exportData: exportData,
+        importData: importData
     };
 })();
 
