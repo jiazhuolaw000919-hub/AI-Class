@@ -1,6 +1,6 @@
 // ===========================================
 // devPanel.js
-// 开发者面板 - Ctrl+Shift+‘ 调出
+// 开发者面板 - Ctrl+Shift+L 调出
 // Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16 Complete
 // ===========================================
 
@@ -629,7 +629,7 @@ LawAIApp.Debug.DevPanel = {
             </details>
 
             <div style="font-size:10px;color:#475569;text-align:center;border-top:1px solid rgba(255,255,255,0.04);padding-top:10px;margin-top:12px;">
-                Press Ctrl+Shift+‘ to close
+                Press Ctrl+Shift+L to close
             </div>
 
             <input type="file" id="dev-import-input" accept=".json" style="display:none" onchange="LawAIApp.FactoryReset?.importBackup?.(this.files[0]) || LawAIApp.Debug?.DevPanel?._importBackup?.(this.files[0])">
@@ -1560,11 +1560,11 @@ LawAIApp.Debug.DevPanel = {
 };
 
 // ============================================================
-// KEYBOARD SHORTCUT - Ctrl+Shift+‘
+// KEYBOARD SHORTCUT - Ctrl+Shift+L
 // ============================================================
 
 document.addEventListener('keydown', function(e) {
-    // 检测 Ctrl+Shift+‘ (键码 222 对应单引号/反引号)
+    // 检测 Ctrl+Shift+L (键码 222 对应单引号/反引号)
     if (e.ctrlKey && e.shiftKey && (e.key === '\'' || e.key === '`' || e.key === '‘' || e.key === '’' || e.keyCode === 222)) {
         e.preventDefault();
         LawAIApp.Debug.DevPanel.toggle();
@@ -1579,7 +1579,7 @@ if (!LawAIApp.DevPanel) {
     LawAIApp.DevPanel = LawAIApp.Debug.DevPanel;
 }
 
-console.log('🛠️ DevPanel ready (Ctrl+Shift+‘)');
+console.log('🛠️ DevPanel ready (Ctrl+Shift+L)');
 console.log('   ✅ Recovery R1 Part 1 - Architecture');
 console.log('   ✅ Recovery R1 Part 2 - Runtime');
 console.log('   ✅ Recovery R1 Part 3 - Feature Governance');
