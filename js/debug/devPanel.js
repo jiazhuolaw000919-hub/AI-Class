@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+‘ 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -99,6 +99,9 @@ LawAIApp.Debug.DevPanel = {
 
         // Part 15: Engine Audit Info
         var engineAuditInfo = this._getEngineAuditInfo();
+
+        // Part 16: Governance Info
+        var governanceInfo = this._getGovernanceInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -503,6 +506,38 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 16: ENGINE GOVERNANCE CENTER -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🏛️ Governance Center</span>
+                    <span style="font-size:10px;color:${governanceInfo.score >= 80 ? '#22c55e' : '#ef4444'};">${governanceInfo.score}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Total: ${governanceInfo.totalEngines}</span>
+                    <span>✅ ${governanceInfo.healthyEngines}</span>
+                    <span>⚠️ ${governanceInfo.incompleteEngines}</span>
+                    <span>❌ ${governanceInfo.brokenEngines}</span>
+                    <span>📊 ${governanceInfo.coverage}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Core: ${governanceInfo.maturity.core}</span>
+                    <span>Business: ${governanceInfo.maturity.business}</span>
+                    <span>Support: ${governanceInfo.maturity.support}</span>
+                </div>
+                ${governanceInfo.brokenEngines > 0 ? `
+                    <div style="font-size:9px;color:#ef4444;margin-top:2px;">
+                        ❌ ${governanceInfo.brokenEngines} broken engines
+                    </div>
+                ` : ''}
+                ${governanceInfo.recommendations && governanceInfo.recommendations.length > 0 && governanceInfo.recommendations[0] !== 'All engines have excellent governance.' ? `
+                    <div style="font-size:8px;color:#f59e0b;margin-top:2px;">
+                        💡 ${governanceInfo.recommendations[0]}
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -532,7 +567,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-15)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-16)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -587,6 +622,9 @@ LawAIApp.Debug.DevPanel = {
                     <div><strong>Part 15 - Engine Governance:</strong></div>
                     <div style="padding-left:12px;">Score: ${engineAuditInfo.auditScore}%</div>
                     <div style="padding-left:12px;">Passing: ${engineAuditInfo.passingEngines}</div>
+                    <div><strong>Part 16 - Governance Center:</strong></div>
+                    <div style="padding-left:12px;">Score: ${governanceInfo.score}%</div>
+                    <div style="padding-left:12px;">Healthy: ${governanceInfo.healthyEngines}</div>
                 </div>
             </details>
 
@@ -1436,6 +1474,7 @@ console.log('   ✅ Recovery R1 Part 12 - Dependency Governance');
 console.log('   ✅ Recovery R1 Part 13 - Capability Governance');
 console.log('   ✅ Recovery R1 Part 14 - Lifecycle Governance');
 console.log('   ✅ Recovery R1 Part 15 - Engine Governance');
+console.log('   ✅ Recovery R1 Part 16 - Governance Center');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
 console.log('   ✅ Law AI Academy Architecture Stable');
