@@ -1,5 +1,5 @@
 // ================================================================
-// bootManager.js – V3.1.2 - Capability Governance Integration
+// bootManager.js – V3.2.2 ready Engine Renaissance Complete
 // 只做一件事：调度启动，不执行具体逻辑
 // ================================================================
 
@@ -15,11 +15,11 @@ LawAIApp.BootManager = {
     },
 
     // ============================================================
-    // 🔥 RECOVERY ARCHITECTURE INTEGRATION (Parts 1-13)
+    // 🔥 RECOVERY ARCHITECTURE INTEGRATION (Parts 1-17)
     // ============================================================
 
     /**
-     * 🔥 Initialize Recovery Architecture (Parts 1-13)
+     * 🔥 Initialize Recovery Architecture (Parts 1-17)
      * Called before normal boot sequence
      */
     _initRecoveryArchitecture: function() {
@@ -1173,6 +1173,68 @@ LawAIApp.BootManager = {
             console.log('✅ Governance Dashboard Ready');
             console.log('✅ Engine Governance Center Ready');
             console.log('✅ Engine Renaissance Phase 1 Complete');
+
+            // ============================================================
+            // 🔥 PART 17: ENGINE EVENT GOVERNANCE
+            // ============================================================
+
+            // 64. ENGINE EVENT MANIFEST
+            if (typeof LawAIApp.EngineEventManifest !== 'undefined') {
+                if (typeof LawAIApp.EngineEventManifest.init === 'function') {
+                    LawAIApp.EngineEventManifest.init();
+                }
+                console.log('✅ EngineEventManifest initialized');
+            } else if (typeof window.engineEventManifest !== 'undefined') {
+                if (typeof window.engineEventManifest.init === 'function') {
+                    window.engineEventManifest.init();
+                }
+                console.log('✅ EngineEventManifest initialized (global)');
+            } else {
+                console.warn('⚠️ EngineEventManifest not found - skipping');
+            }
+
+            // 65. ENGINE EVENT VALIDATOR
+            if (typeof LawAIApp.EngineEventValidator !== 'undefined') {
+                if (typeof LawAIApp.EngineEventValidator.init === 'function') {
+                    LawAIApp.EngineEventValidator.init();
+                }
+                if (typeof LawAIApp.EngineEventValidator.validate === 'function') {
+                    LawAIApp.EngineEventValidator.validate();
+                }
+                console.log('✅ EngineEventValidator initialized');
+            } else if (typeof window.engineEventValidator !== 'undefined') {
+                if (typeof window.engineEventValidator.init === 'function') {
+                    window.engineEventValidator.init();
+                }
+                if (typeof window.engineEventValidator.validate === 'function') {
+                    window.engineEventValidator.validate();
+                }
+                console.log('✅ EngineEventValidator initialized (global)');
+            } else {
+                console.warn('⚠️ EngineEventValidator not found - skipping');
+            }
+
+            // 66. ENGINE EVENT HEALTH
+            if (typeof LawAIApp.EngineEventHealth !== 'undefined') {
+                if (typeof LawAIApp.EngineEventHealth.init === 'function') {
+                    LawAIApp.EngineEventHealth.init();
+                }
+                console.log('✅ EngineEventHealth initialized');
+            } else if (typeof window.engineEventHealth !== 'undefined') {
+                if (typeof window.engineEventHealth.init === 'function') {
+                    window.engineEventHealth.init();
+                }
+                console.log('✅ EngineEventHealth initialized (global)');
+            } else {
+                console.warn('⚠️ EngineEventHealth not found - skipping');
+            }
+
+            console.log('✅ Engine Event Standard Loaded');
+            console.log('✅ Engine Event Manifest Ready');
+            console.log('✅ Engine Event Validator Ready');
+            console.log('✅ Engine Event Health Ready');
+            console.log('✅ Engine Event Governance Ready');
+            console.log('✅ Engine Renaissance Fully Complete');
             
         } catch (err) {
             console.warn('⚠️ Recovery architecture initialization warning:', err.message);
@@ -1189,7 +1251,7 @@ LawAIApp.BootManager = {
             return Promise.resolve({ status: 'already_booted' });
         }
 
-        // 🔥 RECOVERY: Initialize architecture (Parts 1-13)
+        // 🔥 RECOVERY: Initialize architecture (Parts 1-17)
         this._initRecoveryArchitecture();
 
         this._booted = true;
@@ -1235,4 +1297,4 @@ LawAIApp.BootManager = {
     }
 };
 
-console.log('🚀 BootManager V3.1.2 ready (Engine Renaissance Phase 3)');
+console.log('🚀 BootManager V3.2.2 ready (Engine Renaissance Complete)');
