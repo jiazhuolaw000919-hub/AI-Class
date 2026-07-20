@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -102,6 +102,9 @@ LawAIApp.Debug.DevPanel = {
 
         // Part 16: Governance Info
         var governanceInfo = this._getGovernanceInfo();
+
+        // Part 17: Engine Event Info
+        var engineEventInfo = this._getEngineEventInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -538,6 +541,36 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 17: ENGINE EVENTS -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(251,146,60,0.04);border-radius:8px;border-left:2px solid #fb923c;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">⚡ Engine Events</span>
+                    <span style="font-size:10px;color:${engineEventInfo.healthScore >= 80 ? '#22c55e' : '#f59e0b'};">${engineEventInfo.healthScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Official: ${engineEventInfo.officialCount}</span>
+                    <span>Custom: ${engineEventInfo.customCount}</span>
+                    <span>Used: ${engineEventInfo.usedOfficialCount}</span>
+                    <span>📊 ${engineEventInfo.coveragePercentage}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Status: ${engineEventInfo.healthStatus}</span>
+                    <span>Violations: ${engineEventInfo.violations}</span>
+                </div>
+                ${engineEventInfo.customCount > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${engineEventInfo.customCount} custom events detected
+                    </div>
+                ` : ''}
+                ${engineEventInfo.coveragePercentage < 80 ? `
+                    <div style="font-size:9px;color:#ef4444;margin-top:2px;">
+                        ❌ Low event coverage: ${engineEventInfo.coveragePercentage}%
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -567,7 +600,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-16)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-17)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -625,6 +658,9 @@ LawAIApp.Debug.DevPanel = {
                     <div><strong>Part 16 - Governance Center:</strong></div>
                     <div style="padding-left:12px;">Score: ${governanceInfo.score}%</div>
                     <div style="padding-left:12px;">Healthy: ${governanceInfo.healthyEngines}</div>
+                    <div><strong>Part 17 - Engine Events:</strong></div>
+                    <div style="padding-left:12px;">Score: ${engineEventInfo.healthScore}%</div>
+                    <div style="padding-left:12px;">Official: ${engineEventInfo.officialCount}</div>
                 </div>
             </details>
 
@@ -1533,6 +1569,47 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 17: ENGINE EVENT INFO
+    // ============================================================
+
+    _getEngineEventInfo: function() {
+        var info = {
+            officialCount: 0,
+            customCount: 0,
+            totalCount: 0,
+            healthScore: 0,
+            healthStatus: 'unknown',
+            coveragePercentage: 0,
+            usedOfficialCount: 0,
+            officialEvents: [],
+            customEvents: [],
+            violations: 0
+        };
+
+        try {
+            var health = LawAIApp.EngineEventHealth || window.engineEventHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.officialCount = data.officialCount || 0;
+                info.customCount = data.customCount || 0;
+                info.totalCount = data.totalCount || 0;
+                info.healthScore = data.healthScore || 0;
+                info.healthStatus = data.healthStatus || 'unknown';
+                info.coveragePercentage = data.coveragePercentage || 0;
+                info.usedOfficialCount = data.usedOfficialCount || 0;
+                info.officialEvents = data.officialEvents || [];
+                info.customEvents = data.customEvents || [];
+                info.violations = data.violations || 0;
+            }
+
+        } catch (err) {
+            console.warn('Could not get engine event info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -1558,14 +1635,13 @@ LawAIApp.Debug.DevPanel = {
         reader.readAsText(file);
     }
 };
-
 // ============================================================
 // KEYBOARD SHORTCUT - Ctrl+Shift+L
 // ============================================================
 
 document.addEventListener('keydown', function(e) {
-    // 检测 Ctrl+Shift+L (键码 222 对应单引号/反引号)
-    if (e.ctrlKey && e.shiftKey && (e.key === '\'' || e.key === '`' || e.key === '‘' || e.key === '’' || e.keyCode === 222)) {
+    // 检测 Ctrl+Shift+L
+    if (e.ctrlKey && e.shiftKey && (e.key === 'L' || e.key === 'l')) {
         e.preventDefault();
         LawAIApp.Debug.DevPanel.toggle();
     }
@@ -1596,7 +1672,8 @@ console.log('   ✅ Recovery R1 Part 13 - Capability Governance');
 console.log('   ✅ Recovery R1 Part 14 - Lifecycle Governance');
 console.log('   ✅ Recovery R1 Part 15 - Engine Governance');
 console.log('   ✅ Recovery R1 Part 16 - Governance Center');
+console.log('   ✅ Recovery R1 Part 17 - Engine Events');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
 console.log('   ✅ Law AI Academy Architecture Stable');
-console.log('   ✅ Engine Renaissance Phase 1 Complete');
+console.log('   ✅ Engine Renaissance Fully Complete');
