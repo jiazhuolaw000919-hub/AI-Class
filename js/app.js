@@ -1,13 +1,17 @@
 // ================================================================
-// app.js – Runtime V5.1.1 - Runtime Recovery + Profiler + Dependency (Phase P.2)
+// app.js – Runtime V5.1.2 - Runtime Recovery + Profiler + Dependency (Phase P.2)
 // 渲染优先：立即显示 Dashboard，不等待任何引擎初始化完成
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
 
+// ============================================================
+// 🔥 同时暴露到 window.App 和 LawAIApp.app
+// ============================================================
+
 window.App = {
 
-    version: "5.1.1",
+    version: "5.1.2",
 
     // ============================================================
     // 1. Runtime State
@@ -24,7 +28,7 @@ window.App = {
         maxRetries: 3,
         errors: [],
         bootTimeline: [],
-        version: "5.1.1"
+        version: "5.1.2"
     },
 
     get initialized() { return this._state.initialized; },
@@ -479,6 +483,11 @@ window.App = {
     }
 
 };
+
+// ============================================================
+// 🔥 暴露到 LawAIApp.app（让 DevPanel 和系统能检测到）
+// ============================================================
+LawAIApp.app = window.App;
 
 // ============================================================
 // Global Event Listeners
