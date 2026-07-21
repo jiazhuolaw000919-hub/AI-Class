@@ -22,19 +22,19 @@ var STAGES = {
         "recommendationEngine.js"
     ],
     intelligence: [
-        "js/lessonEngine.js",
-        "js/memoryEngine.js",
-        "js/practiceEngine.js",
-        "js/reflectionEngine.js",
-        "js/aimentorEngine.js",
-        "js/schoolEngine.js"
+        "lessonEngine.js",
+        "memoryEngine.js",
+        "practiceEngine.js",
+        "reflectionEngine.js",
+        "aimentorEngine.js",
+        "schoolEngine.js"
     ],
     background: [
-        "js/academicRecordEngine.js",
-        "js/certificateEngine.js",
-        "js/careerEngine.js",
-        "js/communityEngine.js",
-        "js/executionEngine.js"
+        "academicRecordEngine.js",
+        "certificateEngine.js",
+        "careerEngine.js",
+        "communityEngine.js",
+        "executionEngine.js"
     ]
 };
 
