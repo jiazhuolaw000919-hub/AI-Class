@@ -74,6 +74,8 @@ The Runtime layer consists of these modules:
 ## ═══════════════════════════════════════
 ## 5. RUNTIME LIFECYCLE
 ## ═══════════════════════════════════════
+
+```text
 IDLE
 ↓
 INITIALIZING
@@ -87,8 +89,7 @@ READY
 REFRESHING (optional)
 ↓
 DESTROYED (shutdown)
-
-text
+```
 
 **States:**
 - `idle` - Not yet initialized
@@ -147,8 +148,6 @@ Never stop application boot.
 All runtime modules reside in:
 window.LawAIApp.Runtime*
 
-text
-
 | Module | Path |
 |--------|------|
 | RuntimeKernel | `LawAIApp.RuntimeKernel` |
@@ -165,19 +164,18 @@ text
 ## ═══════════════════════════════════════
 ## 9. FREEZE STATEMENT
 ## ═══════════════════════════════════════
+```text
 ┌──────────────────────────────────────────┐
-│ RUNTIME FREEZE ACTIVE │
+│ RUNTIME FREEZE ACTIVE                    │
 ├──────────────────────────────────────────┤
-│ Freeze Version: 1.0 │
-│ Freeze Date: Current Build │
-│ Freeze Status: ACTIVE │
-│ Enforcement: Runtime Validator │
-│ Modification: Requires Review │
-│ Breaking Changes: Not Permitted │
+│ Freeze Version: 1.0                      │
+│ Freeze Date: Current Build               │
+│ Freeze Status: ACTIVE                    │
+│ Enforcement: Runtime Validator           │
+│ Modification: Requires Review            │
+│ Breaking Changes: Not Permitted          │
 └──────────────────────────────────────────┘
-
-text
-
+```
 ---
 
 ## ═══════════════════════════════════════
