@@ -1385,6 +1385,77 @@ LawAIApp.BootManager = {
             console.log('✅ Engine Coordination Health Ready');
             console.log('✅ Engine Collaboration Layer Ready');
             console.log('✅ Engine Renaissance Coordination Complete');
+
+            // ============================================================
+            // 🔥 PART 20: ENGINE DISCOVERY
+            // ============================================================
+
+            // 75. ENGINE DISCOVERY MANIFEST
+            if (typeof LawAIApp.EngineDiscoveryManifest !== 'undefined') {
+                if (typeof LawAIApp.EngineDiscoveryManifest.init === 'function') {
+                    LawAIApp.EngineDiscoveryManifest.init();
+                }
+                console.log('✅ EngineDiscoveryManifest initialized');
+            } else if (typeof window.engineDiscoveryManifest !== 'undefined') {
+                if (typeof window.engineDiscoveryManifest.init === 'function') {
+                    window.engineDiscoveryManifest.init();
+                }
+                console.log('✅ EngineDiscoveryManifest initialized (global)');
+            } else {
+                console.warn('⚠️ EngineDiscoveryManifest not found - skipping');
+            }
+
+            // 76. ENGINE DISCOVERY SERVICE
+            if (typeof LawAIApp.EngineDiscovery !== 'undefined') {
+                if (typeof LawAIApp.EngineDiscovery.init === 'function') {
+                    LawAIApp.EngineDiscovery.init();
+                }
+                console.log('✅ EngineDiscovery Service initialized');
+            } else if (typeof window.engineDiscovery !== 'undefined') {
+                if (typeof window.engineDiscovery.init === 'function') {
+                    window.engineDiscovery.init();
+                }
+                console.log('✅ EngineDiscovery Service initialized (global)');
+            } else {
+                console.warn('⚠️ EngineDiscovery Service not found - skipping');
+            }
+
+            // 77. ENGINE DISCOVERY VALIDATOR
+            if (typeof LawAIApp.EngineDiscoveryValidator !== 'undefined') {
+                if (typeof LawAIApp.EngineDiscoveryValidator.init === 'function') {
+                    LawAIApp.EngineDiscoveryValidator.init();
+                }
+                console.log('✅ EngineDiscoveryValidator initialized');
+            } else if (typeof window.engineDiscoveryValidator !== 'undefined') {
+                if (typeof window.engineDiscoveryValidator.init === 'function') {
+                    window.engineDiscoveryValidator.init();
+                }
+                console.log('✅ EngineDiscoveryValidator initialized (global)');
+            } else {
+                console.warn('⚠️ EngineDiscoveryValidator not found - skipping');
+            }
+
+            // 78. ENGINE DISCOVERY HEALTH
+            if (typeof LawAIApp.EngineDiscoveryHealth !== 'undefined') {
+                if (typeof LawAIApp.EngineDiscoveryHealth.init === 'function') {
+                    LawAIApp.EngineDiscoveryHealth.init();
+                }
+                console.log('✅ EngineDiscoveryHealth initialized');
+            } else if (typeof window.engineDiscoveryHealth !== 'undefined') {
+                if (typeof window.engineDiscoveryHealth.init === 'function') {
+                    window.engineDiscoveryHealth.init();
+                }
+                console.log('✅ EngineDiscoveryHealth initialized (global)');
+            } else {
+                console.warn('⚠️ EngineDiscoveryHealth not found - skipping');
+            }
+
+            console.log('✅ Engine Discovery Standard Loaded');
+            console.log('✅ Engine Discovery Manifest Ready');
+            console.log('✅ Engine Discovery Service Ready');
+            console.log('✅ Engine Discovery Validator Ready');
+            console.log('✅ Engine Discovery Health Ready');
+            console.log('✅ Engine Discovery Layer Ready');
             
         } catch (err) {
             console.warn('⚠️ Recovery architecture initialization warning:', err.message);
