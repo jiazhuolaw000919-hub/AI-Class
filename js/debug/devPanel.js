@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -117,6 +117,9 @@ LawAIApp.Debug.DevPanel = {
 
         // Part 21: Engine Communication Info
         var engineCommunicationInfo = this._getEngineCommunicationInfo();
+
+        // Part 22: Engine Signal Info
+        var engineSignalInfo = this._getEngineSignalInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -695,6 +698,31 @@ LawAIApp.Debug.DevPanel = {
                 ` : ''}
             </div>
 
+                        <!-- ========================================================== -->
+            <!-- 🔥 PART 22: ENGINE SIGNALS -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">📡 Engine Signals</span>
+                    <span style="font-size:10px;color:${engineSignalInfo.coverage >= 70 ? '#22c55e' : '#f59e0b'};">${engineSignalInfo.coverage}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Signals: ${engineSignalInfo.totalSignals}</span>
+                    <span>Types: ${engineSignalInfo.types.length}</span>
+                    <span>Severities: ${engineSignalInfo.severities.length}</span>
+                    <span>Status: ${engineSignalInfo.status}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Sources: ${engineSignalInfo.sources.length}</span>
+                    ${engineSignalInfo.totalMissing > 0 ? `<span style="color:#f59e0b;">⚠️ Missing: ${engineSignalInfo.totalMissing}</span>` : '<span>✅ Complete</span>'}
+                </div>
+                ${engineSignalInfo.totalMissing > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${engineSignalInfo.totalMissing} metadata items missing
+                    </div>
+                ` : ''}
+            </div>
+
             <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
@@ -725,7 +753,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-21)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-22)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -802,6 +830,10 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Status: ${engineCommunicationInfo.status}</div>
                     <div style="padding-left:12px;">Contracts: ${engineCommunicationInfo.totalContracts}</div>
                     <div style="padding-left:12px;">Coverage: ${engineCommunicationInfo.coverage}%</div>
+                    <div><strong>Part 22 - Engine Signals:</strong></div>
+                    <div style="padding-left:12px;">Status: ${engineSignalInfo.status}</div>
+                    <div style="padding-left:12px;">Signals: ${engineSignalInfo.totalSignals}</div>
+                    <div style="padding-left:12px;">Coverage: ${engineSignalInfo.coverage}%</div>
                 </div>
             </details>
 
@@ -1913,6 +1945,49 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 22: ENGINE SIGNAL INFO
+    // ============================================================
+
+    _getEngineSignalInfo: function() {
+        var info = {
+            totalSignals: 0,
+            types: [],
+            severities: [],
+            sources: [],
+            missingDescription: 0,
+            missingSource: 0,
+            missingVersion: 0,
+            totalMissing: 0,
+            validationWarnings: 0,
+            coverage: 0,
+            status: 'unknown'
+        };
+
+        try {
+            var health = LawAIApp.EngineSignalHealth || window.engineSignalHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.totalSignals = data.totalSignals || 0;
+                info.types = data.types || [];
+                info.severities = data.severities || [];
+                info.sources = data.sources || [];
+                info.missingDescription = data.missingDescription || 0;
+                info.missingSource = data.missingSource || 0;
+                info.missingVersion = data.missingVersion || 0;
+                info.totalMissing = data.totalMissing || 0;
+                info.validationWarnings = data.validationWarnings || 0;
+                info.coverage = data.coverageScore || 0;
+                info.status = data.status || 'unknown';
+            }
+
+        } catch (err) {
+            console.warn('Could not get engine signal info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -1980,6 +2055,7 @@ console.log('   ✅ Recovery R1 Part 18 - Runtime Intelligence');
 console.log('   ✅ Recovery R1 Part 19 - Engine Coordination');
 console.log('   ✅ Recovery R1 Part 20 - Engine Discovery');
 console.log('   ✅ Recovery R1 Part 21 - Engine Communication');
+console.log('   ✅ Recovery R1 Part 22 - Engine Signals');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
 console.log('   ✅ Law AI Academy Architecture Stable');
