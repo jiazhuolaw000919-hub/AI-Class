@@ -124,41 +124,22 @@ LawAIApp.Debug.DevPanel = {
         // Part 23: System Awareness Info
         var systemAwarenessInfo = this._getSystemAwarenessInfo();
 
+        document.body.appendChild(this._panel);
+        this._isOpen = true;
+
         // ============================================================
-        // 🔥 PART 24: BOOT ORCHESTRATION
+        // 🔥 PART 24: BOOT ORCHESTRATION - 在 panel 添加到 DOM 后渲染
         // ============================================================
-
-        // Create container for Boot Panel
-        var bootContainer = document.createElement('div');
-        bootContainer.id = 'boot-panel-container';
-        bootContainer.style.marginTop = '8px';
-        bootContainer.style.padding = '8px 12px';
-        bootContainer.style.background = 'rgba(251,146,60,0.04)';
-        bootContainer.style.borderRadius = '8px';
-        bootContainer.style.borderLeft = '2px solid #f59e0b';
-
-        // Mount Boot Panel if available
-        var bootPanel = window.bootPanel || LawAIApp.BootPanel;
-        if (bootPanel && typeof bootPanel.render === 'function') {
-          bootPanel.render(bootContainer, 15000);
-        } else {
-          bootContainer.innerHTML = 
-            '<div style="font-weight:bold;color:#f59e0b;font-size:11px;">🚀 Boot Orchestration</div>' +
-            '<div style="font-size:10px;color:#475569;">Loading...</div>';
-        }
-
-        // Insert after System Awareness section
-        var sections = document.querySelectorAll('#dev-panel div[style*="margin-bottom:8px;padding:8px 12px"]');
-        if (sections.length > 0) {
-          var lastSection = sections[sections.length - 1];
-          lastSection.parentNode.insertBefore(bootContainer, lastSection.nextSibling);
-        } else {
-          var contentDiv = document.querySelector('#dev-panel > div:not([id])');
-          if (contentDiv) {
-            contentDiv.appendChild(bootContainer);
-          } else {
-            document.querySelector('#dev-panel').appendChild(bootContainer);
-          }
+        var bootContainer = document.getElementById('boot-panel-container');
+        if (bootContainer) {
+            var bootPanel = window.bootPanel || LawAIApp.BootPanel;
+            if (bootPanel && typeof bootPanel.render === 'function') {
+                bootPanel.render(bootContainer, 15000);
+            } else {
+                bootContainer.innerHTML = 
+                    '<div style="font-weight:bold;color:#f59e0b;font-size:11px;">🚀 Boot Orchestration</div>' +
+                    '<div style="font-size:10px;color:#475569;">Loading...</div>';
+            }
         }
 
         // Part 25: System Reality Info
@@ -791,6 +772,13 @@ LawAIApp.Debug.DevPanel = {
                         ⚠️ ${systemAwarenessInfo.validationWarnings} warnings
                     </div>
                 ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- 🔥 PART 24: BOOT ORCHESTRATION -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(251,146,60,0.04);border-radius:8px;border-left:2px solid #f59e0b;">
+                <div id="boot-panel-container"></div>
             </div>
 
             <!-- ========================================================== -->
