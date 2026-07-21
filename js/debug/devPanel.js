@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -108,6 +108,9 @@ LawAIApp.Debug.DevPanel = {
         
         // Part 18: Runtime Intelligence Info
         var runtimeIntelligenceInfo = this._getRuntimeIntelligenceInfo();
+
+        // Part 19: Engine Coordination Info
+        var engineCoordinationInfo = this._getEngineCoordinationInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -605,6 +608,36 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 19: ENGINE COORDINATION -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🤝 Engine Coordination</span>
+                    <span style="font-size:10px;color:${engineCoordinationInfo.coverage >= 80 ? '#22c55e' : '#f59e0b'};">${engineCoordinationInfo.coverage}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Connected: ${engineCoordinationInfo.connectedEngines}/${engineCoordinationInfo.totalEngines}</span>
+                    <span>Relationships: ${engineCoordinationInfo.totalRelationships}</span>
+                    <span>Status: ${engineCoordinationInfo.status}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Unique: ${engineCoordinationInfo.uniqueRelationships}</span>
+                    <span>Circular: ${engineCoordinationInfo.circularCount}</span>
+                    <span>Warnings: ${engineCoordinationInfo.validationWarnings}</span>
+                </div>
+                ${engineCoordinationInfo.orphanEngines.length > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        📭 Orphans: ${engineCoordinationInfo.orphanEngines.slice(0, 3).join(', ')}${engineCoordinationInfo.orphanEngines.length > 3 ? '...' : ''}
+                    </div>
+                ` : ''}
+                ${engineCoordinationInfo.circularCount > 0 ? `
+                    <div style="font-size:9px;color:#ef4444;margin-top:2px;">
+                        ⚠️ ${engineCoordinationInfo.circularCount} circular relationships
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -634,7 +667,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-18)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-19)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -699,6 +732,10 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Status: ${runtimeIntelligenceInfo.status}</div>
                     <div style="padding-left:12px;">Coverage: ${runtimeIntelligenceInfo.coverage}%</div>
                     <div style="padding-left:12px;">Warnings: ${runtimeIntelligenceInfo.warnings}</div>
+                    <div><strong>Part 19 - Engine Coordination:</strong></div>
+                    <div style="padding-left:12px;">Status: ${engineCoordinationInfo.status}</div>
+                    <div style="padding-left:12px;">Connected: ${engineCoordinationInfo.connectedEngines}/${engineCoordinationInfo.totalEngines}</div>
+                    <div style="padding-left:12px;">Circular: ${engineCoordinationInfo.circularCount}</div>
                 </div>
             </details>
 
@@ -1792,6 +1829,7 @@ console.log('   ✅ Recovery R1 Part 15 - Engine Governance');
 console.log('   ✅ Recovery R1 Part 16 - Governance Center');
 console.log('   ✅ Recovery R1 Part 17 - Engine Events');
 console.log('   ✅ Recovery R1 Part 18 - Runtime Intelligence');
+console.log('   ✅ Recovery R1 Part 19 - Engine Coordination');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
 console.log('   ✅ Law AI Academy Architecture Stable');
