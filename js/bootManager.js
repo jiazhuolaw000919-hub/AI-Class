@@ -1598,6 +1598,77 @@ LawAIApp.BootManager = {
             console.log('✅ Engine Signal Validator Ready');
             console.log('✅ Engine Signal Health Ready');
             console.log('✅ Engine Signal Layer Ready');
+
+            // ============================================================
+            // 🔥 PART 23: SYSTEM AWARENESS
+            // ============================================================
+
+            // 87. SYSTEM AWARENESS MANIFEST
+            if (typeof LawAIApp.SystemAwarenessManifest !== 'undefined') {
+                if (typeof LawAIApp.SystemAwarenessManifest.init === 'function') {
+                    LawAIApp.SystemAwarenessManifest.init();
+                }
+                console.log('✅ SystemAwarenessManifest initialized');
+            } else if (typeof window.systemAwarenessManifest !== 'undefined') {
+                if (typeof window.systemAwarenessManifest.init === 'function') {
+                    window.systemAwarenessManifest.init();
+                }
+                console.log('✅ SystemAwarenessManifest initialized (global)');
+            } else {
+                console.warn('⚠️ SystemAwarenessManifest not found - skipping');
+            }
+
+            // 88. SYSTEM AWARENESS COLLECTOR
+            if (typeof LawAIApp.SystemAwarenessCollector !== 'undefined') {
+                if (typeof LawAIApp.SystemAwarenessCollector.init === 'function') {
+                    LawAIApp.SystemAwarenessCollector.init();
+                }
+                console.log('✅ SystemAwarenessCollector initialized');
+            } else if (typeof window.systemAwarenessCollector !== 'undefined') {
+                if (typeof window.systemAwarenessCollector.init === 'function') {
+                    window.systemAwarenessCollector.init();
+                }
+                console.log('✅ SystemAwarenessCollector initialized (global)');
+            } else {
+                console.warn('⚠️ SystemAwarenessCollector not found - skipping');
+            }
+
+            // 89. SYSTEM AWARENESS VALIDATOR
+            if (typeof LawAIApp.SystemAwarenessValidator !== 'undefined') {
+                if (typeof LawAIApp.SystemAwarenessValidator.init === 'function') {
+                    LawAIApp.SystemAwarenessValidator.init();
+                }
+                console.log('✅ SystemAwarenessValidator initialized');
+            } else if (typeof window.systemAwarenessValidator !== 'undefined') {
+                if (typeof window.systemAwarenessValidator.init === 'function') {
+                    window.systemAwarenessValidator.init();
+                }
+                console.log('✅ SystemAwarenessValidator initialized (global)');
+            } else {
+                console.warn('⚠️ SystemAwarenessValidator not found - skipping');
+            }
+
+            // 90. SYSTEM AWARENESS HEALTH
+            if (typeof LawAIApp.SystemAwarenessHealth !== 'undefined') {
+                if (typeof LawAIApp.SystemAwarenessHealth.init === 'function') {
+                    LawAIApp.SystemAwarenessHealth.init();
+                }
+                console.log('✅ SystemAwarenessHealth initialized');
+            } else if (typeof window.systemAwarenessHealth !== 'undefined') {
+                if (typeof window.systemAwarenessHealth.init === 'function') {
+                    window.systemAwarenessHealth.init();
+                }
+                console.log('✅ SystemAwarenessHealth initialized (global)');
+            } else {
+                console.warn('⚠️ SystemAwarenessHealth not found - skipping');
+            }
+
+            console.log('✅ System Awareness Standard Loaded');
+            console.log('✅ System Awareness Manifest Ready');
+            console.log('✅ System Awareness Collector Ready');
+            console.log('✅ System Awareness Validator Ready');
+            console.log('✅ System Awareness Health Ready');
+            console.log('✅ System Awareness Layer Ready');
             
         } catch (err) {
             console.warn('⚠️ Recovery architecture initialization warning:', err.message);
