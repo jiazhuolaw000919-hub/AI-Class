@@ -133,19 +133,19 @@ This document certifies that the Law AI Academy Operating System architecture is
 ---
 
 ## 9. ARCHITECTURE FREEZE VERSION
+
+```text
 ┌──────────────────────────────────────────┐
-│ ARCHITECTURE FREEZE CERTIFIED │
+│ ARCHITECTURE FREEZE CERTIFIED            │
 ├──────────────────────────────────────────┤
-│ Freeze Version: 1.0 │
-│ Freeze Date: Current Build │
-│ Freeze Status: CERTIFIED │
-│ Compliance: PASS │
-│ Recovery R1: COMPLETE │
-│ Stability: CERTIFIED │
+│ Freeze Version: 1.0                      │
+│ Freeze Date: Current Build               │
+│ Freeze Status: CERTIFIED                 │
+│ Compliance: PASS                         │
+│ Recovery R1: COMPLETE                    │
+│ Stability: CERTIFIED                     │
 └──────────────────────────────────────────┘
-
-text
-
+```
 ---
 
 ## 10. SIGNATURE
