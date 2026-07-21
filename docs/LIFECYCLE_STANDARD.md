@@ -33,9 +33,10 @@ Lifecycle transitions must be validated.
 | **Destroyed** | Engine has been destroyed |
 
 ---
-
 ## 3. LIFECYCLE FLOW
+---
 
+```text
 Created
 ↓
 Registered
@@ -45,14 +46,13 @@ Initialized
 Ready
 ↓
 Running ←→ Sleeping ←→ Paused
-↓ ↓ ↓
-Reloading Reloading Reloading
+↓         ↓          ↓
+Reloading  Reloading  Reloading
 ↓
 Deprecated
 ↓
 Destroyed
-
----
+```
 
 ## 4. STATE TRANSITIONS
 
@@ -88,8 +88,8 @@ Destroyed
 | Destroyed | Any | Cannot use destroyed engine |
 
 ---
-
 ## 5. LIFECYCLE DECLARATION
+---
 
 Every engine must declare its lifecycle state:
 
@@ -106,9 +106,29 @@ LawAIApp.EngineName = {
         }
     }
 };
+```
 
+---
+## 6. LIFECYCLE EVENTS
+---
+
+| Event | Description |
+|-------|-------------|
+| ENGINE_CREATED | Engine instance created |
+| ENGINE_REGISTERED | Engine registered with registry |
+| ENGINE_INITIALIZED | Engine initialization complete |
+| ENGINE_READY | Engine ready for operation |
+| ENGINE_RUNNING | Engine started running |
+| ENGINE_SLEEP | Engine entered sleep state |
+| ENGINE_WAKE | Engine woke from sleep |
+| ENGINE_RELOAD | Engine reloading |
+| ENGINE_DEPRECATED | Engine marked deprecated |
+| ENGINE_DESTROYED | Engine destroyed |
+
+---
 ## 7. FREEZE STATEMENT
-text
+---
+
 ┌──────────────────────────────────────────┐
 │     LIFECYCLE FREEZE ACTIVE              │
 ├──────────────────────────────────────────┤
@@ -119,10 +139,17 @@ text
 │  Events:         10                      │
 └──────────────────────────────────────────┘
 
+---
 ## SIGNATURE
-Role	Name
-Architecture Owner	Law AI Academy
-Lifecycle Approver	Law AI Academy
-Effective Date	Current Build
-Standard Version	1.0
+---
+
+| Role | Name |
+|------|------|
+| Architecture Owner | Law AI Academy |
+| Lifecycle Approver | Law AI Academy |
+| Effective Date | Current Build |
+| Standard Version | 1.0 |
+
+---
+
 END OF LIFECYCLE STANDARD
