@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -105,6 +105,9 @@ LawAIApp.Debug.DevPanel = {
 
         // Part 17: Engine Event Info
         var engineEventInfo = this._getEngineEventInfo();
+        
+        // Part 18: Runtime Intelligence Info
+        var runtimeIntelligenceInfo = this._getRuntimeIntelligenceInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -571,6 +574,37 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 18: RUNTIME INTELLIGENCE -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(74,158,255,0.04);border-radius:8px;border-left:2px solid #4a9eff;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">⚡ Runtime Intelligence</span>
+                    <span style="font-size:10px;color:${runtimeIntelligenceInfo.coverage >= 80 ? '#22c55e' : '#f59e0b'};">${runtimeIntelligenceInfo.coverage}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: ${runtimeIntelligenceInfo.status}</span>
+                    <span>Observed: ${runtimeIntelligenceInfo.observedCount}</span>
+                    <span>Targets: ${runtimeIntelligenceInfo.totalTargets}</span>
+                    <span>📊 ${runtimeIntelligenceInfo.coverage}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Healthy: ${runtimeIntelligenceInfo.healthyTargets}</span>
+                    <span>Unknown: ${runtimeIntelligenceInfo.unknownTargets}</span>
+                    <span>Warnings: ${runtimeIntelligenceInfo.warnings}</span>
+                </div>
+                ${runtimeIntelligenceInfo.observedSystems.length > 0 ? `
+                    <div style="font-size:8px;color:#475569;margin-top:2px;max-height:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                        Systems: ${runtimeIntelligenceInfo.observedSystems.slice(0, 5).join(', ')}${runtimeIntelligenceInfo.observedSystems.length > 5 ? '...' : ''}
+                    </div>
+                ` : ''}
+                ${runtimeIntelligenceInfo.coverage < 80 ? `
+                    <div style="font-size:9px;color:#ef4444;margin-top:2px;">
+                        ⚠️ Low coverage: ${runtimeIntelligenceInfo.coverage}%
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -600,7 +634,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-17)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-18)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -661,6 +695,10 @@ LawAIApp.Debug.DevPanel = {
                     <div><strong>Part 17 - Engine Events:</strong></div>
                     <div style="padding-left:12px;">Score: ${engineEventInfo.healthScore}%</div>
                     <div style="padding-left:12px;">Official: ${engineEventInfo.officialCount}</div>
+                    <div><strong>Part 18 - Runtime Intelligence:</strong></div>
+                    <div style="padding-left:12px;">Status: ${runtimeIntelligenceInfo.status}</div>
+                    <div style="padding-left:12px;">Coverage: ${runtimeIntelligenceInfo.coverage}%</div>
+                    <div style="padding-left:12px;">Warnings: ${runtimeIntelligenceInfo.warnings}</div>
                 </div>
             </details>
 
@@ -1610,6 +1648,45 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 18: RUNTIME INTELLIGENCE INFO
+    // ============================================================
+
+    _getRuntimeIntelligenceInfo: function() {
+        var info = {
+            status: 'unknown',
+            coverage: 0,
+            observedCount: 0,
+            totalTargets: 0,
+            healthyTargets: 0,
+            unknownTargets: 0,
+            warnings: 0,
+            healthStatus: 'unknown',
+            observedSystems: []
+        };
+
+        try {
+            var health = LawAIApp.RuntimeIntelligenceHealth || window.runtimeIntelligenceHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.status = data.status || 'unknown';
+                info.coverage = data.coverageScore || 0;
+                info.observedCount = data.observedCount || 0;
+                info.totalTargets = data.totalTargets || 0;
+                info.healthyTargets = data.healthyTargets || 0;
+                info.unknownTargets = data.unknownTargets || 0;
+                info.warnings = data.warnings ? data.warnings.length : 0;
+                info.healthStatus = data.status || 'unknown';
+                info.observedSystems = data.observedSystems || [];
+            }
+
+        } catch (err) {
+            console.warn('Could not get runtime intelligence info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -1673,6 +1750,7 @@ console.log('   ✅ Recovery R1 Part 14 - Lifecycle Governance');
 console.log('   ✅ Recovery R1 Part 15 - Engine Governance');
 console.log('   ✅ Recovery R1 Part 16 - Governance Center');
 console.log('   ✅ Recovery R1 Part 17 - Engine Events');
+console.log('   ✅ Recovery R1 Part 18 - Runtime Intelligence');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
 console.log('   ✅ Law AI Academy Architecture Stable');
