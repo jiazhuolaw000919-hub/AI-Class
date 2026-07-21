@@ -20,6 +20,7 @@ var STAGES = {
         "progressEngine.js",
         "experienceEngine.js",
         "recommendationEngine.js"
+        "devPanel.js"
     ],
     intelligence: [
         "lessonEngine.js",
