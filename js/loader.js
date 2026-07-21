@@ -19,7 +19,7 @@ var STAGES = {
     ux: [
         "progressEngine.js",
         "experienceEngine.js",
-        "recommendationEngine.js"
+        "recommendationEngine.js",
         "debug/devPanel.js"
     ],
     intelligence: [
