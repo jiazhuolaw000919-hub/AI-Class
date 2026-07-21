@@ -51,7 +51,7 @@ window.someVariable = ...;
 
 ---
 
-3. MODULE STANDARD
+## 3. MODULE STANDARD
 Every engine, every module, every component MUST:
 
 | Rule | Description |
@@ -61,6 +61,7 @@ Every engine, every module, every component MUST:
 | **One Domain** | Belongs to exactly one domain (Core, Feature, UI, etc.) |
 | **Never Self-Initiate** | Never initializes itself automatically |
 | **Never Direct Manipulation** | Never directly manipulates another engine |
+
 ### ✅ Correct:
 
 ```javascript
@@ -82,7 +83,7 @@ LawAIApp.FeatureEngine.doEverything(); // Multiple responsibilities
 
 ---
 
-4. RUNTIME RULE
+## 4. RUNTIME RULE
 Runtime coordinates only.
 
 The Runtime layer is the nervous system of the OS.
@@ -93,6 +94,7 @@ The Runtime layer is the nervous system of the OS.
 | Orchestrate startup | Contain UI |
 | Manage health | Store user data |
 | Dispatch events | Render anything |
+
 ### ✅ Correct:
 
 ```javascript
@@ -114,7 +116,7 @@ LawAIApp.RuntimeKernel = {
 
 ---
 
-5. SYSTEM COMPOSER RULE
+## 5. SYSTEM COMPOSER RULE
 SystemComposer composes only.
 
 The Composer is the UI orchestration layer.
@@ -125,6 +127,7 @@ The Composer is the UI orchestration layer.
 | Mount components | Own storage |
 | Arrange layouts | Own routing |
 | Initialize widgets | Execute business rules |
+
 ### ✅ Correct:
 
 ```javascript
@@ -143,9 +146,10 @@ LawAIApp.SystemComposer = {
   handleRoute: function() { /* owns routing */ }
 };
 ```
+
 ---
 
-6. REGISTRY RULE
+## 6. REGISTRY RULE
 Each registry owns ONLY its own domain.
 
 | Registry | Domain | Responsibility |
@@ -154,6 +158,7 @@ Each registry owns ONLY its own domain.
 | RuntimeRegistry | Runtime Engines | Track runtime modules |
 | FeatureRegistry | Features | Track all features |
 | UIRegistry | UI Components | Track UI components |
+
 ### ✅ Correct:
 
 ```javascript
@@ -177,7 +182,7 @@ Each domain belongs to exactly one registry.
 
 ---
 
-7. BOOT RULE
+## 7. BOOT RULE
 BootManager coordinates only.
 
 The BootManager is the startup orchestration layer.
@@ -188,6 +193,7 @@ The BootManager is the startup orchestration layer.
 | Validate before boot | Execute features |
 | Initialize registries | Render UI |
 | Run health checks | Store data |
+
 ### ✅ Correct:
 
 ```javascript
@@ -218,7 +224,7 @@ Never business logic.
 
 ---
 
-8. DEVELOPER RULE
+## 8. DEVELOPER RULE
 Developer Panel is Read-Only.
 
 The DevPanel exists for inspection and debugging only.
@@ -229,6 +235,7 @@ The DevPanel exists for inspection and debugging only.
 | Show status | Modify runtime |
 | Display health | Change state |
 | Show audit results | Execute mutations |
+
 ### ✅ Correct:
 
 ```javascript
@@ -251,7 +258,7 @@ No runtime changes.
 
 ---
 
-9. FUTURE RULE
+## 9. FUTURE RULE
 Every future engine MUST declare:
 
 | Requirement | Description |
@@ -260,6 +267,7 @@ Every future engine MUST declare:
 | **Version** | What is the version? |
 | **Owner** | Who owns this engine? |
 | **Dependencies** | What does it depend on? |
+
 ### ✅ Correct:
 
 ```javascript
@@ -288,7 +296,7 @@ All engines must declare metadata BEFORE implementation.
 
 ## 10. FREEZE STATEMENT
 
-```
+```text
 ┌──────────────────────────────────────────┐
 │     ARCHITECTURE FREEZE ACTIVE           │
 ├──────────────────────────────────────────┤
@@ -313,6 +321,8 @@ All engines must declare metadata BEFORE implementation.
 2. Review by Architecture Owner
 3. Constitution Amendment
 
+---
+
 ## SIGNATURE
 
 | Role | Name |
@@ -321,3 +331,5 @@ All engines must declare metadata BEFORE implementation.
 | Freeze Approver | Law AI Academy |
 | Effective Date | Current Build |
 | Constitution Version | 1.0 |
+
+END OF ARCHITECTURE CONSTITUTION
