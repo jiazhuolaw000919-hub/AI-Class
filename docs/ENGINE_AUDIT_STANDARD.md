@@ -114,12 +114,12 @@ Audit Score = (Passed Checks / Total Checks) * 100
 ## 6. FREEZE STATEMENT
 
 ┌──────────────────────────────────────────┐
-│ ENGINE AUDIT FREEZE ACTIVE │
+│ ENGINE AUDIT FREEZE ACTIVE               │
 ├──────────────────────────────────────────┤
-│ Version: 1.0 │
-│ Status: ACTIVE │
-│ Enforcement: Engine Audit Validator │
-│ Checks: 9 │
+│ Version: 1.0                             │
+│ Status: ACTIVE                           │
+│ Enforcement: Engine Audit Validator      │
+│ Checks: 9                                │
 └──────────────────────────────────────────┘
 
 ---
