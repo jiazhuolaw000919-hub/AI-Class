@@ -93,6 +93,8 @@ Domain Validator verifies domain assignment
 
 Domain Health monitors domain health
 
+---
+
 ## 4. DOMAIN HEALTH
 ### 4.1 Health Indicators
 
@@ -115,6 +117,8 @@ Domain Score = (Populated Domains / Total Domains) * 100
 | 40-59% | Degraded |
 | 0-39% | Critical |
 
+---
+
 ## 5. ENGINE CLASSIFICATION
 Every engine is automatically classified as:
 
@@ -125,6 +129,8 @@ Every engine is automatically classified as:
 | **Support** | Supporting engines that enhance functionality |
 | **Experimental** | Engines in development or testing |
 | **Deprecated** | Engines scheduled for removal |
+
+---
 
 ## 6. FREEZE STATEMENT
 
@@ -139,6 +145,9 @@ Every engine is automatically classified as:
 │  Classification: Auto                    │
 └──────────────────────────────────────────┘
 ```
+
+---
+
 ## SIGNATURE
 | Role | Name |
 |------|------|
