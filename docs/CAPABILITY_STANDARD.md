@@ -53,6 +53,8 @@ LawAIApp.LessonEngine = {
 };
 ```
 
+---
+
 ## 4. CAPABILITY TYPES
 
 ### 4.1 Primary Capabilities
@@ -77,6 +79,8 @@ LawAIApp.LessonEngine = {
 | event_emission | Emit events |
 | state_management | Manage state |
 | validation | Validate data |
+
+---
 
 ## 5. CAPABILITY RULES
 
@@ -112,8 +116,10 @@ Each capability must have an owner.
 
 Each capability must have a semantic version (x.y.z).
 
+---
+
 ### 6. FREEZE STATEMENT
-```
+```text
 ┌──────────────────────────────────────────┐
 │     CAPABILITY FREEZE ACTIVE             │
 ├──────────────────────────────────────────┤
@@ -123,6 +129,9 @@ Each capability must have a semantic version (x.y.z).
 │  Capabilities:   Declared                │
 └──────────────────────────────────────────┘
 ```
+
+---
+
 ## SIGNATURE
 
 | Role | Name |
