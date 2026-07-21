@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22，23 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22，23, 24, 25 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -123,6 +123,46 @@ LawAIApp.Debug.DevPanel = {
 
         // Part 23: System Awareness Info
         var systemAwarenessInfo = this._getSystemAwarenessInfo();
+
+        // ============================================================
+        // 🔥 PART 24: BOOT ORCHESTRATION
+        // ============================================================
+
+        // Create container for Boot Panel
+        var bootContainer = document.createElement('div');
+        bootContainer.id = 'boot-panel-container';
+        bootContainer.style.marginTop = '8px';
+        bootContainer.style.padding = '8px 12px';
+        bootContainer.style.background = 'rgba(251,146,60,0.04)';
+        bootContainer.style.borderRadius = '8px';
+        bootContainer.style.borderLeft = '2px solid #f59e0b';
+
+        // Mount Boot Panel if available
+        var bootPanel = window.bootPanel || LawAIApp.BootPanel;
+        if (bootPanel && typeof bootPanel.render === 'function') {
+          bootPanel.render(bootContainer, 15000);
+        } else {
+          bootContainer.innerHTML = 
+            '<div style="font-weight:bold;color:#f59e0b;font-size:11px;">🚀 Boot Orchestration</div>' +
+            '<div style="font-size:10px;color:#475569;">Loading...</div>';
+        }
+
+        // Insert after System Awareness section
+        var sections = document.querySelectorAll('#dev-panel div[style*="margin-bottom:8px;padding:8px 12px"]');
+        if (sections.length > 0) {
+          var lastSection = sections[sections.length - 1];
+          lastSection.parentNode.insertBefore(bootContainer, lastSection.nextSibling);
+        } else {
+          var contentDiv = document.querySelector('#dev-panel > div:not([id])');
+          if (contentDiv) {
+            contentDiv.appendChild(bootContainer);
+          } else {
+            document.querySelector('#dev-panel').appendChild(bootContainer);
+          }
+        }
+
+        // Part 25: System Reality Info
+        var systemRealityInfo = this._getSystemRealityInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -754,6 +794,38 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 25: SYSTEM REALITY -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(34,197,94,0.04);border-radius:8px;border-left:2px solid #22c55e;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🧠 System Reality</span>
+                    <span style="font-size:10px;color:${systemRealityInfo.realityScore >= 80 ? '#22c55e' : '#f59e0b'};">${systemRealityInfo.realityScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Declared: ${systemRealityInfo.declaredEngines}</span>
+                    <span>Runtime: ${systemRealityInfo.runtimeEngines}</span>
+                    <span>Matches: ${systemRealityInfo.matches}</span>
+                    <span>Status: ${systemRealityInfo.status}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Completeness: ${systemRealityInfo.completeness}%</span>
+                    ${systemRealityInfo.missing > 0 ? `<span style="color:#ef4444;">❌ Missing: ${systemRealityInfo.missing}</span>` : ''}
+                    ${systemRealityInfo.unknown > 0 ? `<span style="color:#f59e0b;">❓ Unknown: ${systemRealityInfo.unknown}</span>` : ''}
+                    ${systemRealityInfo.missing === 0 && systemRealityInfo.unknown === 0 ? '<span>✅ Reality matches manifest</span>' : ''}
+                </div>
+                ${systemRealityInfo.missing > 0 ? `
+                    <div style="font-size:9px;color:#ef4444;margin-top:2px;">
+                        ❌ ${systemRealityInfo.missing} engines declared but missing from runtime
+                    </div>
+                ` : ''}
+                ${systemRealityInfo.unknown > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ❓ ${systemRealityInfo.unknown} engines running but not declared in manifest
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -783,7 +855,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-23)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-25)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -868,6 +940,11 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Status: ${systemAwarenessInfo.status}</div>
                     <div style="padding-left:12px;">Coverage: ${systemAwarenessInfo.coverage}%</div>
                     <div style="padding-left:12px;">Known Systems: ${systemAwarenessInfo.knownSystems}</div>
+                    <div><strong>Part 25 - System Reality:</strong></div>
+                    <div style="padding-left:12px;">Status: ${systemRealityInfo.status}</div>
+                    <div style="padding-left:12px;">Score: ${systemRealityInfo.realityScore}%</div>
+                    <div style="padding-left:12px;">Matches: ${systemRealityInfo.matches}</div>
+                    <div style="padding-left:12px;">Missing: ${systemRealityInfo.missing}</div>
                 </div>
             </details>
 
@@ -2067,6 +2144,45 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 25: SYSTEM REALITY INFO
+    // ============================================================
+
+    _getSystemRealityInfo: function() {
+        var info = {
+            realityScore: 0,
+            completeness: 0,
+            declaredEngines: 0,
+            runtimeEngines: 0,
+            matches: 0,
+            missing: 0,
+            unknown: 0,
+            status: 'unknown',
+            coverage: 0
+        };
+
+        try {
+            var health = LawAIApp.RuntimeRealityHealth || window.runtimeRealityHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.realityScore = data.realityScore || 0;
+                info.completeness = data.completenessScore || 0;
+                info.declaredEngines = data.declaredEngines || 0;
+                info.runtimeEngines = data.runtimeEngines || 0;
+                info.matches = data.matches || 0;
+                info.missing = data.missing || 0;
+                info.unknown = data.unknown || 0;
+                info.status = data.status || 'unknown';
+                info.coverage = data.coverage || '0%';
+            }
+
+        } catch (err) {
+            console.warn('Could not get system reality info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -2136,6 +2252,8 @@ console.log('   ✅ Recovery R1 Part 20 - Engine Discovery');
 console.log('   ✅ Recovery R1 Part 21 - Engine Communication');
 console.log('   ✅ Recovery R1 Part 22 - Engine Signals');
 console.log('   ✅ Recovery R1 Part 23 - System Awareness');
+console.log('   ✅ Recovery R1 Part 24 - Core Orchestration');
+console.log('   ✅ Recovery R1 Part 25 - System Reality');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
 console.log('   ✅ Law AI Academy Architecture Stable');
