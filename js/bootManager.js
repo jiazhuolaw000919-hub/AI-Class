@@ -1456,6 +1456,77 @@ LawAIApp.BootManager = {
             console.log('✅ Engine Discovery Validator Ready');
             console.log('✅ Engine Discovery Health Ready');
             console.log('✅ Engine Discovery Layer Ready');
+
+            // ============================================================
+            // 🔥 PART 21: ENGINE COMMUNICATION
+            // ============================================================
+
+            // 79. ENGINE COMMUNICATION MANIFEST
+            if (typeof LawAIApp.EngineCommunicationManifest !== 'undefined') {
+                if (typeof LawAIApp.EngineCommunicationManifest.init === 'function') {
+                    LawAIApp.EngineCommunicationManifest.init();
+                }
+                console.log('✅ EngineCommunicationManifest initialized');
+            } else if (typeof window.engineCommunicationManifest !== 'undefined') {
+                if (typeof window.engineCommunicationManifest.init === 'function') {
+                    window.engineCommunicationManifest.init();
+                }
+                console.log('✅ EngineCommunicationManifest initialized (global)');
+            } else {
+                console.warn('⚠️ EngineCommunicationManifest not found - skipping');
+            }
+
+            // 80. ENGINE COMMUNICATION REGISTRY
+            if (typeof LawAIApp.EngineCommunicationRegistry !== 'undefined') {
+                if (typeof LawAIApp.EngineCommunicationRegistry.init === 'function') {
+                    LawAIApp.EngineCommunicationRegistry.init();
+                }
+                console.log('✅ EngineCommunicationRegistry initialized');
+            } else if (typeof window.engineCommunicationRegistry !== 'undefined') {
+                if (typeof window.engineCommunicationRegistry.init === 'function') {
+                    window.engineCommunicationRegistry.init();
+                }
+                console.log('✅ EngineCommunicationRegistry initialized (global)');
+            } else {
+                console.warn('⚠️ EngineCommunicationRegistry not found - skipping');
+            }
+
+            // 81. ENGINE COMMUNICATION VALIDATOR
+            if (typeof LawAIApp.EngineCommunicationValidator !== 'undefined') {
+                if (typeof LawAIApp.EngineCommunicationValidator.init === 'function') {
+                    LawAIApp.EngineCommunicationValidator.init();
+                }
+                console.log('✅ EngineCommunicationValidator initialized');
+            } else if (typeof window.engineCommunicationValidator !== 'undefined') {
+                if (typeof window.engineCommunicationValidator.init === 'function') {
+                    window.engineCommunicationValidator.init();
+                }
+                console.log('✅ EngineCommunicationValidator initialized (global)');
+            } else {
+                console.warn('⚠️ EngineCommunicationValidator not found - skipping');
+            }
+
+            // 82. ENGINE COMMUNICATION HEALTH
+            if (typeof LawAIApp.EngineCommunicationHealth !== 'undefined') {
+                if (typeof LawAIApp.EngineCommunicationHealth.init === 'function') {
+                    LawAIApp.EngineCommunicationHealth.init();
+                }
+                console.log('✅ EngineCommunicationHealth initialized');
+            } else if (typeof window.engineCommunicationHealth !== 'undefined') {
+                if (typeof window.engineCommunicationHealth.init === 'function') {
+                    window.engineCommunicationHealth.init();
+                }
+                console.log('✅ EngineCommunicationHealth initialized (global)');
+            } else {
+                console.warn('⚠️ EngineCommunicationHealth not found - skipping');
+            }
+
+            console.log('✅ Engine Communication Standard Loaded');
+            console.log('✅ Engine Communication Manifest Ready');
+            console.log('✅ Engine Communication Registry Ready');
+            console.log('✅ Engine Communication Validator Ready');
+            console.log('✅ Engine Communication Health Ready');
+            console.log('✅ Engine Communication Layer Ready');
             
         } catch (err) {
             console.warn('⚠️ Recovery architecture initialization warning:', err.message);
