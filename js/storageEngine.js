@@ -3,7 +3,7 @@
 // LAYER: Infrastructure Layer
 // DOMAIN: Persistent Storage Abstraction
 // RECOVERY STATUS: 🟢 Canon Locked
-// VERSION: 2.0.1 — Profiler Instrumentation
+// VERSION: 2.0.2 — Synchronous Initialization
 // ================================================================
 //
 // PURPOSE
@@ -57,7 +57,7 @@ LawAIApp.StorageEngine = {
     // ENGINE METADATA
     // ============================================================
     _engineName: 'StorageEngine',
-    _engineVersion: '2.0.1',
+    _engineVersion: '2.0.2',
     _recoveryStatus: '🟢 Canon Locked',
     _layer: 'Infrastructure Layer',
     _domain: 'Persistent Storage Abstraction',
@@ -86,10 +86,10 @@ LawAIApp.StorageEngine = {
     },
 
     // ============================================================
-    // INIT
+    // INIT (同步初始化)
     // ============================================================
     init: function() {
-        if (this._initialized) return;
+        if (this._initialized) return this;
         this._initialized = true;
         this._loadSchemaVersions();
         console.log('💾 StorageEngine v' + this._engineVersion + ' initialized');
@@ -313,11 +313,9 @@ LawAIApp.StorageEngine = {
     }
 };
 
-// Auto-init
-setTimeout(function() {
-    if (LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.init === 'function') {
-        LawAIApp.StorageEngine.init();
-    }
-}, 50);
+// ============================================================
+// 🔥 同步初始化 (移除 setTimeout 延迟)
+// ============================================================
+LawAIApp.StorageEngine.init();
 
-console.log('💾 StorageEngine V2.0.1 ready (profiler)');
+console.log('💾 StorageEngine V2.0.2 ready (sync init)');
