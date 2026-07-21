@@ -26,7 +26,7 @@ var STAGES = {
         "memoryEngine.js",
         "practiceEngine.js",
         "reflectionEngine.js",
-        "aimentorEngine.js",
+        "AIMentorEngine.js",
         "schoolEngine.js"
     ],
     background: [
