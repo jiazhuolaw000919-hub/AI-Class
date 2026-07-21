@@ -73,6 +73,8 @@ LawAIApp.EngineName = {
 };
 ```
 
+---
+
 ## 5. EVENT RULES
 
 ### 5.1 Unique Event Rule
@@ -88,6 +90,8 @@ No custom events may start with ENGINE_.
 ### 5.3 Declaration Rule
 Every event must be declared by engines that emit them.
 
+---
+
 ## 6. FREEZE STATEMENT
 ```
 ┌──────────────────────────────────────────┐
@@ -100,6 +104,8 @@ Every event must be declared by engines that emit them.
 └──────────────────────────────────────────┘
 ```
 
+---
+
 ## SIGNATURE
 
 | Role | Name |
@@ -108,3 +114,5 @@ Every event must be declared by engines that emit them.
 | Event Approver | Law AI Academy |
 | Effective Date | Current Build |
 | Standard Version | 1.0 |
+
+END OF ENGINE EVENT STANDARD
