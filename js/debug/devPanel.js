@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -114,6 +114,9 @@ LawAIApp.Debug.DevPanel = {
 
         // Part 20: Engine Discovery Info
         var engineDiscoveryInfo = this._getEngineDiscoveryInfo();
+
+        // Part 21: Engine Communication Info
+        var engineCommunicationInfo = this._getEngineCommunicationInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -667,6 +670,32 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 21: ENGINE COMMUNICATION -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(6,182,212,0.04);border-radius:8px;border-left:2px solid #06b6d4;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🌐 Engine Communication</span>
+                    <span style="font-size:10px;color:${engineCommunicationInfo.coverage >= 60 ? '#22c55e' : '#f59e0b'};">${engineCommunicationInfo.coverage}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Contracts: ${engineCommunicationInfo.totalContracts}</span>
+                    <span>Sources: ${engineCommunicationInfo.uniqueSources}</span>
+                    <span>Targets: ${engineCommunicationInfo.uniqueTargets}</span>
+                    <span>Status: ${engineCommunicationInfo.status}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Active: ${engineCommunicationInfo.activeContracts}</span>
+                    <span>Deprecated: ${engineCommunicationInfo.deprecatedContracts}</span>
+                    <span>Experimental: ${engineCommunicationInfo.experimentalContracts}</span>
+                </div>
+                ${engineCommunicationInfo.invalidContracts > 0 ? `
+                    <div style="font-size:9px;color:#ef4444;margin-top:2px;">
+                        ❌ ${engineCommunicationInfo.invalidContracts} invalid contracts
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -696,7 +725,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-20)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-21)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -769,6 +798,10 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Status: ${engineDiscoveryInfo.status}</div>
                     <div style="padding-left:12px;">Engines: ${engineDiscoveryInfo.totalEngines}</div>
                     <div style="padding-left:12px;">Coverage: ${engineDiscoveryInfo.coverage}%</div>
+                    <div><strong>Part 21 - Engine Communication:</strong></div>
+                    <div style="padding-left:12px;">Status: ${engineCommunicationInfo.status}</div>
+                    <div style="padding-left:12px;">Contracts: ${engineCommunicationInfo.totalContracts}</div>
+                    <div style="padding-left:12px;">Coverage: ${engineCommunicationInfo.coverage}%</div>
                 </div>
             </details>
 
@@ -1837,6 +1870,49 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 21: ENGINE COMMUNICATION INFO
+    // ============================================================
+
+    _getEngineCommunicationInfo: function() {
+        var info = {
+            totalContracts: 0,
+            activeContracts: 0,
+            deprecatedContracts: 0,
+            experimentalContracts: 0,
+            uniqueSources: 0,
+            uniqueTargets: 0,
+            totalEngines: 0,
+            invalidContracts: 0,
+            validationWarnings: 0,
+            coverage: 0,
+            status: 'unknown'
+        };
+
+        try {
+            var health = LawAIApp.EngineCommunicationHealth || window.engineCommunicationHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.totalContracts = data.totalContracts || 0;
+                info.activeContracts = data.activeContracts || 0;
+                info.deprecatedContracts = data.deprecatedContracts || 0;
+                info.experimentalContracts = data.experimentalContracts || 0;
+                info.uniqueSources = data.uniqueSources || 0;
+                info.uniqueTargets = data.uniqueTargets || 0;
+                info.totalEngines = data.totalEngines || 0;
+                info.invalidContracts = data.invalidContracts || 0;
+                info.validationWarnings = data.validationWarnings || 0;
+                info.coverage = data.coverageScore || 0;
+                info.status = data.status || 'unknown';
+            }
+
+        } catch (err) {
+            console.warn('Could not get engine communication info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -1903,6 +1979,7 @@ console.log('   ✅ Recovery R1 Part 17 - Engine Events');
 console.log('   ✅ Recovery R1 Part 18 - Runtime Intelligence');
 console.log('   ✅ Recovery R1 Part 19 - Engine Coordination');
 console.log('   ✅ Recovery R1 Part 20 - Engine Discovery');
+console.log('   ✅ Recovery R1 Part 21 - Engine Communication');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
 console.log('   ✅ Law AI Academy Architecture Stable');
