@@ -1,0 +1,117 @@
+/**
+ * Boot Sequence Manifest
+ * Maintains official boot phases.
+ * Read only – do not modify at runtime.
+ */
+
+export const BOOT_PHASES = [
+  {
+    id: 'architecture',
+    name: 'Architecture',
+    description: 'Architecture governance and validation',
+    order: 0,
+    version: '1.0',
+    status: 'active'
+  },
+  {
+    id: 'runtime',
+    name: 'Runtime',
+    description: 'Runtime core initialization',
+    order: 1,
+    version: '1.0',
+    status: 'active'
+  },
+  {
+    id: 'registry',
+    name: 'Registry',
+    description: 'Registry initialization',
+    order: 2,
+    version: '1.0',
+    status: 'active'
+  },
+  {
+    id: 'domain',
+    name: 'Domain',
+    description: 'Domain architecture setup',
+    order: 3,
+    version: '1.0',
+    status: 'active'
+  },
+  {
+    id: 'engine',
+    name: 'Engine',
+    description: 'Engine registry and governance',
+    order: 4,
+    version: '1.0',
+    status: 'active'
+  },
+  {
+    id: 'capability',
+    name: 'Capability',
+    description: 'Capability governance',
+    order: 5,
+    version: '1.0',
+    status: 'active'
+  },
+  {
+    id: 'lifecycle',
+    name: 'Lifecycle',
+    description: 'Lifecycle governance',
+    order: 6,
+    version: '1.0',
+    status: 'active'
+  },
+  {
+    id: 'awareness',
+    name: 'Awareness',
+    description: 'System awareness layer',
+    order: 7,
+    version: '1.0',
+    status: 'active'
+  },
+  {
+    id: 'application',
+    name: 'Application',
+    description: 'Application ready',
+    order: 8,
+    version: '1.0',
+    status: 'active'
+  }
+];
+
+export function getBootPhases() {
+  return JSON.parse(JSON.stringify(BOOT_PHASES));
+}
+
+export function getPhaseById(id) {
+  return BOOT_PHASES.find(p => p.id === id) || null;
+}
+
+export function getPhaseByOrder(order) {
+  return BOOT_PHASES.find(p => p.order === order) || null;
+}
+
+export function getActivePhases() {
+  return BOOT_PHASES.filter(p => p.status === 'active');
+}
+
+export function getPhaseCount() {
+  return BOOT_PHASES.length;
+}
+
+// Global mount
+if (typeof window !== 'undefined') {
+  window.bootSequenceManifest = {
+    BOOT_PHASES,
+    getBootPhases,
+    getPhaseById,
+    getPhaseByOrder,
+    getActivePhases,
+    getPhaseCount,
+    init: function() { console.log('✅ BootSequenceManifest ready'); return this; }
+  };
+  
+  if (typeof LawAIApp !== 'undefined' && LawAIApp) {
+    LawAIApp.BootSequenceManifest = window.bootSequenceManifest;
+  }
+}
