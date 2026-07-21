@@ -1687,6 +1687,47 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 19: ENGINE COORDINATION INFO
+    // ============================================================
+
+    _getEngineCoordinationInfo: function() {
+        var info = {
+            totalEngines: 0,
+            connectedEngines: 0,
+            disconnectedEngines: 0,
+            totalRelationships: 0,
+            uniqueRelationships: 0,
+            circularCount: 0,
+            validationWarnings: 0,
+            coverage: 0,
+            status: 'unknown',
+            orphanEngines: []
+        };
+
+        try {
+            var health = LawAIApp.EngineCoordinationHealth || window.engineCoordinationHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.totalEngines = data.totalEngines || 0;
+                info.connectedEngines = data.connectedEngines || 0;
+                info.disconnectedEngines = data.disconnectedEngines || 0;
+                info.totalRelationships = data.totalRelationships || 0;
+                info.uniqueRelationships = data.uniqueRelationships || 0;
+                info.circularCount = data.circularCount || 0;
+                info.validationWarnings = data.validationWarnings || 0;
+                info.coverage = data.coverageScore || 0;
+                info.status = data.status || 'unknown';
+                info.orphanEngines = data.orphanEngines || [];
+            }
+
+        } catch (err) {
+            console.warn('Could not get engine coordination info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
