@@ -940,6 +940,10 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Status: ${systemAwarenessInfo.status}</div>
                     <div style="padding-left:12px;">Coverage: ${systemAwarenessInfo.coverage}%</div>
                     <div style="padding-left:12px;">Known Systems: ${systemAwarenessInfo.knownSystems}</div>
+                    <div><strong>Part 24 - Core Orchestration:</strong></div>
+                    <div style="padding-left:12px;">Status: ${systemAwarenessInfo.status || 'N/A'}</div>
+                    <div style="padding-left:12px;">Phases: ${systemAwarenessInfo.totalSources || 0}</div>
+                    <div style="padding-left:12px;">Coverage: ${systemAwarenessInfo.coverage || 0}%</div>
                     <div><strong>Part 25 - System Reality:</strong></div>
                     <div style="padding-left:12px;">Status: ${systemRealityInfo.status}</div>
                     <div style="padding-left:12px;">Score: ${systemRealityInfo.realityScore}%</div>
