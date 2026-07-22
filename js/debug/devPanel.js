@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22，23, 24, 25, 26 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22，23, 24, 25, 26, 27 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -147,6 +147,9 @@ LawAIApp.Debug.DevPanel = {
 
         // Part 26: System Intelligence Info
         var systemIntelligenceInfo = this._getSystemIntelligenceInfo();
+
+        // Part 27: System Memory Info
+        var systemMemoryInfo = this._getSystemMemoryInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -843,6 +846,32 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 27: SYSTEM MEMORY -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(236,72,153,0.04);border-radius:8px;border-left:2px solid #ec4899;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🧠 System Memory</span>
+                    <span style="font-size:10px;color:${systemMemoryInfo.retentionScore >= 80 ? '#22c55e' : '#f59e0b'};">${systemMemoryInfo.retentionScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: ${systemMemoryInfo.status}</span>
+                    <span>Entries: ${systemMemoryInfo.totalEntries}</span>
+                    <span>Coverage: ${systemMemoryInfo.coverage}%</span>
+                    <span>Categories: ${systemMemoryInfo.coveredCategories}/${systemMemoryInfo.totalCategories}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Retention: ${systemMemoryInfo.retentionScore}%</span>
+                    ${systemMemoryInfo.corruptedEntries > 0 ? `<span style="color:#ef4444;">❌ Corrupted: ${systemMemoryInfo.corruptedEntries}</span>` : '<span>✅ No corruption</span>'}
+                    ${systemMemoryInfo.missingCategories.length > 0 ? `<span style="color:#f59e0b;">⚠️ Missing: ${systemMemoryInfo.missingCategories.length}</span>` : ''}
+                </div>
+                ${systemMemoryInfo.missingCategories.length > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ Missing categories: ${systemMemoryInfo.missingCategories.slice(0, 3).join(', ')}${systemMemoryInfo.missingCategories.length > 3 ? '...' : ''}
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -855,6 +884,8 @@ LawAIApp.Debug.DevPanel = {
                     <span style="color:#e2e8f0;font-weight:600;">${storageReport.totalKeys} (${storageReport.orphanKeys?.length || 0} orphan)</span>
                 </div>
             </div>
+
+            
 
             <!-- ========================================================== -->
             <!-- ACTIONS -->
@@ -872,7 +903,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-26)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-27)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -971,6 +1002,11 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Confidence: ${systemIntelligenceInfo.confidence}%</div>
                     <div style="padding-left:12px;">Coverage: ${systemIntelligenceInfo.coverage}%</div>
                     <div style="padding-left:12px;">Anomalies: ${systemIntelligenceInfo.anomalies}</div>
+                    <div><strong>Part 27 - System Memory:</strong></div>
+                    <div style="padding-left:12px;">Status: ${systemMemoryInfo.status}</div>
+                    <div style="padding-left:12px;">Entries: ${systemMemoryInfo.totalEntries}</div>
+                    <div style="padding-left:12px;">Coverage: ${systemMemoryInfo.coverage}%</div>
+                    <div style="padding-left:12px;">Retention: ${systemMemoryInfo.retentionScore}%</div>
                 </div>
             </details>
 
@@ -2250,6 +2286,47 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 27: SYSTEM MEMORY INFO
+    // ============================================================
+
+    _getSystemMemoryInfo: function() {
+        var info = {
+            status: 'unknown',
+            totalEntries: 0,
+            coverage: 0,
+            retentionScore: 0,
+            coveredCategories: 0,
+            totalCategories: 0,
+            missingCategories: [],
+            corruptedEntries: 0,
+            validationWarnings: 0,
+            categories: []
+        };
+
+        try {
+            var health = LawAIApp.SystemMemoryHealth || window.systemMemoryHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.status = data.status || 'unknown';
+                info.totalEntries = data.totalEntries || 0;
+                info.coverage = data.coverageScore || 0;
+                info.retentionScore = data.retentionScore || 0;
+                info.coveredCategories = data.coveredCategories || 0;
+                info.totalCategories = data.totalCategories || 0;
+                info.missingCategories = data.missingCategories || [];
+                info.corruptedEntries = data.corruptedEntries || 0;
+                info.validationWarnings = data.validationWarnings || 0;
+                info.categories = data.categories || [];
+            }
+
+        } catch (err) {
+            console.warn('Could not get system memory info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -2322,6 +2399,7 @@ console.log('   ✅ Recovery R1 Part 23 - System Awareness');
 console.log('   ✅ Recovery R1 Part 24 - Core Orchestration');
 console.log('   ✅ Recovery R1 Part 25 - System Reality');
 console.log('   ✅ Recovery R1 Part 26 - System Intelligence');
+console.log('   ✅ Recovery R1 Part 27 - System Memory');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
 console.log('   ✅ Law AI Academy Architecture Stable');
