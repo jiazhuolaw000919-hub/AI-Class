@@ -2227,6 +2227,61 @@ LawAIApp.BootManager = {
             console.log('✅ System Evolution Validator Ready');
             console.log('✅ System Evolution Health Ready');
             console.log('✅ System Evolution Governance Ready');
+
+            // ============================================================
+            // 🔥 PART 31: ENGINE STATE GOVERNANCE
+            // ============================================================
+
+            // 123. ENGINE STATE MANIFEST
+            if (typeof LawAIApp.EngineStateManifest !== 'undefined') {
+                if (typeof LawAIApp.EngineStateManifest.init === 'function') {
+                    LawAIApp.EngineStateManifest.init();
+                }
+                console.log('✅ EngineStateManifest initialized');
+            } else if (typeof window.engineStateManifest !== 'undefined') {
+                if (typeof window.engineStateManifest.init === 'function') {
+                    window.engineStateManifest.init();
+                }
+                console.log('✅ EngineStateManifest initialized (global)');
+            } else {
+                console.warn('⚠️ EngineStateManifest not found - skipping');
+            }
+
+            // 124. ENGINE STATE VALIDATOR
+            if (typeof LawAIApp.EngineStateValidator !== 'undefined') {
+                if (typeof LawAIApp.EngineStateValidator.init === 'function') {
+                    LawAIApp.EngineStateValidator.init();
+                }
+                console.log('✅ EngineStateValidator initialized');
+            } else if (typeof window.engineStateValidator !== 'undefined') {
+                if (typeof window.engineStateValidator.init === 'function') {
+                    window.engineStateValidator.init();
+                }
+                console.log('✅ EngineStateValidator initialized (global)');
+            } else {
+                console.warn('⚠️ EngineStateValidator not found - skipping');
+            }
+
+            // 125. ENGINE STATE HEALTH
+            if (typeof LawAIApp.EngineStateHealth !== 'undefined') {
+                if (typeof LawAIApp.EngineStateHealth.init === 'function') {
+                    LawAIApp.EngineStateHealth.init();
+                }
+                console.log('✅ EngineStateHealth initialized');
+            } else if (typeof window.engineStateHealth !== 'undefined') {
+                if (typeof window.engineStateHealth.init === 'function') {
+                    window.engineStateHealth.init();
+                }
+                console.log('✅ EngineStateHealth initialized (global)');
+            } else {
+                console.warn('⚠️ EngineStateHealth not found - skipping');
+            }
+
+            console.log('✅ Engine State Standard Loaded');
+            console.log('✅ Engine State Manifest Ready');
+            console.log('✅ Engine State Validator Ready');
+            console.log('✅ Engine State Health Ready');
+            console.log('✅ Engine State Governance Ready');
             
         } catch (err) {
             console.warn('⚠️ Recovery architecture initialization warning:', err.message);
