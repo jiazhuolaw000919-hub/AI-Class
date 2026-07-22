@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -168,6 +168,9 @@ LawAIApp.Debug.DevPanel = {
 
         // Part 33: System Intention Info
         var systemIntentionInfo = this._getSystemIntentionInfo();
+
+        // Part 34: System Adaptation Info
+        var systemAdaptationInfo = this._getSystemAdaptationInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -1085,6 +1088,42 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 34: SYSTEM ADAPTATION -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🧬 System Adaptation</span>
+                    <span style="font-size:10px;color:${systemAdaptationInfo.coverage >= 70 ? '#22c55e' : '#f59e0b'};">${systemAdaptationInfo.coverage}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: ${systemAdaptationInfo.status}</span>
+                    <span>Adaptations: ${systemAdaptationInfo.activeAdaptations}/${systemAdaptationInfo.totalAdaptations}</span>
+                    <span>Signals: ${systemAdaptationInfo.signals}</span>
+                    <span>Recommendations: ${systemAdaptationInfo.recommendations}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Healthy: ${systemAdaptationInfo.healthyAdaptations}</span>
+                    ${systemAdaptationInfo.warningAdaptations > 0 ? `<span style="color:#f59e0b;">⚠️ Warnings: ${systemAdaptationInfo.warningAdaptations}</span>` : ''}
+                    ${systemAdaptationInfo.blockedAdaptations > 0 ? `<span style="color:#ef4444;">🚫 Blocked: ${systemAdaptationInfo.blockedAdaptations}</span>` : ''}
+                </div>
+                ${systemAdaptationInfo.warningAdaptations > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${systemAdaptationInfo.warningAdaptations} adaptations with warnings
+                    </div>
+                ` : ''}
+                ${systemAdaptationInfo.blockedAdaptations > 0 ? `
+                    <div style="font-size:9px;color:#ef4444;margin-top:2px;">
+                        🚫 ${systemAdaptationInfo.blockedAdaptations} blocked adaptations
+                    </div>
+                ` : ''}
+                ${systemAdaptationInfo.recommendations > 0 ? `
+                    <div style="font-size:9px;color:#4a9eff;margin-top:2px;">
+                        💡 ${systemAdaptationInfo.recommendations} recommendations available
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -1116,7 +1155,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-33)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-34)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -1251,6 +1290,11 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Intentions: ${systemIntentionInfo.totalIntentions}</div>
                     <div style="padding-left:12px;">Coverage: ${systemIntentionInfo.coverage}%</div>
                     <div style="padding-left:12px;">Current: ${systemIntentionInfo.currentIntention}</div>
+                    <div><strong>Part 34 - System Adaptation:</strong></div>
+                    <div style="padding-left:12px;">Status: ${systemAdaptationInfo.status}</div>
+                    <div style="padding-left:12px;">Adaptations: ${systemAdaptationInfo.activeAdaptations}/${systemAdaptationInfo.totalAdaptations}</div>
+                    <div style="padding-left:12px;">Coverage: ${systemAdaptationInfo.coverage}%</div>
+                    <div style="padding-left:12px;">Recommendations: ${systemAdaptationInfo.recommendations}</div>
                 </div>
             </details>
 
@@ -2808,7 +2852,7 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
-        // ============================================================
+    // ============================================================
     // 🔥 PART 33: SYSTEM INTENTION INFO
     // ============================================================
 
@@ -2847,6 +2891,47 @@ LawAIApp.Debug.DevPanel = {
 
         } catch (err) {
             console.warn('Could not get system intention info:', err);
+        }
+
+        return info;
+    },
+
+        // ============================================================
+    // 🔥 PART 34: SYSTEM ADAPTATION INFO
+    // ============================================================
+
+    _getSystemAdaptationInfo: function() {
+        var info = {
+            status: 'unknown',
+            totalAdaptations: 0,
+            activeAdaptations: 0,
+            healthyAdaptations: 0,
+            warningAdaptations: 0,
+            blockedAdaptations: 0,
+            coverage: 0,
+            signals: 0,
+            recommendations: 0,
+            validationWarnings: 0
+        };
+
+        try {
+            var health = LawAIApp.SystemAdaptationHealth || window.systemAdaptationHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.status = data.status || 'unknown';
+                info.totalAdaptations = data.totalAdaptations || 0;
+                info.activeAdaptations = data.activeAdaptations || 0;
+                info.healthyAdaptations = data.healthyAdaptations || 0;
+                info.warningAdaptations = data.warningAdaptations || 0;
+                info.blockedAdaptations = data.blockedAdaptations || 0;
+                info.coverage = data.coverageScore || 0;
+                info.signals = data.activeSignals || 0;
+                info.recommendations = data.recommendations || 0;
+                info.validationWarnings = data.validationWarnings || 0;
+            }
+
+        } catch (err) {
+            console.warn('Could not get system adaptation info:', err);
         }
 
         return info;
@@ -2931,6 +3016,7 @@ console.log('   ✅ Recovery R1 Part 30 - System Evolution');
 console.log('   ✅ Recovery R1 Part 31 - Engine States');
 console.log('   ✅ Recovery R1 Part 32 - System Context');
 console.log('   ✅ Recovery R1 Part 33 - System Intention');
+console.log('   ✅ Recovery R1 Part 34 - System Adaptation');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
 console.log('   ✅ Law AI Academy Architecture Stable');
