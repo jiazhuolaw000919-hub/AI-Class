@@ -1796,6 +1796,92 @@ LawAIApp.BootManager = {
             console.log('✅ Runtime Reality Health Ready');
             console.log('✅ Reality Synchronization Complete');
             console.log('✅ Engine Renaissance Runtime Verified');
+
+            // ============================================================
+            // 🔥 PART 26: SYSTEM INTELLIGENCE
+            // ============================================================
+
+            // 98. SYSTEM INTELLIGENCE MANIFEST
+            if (typeof LawAIApp.SystemIntelligenceManifest !== 'undefined') {
+                if (typeof LawAIApp.SystemIntelligenceManifest.init === 'function') {
+                    LawAIApp.SystemIntelligenceManifest.init();
+                }
+                console.log('✅ SystemIntelligenceManifest initialized');
+            } else if (typeof window.systemIntelligenceManifest !== 'undefined') {
+                if (typeof window.systemIntelligenceManifest.init === 'function') {
+                    window.systemIntelligenceManifest.init();
+                }
+                console.log('✅ SystemIntelligenceManifest initialized (global)');
+            } else {
+                console.warn('⚠️ SystemIntelligenceManifest not found - skipping');
+            }
+
+            // 99. SYSTEM INTELLIGENCE COLLECTOR
+            if (typeof LawAIApp.SystemIntelligenceCollector !== 'undefined') {
+                if (typeof LawAIApp.SystemIntelligenceCollector.init === 'function') {
+                    LawAIApp.SystemIntelligenceCollector.init();
+                }
+                console.log('✅ SystemIntelligenceCollector initialized');
+            } else if (typeof window.systemIntelligenceCollector !== 'undefined') {
+                if (typeof window.systemIntelligenceCollector.init === 'function') {
+                    window.systemIntelligenceCollector.init();
+                }
+                console.log('✅ SystemIntelligenceCollector initialized (global)');
+            } else {
+                console.warn('⚠️ SystemIntelligenceCollector not found - skipping');
+            }
+
+            // 100. SYSTEM INTELLIGENCE VALIDATOR
+            if (typeof LawAIApp.SystemIntelligenceValidator !== 'undefined') {
+                if (typeof LawAIApp.SystemIntelligenceValidator.init === 'function') {
+                    LawAIApp.SystemIntelligenceValidator.init();
+                }
+                console.log('✅ SystemIntelligenceValidator initialized');
+            } else if (typeof window.systemIntelligenceValidator !== 'undefined') {
+                if (typeof window.systemIntelligenceValidator.init === 'function') {
+                    window.systemIntelligenceValidator.init();
+                }
+                console.log('✅ SystemIntelligenceValidator initialized (global)');
+            } else {
+                console.warn('⚠️ SystemIntelligenceValidator not found - skipping');
+            }
+
+            // 101. SYSTEM INTELLIGENCE HEALTH
+            if (typeof LawAIApp.SystemIntelligenceHealth !== 'undefined') {
+                if (typeof LawAIApp.SystemIntelligenceHealth.init === 'function') {
+                    LawAIApp.SystemIntelligenceHealth.init();
+                }
+                console.log('✅ SystemIntelligenceHealth initialized');
+            } else if (typeof window.systemIntelligenceHealth !== 'undefined') {
+                if (typeof window.systemIntelligenceHealth.init === 'function') {
+                    window.systemIntelligenceHealth.init();
+                }
+                console.log('✅ SystemIntelligenceHealth initialized (global)');
+            } else {
+                console.warn('⚠️ SystemIntelligenceHealth not found - skipping');
+            }
+
+            // 102. SYSTEM INTELLIGENCE DASHBOARD
+            if (typeof LawAIApp.SystemIntelligenceDashboard !== 'undefined') {
+                if (typeof LawAIApp.SystemIntelligenceDashboard.init === 'function') {
+                    LawAIApp.SystemIntelligenceDashboard.init();
+                }
+                console.log('✅ SystemIntelligenceDashboard initialized');
+            } else if (typeof window.systemIntelligenceDashboard !== 'undefined') {
+                if (typeof window.systemIntelligenceDashboard.init === 'function') {
+                    window.systemIntelligenceDashboard.init();
+                }
+                console.log('✅ SystemIntelligenceDashboard initialized (global)');
+            } else {
+                console.warn('⚠️ SystemIntelligenceDashboard not found - skipping');
+            }
+
+            console.log('✅ System Intelligence Constitution Loaded');
+            console.log('✅ System Intelligence Manifest Ready');
+            console.log('✅ System Intelligence Collector Ready');
+            console.log('✅ System Intelligence Health Ready');
+            console.log('✅ System Intelligence Dashboard Ready');
+            console.log('✅ System Intelligence Layer Complete');
             
         } catch (err) {
             console.warn('⚠️ Recovery architecture initialization warning:', err.message);
