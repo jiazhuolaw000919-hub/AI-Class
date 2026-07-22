@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 2223, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22, 23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39, 40, 41 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39, 40, 41)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -189,6 +189,9 @@ LawAIApp.Debug.DevPanel = {
 
         // Part 40: Runtime Observation Info
         var runtimeObservationInfo = this._getRuntimeObservationInfo();
+
+        // Part 41: Runtime Metrics Info
+        var runtimeMetricsInfo = this._getRuntimeMetricsInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -1335,6 +1338,37 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 41: RUNTIME METRICS -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">📈 Runtime Metrics</span>
+                    <span style="font-size:10px;color:${runtimeMetricsInfo.healthScore >= 80 ? '#22c55e' : '#f59e0b'};">${runtimeMetricsInfo.healthScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: ${runtimeMetricsInfo.status}</span>
+                    <span>Metrics: ${runtimeMetricsInfo.collectedMetrics}/${runtimeMetricsInfo.totalMetrics}</span>
+                    <span>Coverage: ${runtimeMetricsInfo.coverage}%</span>
+                    <span>Health: ${runtimeMetricsInfo.healthScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    ${runtimeMetricsInfo.errors > 0 ? `<span style="color:#ef4444;">❌ Errors: ${runtimeMetricsInfo.errors}</span>` : ''}
+                    ${runtimeMetricsInfo.warnings > 0 ? `<span style="color:#f59e0b;">⚠️ Warnings: ${runtimeMetricsInfo.warnings}</span>` : ''}
+                    ${runtimeMetricsInfo.missingMetrics.length > 0 ? `<span style="color:#94a3b8;">📭 Missing: ${runtimeMetricsInfo.missingMetrics.length}</span>` : ''}
+                </div>
+                ${runtimeMetricsInfo.missingMetrics.length > 0 ? `
+                    <div style="font-size:8px;color:#475569;margin-top:2px;max-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                        Missing: ${runtimeMetricsInfo.missingMetrics.slice(0, 4).join(', ')}${runtimeMetricsInfo.missingMetrics.length > 4 ? '...' : ''}
+                    </div>
+                ` : ''}
+                ${runtimeMetricsInfo.validationWarnings > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${runtimeMetricsInfo.validationWarnings} validation warnings
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -1366,7 +1400,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-40)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-41)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -1537,6 +1571,11 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Events: ${runtimeObservationInfo.totalObservations}</div>
                     <div style="padding-left:12px;">Coverage: ${runtimeObservationInfo.coverage}%</div>
                     <div style="padding-left:12px;">Health: ${runtimeObservationInfo.healthScore}%</div>
+                    <div><strong>Part 41 - Runtime Metrics:</strong></div>
+                    <div style="padding-left:12px;">Status: ${runtimeMetricsInfo.status}</div>
+                    <div style="padding-left:12px;">Metrics: ${runtimeMetricsInfo.collectedMetrics}/${runtimeMetricsInfo.totalMetrics}</div>
+                    <div style="padding-left:12px;">Coverage: ${runtimeMetricsInfo.coverage}%</div>
+                    <div style="padding-left:12px;">Health: ${runtimeMetricsInfo.healthScore}%</div>
                 </div>
             </details>
 
@@ -3459,6 +3498,45 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 41: RUNTIME METRICS INFO
+    // ============================================================
+
+    _getRuntimeMetricsInfo: function() {
+        var info = {
+            status: 'unknown',
+            totalMetrics: 0,
+            collectedMetrics: 0,
+            coverage: 0,
+            healthScore: 0,
+            errors: 0,
+            warnings: 0,
+            missingMetrics: [],
+            validationWarnings: 0
+        };
+
+        try {
+            var health = LawAIApp.RuntimeMetricsHealth || window.runtimeMetricsHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.status = data.status || 'unknown';
+                info.totalMetrics = data.totalMetrics || 0;
+                info.collectedMetrics = data.collectedMetrics || 0;
+                info.coverage = data.coverageScore || 0;
+                info.healthScore = data.healthScore || 0;
+                info.errors = data.errors || 0;
+                info.warnings = data.warnings || 0;
+                info.missingMetrics = data.missingMetrics || [];
+                info.validationWarnings = data.validationWarnings || 0;
+            }
+
+        } catch (err) {
+            console.warn('Could not get runtime metrics info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -3547,6 +3625,7 @@ console.log('   ✅ Recovery R1 Part 39 - Boot Architecture');
 console.log('   🏗️ Boot Architecture Refactored - Coordinator Mode');
 console.log('   ✅ Season 4 - Runtime Excellence Era Started');
 console.log('   ✅ Recovery R1 Part 40 - Runtime Observation');
+console.log('   ✅ Recovery R1 Part 41 - Runtime Metrics');
 console.log('🎉 System Intelligence Era - Complete');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
