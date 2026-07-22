@@ -2,6 +2,7 @@
 // bootManager.js – V4.0.0 - Runtime Excellence Era
 // BootManager is now a Coordinator only.
 // Delegates execution to bootPipeline.
+// Integrated with Runtime Observation (Part 40)
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -26,6 +27,25 @@ LawAIApp.BootManager = {
 
         console.log('🚀 BootManager (Coordinator): Starting boot sequence...');
 
+        // 🆕 Initialize Runtime Observation (Part 40)
+        if (LawAIApp.RuntimeObservationManifest && typeof LawAIApp.RuntimeObservationManifest.init === 'function') {
+            LawAIApp.RuntimeObservationManifest.init();
+        }
+        if (LawAIApp.RuntimeObservationCollector && typeof LawAIApp.RuntimeObservationCollector.init === 'function') {
+            LawAIApp.RuntimeObservationCollector.init();
+        }
+        if (LawAIApp.RuntimeObservationValidator && typeof LawAIApp.RuntimeObservationValidator.init === 'function') {
+            LawAIApp.RuntimeObservationValidator.init();
+        }
+        if (LawAIApp.RuntimeObservationHealth && typeof LawAIApp.RuntimeObservationHealth.init === 'function') {
+            LawAIApp.RuntimeObservationHealth.init();
+        }
+
+        // 🆕 Collect BOOT_STARTED observation
+        if (LawAIApp.RuntimeObservationCollector && typeof LawAIApp.RuntimeObservationCollector.collect === 'function') {
+            LawAIApp.RuntimeObservationCollector.collect('BOOT_STARTED', 'BootManager', null, { version: 'V4.0.0' });
+        }
+
         // 🆕 初始化 Pipeline
         if (window.bootPipeline && typeof window.bootPipeline.init === 'function') {
             window.bootPipeline.init();
@@ -45,6 +65,11 @@ LawAIApp.BootManager = {
         this.markStage('ux');
         this.markStage('intelligence');
         this.markStage('background');
+
+        // 🆕 Collect RUNTIME_READY observation
+        if (LawAIApp.RuntimeObservationCollector && typeof LawAIApp.RuntimeObservationCollector.collect === 'function') {
+            LawAIApp.RuntimeObservationCollector.collect('RUNTIME_READY', 'BootManager', null, { booted: true });
+        }
 
         try {
             LawAIApp.EventBus?.emit?.('BootStarted');
@@ -110,4 +135,5 @@ LawAIApp.BootManager = {
 
 console.log('🚀 BootManager V4.0.0 ready (Runtime Excellence Era)');
 console.log('   🏗️ Boot Architecture Refactored - Coordinator Mode');
+console.log('   👁 Runtime Observation Integrated');
 console.log('   ✅ Season 4 - Runtime Excellence Era Started');
