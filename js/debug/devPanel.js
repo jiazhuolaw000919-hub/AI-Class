@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22，23, 24, 25 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22，23, 24, 25, 26 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -144,6 +144,9 @@ LawAIApp.Debug.DevPanel = {
 
         // Part 25: System Reality Info
         var systemRealityInfo = this._getSystemRealityInfo();
+
+        // Part 26: System Intelligence Info
+        var systemIntelligenceInfo = this._getSystemIntelligenceInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -814,6 +817,32 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 26: SYSTEM INTELLIGENCE -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🧠 System Intelligence</span>
+                    <span style="font-size:10px;color:${systemIntelligenceInfo.confidence >= 80 ? '#22c55e' : '#f59e0b'};">${systemIntelligenceInfo.confidence}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: ${systemIntelligenceInfo.status}</span>
+                    <span>Coverage: ${systemIntelligenceInfo.coverage}%</span>
+                    <span>Sources: ${systemIntelligenceInfo.healthySources}/${systemIntelligenceInfo.totalSources}</span>
+                    <span>Avg Health: ${systemIntelligenceInfo.avgHealthScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Confidence: ${systemIntelligenceInfo.confidence}%</span>
+                    ${systemIntelligenceInfo.anomalies > 0 ? `<span style="color:#f59e0b;">⚠️ Anomalies: ${systemIntelligenceInfo.anomalies}</span>` : '<span>✅ No anomalies</span>'}
+                    ${systemIntelligenceInfo.missingSources > 0 ? `<span style="color:#ef4444;">❌ Missing: ${systemIntelligenceInfo.missingSources}</span>` : ''}
+                </div>
+                ${systemIntelligenceInfo.anomalies > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${systemIntelligenceInfo.anomalies} anomalies detected
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -843,7 +872,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-25)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-26)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -937,6 +966,11 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Score: ${systemRealityInfo.realityScore}%</div>
                     <div style="padding-left:12px;">Matches: ${systemRealityInfo.matches}</div>
                     <div style="padding-left:12px;">Missing: ${systemRealityInfo.missing}</div>
+                    <div><strong>Part 26 - System Intelligence:</strong></div>
+                    <div style="padding-left:12px;">Status: ${systemIntelligenceInfo.status}</div>
+                    <div style="padding-left:12px;">Confidence: ${systemIntelligenceInfo.confidence}%</div>
+                    <div style="padding-left:12px;">Coverage: ${systemIntelligenceInfo.coverage}%</div>
+                    <div style="padding-left:12px;">Anomalies: ${systemIntelligenceInfo.anomalies}</div>
                 </div>
             </details>
 
@@ -2175,6 +2209,47 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 26: SYSTEM INTELLIGENCE INFO
+    // ============================================================
+
+    _getSystemIntelligenceInfo: function() {
+        var info = {
+            status: 'unknown',
+            coverage: 0,
+            confidence: 0,
+            totalSources: 0,
+            healthySources: 0,
+            missingSources: 0,
+            avgHealthScore: 0,
+            anomalies: 0,
+            validationWarnings: 0,
+            sourceDetails: []
+        };
+
+        try {
+            var health = LawAIApp.SystemIntelligenceHealth || window.systemIntelligenceHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.status = data.status || 'unknown';
+                info.coverage = data.coverageScore || 0;
+                info.confidence = data.confidenceScore || 0;
+                info.totalSources = data.totalSources || 0;
+                info.healthySources = data.healthySources || 0;
+                info.missingSources = data.missingSources || 0;
+                info.avgHealthScore = data.avgHealthScore || 0;
+                info.anomalies = data.anomalyCount || 0;
+                info.validationWarnings = data.validationWarnings || 0;
+                info.sourceDetails = data.sourceDetails || [];
+            }
+
+        } catch (err) {
+            console.warn('Could not get system intelligence info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -2246,6 +2321,7 @@ console.log('   ✅ Recovery R1 Part 22 - Engine Signals');
 console.log('   ✅ Recovery R1 Part 23 - System Awareness');
 console.log('   ✅ Recovery R1 Part 24 - Core Orchestration');
 console.log('   ✅ Recovery R1 Part 25 - System Reality');
+console.log('   ✅ Recovery R1 Part 26 - System Intelligence');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
 console.log('   ✅ Law AI Academy Architecture Stable');
