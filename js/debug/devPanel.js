@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 2223, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -177,6 +177,12 @@ LawAIApp.Debug.DevPanel = {
 
         // Part 36: System Continuity Info
         var systemContinuityInfo = this._getSystemContinuityInfo();
+
+        // Part 37: System Identity Info
+        var systemIdentityInfo = this._getSystemIdentityInfo();
+
+        // Part 38: System Maturity Info
+        var systemMaturityInfo = this._getSystemMaturityInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -1194,6 +1200,78 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 37: SYSTEM IDENTITY -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🪪 System Identity</span>
+                    <span style="font-size:10px;color:${systemIdentityInfo.healthScore >= 80 ? '#22c55e' : '#f59e0b'};">${systemIdentityInfo.healthScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: ${systemIdentityInfo.status}</span>
+                    <span>Version: ${systemIdentityInfo.systemVersion}</span>
+                    <span>Architecture: ${systemIdentityInfo.architectureVersion}</span>
+                    <span>Era: ${systemIdentityInfo.intelligenceEra}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Season: ${systemIdentityInfo.currentSeason}</span>
+                    <span>Part: ${systemIdentityInfo.currentPart}</span>
+                    <span>Completeness: ${systemIdentityInfo.completeness}%</span>
+                    <span>Runtime: ${systemIdentityInfo.runtimeReady ? '✅ Ready' : '⏳ Pending'}</span>
+                </div>
+                <div style="font-size:8px;color:#475569;margin-top:2px;max-height:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    Signature: ${systemIdentityInfo.identitySignature}
+                </div>
+                ${systemIdentityInfo.validationWarnings > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${systemIdentityInfo.validationWarnings} identity warnings
+                    </div>
+                ` : ''}
+                ${systemIdentityInfo.completeness < 80 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ Low identity completeness: ${systemIdentityInfo.completeness}%
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- 🔥 PART 38: SYSTEM MATURITY -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(34,197,94,0.04);border-radius:8px;border-left:2px solid #22c55e;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🌱 System Maturity</span>
+                    <span style="font-size:10px;color:${systemMaturityInfo.overallScore >= 80 ? '#22c55e' : '#f59e0b'};">${systemMaturityInfo.overallScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: ${systemMaturityInfo.status}</span>
+                    <span>Stage: ${systemMaturityInfo.currentStage.toUpperCase()}</span>
+                    <span>Next: ${systemMaturityInfo.nextStage}</span>
+                    <span>Progress: ${systemMaturityInfo.progress}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Arch: ${systemMaturityInfo.architectureScore}%</span>
+                    <span>Runtime: ${systemMaturityInfo.runtimeScore}%</span>
+                    <span>Gov: ${systemMaturityInfo.governanceScore}%</span>
+                    <span>Intel: ${systemMaturityInfo.intelligenceScore}%</span>
+                    <span>Cons: ${systemMaturityInfo.consistencyScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Milestones: ${systemMaturityInfo.completedMilestones}/${systemMaturityInfo.totalMilestones}</span>
+                    ${systemMaturityInfo.missingAreas.length > 0 ? `<span style="color:#f59e0b;">⚠️ Missing: ${systemMaturityInfo.missingAreas.join(', ')}</span>` : '<span>✅ All areas complete</span>'}
+                </div>
+                ${systemMaturityInfo.missingAreas.length > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ Missing areas: ${systemMaturityInfo.missingAreas.join(', ')}
+                    </div>
+                ` : ''}
+                ${systemMaturityInfo.overallScore >= 90 ? `
+                    <div style="font-size:9px;color:#22c55e;margin-top:2px;">
+                        🎉 System has reached MATURE stage!
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -1225,7 +1303,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-36)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-38)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -1375,6 +1453,17 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Version: ${systemContinuityInfo.currentVersion}</div>
                     <div style="padding-left:12px;">Score: ${systemContinuityInfo.continuityScore}%</div>
                     <div style="padding-left:12px;">Milestones: ${systemContinuityInfo.completedMilestones}/${systemContinuityInfo.totalMilestones}</div>
+                    <div><strong>Part 37 - System Identity:</strong></div>
+                    <div style="padding-left:12px;">Status: ${systemIdentityInfo.status}</div>
+                    <div style="padding-left:12px;">Version: ${systemIdentityInfo.systemVersion}</div>
+                    <div style="padding-left:12px;">Architecture: ${systemIdentityInfo.architectureVersion}</div>
+                    <div style="padding-left:12px;">Health: ${systemIdentityInfo.healthScore}%</div>
+                    <div><strong>Part 38 - System Maturity:</strong></div>
+                    <div style="padding-left:12px;">Status: ${systemMaturityInfo.status}</div>
+                    <div style="padding-left:12px;">Stage: ${systemMaturityInfo.currentStage}</div>
+                    <div style="padding-left:12px;">Score: ${systemMaturityInfo.overallScore}%</div>
+                    <div style="padding-left:12px;">Progress: ${systemMaturityInfo.progress}%</div>
+                    <div style="padding-left:12px;">Milestones: ${systemMaturityInfo.completedMilestones}/${systemMaturityInfo.totalMilestones}</div>
                 </div>
             </details>
 
@@ -3103,6 +3192,100 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 37: SYSTEM IDENTITY INFO
+    // ============================================================
+
+    _getSystemIdentityInfo: function() {
+        var info = {
+            status: 'unknown',
+            healthScore: 0,
+            systemName: 'N/A',
+            systemVersion: 'N/A',
+            architectureVersion: 'N/A',
+            intelligenceEra: 'N/A',
+            currentSeason: 'N/A',
+            currentPart: 'N/A',
+            identitySignature: 'N/A',
+            completeness: 0,
+            runtimeReady: false,
+            validationWarnings: 0
+        };
+
+        try {
+            var health = LawAIApp.SystemIdentityHealth || window.systemIdentityHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.status = data.status || 'unknown';
+                info.healthScore = data.healthScore || 0;
+                info.systemName = data.systemName || 'N/A';
+                info.systemVersion = data.systemVersion || 'N/A';
+                info.architectureVersion = data.architectureVersion || 'N/A';
+                info.intelligenceEra = data.intelligenceEra || 'N/A';
+                info.currentSeason = data.currentSeason || 'N/A';
+                info.currentPart = data.currentPart || 'N/A';
+                info.identitySignature = data.identitySignature || 'N/A';
+                info.completeness = data.completenessScore || 0;
+                info.runtimeReady = data.runtimeReady || false;
+                info.validationWarnings = data.validationWarnings || 0;
+            }
+
+        } catch (err) {
+            console.warn('Could not get system identity info:', err);
+        }
+
+        return info;
+    },
+
+    // ============================================================
+    // 🔥 PART 38: SYSTEM MATURITY INFO
+    // ============================================================
+
+    _getSystemMaturityInfo: function() {
+        var info = {
+            status: 'unknown',
+            currentStage: 'unknown',
+            nextStage: 'N/A',
+            overallScore: 0,
+            architectureScore: 0,
+            runtimeScore: 0,
+            governanceScore: 0,
+            intelligenceScore: 0,
+            consistencyScore: 0,
+            progress: 0,
+            completedMilestones: 0,
+            totalMilestones: 0,
+            missingAreas: [],
+            validationWarnings: 0
+        };
+
+        try {
+            var health = LawAIApp.SystemMaturityHealth || window.systemMaturityHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.status = data.status || 'unknown';
+                info.currentStage = data.currentStage || 'unknown';
+                info.nextStage = data.nextStage || 'N/A';
+                info.overallScore = data.overallScore || 0;
+                info.architectureScore = data.architectureScore || 0;
+                info.runtimeScore = data.runtimeScore || 0;
+                info.governanceScore = data.governanceScore || 0;
+                info.intelligenceScore = data.intelligenceScore || 0;
+                info.consistencyScore = data.consistencyScore || 0;
+                info.progress = data.progressScore || 0;
+                info.completedMilestones = data.completedMilestones || 0;
+                info.totalMilestones = data.totalMilestones || 0;
+                info.missingAreas = data.missingAreas || [];
+                info.validationWarnings = data.validationWarnings || 0;
+            }
+
+        } catch (err) {
+            console.warn('Could not get system maturity info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -3185,6 +3368,9 @@ console.log('   ✅ Recovery R1 Part 33 - System Intention');
 console.log('   ✅ Recovery R1 Part 34 - System Adaptation');
 console.log('   ✅ Recovery R1 Part 35 - System Coherence');
 console.log('   ✅ Recovery R1 Part 36 - System Continuity');
+console.log('   ✅ Recovery R1 Part 37 - System Identity');
+console.log('   ✅ Recovery R1 Part 38 - System Maturity');
+console.log('🎉 System Intelligence Era - Complete');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
 console.log('   ✅ Law AI Academy Architecture Stable');
