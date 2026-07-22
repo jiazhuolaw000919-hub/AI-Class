@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22，23, 24, 25, 26, 27 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22，23, 24, 25, 26, 27，28, 29 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -150,6 +150,12 @@ LawAIApp.Debug.DevPanel = {
 
         // Part 27: System Memory Info
         var systemMemoryInfo = this._getSystemMemoryInfo();
+
+        // Part 28: System Reflection Info
+        var systemReflectionInfo = this._getSystemReflectionInfo();
+
+        // Part 29: System Decision Info
+        var systemDecisionInfo = this._getSystemDecisionInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -728,7 +734,7 @@ LawAIApp.Debug.DevPanel = {
                 ` : ''}
             </div>
 
-                        <!-- ========================================================== -->
+            <!-- ========================================================== -->
             <!-- 🔥 PART 22: ENGINE SIGNALS -->
             <!-- ========================================================== -->
             <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
@@ -872,6 +878,71 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 28: SYSTEM REFLECTION -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(236,72,153,0.04);border-radius:8px;border-left:2px solid #ec4899;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🤔 System Reflection</span>
+                    <span style="font-size:10px;color:${systemReflectionInfo.consistency >= 80 ? '#22c55e' : '#f59e0b'};">${systemReflectionInfo.consistency}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: ${systemReflectionInfo.status}</span>
+                    <span>Snapshots: ${systemReflectionInfo.totalSnapshots}</span>
+                    <span>Coverage: ${systemReflectionInfo.coverage}%</span>
+                    <span>Trends: ${systemReflectionInfo.availableTrends}/${systemReflectionInfo.totalCategories}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Consistency: ${systemReflectionInfo.consistency}%</span>
+                    <span>⬆️ ${systemReflectionInfo.improving}</span>
+                    <span>➡️ ${systemReflectionInfo.stable}</span>
+                    <span>⬇️ ${systemReflectionInfo.declining}</span>
+                    <span>Comparisons: ${systemReflectionInfo.comparisons}</span>
+                </div>
+                ${systemReflectionInfo.status === 'insufficient_data' ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ Need more snapshots for reflection analysis
+                    </div>
+                ` : ''}
+                ${systemReflectionInfo.declining > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${systemReflectionInfo.declining} categories showing declining trends
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- 🔥 PART 29: SYSTEM DECISION -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(251,146,60,0.04);border-radius:8px;border-left:2px solid #f59e0b;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🧭 System Decision</span>
+                    <span style="font-size:10px;color:${systemDecisionInfo.quality >= 80 ? '#22c55e' : '#f59e0b'};">${systemDecisionInfo.quality}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: ${systemDecisionInfo.status}</span>
+                    <span>Decisions: ${systemDecisionInfo.totalDecisions}</span>
+                    <span>Coverage: ${systemDecisionInfo.coverage}%</span>
+                    <span>Rules: ${systemDecisionInfo.triggeredRules}/${systemDecisionInfo.totalRules}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Quality: ${systemDecisionInfo.quality}%</span>
+                    <span>Consistency: ${systemDecisionInfo.consistency}%</span>
+                    ${systemDecisionInfo.errors > 0 ? `<span style="color:#ef4444;">❌ Errors: ${systemDecisionInfo.errors}</span>` : ''}
+                    ${systemDecisionInfo.warnings > 0 ? `<span style="color:#f59e0b;">⚠️ Warnings: ${systemDecisionInfo.warnings}</span>` : ''}
+                </div>
+                ${systemDecisionInfo.errors > 0 ? `
+                    <div style="font-size:9px;color:#ef4444;margin-top:2px;">
+                        ❌ ${systemDecisionInfo.errors} error-level decisions detected
+                    </div>
+                ` : ''}
+                ${systemDecisionInfo.warnings > 0 && systemDecisionInfo.errors === 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${systemDecisionInfo.warnings} warning-level decisions
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -903,7 +974,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-27)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-29)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -1007,6 +1078,17 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Entries: ${systemMemoryInfo.totalEntries}</div>
                     <div style="padding-left:12px;">Coverage: ${systemMemoryInfo.coverage}%</div>
                     <div style="padding-left:12px;">Retention: ${systemMemoryInfo.retentionScore}%</div>
+                    <div><strong>Part 28 - System Reflection:</strong></div>
+                    <div style="padding-left:12px;">Status: ${systemReflectionInfo.status}</div>
+                    <div style="padding-left:12px;">Snapshots: ${systemReflectionInfo.totalSnapshots}</div>
+                    <div style="padding-left:12px;">Coverage: ${systemReflectionInfo.coverage}%</div>
+                    <div style="padding-left:12px;">Consistency: ${systemReflectionInfo.consistency}%</div>
+                    <div><strong>Part 29 - System Decision:</strong></div>
+                    <div style="padding-left:12px;">Status: ${systemDecisionInfo.status}</div>
+                    <div style="padding-left:12px;">Decisions: ${systemDecisionInfo.totalDecisions}</div>
+                    <div style="padding-left:12px;">Coverage: ${systemDecisionInfo.coverage}%</div>
+                    <div style="padding-left:12px;">Quality: ${systemDecisionInfo.quality}%</div>
+                    <div style="padding-left:12px;">Errors: ${systemDecisionInfo.errors}</div>
                 </div>
             </details>
 
@@ -2327,6 +2409,104 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 28: SYSTEM REFLECTION INFO
+    // ============================================================
+
+    _getSystemReflectionInfo: function() {
+        var info = {
+            status: 'unknown',
+            totalSnapshots: 0,
+            coverage: 0,
+            consistency: 0,
+            availableTrends: 0,
+            totalCategories: 0,
+            comparisons: 0,
+            validationWarnings: 0,
+            trendDetails: {},
+            improving: 0,
+            declining: 0,
+            stable: 0
+        };
+
+        try {
+            var health = LawAIApp.SystemReflectionHealth || window.systemReflectionHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.status = data.status || 'unknown';
+                info.totalSnapshots = data.totalSnapshots || 0;
+                info.coverage = data.coverageScore || 0;
+                info.consistency = data.consistencyScore || 0;
+                info.availableTrends = data.availableTrends || 0;
+                info.totalCategories = data.totalCategories || 0;
+                info.comparisons = data.comparisons || 0;
+                info.validationWarnings = data.validationWarnings || 0;
+                info.trendDetails = data.trendDetails || {};
+            }
+
+            // Count improving/declining/stable from dashboard
+            try {
+                var dashboard = LawAIApp.SystemReflectionDashboard || window.systemReflectionDashboard;
+                if (dashboard && typeof dashboard.getSummary === 'function') {
+                    var summary = dashboard.getSummary();
+                    info.improving = summary.improvingCategories || 0;
+                    info.declining = summary.decliningCategories || 0;
+                    info.stable = summary.stableCategories || 0;
+                }
+            } catch (e) { /* ignore */ }
+
+        } catch (err) {
+            console.warn('Could not get system reflection info:', err);
+        }
+
+        return info;
+    },
+
+        // ============================================================
+    // 🔥 PART 29: SYSTEM DECISION INFO
+    // ============================================================
+
+    _getSystemDecisionInfo: function() {
+        var info = {
+            status: 'unknown',
+            totalDecisions: 0,
+            errors: 0,
+            warnings: 0,
+            coverage: 0,
+            consistency: 0,
+            quality: 0,
+            triggeredRules: 0,
+            totalRules: 0,
+            validationWarnings: 0,
+            categories: [],
+            decisionTypes: []
+        };
+
+        try {
+            var health = LawAIApp.SystemDecisionHealth || window.systemDecisionHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.status = data.status || 'unknown';
+                info.totalDecisions = data.totalDecisions || 0;
+                info.errors = data.errors || 0;
+                info.warnings = data.warnings || 0;
+                info.coverage = data.coverageScore || 0;
+                info.consistency = data.consistencyScore || 0;
+                info.quality = data.qualityScore || 0;
+                info.triggeredRules = data.triggeredRules || 0;
+                info.totalRules = data.totalRules || 0;
+                info.validationWarnings = data.validationWarnings || 0;
+                info.categories = data.categories || [];
+                info.decisionTypes = data.decisionTypes || [];
+            }
+
+        } catch (err) {
+            console.warn('Could not get system decision info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -2400,6 +2580,8 @@ console.log('   ✅ Recovery R1 Part 24 - Core Orchestration');
 console.log('   ✅ Recovery R1 Part 25 - System Reality');
 console.log('   ✅ Recovery R1 Part 26 - System Intelligence');
 console.log('   ✅ Recovery R1 Part 27 - System Memory');
+console.log('   ✅ Recovery R1 Part 28 - System Reflection');
+console.log('   ✅ Recovery R1 Part 29 - System Decision');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
 console.log('   ✅ Law AI Academy Architecture Stable');
