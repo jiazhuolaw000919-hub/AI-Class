@@ -2054,6 +2054,93 @@ LawAIApp.BootManager = {
             console.log('✅ System Reflection Health Ready');
             console.log('✅ System Reflection Dashboard Ready');
             console.log('✅ System Reflection Layer Complete');
+
+            // ============================================================
+            // 🔥 PART 29: SYSTEM DECISION
+            // ============================================================
+
+            // 113. SYSTEM DECISION MANIFEST
+            if (typeof LawAIApp.SystemDecisionManifest !== 'undefined') {
+                if (typeof LawAIApp.SystemDecisionManifest.init === 'function') {
+                    LawAIApp.SystemDecisionManifest.init();
+                }
+                console.log('✅ SystemDecisionManifest initialized');
+            } else if (typeof window.systemDecisionManifest !== 'undefined') {
+                if (typeof window.systemDecisionManifest.init === 'function') {
+                    window.systemDecisionManifest.init();
+                }
+                console.log('✅ SystemDecisionManifest initialized (global)');
+            } else {
+                console.warn('⚠️ SystemDecisionManifest not found - skipping');
+            }
+
+            // 114. SYSTEM DECISION ENGINE
+            if (typeof LawAIApp.SystemDecisionEngine !== 'undefined') {
+                if (typeof LawAIApp.SystemDecisionEngine.init === 'function') {
+                    LawAIApp.SystemDecisionEngine.init();
+                }
+                console.log('✅ SystemDecisionEngine initialized');
+            } else if (typeof window.systemDecisionEngine !== 'undefined') {
+                if (typeof window.systemDecisionEngine.init === 'function') {
+                    window.systemDecisionEngine.init();
+                }
+                console.log('✅ SystemDecisionEngine initialized (global)');
+            } else {
+                console.warn('⚠️ SystemDecisionEngine not found - skipping');
+            }
+
+            // 115. SYSTEM DECISION VALIDATOR
+            if (typeof LawAIApp.SystemDecisionValidator !== 'undefined') {
+                if (typeof LawAIApp.SystemDecisionValidator.init === 'function') {
+                    LawAIApp.SystemDecisionValidator.init();
+                }
+                console.log('✅ SystemDecisionValidator initialized');
+            } else if (typeof window.systemDecisionValidator !== 'undefined') {
+                if (typeof window.systemDecisionValidator.init === 'function') {
+                    window.systemDecisionValidator.init();
+                }
+                console.log('✅ SystemDecisionValidator initialized (global)');
+            } else {
+                console.warn('⚠️ SystemDecisionValidator not found - skipping');
+            }
+
+            // 116. SYSTEM DECISION HEALTH
+            if (typeof LawAIApp.SystemDecisionHealth !== 'undefined') {
+                if (typeof LawAIApp.SystemDecisionHealth.init === 'function') {
+                    LawAIApp.SystemDecisionHealth.init();
+                }
+                console.log('✅ SystemDecisionHealth initialized');
+            } else if (typeof window.systemDecisionHealth !== 'undefined') {
+                if (typeof window.systemDecisionHealth.init === 'function') {
+                    window.systemDecisionHealth.init();
+                }
+                console.log('✅ SystemDecisionHealth initialized (global)');
+            } else {
+                console.warn('⚠️ SystemDecisionHealth not found - skipping');
+            }
+
+            // 117. SYSTEM DECISION DASHBOARD
+            if (typeof LawAIApp.SystemDecisionDashboard !== 'undefined') {
+                if (typeof LawAIApp.SystemDecisionDashboard.init === 'function') {
+                    LawAIApp.SystemDecisionDashboard.init();
+                }
+                console.log('✅ SystemDecisionDashboard initialized');
+            } else if (typeof window.systemDecisionDashboard !== 'undefined') {
+                if (typeof window.systemDecisionDashboard.init === 'function') {
+                    window.systemDecisionDashboard.init();
+                }
+                console.log('✅ SystemDecisionDashboard initialized (global)');
+            } else {
+                console.warn('⚠️ SystemDecisionDashboard not found - skipping');
+            }
+
+            console.log('✅ System Decision Constitution Loaded');
+            console.log('✅ System Decision Manifest Ready');
+            console.log('✅ System Decision Engine Ready');
+            console.log('✅ System Decision Validator Ready');
+            console.log('✅ System Decision Health Ready');
+            console.log('✅ System Decision Dashboard Ready');
+            console.log('✅ System Decision Layer Complete');
             
         } catch (err) {
             console.warn('⚠️ Recovery architecture initialization warning:', err.message);
@@ -2116,4 +2203,4 @@ LawAIApp.BootManager = {
     }
 };
 
-console.log('🚀 BootManager V3.2.7 ready (Engine Renaissance Signal Complete)');
+console.log('🚀 BootManager V3.3.5 ready (System Decision Complete)');
