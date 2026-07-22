@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 2223, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 2223, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -183,6 +183,12 @@ LawAIApp.Debug.DevPanel = {
 
         // Part 38: System Maturity Info
         var systemMaturityInfo = this._getSystemMaturityInfo();
+
+        // Part 39: Boot Architecture Info
+        var bootArchitectureInfo = this._getBootArchitectureInfo();
+
+        // Part 40: Runtime Observation Info
+        var runtimeObservationInfo = this._getRuntimeObservationInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -1272,6 +1278,63 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 39: BOOT ARCHITECTURE -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(74,158,255,0.04);border-radius:8px;border-left:2px solid #4a9eff;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🏗️ Boot Architecture</span>
+                    <span style="font-size:10px;color:${bootArchitectureInfo.health === 'healthy' ? '#22c55e' : '#f59e0b'};">${bootArchitectureInfo.health === 'healthy' ? '✅ OK' : '⚠️ Warnings'}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: ${bootArchitectureInfo.pipelineStatus}</span>
+                    <span>Stages: ${bootArchitectureInfo.completedStages}/${bootArchitectureInfo.totalStages}</span>
+                    <span>Duration: ${bootArchitectureInfo.duration}ms</span>
+                    <span>Current: ${bootArchitectureInfo.currentStage || 'N/A'}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    ${bootArchitectureInfo.failedStages > 0 ? `<span style="color:#ef4444;">❌ Failed: ${bootArchitectureInfo.failedStages}</span>` : ''}
+                    ${bootArchitectureInfo.warnings > 0 ? `<span style="color:#f59e0b;">⚠️ Warnings: ${bootArchitectureInfo.warnings}</span>` : '<span>✅ No warnings</span>'}
+                    <span>Health: ${bootArchitectureInfo.health}</span>
+                </div>
+                ${bootArchitectureInfo.failedStages > 0 ? `
+                    <div style="font-size:9px;color:#ef4444;margin-top:2px;">
+                        ❌ ${bootArchitectureInfo.failedStages} stages failed
+                    </div>
+                ` : ''}
+                ${bootArchitectureInfo.warnings > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${bootArchitectureInfo.warnings} warnings in boot report
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- 🔥 PART 40: RUNTIME OBSERVATION -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(74,158,255,0.04);border-radius:8px;border-left:2px solid #4a9eff;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">👁 Runtime Observation</span>
+                    <span style="font-size:10px;color:${runtimeObservationInfo.healthScore >= 80 ? '#22c55e' : '#f59e0b'};">${runtimeObservationInfo.healthScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: ${runtimeObservationInfo.status}</span>
+                    <span>Events: ${runtimeObservationInfo.totalObservations}</span>
+                    <span>Coverage: ${runtimeObservationInfo.coverage}%</span>
+                    <span>Health: ${runtimeObservationInfo.healthScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Observed: ${runtimeObservationInfo.observedEvents}/${runtimeObservationInfo.totalEvents}</span>
+                    ${runtimeObservationInfo.warnings > 0 ? `<span style="color:#f59e0b;">⚠️ Warnings: ${runtimeObservationInfo.warnings}</span>` : ''}
+                    ${runtimeObservationInfo.errors > 0 ? `<span style="color:#ef4444;">❌ Errors: ${runtimeObservationInfo.errors}</span>` : ''}
+                </div>
+                ${runtimeObservationInfo.validationWarnings > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${runtimeObservationInfo.validationWarnings} validation warnings
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -1303,7 +1366,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-38)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-40)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -1464,6 +1527,16 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Score: ${systemMaturityInfo.overallScore}%</div>
                     <div style="padding-left:12px;">Progress: ${systemMaturityInfo.progress}%</div>
                     <div style="padding-left:12px;">Milestones: ${systemMaturityInfo.completedMilestones}/${systemMaturityInfo.totalMilestones}</div>
+                    <div><strong>Part 39 - Boot Architecture:</strong></div>
+                    <div style="padding-left:12px;">Status: ${bootArchitectureInfo.pipelineStatus}</div>
+                    <div style="padding-left:12px;">Stages: ${bootArchitectureInfo.completedStages}/${bootArchitectureInfo.totalStages}</div>
+                    <div style="padding-left:12px;">Duration: ${bootArchitectureInfo.duration}ms</div>
+                    <div style="padding-left:12px;">Health: ${bootArchitectureInfo.health}</div>
+                    <div><strong>Part 40 - Runtime Observation:</strong></div>
+                    <div style="padding-left:12px;">Status: ${runtimeObservationInfo.status}</div>
+                    <div style="padding-left:12px;">Events: ${runtimeObservationInfo.totalObservations}</div>
+                    <div style="padding-left:12px;">Coverage: ${runtimeObservationInfo.coverage}%</div>
+                    <div style="padding-left:12px;">Health: ${runtimeObservationInfo.healthScore}%</div>
                 </div>
             </details>
 
@@ -3286,6 +3359,106 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 39: BOOT ARCHITECTURE INFO
+    // ============================================================
+
+    _getBootArchitectureInfo: function() {
+        var info = {
+            status: 'unknown',
+            pipelineStatus: 'idle',
+            totalStages: 0,
+            completedStages: 0,
+            failedStages: 0,
+            duration: 0,
+            warnings: 0,
+            currentStage: null,
+            health: 'unknown'
+        };
+
+        try {
+            // Get pipeline status
+            var pipeline = window.bootPipeline || LawAIApp.BootPipeline;
+            if (pipeline && typeof pipeline.getPipelineStatus === 'function') {
+                var status = pipeline.getPipelineStatus();
+                info.pipelineStatus = status.status || 'idle';
+                info.currentStage = status.currentStage || null;
+                info.completedStages = status.completedStages ? status.completedStages.length : 0;
+                info.duration = status.totalDuration || 0;
+            }
+
+            // Get stage registry
+            var registry = window.bootStageRegistry || LawAIApp.BootStageRegistry;
+            if (registry && typeof registry.getStageCount === 'function') {
+                info.totalStages = registry.getStageCount();
+            }
+
+            // Get diagnostics
+            var diagnostics = window.bootDiagnostics || LawAIApp.BootDiagnostics;
+            if (diagnostics && typeof diagnostics.getBootStatus === 'function') {
+                var status = diagnostics.getBootStatus();
+                info.status = status.status || 'unknown';
+                info.failedStages = status.failed || 0;
+                info.completedStages = Math.max(info.completedStages, status.completed || 0);
+                info.totalStages = Math.max(info.totalStages, status.total || 0);
+            }
+
+            // Get reporter
+            var reporter = window.bootReporter || LawAIApp.BootReporter;
+            if (reporter && typeof reporter.generateBootReport === 'function') {
+                var report = reporter.generateBootReport();
+                info.health = report.overallHealth || 'unknown';
+                info.warnings = report.warnings ? report.warnings.length : 0;
+            }
+
+        } catch (err) {
+            console.warn('Could not get boot architecture info:', err);
+        }
+
+        return info;
+    },
+
+    // ============================================================
+    // 🔥 PART 40: RUNTIME OBSERVATION INFO
+    // ============================================================
+
+    _getRuntimeObservationInfo: function() {
+        var info = {
+            status: 'unknown',
+            totalObservations: 0,
+            coverage: 0,
+            healthScore: 0,
+            observedEvents: 0,
+            totalEvents: 0,
+            warnings: 0,
+            errors: 0,
+            validationWarnings: 0,
+            eventCategories: {}
+        };
+
+        try {
+            var health = LawAIApp.RuntimeObservationHealth || window.runtimeObservationHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.status = data.status || 'unknown';
+                info.totalObservations = data.totalObservations || 0;
+                info.coverage = data.coverageScore || 0;
+                info.healthScore = data.healthScore || 0;
+                info.observedEvents = data.observedEvents || 0;
+                info.totalEvents = data.totalEvents || 0;
+                info.warnings = data.warnings || 0;
+                info.errors = data.errors || 0;
+                info.validationWarnings = data.validationWarnings || 0;
+                info.eventCategories = data.eventCategories || {};
+            }
+
+        } catch (err) {
+            console.warn('Could not get runtime observation info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -3370,6 +3543,10 @@ console.log('   ✅ Recovery R1 Part 35 - System Coherence');
 console.log('   ✅ Recovery R1 Part 36 - System Continuity');
 console.log('   ✅ Recovery R1 Part 37 - System Identity');
 console.log('   ✅ Recovery R1 Part 38 - System Maturity');
+console.log('   ✅ Recovery R1 Part 39 - Boot Architecture');
+console.log('   🏗️ Boot Architecture Refactored - Coordinator Mode');
+console.log('   ✅ Season 4 - Runtime Excellence Era Started');
+console.log('   ✅ Recovery R1 Part 40 - Runtime Observation');
 console.log('🎉 System Intelligence Era - Complete');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
