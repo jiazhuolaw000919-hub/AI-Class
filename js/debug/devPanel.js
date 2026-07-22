@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -162,6 +162,12 @@ LawAIApp.Debug.DevPanel = {
 
         // Part 31: Engine State Info
         var engineStateInfo = this._getEngineStateInfo();
+
+        // Part 32: System Context Info
+        var systemContextInfo = this._getSystemContextInfo();
+
+        // Part 33: System Intention Info
+        var systemIntentionInfo = this._getSystemIntentionInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -1018,6 +1024,67 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 32: SYSTEM CONTEXT -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(6,182,212,0.04);border-radius:8px;border-left:2px solid #06b6d4;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🌐 System Context</span>
+                    <span style="font-size:10px;color:${systemContextInfo.healthyScore >= 70 ? '#22c55e' : '#f59e0b'};">${systemContextInfo.healthyScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: ${systemContextInfo.status}</span>
+                    <span>Contexts: ${systemContextInfo.totalContexts}</span>
+                    <span>Available: ${systemContextInfo.availableContexts}</span>
+                    <span>With Data: ${systemContextInfo.contextsWithData}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Coverage: ${systemContextInfo.coverage}%</span>
+                    <span>Health: ${systemContextInfo.healthyScore}%</span>
+                    ${systemContextInfo.contextList.length > 0 ? `<span>Active: ${systemContextInfo.contextList.slice(0, 4).join(', ')}${systemContextInfo.contextList.length > 4 ? '...' : ''}</span>` : ''}
+                </div>
+                ${systemContextInfo.validationWarnings > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${systemContextInfo.validationWarnings} context warnings
+                    </div>
+                ` : ''}
+                ${systemContextInfo.contextsWithData < systemContextInfo.totalContexts ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${systemContextInfo.totalContexts - systemContextInfo.contextsWithData} contexts missing data
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- 🔥 PART 33: SYSTEM INTENTION -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🧭 System Intention</span>
+                    <span style="font-size:10px;color:${systemIntentionInfo.coverage >= 70 ? '#22c55e' : '#f59e0b'};">${systemIntentionInfo.coverage}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: ${systemIntentionInfo.status}</span>
+                    <span>Intentions: ${systemIntentionInfo.totalIntentions}</span>
+                    <span>Active: ${systemIntentionInfo.activeIntentions}</span>
+                    <span>Current: ${systemIntentionInfo.currentIntention}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Coverage: ${systemIntentionInfo.coverage}%</span>
+                    <span>History: ${systemIntentionInfo.historyCount} entries</span>
+                </div>
+                ${systemIntentionInfo.validationWarnings > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${systemIntentionInfo.validationWarnings} intention warnings
+                    </div>
+                ` : ''}
+                ${systemIntentionInfo.currentIntention === 'none' ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ No current intention detected
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -1049,7 +1116,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-31)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-33)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -1174,6 +1241,16 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">States: ${engineStateInfo.totalStates}</div>
                     <div style="padding-left:12px;">Coverage: ${engineStateInfo.coverage}%</div>
                     <div style="padding-left:12px;">Errors: ${engineStateInfo.errorStates}</div>
+                    <div><strong>Part 32 - System Context:</strong></div>
+                    <div style="padding-left:12px;">Status: ${systemContextInfo.status}</div>
+                    <div style="padding-left:12px;">Contexts: ${systemContextInfo.totalContexts}</div>
+                    <div style="padding-left:12px;">Coverage: ${systemContextInfo.coverage}%</div>
+                    <div style="padding-left:12px;">Health: ${systemContextInfo.healthyScore}%</div>
+                    <div><strong>Part 33 - System Intention:</strong></div>
+                    <div style="padding-left:12px;">Status: ${systemIntentionInfo.status}</div>
+                    <div style="padding-left:12px;">Intentions: ${systemIntentionInfo.totalIntentions}</div>
+                    <div style="padding-left:12px;">Coverage: ${systemIntentionInfo.coverage}%</div>
+                    <div style="padding-left:12px;">Current: ${systemIntentionInfo.currentIntention}</div>
                 </div>
             </details>
 
@@ -2687,6 +2764,94 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 32: SYSTEM CONTEXT INFO
+    // ============================================================
+
+    _getSystemContextInfo: function() {
+        var info = {
+            status: 'unknown',
+            totalContexts: 0,
+            coverage: 0,
+            availableContexts: 0,
+            contextsWithData: 0,
+            healthyScore: 0,
+            validationWarnings: 0,
+            contextList: []
+        };
+
+        try {
+            var health = LawAIApp.SystemContextHealth || window.systemContextHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.status = data.status || 'unknown';
+                info.totalContexts = data.totalContexts || 0;
+                info.coverage = data.coverageScore || 0;
+                info.availableContexts = data.availableContexts || 0;
+                info.contextsWithData = data.contextsWithData || 0;
+                info.healthyScore = data.healthyScoreValue || 0;
+                info.validationWarnings = data.validationWarnings || 0;
+            }
+
+            // Get context list
+            try {
+                var collector = LawAIApp.SystemContextCollector || window.systemContextCollector;
+                if (collector && typeof collector.getAvailableContexts === 'function') {
+                    info.contextList = collector.getAvailableContexts() || [];
+                }
+            } catch (e) { /* ignore */ }
+
+        } catch (err) {
+            console.warn('Could not get system context info:', err);
+        }
+
+        return info;
+    },
+
+        // ============================================================
+    // 🔥 PART 33: SYSTEM INTENTION INFO
+    // ============================================================
+
+    _getSystemIntentionInfo: function() {
+        var info = {
+            status: 'unknown',
+            totalIntentions: 0,
+            coverage: 0,
+            activeIntentions: 0,
+            currentIntention: 'none',
+            historyCount: 0,
+            validationWarnings: 0,
+            intentionDistribution: {}
+        };
+
+        try {
+            var health = LawAIApp.SystemIntentionHealth || window.systemIntentionHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.status = data.status || 'unknown';
+                info.totalIntentions = data.totalIntentions || 0;
+                info.coverage = data.coverageScore || 0;
+                info.activeIntentions = data.activeIntentions || 0;
+                info.currentIntention = data.currentIntention || 'none';
+                info.historyCount = data.historyCount || 0;
+                info.validationWarnings = data.validationWarnings || 0;
+            }
+
+            // Get intention distribution
+            try {
+                var dashboard = LawAIApp.SystemIntentionDashboard || window.systemIntentionDashboard;
+                if (dashboard && typeof dashboard.getIntentionStats === 'function') {
+                    info.intentionDistribution = dashboard.getIntentionStats() || {};
+                }
+            } catch (e) { /* ignore */ }
+
+        } catch (err) {
+            console.warn('Could not get system intention info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -2764,6 +2929,8 @@ console.log('   ✅ Recovery R1 Part 28 - System Reflection');
 console.log('   ✅ Recovery R1 Part 29 - System Decision');
 console.log('   ✅ Recovery R1 Part 30 - System Evolution');
 console.log('   ✅ Recovery R1 Part 31 - Engine States');
+console.log('   ✅ Recovery R1 Part 32 - System Context');
+console.log('   ✅ Recovery R1 Part 33 - System Intention');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
 console.log('   ✅ Law AI Academy Architecture Stable');
