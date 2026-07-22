@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -171,6 +171,12 @@ LawAIApp.Debug.DevPanel = {
 
         // Part 34: System Adaptation Info
         var systemAdaptationInfo = this._getSystemAdaptationInfo();
+
+        // Part 35: System Coherence Info
+        var systemCoherenceInfo = this._getSystemCoherenceInfo();
+
+        // Part 36: System Continuity Info
+        var systemContinuityInfo = this._getSystemContinuityInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -1124,6 +1130,70 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 35: SYSTEM COHERENCE -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🧩 System Coherence</span>
+                    <span style="font-size:10px;color:${systemCoherenceInfo.consistencyScore >= 80 ? '#22c55e' : '#f59e0b'};">${systemCoherenceInfo.consistencyScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: ${systemCoherenceInfo.status}</span>
+                    <span>Chain: ${systemCoherenceInfo.chainComplete ? '✅ Complete' : '⏳ In Progress'}</span>
+                    <span>Layers: ${systemCoherenceInfo.availableLayers}/${systemCoherenceInfo.totalLayers}</span>
+                    <span>Connected: ${systemCoherenceInfo.connectedLayers}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Completeness: ${systemCoherenceInfo.completeness}%</span>
+                    ${systemCoherenceInfo.brokenLinks > 0 ? `<span style="color:#ef4444;">❌ Broken: ${systemCoherenceInfo.brokenLinks}</span>` : ''}
+                    ${systemCoherenceInfo.missingLayers > 0 ? `<span style="color:#f59e0b;">⚠️ Missing: ${systemCoherenceInfo.missingLayers}</span>` : ''}
+                    ${systemCoherenceInfo.unusedLayers > 0 ? `<span style="color:#94a3b8;">📭 Unused: ${systemCoherenceInfo.unusedLayers}</span>` : ''}
+                </div>
+                ${systemCoherenceInfo.brokenLinks > 0 ? `
+                    <div style="font-size:9px;color:#ef4444;margin-top:2px;">
+                        ❌ ${systemCoherenceInfo.brokenLinks} broken links in intelligence chain
+                    </div>
+                ` : ''}
+                ${systemCoherenceInfo.missingLayers > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${systemCoherenceInfo.missingLayers} missing intelligence layers
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- 🔥 PART 36: SYSTEM CONTINUITY -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(6,182,212,0.04);border-radius:8px;border-left:2px solid #06b6d4;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">📜 System Continuity</span>
+                    <span style="font-size:10px;color:${systemContinuityInfo.continuityScore >= 80 ? '#22c55e' : '#f59e0b'};">${systemContinuityInfo.continuityScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: ${systemContinuityInfo.status}</span>
+                    <span>Version: ${systemContinuityInfo.currentVersion}</span>
+                    <span>Era: ${systemContinuityInfo.architectureEra}</span>
+                    <span>Stage: ${systemContinuityInfo.recoveryStage}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Versions: ${systemContinuityInfo.totalVersions}</span>
+                    <span>Milestones: ${systemContinuityInfo.completedMilestones}/${systemContinuityInfo.totalMilestones}</span>
+                    <span>Major: ${systemContinuityInfo.majorVersions}</span>
+                    <span>Completion: ${systemContinuityInfo.completionRate}%</span>
+                </div>
+                ${systemContinuityInfo.validationWarnings > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${systemContinuityInfo.validationWarnings} continuity warnings
+                    </div>
+                ` : ''}
+                ${systemContinuityInfo.completionRate < 80 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ Low milestone completion: ${systemContinuityInfo.completionRate}%
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -1155,7 +1225,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-34)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-36)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -1295,6 +1365,16 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Adaptations: ${systemAdaptationInfo.activeAdaptations}/${systemAdaptationInfo.totalAdaptations}</div>
                     <div style="padding-left:12px;">Coverage: ${systemAdaptationInfo.coverage}%</div>
                     <div style="padding-left:12px;">Recommendations: ${systemAdaptationInfo.recommendations}</div>
+                    <div><strong>Part 35 - System Coherence:</strong></div>
+                    <div style="padding-left:12px;">Status: ${systemCoherenceInfo.status}</div>
+                    <div style="padding-left:12px;">Consistency: ${systemCoherenceInfo.consistencyScore}%</div>
+                    <div style="padding-left:12px;">Layers: ${systemCoherenceInfo.availableLayers}/${systemCoherenceInfo.totalLayers}</div>
+                    <div style="padding-left:12px;">Broken: ${systemCoherenceInfo.brokenLinks}</div>
+                    <div><strong>Part 36 - System Continuity:</strong></div>
+                    <div style="padding-left:12px;">Status: ${systemContinuityInfo.status}</div>
+                    <div style="padding-left:12px;">Version: ${systemContinuityInfo.currentVersion}</div>
+                    <div style="padding-left:12px;">Score: ${systemContinuityInfo.continuityScore}%</div>
+                    <div style="padding-left:12px;">Milestones: ${systemContinuityInfo.completedMilestones}/${systemContinuityInfo.totalMilestones}</div>
                 </div>
             </details>
 
@@ -2896,7 +2976,7 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
-        // ============================================================
+    // ============================================================
     // 🔥 PART 34: SYSTEM ADAPTATION INFO
     // ============================================================
 
@@ -2932,6 +3012,92 @@ LawAIApp.Debug.DevPanel = {
 
         } catch (err) {
             console.warn('Could not get system adaptation info:', err);
+        }
+
+        return info;
+    },
+
+        // ============================================================
+    // 🔥 PART 35: SYSTEM COHERENCE INFO
+    // ============================================================
+
+    _getSystemCoherenceInfo: function() {
+        var info = {
+            status: 'unknown',
+            consistencyScore: 0,
+            completeness: 0,
+            totalLayers: 0,
+            availableLayers: 0,
+            connectedLayers: 0,
+            brokenLinks: 0,
+            missingLayers: 0,
+            unusedLayers: 0,
+            validationWarnings: 0,
+            chainComplete: false
+        };
+
+        try {
+            var health = LawAIApp.SystemCoherenceHealth || window.systemCoherenceHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.status = data.status || 'unknown';
+                info.consistencyScore = data.consistencyScore || 0;
+                info.completeness = data.completenessScore || 0;
+                info.totalLayers = data.totalLayers || 0;
+                info.availableLayers = data.availableLayers || 0;
+                info.connectedLayers = data.connectedLayers || 0;
+                info.brokenLinks = data.brokenLinks || 0;
+                info.missingLayers = data.missingLayers || 0;
+                info.unusedLayers = data.unusedLayers || 0;
+                info.validationWarnings = data.validationWarnings || 0;
+                info.chainComplete = data.chainComplete || false;
+            }
+
+        } catch (err) {
+            console.warn('Could not get system coherence info:', err);
+        }
+
+        return info;
+    },
+
+    // ============================================================
+    // 🔥 PART 36: SYSTEM CONTINUITY INFO
+    // ============================================================
+
+    _getSystemContinuityInfo: function() {
+        var info = {
+            status: 'unknown',
+            continuityScore: 0,
+            currentVersion: 'N/A',
+            architectureEra: 'N/A',
+            recoveryStage: 'N/A',
+            totalVersions: 0,
+            totalMilestones: 0,
+            completedMilestones: 0,
+            completionRate: 0,
+            majorVersions: 0,
+            validationWarnings: 0
+        };
+
+        try {
+            var health = LawAIApp.SystemContinuityHealth || window.systemContinuityHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.status = data.status || 'unknown';
+                info.continuityScore = data.continuityScore || 0;
+                info.currentVersion = data.currentVersion || 'N/A';
+                info.architectureEra = data.architectureEra || 'N/A';
+                info.recoveryStage = data.recoveryStage || 'N/A';
+                info.totalVersions = data.totalVersions || 0;
+                info.totalMilestones = data.totalMilestones || 0;
+                info.completedMilestones = data.completedMilestones || 0;
+                info.completionRate = data.completionScore || 0;
+                info.majorVersions = data.majorVersions || 0;
+                info.validationWarnings = data.validationWarnings || 0;
+            }
+
+        } catch (err) {
+            console.warn('Could not get system continuity info:', err);
         }
 
         return info;
@@ -3017,6 +3183,8 @@ console.log('   ✅ Recovery R1 Part 31 - Engine States');
 console.log('   ✅ Recovery R1 Part 32 - System Context');
 console.log('   ✅ Recovery R1 Part 33 - System Intention');
 console.log('   ✅ Recovery R1 Part 34 - System Adaptation');
+console.log('   ✅ Recovery R1 Part 35 - System Coherence');
+console.log('   ✅ Recovery R1 Part 36 - System Continuity');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
 console.log('   ✅ Law AI Academy Architecture Stable');
