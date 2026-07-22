@@ -1,8 +1,8 @@
 /**
  * Boot Pipeline
  * Central boot execution pipeline.
- * Integrated with Runtime Observation (Part 40)
- * Emits observation events for each stage.
+ * Integrated with Runtime Observation (Part 40) and Runtime Metrics (Part 41)
+ * Emits observation events and records metrics for each stage.
  */
 
 import { BOOT_STAGE_REGISTRY } from './bootStageRegistry.js';
@@ -27,6 +27,16 @@ function emitObservation(event, source, stage, metadata) {
     var collector = LawAIApp.RuntimeObservationCollector || window.runtimeObservationCollector;
     if (collector && typeof collector.collect === 'function') {
       collector.collect(event, source, stage, metadata || {});
+    }
+  } catch (e) { /* ignore */ }
+}
+
+// 🆕 Set metric helper (Part 41)
+function setMetric(id, value) {
+  try {
+    var collector = LawAIApp.RuntimeMetricsCollector || window.runtimeMetricsCollector;
+    if (collector && typeof collector.setMetric === 'function') {
+      collector.setMetric(id, value);
     }
   } catch (e) { /* ignore */ }
 }
@@ -113,6 +123,9 @@ export function runPipeline(executorFn) {
       _pipelineStatus.completedStages.push(stageName);
       _stageResults[stageName] = { success: true, duration: stage.duration };
 
+      // 🆕 Record STAGE_DURATION metric (Part 41)
+      setMetric('STAGE_DURATION', stage.duration);
+
       // 🆕 Emit BOOT_STAGE_COMPLETED observation (Part 40)
       emitObservation('BOOT_STAGE_COMPLETED', 'bootPipeline', stageName, { 
         duration: stage.duration 
@@ -139,6 +152,13 @@ export function runPipeline(executorFn) {
       if (stage.required) {
         _isRunning = false;
         _pipelineStatus.completedAt = new Date().toISOString();
+        
+        // 🆕 Record PIPELINE_DURATION metric on failure (Part 41)
+        var start = new Date(_pipelineStatus.startedAt);
+        var end = new Date(_pipelineStatus.completedAt);
+        var duration = end - start;
+        setMetric('PIPELINE_DURATION', duration);
+        
         console.log('🏗️ Boot Pipeline: Failed on required stage');
         return false;
       } else {
@@ -154,6 +174,9 @@ export function runPipeline(executorFn) {
   var start = new Date(_pipelineStatus.startedAt);
   var end = new Date(_pipelineStatus.completedAt);
   _pipelineStatus.totalDuration = end - start;
+
+  // 🆕 Record PIPELINE_DURATION metric (Part 41)
+  setMetric('PIPELINE_DURATION', _pipelineStatus.totalDuration);
 
   console.log('🏗️ Boot Pipeline: Completed in', _pipelineStatus.totalDuration + 'ms');
 
