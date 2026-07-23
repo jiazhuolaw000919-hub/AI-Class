@@ -93,6 +93,41 @@ LawAIApp.BootManager = {
         if (LawAIApp.RuntimeEventCollector && typeof LawAIApp.RuntimeEventCollector.init === 'function') {
             LawAIApp.RuntimeEventCollector.init();
         }
+        
+        // ============================================================
+        // 🔥 PART 44.4: EVENT STORE INITIALIZATION
+        // ============================================================
+        if (LawAIApp.RuntimeEventStore && typeof LawAIApp.RuntimeEventStore.init === 'function') {
+            LawAIApp.RuntimeEventStore.init();
+        }
+
+        // ============================================================
+        // 🔥 PART 44.5: EVENT ANALYZER INITIALIZATION
+        // ============================================================
+        if (LawAIApp.RuntimeEventAnalyzer && typeof LawAIApp.RuntimeEventAnalyzer.init === 'function') {
+            LawAIApp.RuntimeEventAnalyzer.init();
+        }
+
+        // ============================================================
+        // 🔥 PART 44.6: EVENT INTELLIGENCE INITIALIZATION
+        // ============================================================
+        if (LawAIApp.RuntimeEventIntelligence && typeof LawAIApp.RuntimeEventIntelligence.init === 'function') {
+            LawAIApp.RuntimeEventIntelligence.init();
+        }
+
+        // ============================================================
+        // 🔥 PART 44.7: EVENT TIMELINE INITIALIZATION
+        // ============================================================
+        if (LawAIApp.RuntimeEventTimeline && typeof LawAIApp.RuntimeEventTimeline.init === 'function') {
+            LawAIApp.RuntimeEventTimeline.init();
+        }
+
+        // ============================================================
+        // 🔥 PART 44.8: EVENT API INITIALIZATION  ← 🆕 加在这里！
+        // ============================================================
+        if (LawAIApp.Events && typeof LawAIApp.Events.init === 'function') {
+            LawAIApp.Events.init();
+        }
 
         // ============================================================
         // 🔥 PART 40: COLLECT BOOT_STARTED OBSERVATION
