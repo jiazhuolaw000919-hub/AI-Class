@@ -55,6 +55,20 @@ LawAIApp.BootManager = {
             LawAIApp.RuntimeMetricsHealth.init();
         }
 
+        // 🆕 Initialize Runtime Tracing (Part 42)
+        if (LawAIApp.RuntimeTraceManifest && typeof LawAIApp.RuntimeTraceManifest.init === 'function') {
+            LawAIApp.RuntimeTraceManifest.init();
+        }
+        if (LawAIApp.RuntimeTraceCollector && typeof LawAIApp.RuntimeTraceCollector.init === 'function') {
+            LawAIApp.RuntimeTraceCollector.init();
+        }
+        if (LawAIApp.RuntimeTraceValidator && typeof LawAIApp.RuntimeTraceValidator.init === 'function') {
+            LawAIApp.RuntimeTraceValidator.init();
+        }
+        if (LawAIApp.RuntimeTraceHealth && typeof LawAIApp.RuntimeTraceHealth.init === 'function') {
+            LawAIApp.RuntimeTraceHealth.init();
+        }
+
         // 🆕 Collect BOOT_STARTED observation
         if (LawAIApp.RuntimeObservationCollector && typeof LawAIApp.RuntimeObservationCollector.collect === 'function') {
             LawAIApp.RuntimeObservationCollector.collect('BOOT_STARTED', 'BootManager', null, { version: 'V4.0.0' });
@@ -99,7 +113,6 @@ LawAIApp.BootManager = {
             LawAIApp.EventBus?.emit?.('BootStarted');
         } catch (e) { /* 静默 */ }
 
-        // 🆕 记录诊断信息
         if (window.bootDiagnostics && typeof window.bootDiagnostics.recordBootSnapshot === 'function') {
             window.bootDiagnostics.recordBootSnapshot();
         }
@@ -161,4 +174,5 @@ console.log('🚀 BootManager V4.0.0 ready (Runtime Excellence Era)');
 console.log('   🏗️ Boot Architecture Refactored - Coordinator Mode');
 console.log('   👁 Runtime Observation Integrated');
 console.log('   📈 Runtime Metrics Integrated');
+console.log('   🛰 Runtime Tracing Integrated');
 console.log('   ✅ Season 4 - Runtime Excellence Era Started');
