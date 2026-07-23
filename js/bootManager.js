@@ -74,6 +74,14 @@ LawAIApp.BootManager = {
             LawAIApp.RuntimeObservationCollector.collect('BOOT_STARTED', 'BootManager', null, { version: 'V4.0.0' });
         }
 
+        // 🆕 Initialize Runtime Performance Framework (Part 43.3)
+        if (LawAIApp.RuntimePerformanceManifest && typeof LawAIApp.RuntimePerformanceManifest.init === 'function') {
+            LawAIApp.RuntimePerformanceManifest.init();
+        }
+        if (LawAIApp.RuntimeMetricRegistry && typeof LawAIApp.RuntimeMetricRegistry.init === 'function') {
+            LawAIApp.RuntimeMetricRegistry.init();
+        }
+
         var bootStartTime = Date.now();
 
         // 🆕 初始化 Pipeline
