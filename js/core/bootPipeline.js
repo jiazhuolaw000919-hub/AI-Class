@@ -1,7 +1,8 @@
 /**
  * Boot Pipeline
  * Central boot execution pipeline.
- * Integrated with Runtime Observation (Part 40), Runtime Metrics (Part 41), and Runtime Tracing (Part 42)
+ * Integrated with Runtime Observation (Part 40), Metrics (Part 41),
+ * Tracing (Part 42), and Performance Framework (Part 43.10)
  */
 
 import { BOOT_STAGE_REGISTRY } from './bootStageRegistry.js';
@@ -21,7 +22,10 @@ let _pipeline = [];
 let _stageResults = {};
 var _pipelineTraceId = null;
 
-// 🆕 Emit observation event helper (Part 40)
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
+
 function emitObservation(event, source, stage, metadata) {
   try {
     var collector = LawAIApp.RuntimeObservationCollector || window.runtimeObservationCollector;
@@ -31,7 +35,6 @@ function emitObservation(event, source, stage, metadata) {
   } catch (e) { /* ignore */ }
 }
 
-// 🆕 Set metric helper (Part 41)
 function setMetric(id, value) {
   try {
     var collector = LawAIApp.RuntimeMetricsCollector || window.runtimeMetricsCollector;
@@ -41,7 +44,10 @@ function setMetric(id, value) {
   } catch (e) { /* ignore */ }
 }
 
-// 🆕 Trace helpers (Part 42)
+// ============================================================
+// TRACE HELPERS (Part 42)
+// ============================================================
+
 function startTrace(type, source, parentTraceId, metadata) {
   try {
     var collector = LawAIApp.RuntimeTraceCollector || window.runtimeTraceCollector;
@@ -71,6 +77,24 @@ function failTrace(traceId, error, metadata) {
   } catch (e) { /* ignore */ }
   return null;
 }
+
+// ============================================================
+// PERFORMANCE HELPERS (Part 43.10)
+// ============================================================
+
+function trackStagePerformance(stageName, callback) {
+  try {
+    var perf = LawAIApp.Performance;
+    if (perf && typeof perf.track === 'function') {
+      return perf.track('runtime.module.duration', 'Pipeline:' + stageName, callback);
+    }
+  } catch (e) { /* ignore */ }
+  return callback();
+}
+
+// ============================================================
+// PIPELINE CORE
+// ============================================================
 
 export function initializePipeline() {
   _pipeline = BOOT_STAGE_REGISTRY.map(function(s) {
@@ -122,7 +146,6 @@ export function runPipeline(executorFn) {
   var pipelineTrace = startTrace('PIPELINE', 'bootPipeline', null, { startedAt: _pipelineStatus.startedAt });
   _pipelineTraceId = pipelineTrace ? pipelineTrace.traceId : null;
 
-  // 🆕 Emit BOOT_STARTED via observation (Part 40)
   emitObservation('BOOT_STARTED', 'bootPipeline', null, { startedAt: _pipelineStatus.startedAt });
 
   console.log('🏗️ Boot Pipeline: Starting execution...');
@@ -143,7 +166,6 @@ export function runPipeline(executorFn) {
     });
     var stageTraceId = stageTrace ? stageTrace.traceId : null;
 
-    // 🆕 Emit BOOT_STAGE_STARTED observation (Part 40)
     emitObservation('BOOT_STAGE_STARTED', 'bootPipeline', stageName, { 
       order: stage.order, 
       required: stage.required,
@@ -155,7 +177,10 @@ export function runPipeline(executorFn) {
     var startTime = Date.now();
 
     try {
-      var result = executorFn(stageName, stage);
+      // 🆕 Execute with Performance Tracking (Part 43.10)
+      var result = trackStagePerformance(stageName, function() {
+        return executorFn(stageName, stage);
+      });
 
       if (result && result.error) {
         throw new Error(result.error);
@@ -167,15 +192,12 @@ export function runPipeline(executorFn) {
       _pipelineStatus.completedStages.push(stageName);
       _stageResults[stageName] = { success: true, duration: stage.duration };
 
-      // 🆕 Complete STAGE trace (Part 42)
       if (stageTraceId) {
         completeTrace(stageTraceId, 'COMPLETED', { duration: stage.duration });
       }
 
-      // 🆕 Record STAGE_DURATION metric (Part 41)
       setMetric('STAGE_DURATION', stage.duration);
 
-      // 🆕 Emit BOOT_STAGE_COMPLETED observation (Part 40)
       emitObservation('BOOT_STAGE_COMPLETED', 'bootPipeline', stageName, { 
         duration: stage.duration,
         traceId: stageTraceId
@@ -191,12 +213,10 @@ export function runPipeline(executorFn) {
       _pipelineStatus.status = 'failed';
       _stageResults[stageName] = { success: false, error: err.message };
 
-      // 🆕 Fail STAGE trace (Part 42)
       if (stageTraceId) {
         failTrace(stageTraceId, err.message, { duration: stage.duration });
       }
 
-      // 🆕 Emit BOOT_STAGE_FAILED observation (Part 40)
       emitObservation('BOOT_STAGE_FAILED', 'bootPipeline', stageName, { 
         error: err.message, 
         duration: stage.duration,
@@ -209,12 +229,10 @@ export function runPipeline(executorFn) {
         _isRunning = false;
         _pipelineStatus.completedAt = new Date().toISOString();
         
-        // 🆕 Fail PIPELINE trace (Part 42)
         if (_pipelineTraceId) {
           failTrace(_pipelineTraceId, 'Required stage failed: ' + stageName, { failedStage: stageName });
         }
         
-        // 🆕 Record PIPELINE_DURATION metric on failure (Part 41)
         var start = new Date(_pipelineStatus.startedAt);
         var end = new Date(_pipelineStatus.completedAt);
         var duration = end - start;
@@ -236,12 +254,10 @@ export function runPipeline(executorFn) {
   var end = new Date(_pipelineStatus.completedAt);
   _pipelineStatus.totalDuration = end - start;
 
-  // 🆕 Complete PIPELINE trace (Part 42)
   if (_pipelineTraceId) {
     completeTrace(_pipelineTraceId, 'COMPLETED', { duration: _pipelineStatus.totalDuration });
   }
 
-  // 🆕 Record PIPELINE_DURATION metric (Part 41)
   setMetric('PIPELINE_DURATION', _pipelineStatus.totalDuration);
 
   console.log('🏗️ Boot Pipeline: Completed in', _pipelineStatus.totalDuration + 'ms');
