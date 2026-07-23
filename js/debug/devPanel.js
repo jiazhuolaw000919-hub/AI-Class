@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22, 23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39, 40, 41, 42 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22, 23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39, 40, 41, 42, 43, 44 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39, 40, 41, 42)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39, 40, 41, 42, 43, 44)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -198,6 +198,9 @@ LawAIApp.Debug.DevPanel = {
 
         // Part 43.11: Runtime Performance Info
         var runtimePerformanceInfo = this._getRuntimePerformanceInfo();
+
+        // Part 44.10: Runtime Event Info
+        var runtimeEventInfo = this._getRuntimeEventInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -1442,6 +1445,55 @@ LawAIApp.Debug.DevPanel = {
                 ` : ''}
             </div>
 
+                        <!-- ========================================================== -->
+            <!-- 🔥 PART 44.10: RUNTIME EVENTS -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🧠 Runtime Events</span>
+                    <span style="font-size:10px;color:${runtimeEventInfo.hasData ? '#22c55e' : '#64748b'};">${runtimeEventInfo.hasData ? '✅ Active' : '⏳ Collecting'}</span>
+                </div>
+                ${runtimeEventInfo.isAvailable && runtimeEventInfo.hasData ? `
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Events: ${runtimeEventInfo.totalEvents}</span>
+                    <span>Sessions: ${runtimeEventInfo.sessionCount}</span>
+                    <span>Categories: ${Object.keys(runtimeEventInfo.categories).length}</span>
+                    <span>Sources: ${Object.keys(runtimeEventInfo.sources).length}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Timeline: ${runtimeEventInfo.timelineEntries} entries</span>
+                    ${runtimeEventInfo.insights.length > 0 ? `<span style="color:#8b5cf6;">💡 ${runtimeEventInfo.insights.length} insights</span>` : ''}
+                    ${runtimeEventInfo.recommendations.length > 0 ? `<span style="color:#4a9eff;">📋 ${runtimeEventInfo.recommendations.length} recommendations</span>` : ''}
+                    ${runtimeEventInfo.risks.length > 0 ? `<span style="color:#ef4444;">⚠️ ${runtimeEventInfo.risks.length} risks</span>` : ''}
+                </div>
+                ${runtimeEventInfo.recentEvents.length > 0 ? `
+                    <div style="margin-top:3px;font-size:8px;color:#475569;max-height:40px;overflow:hidden;">
+                        <div style="font-weight:600;color:#64748b;">Latest Events:</div>
+                        ${runtimeEventInfo.recentEvents.slice(0, 4).map(function(e) {
+                            var time = new Date(e.timestamp).toLocaleTimeString();
+                            return '<div style="padding-left:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + time + ' — ' + (e.eventName || e.eventId) + ' (' + e.source + ')</div>';
+                        }).join('')}
+                        ${runtimeEventInfo.recentEvents.length > 4 ? '<div style="padding-left:8px;color:#475569;">+' + (runtimeEventInfo.recentEvents.length - 4) + ' more...</div>' : ''}
+                    </div>
+                ` : ''}
+                ${runtimeEventInfo.insights.length > 0 ? `
+                    <div style="margin-top:3px;font-size:8px;color:#8b5cf6;max-height:24px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                        💡 ${runtimeEventInfo.insights[0].summary || runtimeEventInfo.insights[0].type}
+                        ${runtimeEventInfo.insights.length > 1 ? ' (+' + (runtimeEventInfo.insights.length - 1) + ' more)' : ''}
+                    </div>
+                ` : ''}
+                ` : `
+                <div style="font-size:10px;color:#64748b;margin-top:4px;">
+                    ${runtimeEventInfo.isAvailable ? '⏳ No events recorded yet...' : '⚠️ Event system not available'}
+                </div>
+                `}
+                ${!runtimeEventInfo.isAvailable ? `
+                    <div style="font-size:8px;color:#475569;margin-top:2px;">
+                        Event Intelligence not initialized
+                    </div>
+                ` : ''}
+            </div>
+
             <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
@@ -1474,7 +1526,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-43.2)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-44.10)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -1660,6 +1712,11 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Status: ${runtimePerformanceInfo.isAvailable ? runtimePerformanceInfo.label : 'N/A'}</div>
                     <div style="padding-left:12px;">Boot: ${runtimePerformanceInfo.bootDuration}</div>
                     <div style="padding-left:12px;">Modules: ${runtimePerformanceInfo.totalModules}</div>
+                    <div><strong>Part 44.10 - Runtime Events:</strong></div>
+                    <div style="padding-left:12px;">Events: ${runtimeEventInfo.totalEvents}</div>
+                    <div style="padding-left:12px;">Sessions: ${runtimeEventInfo.sessionCount}</div>
+                    <div style="padding-left:12px;">Insights: ${runtimeEventInfo.insights.length}</div>
+                    <div style="padding-left:12px;">Status: ${runtimeEventInfo.hasData ? 'Active' : 'Collecting'}</div>
                 </div>
             </details>
 
@@ -3745,6 +3802,108 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+        // ============================================================
+    // 🔥 PART 44.10: RUNTIME EVENT INFO
+    // ============================================================
+
+    _getRuntimeEventInfo: function() {
+        var info = {
+            totalEvents: 0,
+            sessionCount: 0,
+            categories: {},
+            sources: {},
+            topEvents: [],
+            recentEvents: [],
+            insights: [],
+            recommendations: [],
+            risks: [],
+            dependencies: [],
+            hasData: false,
+            isAvailable: false,
+            timelineEntries: 0,
+            intelligenceReady: false
+        };
+
+        try {
+            var events = LawAIApp.Events || window.LawAIApp?.Events;
+            if (!events) {
+                return info;
+            }
+
+            info.isAvailable = true;
+
+            // Get event count
+            if (typeof events.getEventCount === 'function') {
+                var count = events.getEventCount();
+                info.totalEvents = count || 0;
+            }
+
+            // Get session count
+            if (typeof events.getSessionCount === 'function') {
+                info.sessionCount = events.getSessionCount() || 0;
+            }
+
+            // Get statistics
+            if (typeof events.getStatistics === 'function') {
+                var stats = events.getStatistics();
+                if (stats) {
+                    info.categories = stats.categories || {};
+                    info.sources = stats.sources || {};
+                    info.topEvents = stats.topEvents || [];
+                    info.hasData = (stats.total || 0) > 0;
+                }
+            }
+
+            // Get recent events (via timeline entries)
+            if (typeof events.getTimelineEntries === 'function') {
+                var entries = events.getTimelineEntries();
+                if (entries && entries.length > 0) {
+                    info.timelineEntries = entries.length;
+                    info.recentEvents = entries.slice(-10).reverse();
+                    info.hasData = true;
+                }
+            }
+
+            // Get insights
+            if (typeof events.getInsights === 'function') {
+                var insights = events.getInsights();
+                if (insights && insights.length > 0) {
+                    info.insights = insights.slice(0, 5);
+                    info.intelligenceReady = true;
+                }
+            }
+
+            // Get recommendations
+            if (typeof events.getRecommendations === 'function') {
+                var recs = events.getRecommendations();
+                if (recs && recs.length > 0) {
+                    info.recommendations = recs.slice(0, 3);
+                }
+            }
+
+            // Get risks
+            if (typeof events.getRisks === 'function') {
+                var risks = events.getRisks();
+                if (risks && risks.length > 0) {
+                    info.risks = risks;
+                }
+            }
+
+            // Get dependencies
+            if (typeof events.getDependencies === 'function') {
+                var deps = events.getDependencies();
+                if (deps && deps.length > 0) {
+                    info.dependencies = deps.slice(0, 5);
+                }
+            }
+
+        } catch (err) {
+            console.warn('[DevPanel] Could not get runtime event info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -3850,6 +4009,16 @@ console.log('   ✅ Recovery R1 Part 43.8 - Performance Report');
 console.log('   ✅ Recovery R1 Part 43.9 - Performance API');
 console.log('   ✅ Recovery R1 Part 43.10 - Performance Integration');
 console.log('   ✅ Recovery R1 Part 43.11 - Runtime Performance');
+console.log('   ✅ Recovery R1 Part 44.1 - Event Intelligence Foundation');
+console.log('   ✅ Recovery R1 Part 44.2 - Event Registry');
+console.log('   ✅ Recovery R1 Part 44.3 - Event Collector');
+console.log('   ✅ Recovery R1 Part 44.4 - Event Store');
+console.log('   ✅ Recovery R1 Part 44.5 - Event Analyzer');
+console.log('   ✅ Recovery R1 Part 44.6 - Event Intelligence');
+console.log('   ✅ Recovery R1 Part 44.7 - Event Timeline');
+console.log('   ✅ Recovery R1 Part 44.8 - Event API');
+console.log('   ✅ Recovery R1 Part 44.9 - Event Integration');
+console.log('   ✅ Recovery R1 Part 44.10 - Runtime Events');
 console.log('   ✅ Law AI Academy Architecture Stable');
 console.log('   ✅ Engine Renaissance Fully Complete');
 console.log('🚀 Runtime Excellence Era Continuing...');
