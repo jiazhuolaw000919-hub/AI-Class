@@ -1,6 +1,6 @@
 // ================================================================
-// loader.js – V5.3.2 - Simplified Startup + Profiler + Dependency + Recovery Checkpoints
-// 精简阶段结构 + 性能标记 + 依赖追踪 + Recovery 检查点
+// loader.js – V5.3.3 - Runtime Boot Bridge Hotfix
+// Runtime Core loads BEFORE application engines
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -9,6 +9,58 @@ window.LawAIApp = window.LawAIApp || {};
 // 精简阶段分组
 // ============================================================
 var STAGES = {
+    // 🆕 Runtime Core - MUST load before everything!
+    runtime: [
+        // Core
+        "core/BootManager.js",
+        "core/bootPipeline.js",
+        "core/bootStageRegistry.js",
+        "core/bootStageHandlers.js",
+        "core/bootDiagnostics.js",
+        "core/bootReporter.js",
+        // Observation
+        "core/runtimeObservationManifest.js",
+        "core/runtimeObservationCollector.js",
+        "core/runtimeObservationValidator.js",
+        "core/runtimeObservationHealth.js",
+        // Metrics
+        "core/runtimeMetricsManifest.js",
+        "core/runtimeMetricsCollector.js",
+        "core/runtimeMetricsValidator.js",
+        "core/runtimeMetricsHealth.js",
+        // Tracing
+        "core/runtimeTraceManifest.js",
+        "core/runtimeTraceCollector.js",
+        "core/runtimeTraceValidator.js",
+        "core/runtimeTraceHealth.js",
+        // Performance
+        "core/runtimePerformanceManifest.js",
+        "core/runtimeMetricRegistry.js",
+        "core/runtimePerformanceCollector.js",
+        "core/runtimePerformanceStore.js",
+        "core/runtimePerformanceAnalyzer.js",
+        "core/runtimePerformanceHealth.js",
+        "core/runtimePerformanceReport.js",
+        "core/runtimePerformanceAPI.js",
+        "core/runtimePerformanceDashboard.js",
+        // Events
+        "core/runtimeEventRegistry.js",
+        "core/runtimeEventCollector.js",
+        "core/runtimeEventStore.js",
+        "core/runtimeEventAnalyzer.js",
+        "core/runtimeEventIntelligence.js",
+        "core/runtimeEventTimeline.js",
+        "core/runtimeEventAPI.js",
+        // State Sync
+        "core/stateSyncManifest.js",
+        "core/stateSchema.js",
+        "core/stateRegistry.js",
+        "core/stateSyncEngine.js",
+        "core/stateConflictResolver.js",
+        "core/statePersistence.js",
+        "core/stateIntelligence.js",
+        "core/runtimeStateIntegration.js"
+    ],
     critical: [
         "storageEngine.js",
         "eventBus.js",
@@ -60,7 +112,7 @@ function getBasePath() {
 var BASE_PATH = getBasePath();
 
 // ============================================================
-// 加载脚本（精简 + 依赖追踪）
+// 加载脚本
 // ============================================================
 function loadScript(src) {
     if (_loadCache[src]) {
@@ -70,8 +122,7 @@ function loadScript(src) {
         return _loadingPromises[src];
     }
 
-    var engineName = src.replace('.js', '');
-    // 🔥 注册引擎并记录依赖
+    var engineName = src.replace('.js', '').replace(/\//g, '_');
     if (LawAIApp.DevTools?.RuntimeProfiler) {
         LawAIApp.DevTools.RuntimeProfiler.registerEngine(engineName);
         var caller = 'Loader';
@@ -109,7 +160,6 @@ function tryLoad(paths, index, resolve, src, engineName) {
     script.onload = function() {
         _loadCache[src] = true;
         _loadedModules[src] = true;
-        // 🔥 通知 Profiler 引擎加载完成
         if (LawAIApp.DevTools?.RuntimeProfiler) {
             LawAIApp.DevTools.RuntimeProfiler.engineLoaded(engineName);
         }
@@ -127,20 +177,17 @@ function tryLoad(paths, index, resolve, src, engineName) {
 function loadStage(name, files, delay) {
     return new Promise(function(resolve) {
         setTimeout(function() {
-            // 🔥 标记当前阶段
             if (LawAIApp.DevTools?.RuntimeProfiler) {
                 LawAIApp.DevTools.RuntimeProfiler._currentCaller = 'Stage_' + name;
                 LawAIApp.DevTools.RuntimeProfiler.mark('stage_' + name + '_start');
             }
 
-            // 🔥 RECOVERY: 记录 Runtime 检查点
             console.log(`[Loader] ⏳ Stage ${name}: Loading...`);
 
             Promise.all(files.map(loadScript)).then(function(results) {
                 var loaded = results.filter(function(r) { return r.status === "ok"; }).length;
                 console.log('✅ Stage ' + name + ': ' + loaded + '/' + files.length + ' loaded');
 
-                // 🔥 RECOVERY: 阶段完成检查点
                 console.log(`[Loader] ✅ Stage ${name} Ready`);
 
                 if (LawAIApp.DevTools?.RuntimeProfiler) {
@@ -165,14 +212,15 @@ async function boot() {
         LawAIApp.DevTools.RuntimeProfiler.mark('loader_boot_start');
     }
 
-    // 🔥 RECOVERY: 记录 Runtime Loading 开始
     console.log('[Loader] ⏳ Runtime Loading...');
+    console.log("🚀 Loader V5.3.3 starting...");
 
-    console.log("🚀 Loader V5.3.2 starting...");
+    // 🆕 Load Runtime Core FIRST
+    await loadStage('runtime', STAGES.runtime, 0);
 
+    // Then load critical
     await loadStage('critical', STAGES.critical, 0);
 
-    // 🔥 RECOVERY: Runtime Ready 检查点
     console.log('[Loader] ✅ Runtime Ready');
 
     var status = {
@@ -182,7 +230,6 @@ async function boot() {
     window.LawAIApp.bootStatus = status;
     window.__ENGINE_STATUS__ = status;
 
-    // 🔥 RECOVERY: Composer Ready 检查点
     console.log('[Loader] ✅ Composer Ready');
 
     setTimeout(function() {
@@ -190,7 +237,6 @@ async function boot() {
             detail: { boot: status, timestamp: Date.now() }
         }));
 
-        // 🔥 RECOVERY: Application Ready 检查点
         console.log('[Loader] ✅ Application Ready');
         console.log('[Loader] ✅ Recovery Core Runtime Ready');
 
@@ -241,4 +287,4 @@ if (document.readyState === "complete" || document.readyState === "interactive")
     });
 }
 
-console.log("🚀 Loader V5.3.2 ready (simplified + profiler + dependency + recovery)");
+console.log("🚀 Loader V5.3.3 ready (Runtime Boot Bridge Hotfix)");
