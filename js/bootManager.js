@@ -2,7 +2,8 @@
 // bootManager.js – V4.0.0 - Runtime Excellence Era
 // BootManager is now a Coordinator only.
 // Delegates execution to bootPipeline.
-// Integrated with Runtime Observation (Part 40) and Runtime Metrics (Part 41)
+// Integrated with Runtime Observation (Part 40), Metrics (Part 41),
+// Tracing (Part 42), and Performance Framework (Part 43.10)
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -87,18 +88,55 @@ LawAIApp.BootManager = {
             LawAIApp.RuntimePerformanceCollector.init();
         }
 
+        // 🆕 Initialize Runtime Performance Store (Part 43.5)
+        if (LawAIApp.RuntimePerformanceStore && typeof LawAIApp.RuntimePerformanceStore.init === 'function') {
+            LawAIApp.RuntimePerformanceStore.init();
+        }
+
+        // 🆕 Initialize Runtime Performance Analyzer (Part 43.6)
+        if (LawAIApp.RuntimePerformanceAnalyzer && typeof LawAIApp.RuntimePerformanceAnalyzer.init === 'function') {
+            LawAIApp.RuntimePerformanceAnalyzer.init();
+        }
+
+        // 🆕 Initialize Runtime Performance Health (Part 43.7)
+        if (LawAIApp.RuntimePerformanceHealth && typeof LawAIApp.RuntimePerformanceHealth.init === 'function') {
+            LawAIApp.RuntimePerformanceHealth.init();
+        }
+
+        // 🆕 Initialize Runtime Performance Report (Part 43.8)
+        if (LawAIApp.RuntimePerformanceReport && typeof LawAIApp.RuntimePerformanceReport.init === 'function') {
+            LawAIApp.RuntimePerformanceReport.init();
+        }
+
+        // 🆕 Initialize Runtime Performance API (Part 43.9)
+        if (LawAIApp.Performance && typeof LawAIApp.Performance.init === 'function') {
+            LawAIApp.Performance.init();
+        }
+
+        // ============================================================
+        // 🔥 START BOOT PERFORMANCE TRACKING (Part 43.10)
+        // ============================================================
+        if (LawAIApp.Performance && typeof LawAIApp.Performance.startBoot === 'function') {
+            LawAIApp.Performance.startBoot({ version: 'V4.0.0' });
+        }
+
         var bootStartTime = Date.now();
 
-        // 🆕 初始化 Pipeline
+        // ============================================================
+        // 🔥 INITIALIZE AND RUN PIPELINE
+        // ============================================================
         if (window.bootPipeline && typeof window.bootPipeline.init === 'function') {
             window.bootPipeline.init();
         }
 
-        // 🆕 运行 Pipeline（Stage Handlers 在 bootPipeline 中定义）
         if (window.bootPipeline && typeof window.bootPipeline.runPipeline === 'function') {
             var success = window.bootPipeline.runPipeline(LawAIApp.BootStageHandlers || {});
             if (!success) {
                 console.error('🚀 BootManager: Pipeline failed');
+                // Still finish boot tracking even on failure
+                if (LawAIApp.Performance && typeof LawAIApp.Performance.finishBoot === 'function') {
+                    LawAIApp.Performance.finishBoot({ success: false, error: 'Pipeline failed' });
+                }
                 return Promise.reject({ status: 'failed' });
             }
         }
@@ -106,7 +144,20 @@ LawAIApp.BootManager = {
         var bootEndTime = Date.now();
         var bootDuration = bootEndTime - bootStartTime;
 
-        // 🆕 Record BOOT_TIME metric (Part 41)
+        // ============================================================
+        // 🔥 FINISH BOOT PERFORMANCE TRACKING (Part 43.10)
+        // ============================================================
+        if (LawAIApp.Performance && typeof LawAIApp.Performance.finishBoot === 'function') {
+            LawAIApp.Performance.finishBoot({
+                duration: bootDuration,
+                success: true,
+                stages: Object.keys(this._stages)
+            });
+        }
+
+        // ============================================================
+        // 🔥 RECORD BOOT_TIME METRIC (Part 41)
+        // ============================================================
         if (LawAIApp.RuntimeMetricsCollector && typeof LawAIApp.RuntimeMetricsCollector.setMetric === 'function') {
             LawAIApp.RuntimeMetricsCollector.setMetric('BOOT_TIME', bootDuration);
         }
@@ -117,17 +168,38 @@ LawAIApp.BootManager = {
         this.markStage('intelligence');
         this.markStage('background');
 
-        // 🆕 Collect RUNTIME_READY observation
+        // ============================================================
+        // 🔥 COLLECT RUNTIME_READY OBSERVATION (Part 40)
+        // ============================================================
         if (LawAIApp.RuntimeObservationCollector && typeof LawAIApp.RuntimeObservationCollector.collect === 'function') {
-            LawAIApp.RuntimeObservationCollector.collect('RUNTIME_READY', 'BootManager', null, { booted: true, duration: bootDuration });
+            LawAIApp.RuntimeObservationCollector.collect('RUNTIME_READY', 'BootManager', null, { 
+                booted: true, 
+                duration: bootDuration 
+            });
         }
 
         try {
             LawAIApp.EventBus?.emit?.('BootStarted');
         } catch (e) { /* 静默 */ }
 
+        // ============================================================
+        // 🔥 RECORD DIAGNOSTICS
+        // ============================================================
         if (window.bootDiagnostics && typeof window.bootDiagnostics.recordBootSnapshot === 'function') {
             window.bootDiagnostics.recordBootSnapshot();
+        }
+
+        // ============================================================
+        // 🔥 GENERATE INITIAL PERFORMANCE REPORT (Part 43.10)
+        // ============================================================
+        if (LawAIApp.Performance && typeof LawAIApp.Performance.report === 'function') {
+            try {
+                var initialReport = LawAIApp.Performance.report();
+                if (initialReport && initialReport.health) {
+                    console.log('📊 Initial Performance Score:', initialReport.health.score + '%');
+                    console.log('📊 Performance Status:', initialReport.health.label);
+                }
+            } catch (e) { /* 静默 */ }
         }
 
         console.log('🚀 BootManager: Startup complete in', bootDuration + 'ms');
@@ -151,7 +223,7 @@ LawAIApp.BootManager = {
     },
 
     // ============================================================
-    // ORIGINAL METHODS (保留但简化)
+    // ORIGINAL METHODS
     // ============================================================
 
     markStage: function(stage) {
@@ -188,4 +260,5 @@ console.log('   🏗️ Boot Architecture Refactored - Coordinator Mode');
 console.log('   👁 Runtime Observation Integrated');
 console.log('   📈 Runtime Metrics Integrated');
 console.log('   🛰 Runtime Tracing Integrated');
+console.log('   ⚡ Runtime Performance Framework Integrated');
 console.log('   ✅ Season 4 - Runtime Excellence Era Started');
