@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22, 23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39, 40, 41 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22, 23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39, 40, 41, 42 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39, 40, 41)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39, 40, 41, 42)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -192,6 +192,9 @@ LawAIApp.Debug.DevPanel = {
 
         // Part 41: Runtime Metrics Info
         var runtimeMetricsInfo = this._getRuntimeMetricsInfo();
+
+        // Part 42: Runtime Tracing Info
+        var runtimeTraceInfo = this._getRuntimeTraceInfo();
 
         // Engine Status
         var engineStatus = [];
@@ -1369,6 +1372,37 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 42: RUNTIME TRACING -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(6,182,212,0.04);border-radius:8px;border-left:2px solid #06b6d4;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">🛰 Runtime Tracing</span>
+                    <span style="font-size:10px;color:${runtimeTraceInfo.healthScore >= 80 ? '#22c55e' : '#f59e0b'};">${runtimeTraceInfo.healthScore}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: ${runtimeTraceInfo.status}</span>
+                    <span>Traces: ${runtimeTraceInfo.totalTraces}</span>
+                    <span>Active: ${runtimeTraceInfo.activeTraces}</span>
+                    <span>Coverage: ${runtimeTraceInfo.coverage}%</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Completed: ${runtimeTraceInfo.completedTraces}</span>
+                    ${runtimeTraceInfo.failedTraces > 0 ? `<span style="color:#ef4444;">❌ Failed: ${runtimeTraceInfo.failedTraces}</span>` : ''}
+                    ${runtimeTraceInfo.orphanTraces > 0 ? `<span style="color:#f59e0b;">📭 Orphans: ${runtimeTraceInfo.orphanTraces}</span>` : ''}
+                </div>
+                ${runtimeTraceInfo.failedTraces > 0 ? `
+                    <div style="font-size:9px;color:#ef4444;margin-top:2px;">
+                        ❌ ${runtimeTraceInfo.failedTraces} failed traces
+                    </div>
+                ` : ''}
+                ${runtimeTraceInfo.orphanTraces > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${runtimeTraceInfo.orphanTraces} orphan traces detected
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -1400,7 +1434,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-41)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-43)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -1576,6 +1610,11 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Metrics: ${runtimeMetricsInfo.collectedMetrics}/${runtimeMetricsInfo.totalMetrics}</div>
                     <div style="padding-left:12px;">Coverage: ${runtimeMetricsInfo.coverage}%</div>
                     <div style="padding-left:12px;">Health: ${runtimeMetricsInfo.healthScore}%</div>
+                    <div><strong>Part 42 - Runtime Tracing:</strong></div>
+                    <div style="padding-left:12px;">Status: ${runtimeTraceInfo.status}</div>
+                    <div style="padding-left:12px;">Traces: ${runtimeTraceInfo.totalTraces}</div>
+                    <div style="padding-left:12px;">Coverage: ${runtimeTraceInfo.coverage}%</div>
+                    <div style="padding-left:12px;">Health: ${runtimeTraceInfo.healthScore}%</div>
                 </div>
             </details>
 
@@ -3537,6 +3576,45 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+        // ============================================================
+    // 🔥 PART 42: RUNTIME TRACING INFO
+    // ============================================================
+
+    _getRuntimeTraceInfo: function() {
+        var info = {
+            status: 'unknown',
+            totalTraces: 0,
+            activeTraces: 0,
+            completedTraces: 0,
+            failedTraces: 0,
+            coverage: 0,
+            healthScore: 0,
+            orphanTraces: 0,
+            validationWarnings: 0
+        };
+
+        try {
+            var health = LawAIApp.RuntimeTraceHealth || window.runtimeTraceHealth;
+            if (health && typeof health.getHealth === 'function') {
+                var data = health.getHealth();
+                info.status = data.status || 'unknown';
+                info.totalTraces = data.totalTraces || 0;
+                info.activeTraces = data.activeTraces || 0;
+                info.completedTraces = data.completedTraces || 0;
+                info.failedTraces = data.failedTraces || 0;
+                info.coverage = data.coverageScore || 0;
+                info.healthScore = data.healthScore || 0;
+                info.orphanTraces = data.orphanTraces || 0;
+                info.validationWarnings = data.validationWarnings || 0;
+            }
+
+        } catch (err) {
+            console.warn('Could not get runtime trace info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -3621,13 +3699,14 @@ console.log('   ✅ Recovery R1 Part 35 - System Coherence');
 console.log('   ✅ Recovery R1 Part 36 - System Continuity');
 console.log('   ✅ Recovery R1 Part 37 - System Identity');
 console.log('   ✅ Recovery R1 Part 38 - System Maturity');
-console.log('   ✅ Recovery R1 Part 39 - Boot Architecture');
-console.log('   🏗️ Boot Architecture Refactored - Coordinator Mode');
-console.log('   ✅ Season 4 - Runtime Excellence Era Started');
-console.log('   ✅ Recovery R1 Part 40 - Runtime Observation');
-console.log('   ✅ Recovery R1 Part 41 - Runtime Metrics');
 console.log('🎉 System Intelligence Era - Complete');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
+console.log('🏗️  Season 4 - Runtime Excellence Era');
+console.log('   ✅ Recovery R1 Part 39 - Boot Architecture');
+console.log('   🏗️ Boot Architecture Refactored - Coordinator Mode');
+console.log('   ✅ Recovery R1 Part 40 - Runtime Observation');
+console.log('   ✅ Recovery R1 Part 41 - Runtime Metrics');
+console.log('   ✅ Recovery R1 Part 42 - Runtime Tracing');
 console.log('   ✅ Law AI Academy Architecture Stable');
 console.log('   ✅ Engine Renaissance Fully Complete');
