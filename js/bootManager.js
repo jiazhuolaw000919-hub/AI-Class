@@ -120,6 +120,11 @@ LawAIApp.BootManager = {
             LawAIApp.Performance.startBoot({ version: 'V4.0.0' });
         }
 
+        // 🆕 Initialize Runtime Performance Dashboard (Part 43.12)
+        if (LawAIApp.RuntimePerformanceDashboard && typeof LawAIApp.RuntimePerformanceDashboard.init === 'function') {
+            LawAIApp.RuntimePerformanceDashboard.init();
+        }
+
         var bootStartTime = Date.now();
 
         // ============================================================
