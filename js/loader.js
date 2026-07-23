@@ -1,6 +1,7 @@
 // ================================================================
-// loader.js – V5.3.3 - Runtime Boot Bridge Hotfix
+// loader.js – V5.3.4 - Runtime Boot Bridge Hotfix (ES Module Support)
 // Runtime Core loads BEFORE application engines
+// Supports ES Module loading for Runtime Framework
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -10,6 +11,7 @@ window.LawAIApp = window.LawAIApp || {};
 // ============================================================
 var STAGES = {
     // 🆕 Runtime Core - MUST load before everything!
+    // 使用 ES Module 动态导入
     runtime: [
         // Core
         "core/BootManager.js",
@@ -112,9 +114,107 @@ function getBasePath() {
 var BASE_PATH = getBasePath();
 
 // ============================================================
-// 加载脚本
+// 🔥 ES Module 加载函数（支持 import/export）
+// ============================================================
+function loadModule(src) {
+    if (_loadCache[src]) {
+        return Promise.resolve({ file: src, status: "ok" });
+    }
+    if (_loadingPromises[src]) {
+        return _loadingPromises[src];
+    }
+
+    var engineName = src.replace('.js', '').replace(/\//g, '_');
+    
+    // 🔥 注册引擎并记录依赖
+    if (LawAIApp.DevTools?.RuntimeProfiler) {
+        LawAIApp.DevTools.RuntimeProfiler.registerEngine(engineName);
+        var caller = 'Loader';
+        if (LawAIApp.DevTools.RuntimeProfiler._currentCaller) {
+            caller = LawAIApp.DevTools.RuntimeProfiler._currentCaller;
+        }
+        LawAIApp.DevTools.RuntimeProfiler.addDependency(caller, engineName);
+    }
+
+    var promise = new Promise(function(resolve) {
+        var paths = [
+            '/' + src,
+            BASE_PATH + src,
+            'js/' + src,
+            '../' + src
+        ];
+        var unique = [];
+        for (var i = 0; i < paths.length; i++) {
+            if (unique.indexOf(paths[i]) === -1) unique.push(paths[i]);
+        }
+        
+        // 🔥 使用 ES Module 方式加载
+        tryLoadModule(unique, 0, resolve, src, engineName);
+    });
+
+    _loadingPromises[src] = promise;
+    return promise;
+}
+
+function tryLoadModule(paths, index, resolve, src, engineName) {
+    if (index >= paths.length) {
+        resolve({ file: src, status: "missing" });
+        return;
+    }
+    
+    var fullPath = paths[index];
+    
+    // 🔥 使用 import() 动态加载 ES Module
+    import(fullPath)
+        .then(function(module) {
+            _loadCache[src] = true;
+            _loadedModules[src] = true;
+            
+            // 🔥 通知 Profiler 引擎加载完成
+            if (LawAIApp.DevTools?.RuntimeProfiler) {
+                LawAIApp.DevTools.RuntimeProfiler.engineLoaded(engineName);
+            }
+            
+            console.log('✅ Loaded (ESM):', src);
+            resolve({ file: src, status: "ok", module: module });
+        })
+        .catch(function(err) {
+            console.warn('⚠️ ESM load failed:', fullPath, err.message);
+            // 如果 import 失败，尝试传统方式加载
+            tryLoadLegacy(fullPath, resolve, src, engineName);
+        });
+}
+
+// ============================================================
+// 🔥 传统加载（Fallback for non-ESM files）
+// ============================================================
+function tryLoadLegacy(src, resolve, fileSrc, engineName) {
+    var script = document.createElement("script");
+    script.src = src;
+    script.onload = function() {
+        _loadCache[fileSrc] = true;
+        _loadedModules[fileSrc] = true;
+        if (LawAIApp.DevTools?.RuntimeProfiler) {
+            LawAIApp.DevTools.RuntimeProfiler.engineLoaded(engineName);
+        }
+        resolve({ file: fileSrc, status: "ok" });
+    };
+    script.onerror = function() {
+        resolve({ file: fileSrc, status: "missing" });
+    };
+    document.head.appendChild(script);
+}
+
+// ============================================================
+// 🔥 兼容加载：自动检测 ES Module 或传统 script
 // ============================================================
 function loadScript(src) {
+    // 对于 core/ 目录下的文件，使用 ES Module 加载
+    if (src.startsWith('core/')) {
+        return loadModule(src);
+    }
+    
+    // 其他文件使用传统方式
     if (_loadCache[src]) {
         return Promise.resolve({ file: src, status: "ok" });
     }
@@ -182,7 +282,7 @@ function loadStage(name, files, delay) {
                 LawAIApp.DevTools.RuntimeProfiler.mark('stage_' + name + '_start');
             }
 
-            console.log(`[Loader] ⏳ Stage ${name}: Loading...`);
+            console.log(`[Loader] ⏳ Stage ${name}: Loading ${files.length} files...`);
 
             Promise.all(files.map(loadScript)).then(function(results) {
                 var loaded = results.filter(function(r) { return r.status === "ok"; }).length;
@@ -213,9 +313,9 @@ async function boot() {
     }
 
     console.log('[Loader] ⏳ Runtime Loading...');
-    console.log("🚀 Loader V5.3.3 starting...");
+    console.log("🚀 Loader V5.3.4 starting...");
 
-    // 🆕 Load Runtime Core FIRST
+    // 🆕 Load Runtime Core FIRST (ES Module)
     await loadStage('runtime', STAGES.runtime, 0);
 
     // Then load critical
@@ -279,6 +379,9 @@ LawAIApp.getLoadStatus = function() {
     };
 };
 
+// ============================================================
+// 🔥 启动
+// ============================================================
 if (document.readyState === "complete" || document.readyState === "interactive") {
     setTimeout(boot, 50);
 } else {
@@ -287,4 +390,4 @@ if (document.readyState === "complete" || document.readyState === "interactive")
     });
 }
 
-console.log("🚀 Loader V5.3.3 ready (Runtime Boot Bridge Hotfix)");
+console.log("🚀 Loader V5.3.4 ready (Runtime Boot Bridge Hotfix - ES Module Support)"); 
