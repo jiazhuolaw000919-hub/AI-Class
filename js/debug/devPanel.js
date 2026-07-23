@@ -196,6 +196,9 @@ LawAIApp.Debug.DevPanel = {
         // Part 42: Runtime Tracing Info
         var runtimeTraceInfo = this._getRuntimeTraceInfo();
 
+        // Part 43.11: Runtime Performance Info
+        var runtimePerformanceInfo = this._getRuntimePerformanceInfo();
+
         // Engine Status
         var engineStatus = [];
         try {
@@ -1403,6 +1406,43 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 43.11: RUNTIME PERFORMANCE -->
+            <!-- ========================================================== -->
+            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">⚡ Runtime Performance</span>
+                    <span style="font-size:10px;color:${runtimePerformanceInfo.score >= 80 ? '#22c55e' : (runtimePerformanceInfo.score >= 50 ? '#f59e0b' : '#ef4444')};">${runtimePerformanceInfo.isAvailable ? runtimePerformanceInfo.score + '%' : 'N/A'}</span>
+                </div>
+                ${runtimePerformanceInfo.isAvailable && runtimePerformanceInfo.hasData ? `
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
+                    <span>Status: <span style="color:${runtimePerformanceInfo.score >= 80 ? '#22c55e' : (runtimePerformanceInfo.score >= 50 ? '#f59e0b' : '#ef4444')};">${runtimePerformanceInfo.label}</span></span>
+                    <span>Boot: ${runtimePerformanceInfo.bootDuration}</span>
+                    <span>Modules: ${runtimePerformanceInfo.totalModules}</span>
+                    <span>Records: ${runtimePerformanceInfo.totalRecords}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
+                    <span>Avg: ${runtimePerformanceInfo.averageDuration}</span>
+                    <span>Slowest: ${runtimePerformanceInfo.slowestModule}</span>
+                    <span>Fastest: ${runtimePerformanceInfo.fastestModule}</span>
+                </div>
+                ${runtimePerformanceInfo.warnings && runtimePerformanceInfo.warnings.length > 0 ? `
+                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
+                        ⚠️ ${runtimePerformanceInfo.warnings.length} performance ${runtimePerformanceInfo.warnings.length === 1 ? 'warning' : 'warnings'}
+                    </div>
+                ` : ''}
+                ` : `
+                <div style="font-size:10px;color:#64748b;margin-top:4px;">
+                    ${runtimePerformanceInfo.isAvailable ? '⏳ Collecting performance data...' : '⚠️ Performance framework not available'}
+                </div>
+                `}
+                ${!runtimePerformanceInfo.isAvailable ? `
+                    <div style="font-size:8px;color:#475569;margin-top:2px;">
+                        Enable debug mode or restart to collect data
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -1434,7 +1474,7 @@ LawAIApp.Debug.DevPanel = {
             <!-- 🔥 DETAILS (Collapsible) -->
             <!-- ========================================================== -->
             <details style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">
-                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-43)</summary>
+                <summary style="font-size:10px;color:#64748b;cursor:pointer;">📋 Recovery Details (Parts 1-43.2)</summary>
                 <div style="font-size:9px;color:#475569;margin-top:6px;line-height:1.8;max-height:150px;overflow-y:auto;">
                     <div><strong>Part 1 - Architecture:</strong></div>
                     <div style="padding-left:12px;">Domains: ${archInfo.domainList || 'N/A'}</div>
@@ -1615,6 +1655,11 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Traces: ${runtimeTraceInfo.totalTraces}</div>
                     <div style="padding-left:12px;">Coverage: ${runtimeTraceInfo.coverage}%</div>
                     <div style="padding-left:12px;">Health: ${runtimeTraceInfo.healthScore}%</div>
+                    <div><strong>Part 43.11 - Runtime Performance:</strong></div>
+                    <div style="padding-left:12px;">Score: ${runtimePerformanceInfo.isAvailable ? runtimePerformanceInfo.score + '%' : 'N/A'}</div>
+                    <div style="padding-left:12px;">Status: ${runtimePerformanceInfo.isAvailable ? runtimePerformanceInfo.label : 'N/A'}</div>
+                    <div style="padding-left:12px;">Boot: ${runtimePerformanceInfo.bootDuration}</div>
+                    <div style="padding-left:12px;">Modules: ${runtimePerformanceInfo.totalModules}</div>
                 </div>
             </details>
 
@@ -3615,6 +3660,91 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+    // ============================================================
+    // 🔥 PART 43.11: RUNTIME PERFORMANCE INFO
+    // ============================================================
+
+    _getRuntimePerformanceInfo: function() {
+        var info = {
+            score: 0,
+            status: 'UNKNOWN',
+            label: 'Unknown',
+            bootDuration: 'N/A',
+            averageDuration: 'N/A',
+            slowestModule: 'N/A',
+            fastestModule: 'N/A',
+            totalModules: 0,
+            totalRecords: 0,
+            warnings: [],
+            hasData: false,
+            isAvailable: false
+        };
+
+        try {
+            // Try to get data from Performance API
+            var perf = LawAIApp.Performance || window.LawAIApp?.Performance;
+            if (perf) {
+                // Get report
+                var report = null;
+                if (typeof perf.report === 'function') {
+                    report = perf.report();
+                }
+
+                if (report) {
+                    info.isAvailable = true;
+                    info.hasData = report.summary ? report.summary.hasData || false : false;
+
+                    if (report.health) {
+                        info.score = report.health.score || 0;
+                        info.status = report.health.status || 'UNKNOWN';
+                        info.label = report.health.label || 'Unknown';
+                    }
+
+                    if (report.summary) {
+                        info.bootDuration = report.summary.bootDuration || 'N/A';
+                        info.averageDuration = report.summary.averageDuration || 'N/A';
+                        info.slowestModule = report.summary.slowestModule || 'N/A';
+                        info.fastestModule = report.summary.fastestModule || 'N/A';
+                        info.totalModules = report.summary.totalModules || 0;
+                        info.totalRecords = report.summary.totalRecords || 0;
+                    }
+
+                    if (report.warnings) {
+                        info.warnings = report.warnings;
+                    }
+                }
+            }
+
+            // Fallback: try health directly
+            if (!info.isAvailable) {
+                var health = LawAIApp.RuntimePerformanceHealth || window.runtimePerformanceHealth;
+                if (health && typeof health.getHealthReport === 'function') {
+                    var healthData = health.getHealthReport();
+                    if (healthData && healthData.hasData) {
+                        info.isAvailable = true;
+                        info.hasData = true;
+                        info.score = healthData.score || 0;
+                        info.status = healthData.status || 'UNKNOWN';
+                        info.label = healthData.label || 'Unknown';
+                        if (healthData.summary) {
+                            info.bootDuration = healthData.summary.bootDuration || 'N/A';
+                            info.slowestModule = healthData.summary.slowestModule || 'N/A';
+                            info.totalRecords = healthData.summary.totalRecords || 0;
+                        }
+                        if (healthData.warnings) {
+                            info.warnings = healthData.warnings;
+                        }
+                    }
+                }
+            }
+
+        } catch (err) {
+            console.warn('Could not get runtime performance info:', err);
+        }
+
+        return info;
+    },
+
     /**
      * 导入备份（备选方法）
      */
@@ -3699,14 +3829,27 @@ console.log('   ✅ Recovery R1 Part 35 - System Coherence');
 console.log('   ✅ Recovery R1 Part 36 - System Continuity');
 console.log('   ✅ Recovery R1 Part 37 - System Identity');
 console.log('   ✅ Recovery R1 Part 38 - System Maturity');
-console.log('🎉 System Intelligence Era - Complete');
+console.log('🎉 System Intelligence Era - Complete (Season 1-3)');
 console.log('   ✅ Architecture Freeze Completed');
 console.log('   ✅ Recovery R1 Certified');
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 console.log('🏗️  Season 4 - Runtime Excellence Era');
 console.log('   ✅ Recovery R1 Part 39 - Boot Architecture');
 console.log('   🏗️ Boot Architecture Refactored - Coordinator Mode');
 console.log('   ✅ Recovery R1 Part 40 - Runtime Observation');
 console.log('   ✅ Recovery R1 Part 41 - Runtime Metrics');
 console.log('   ✅ Recovery R1 Part 42 - Runtime Tracing');
+console.log('   ✅ Recovery R1 Part 43.1 - Performance Framework Foundation');
+console.log('   ✅ Recovery R1 Part 43.2 - Performance Framework Core Architecture');
+console.log('   ✅ Recovery R1 Part 43.3 - Performance Manifest & Registry');
+console.log('   ✅ Recovery R1 Part 43.4 - Performance Collector');
+console.log('   ✅ Recovery R1 Part 43.5 - Performance Store');
+console.log('   ✅ Recovery R1 Part 43.6 - Performance Analyzer');
+console.log('   ✅ Recovery R1 Part 43.7 - Performance Health');
+console.log('   ✅ Recovery R1 Part 43.8 - Performance Report');
+console.log('   ✅ Recovery R1 Part 43.9 - Performance API');
+console.log('   ✅ Recovery R1 Part 43.10 - Performance Integration');
+console.log('   ✅ Recovery R1 Part 43.11 - Runtime Performance');
 console.log('   ✅ Law AI Academy Architecture Stable');
 console.log('   ✅ Engine Renaissance Fully Complete');
+console.log('🚀 Runtime Excellence Era Continuing...');
