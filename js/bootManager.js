@@ -82,6 +82,11 @@ LawAIApp.BootManager = {
             LawAIApp.RuntimeMetricRegistry.init();
         }
 
+        // 🆕 Initialize Runtime Performance Collector (Part 43.4)
+        if (LawAIApp.RuntimePerformanceCollector && typeof LawAIApp.RuntimePerformanceCollector.init === 'function') {
+            LawAIApp.RuntimePerformanceCollector.init();
+        }
+
         var bootStartTime = Date.now();
 
         // 🆕 初始化 Pipeline
