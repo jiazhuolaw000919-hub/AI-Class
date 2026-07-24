@@ -8,7 +8,7 @@
 // HELPER FUNCTIONS
 // ============================================================
 
-function getTimeline() {
+function getTimelineModule() {
   return LawAIApp.RuntimeEventTimeline || window.runtimeEventTimeline;
 }
 
@@ -50,7 +50,7 @@ function safeCall(fn, fallback) {
 // ============================================================
 
 export function getTimeline(sessionId) {
-  var timeline = getTimeline();
+  var timeline = getTimelineModule();
   if (!timeline) {
     if (isDebugMode()) {
       console.warn('[Event API] Timeline not available');
@@ -80,7 +80,7 @@ export function getTimeline(sessionId) {
 }
 
 export function getTimelineEntries() {
-  var timeline = getTimeline();
+  var timeline = getTimelineModule();
   if (!timeline) return [];
 
   if (isDebugMode()) {
@@ -96,7 +96,7 @@ export function getTimelineEntries() {
 }
 
 export function getTimelineSummary() {
-  var timeline = getTimeline();
+  var timeline = getTimelineModule();
   if (!timeline) {
     return { total: 0, categories: {}, sources: {}, timeRange: { start: null, end: null, duration: null } };
   }
@@ -297,7 +297,7 @@ export function getEventCount() {
 // ============================================================
 
 export function query(filter) {
-  var timeline = getTimeline();
+  var timeline = getTimelineModule();
   if (!timeline) {
     if (isDebugMode()) {
       console.warn('[Event API] Timeline not available for query');
@@ -400,7 +400,7 @@ export function generateIntelligence() {
 }
 
 export function buildTimeline(sessionId) {
-  var timeline = getTimeline();
+  var timeline = getTimelineModule();
   if (!timeline) {
     if (isDebugMode()) {
       console.warn('[Event API] Timeline not available');
@@ -421,7 +421,7 @@ export function buildTimeline(sessionId) {
 }
 
 export function reset() {
-  var timeline = getTimeline();
+  var timeline = getTimelineModule();
   var intelligence = getIntelligence();
 
   if (timeline && typeof timeline.reset === 'function') {
