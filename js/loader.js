@@ -54,7 +54,7 @@ var STAGES = {
         "core/stateConflictResolver.js",
         "core/statePersistence.js",
         "core/stateIntelligence.js",
-        "core/runtimeStateIntegration.js"
+        "core/runtimeStateIntegration.js",
         "core/aiContextEngine.js",
         "core/aiRuntimeKnowledge.js",
         "core/aiReasoningEngine.js",
@@ -73,7 +73,7 @@ var STAGES = {
         "progressEngine.js",
         "experienceEngine.js",
         "recommendationEngine.js",
-        "debug/devPanel.js"
+        "debug/devPanel.js",
         "debug/devPanelAIAssistant.js"
     ],
     intelligence: [
