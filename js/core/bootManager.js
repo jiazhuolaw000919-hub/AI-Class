@@ -308,6 +308,19 @@ LawAIApp.BootManager = {
             });
         }
 
+        
+        // ============================================================
+        // 🔥 Part 45.9.1: Direct state update — EventCollector.on() not available
+        // ============================================================
+        if (LawAIApp.StateSyncEngine && typeof LawAIApp.StateSyncEngine.update === 'function') {
+            LawAIApp.StateSyncEngine.update('runtime.state', {
+                status: 'running',
+                ready: true,
+                bootDuration: bootDuration,
+                bootCompletedAt: new Date().toISOString()
+            }, 'BootManager', { source: 'BOOT_COMPLETE' });
+        }
+
         // ============================================================
         // 🔥 PART 40: COLLECT RUNTIME_READY OBSERVATION
         // ============================================================
