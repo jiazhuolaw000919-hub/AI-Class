@@ -60,7 +60,19 @@ var STAGES = {
         "core/aiReasoningEngine.js",
         "core/aiRecommendationEngine.js",
         "core/aiRuntimeAssistant.js",
-        "core/aiRuntimeInteraction.js"
+        "core/aiRuntimeInteraction.js",
+        "core/runtimeKnowledgeGraph.js",
+        "core/runtimeEntityRegistry.js",
+        "core/runtimeRelationshipEngine.js",
+        "core/knowledgeGraphAnalyzer.js",
+        "core/impactAnalysisEngine.js",
+        "core/aiKnowledgeIntegration.js",
+        "core/runtimeCognitiveEngine.js",
+        "core/dependencyIntelligenceEngine.js",
+        "core/rootCauseAnalysisEngine.js",
+        "core/runtimePredictionEngine.js",
+        "core/decisionSupportEngine.js",
+        "core/aiCognitiveIntegration.js"       
     ],
     critical: [
         "storageEngine.js",
