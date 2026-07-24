@@ -1,7 +1,8 @@
 // ================================================================
-// loader.js – V5.3.4 - Runtime Boot Bridge Hotfix (ES Module Support)
+// loader.js – V5.3.5 - Runtime Boot Bridge Hotfix (ES Module Support + Path Fix)
 // Runtime Core loads BEFORE application engines
 // Supports ES Module loading for Runtime Framework
+// Added /core/ path support for root-level core folder
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -139,6 +140,7 @@ function loadModule(src) {
     var promise = new Promise(function(resolve) {
         var paths = [
             '/' + src,
+            '/core/' + src.replace('core/', ''),  // 🆕 根目录 core/ 路径
             BASE_PATH + src,
             'js/' + src,
             '../' + src
@@ -235,6 +237,7 @@ function loadScript(src) {
     var promise = new Promise(function(resolve) {
         var paths = [
             '/js/' + src,
+            '/core/' + src.replace('core/', ''),  // 🆕 根目录 core/ 路径
             BASE_PATH + src,
             'js/' + src,
             '../js/' + src
@@ -313,7 +316,7 @@ async function boot() {
     }
 
     console.log('[Loader] ⏳ Runtime Loading...');
-    console.log("🚀 Loader V5.3.4 starting...");
+    console.log("🚀 Loader V5.3.5 starting...");
 
     // 🆕 Load Runtime Core FIRST (ES Module)
     await loadStage('runtime', STAGES.runtime, 0);
@@ -390,4 +393,4 @@ if (document.readyState === "complete" || document.readyState === "interactive")
     });
 }
 
-console.log("🚀 Loader V5.3.4 ready (Runtime Boot Bridge Hotfix - ES Module Support)"); 
+console.log("🚀 Loader V5.3.5 ready (Runtime Boot Bridge Hotfix - ES Module Support + Path Fix)");
