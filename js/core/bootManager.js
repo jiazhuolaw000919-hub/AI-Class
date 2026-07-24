@@ -342,6 +342,11 @@ LawAIApp.BootManager = {
             } catch (e) { /* 静默 */ }
         }
 
+        // 🔥 Runtime Metrics Health — deferred report after Pipeline completes
+        if (LawAIApp.RuntimeMetricsHealth && typeof LawAIApp.RuntimeMetricsHealth.report === 'function') {
+            LawAIApp.RuntimeMetricsHealth.report();
+        }
+        
         console.log('🚀 BootManager: Startup complete in', bootDuration + 'ms');
         return Promise.resolve({ status: 'started' });
     },
