@@ -1577,6 +1577,12 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 49.7: GOVERNANCE DASHBOARD -->
+            <!-- ========================================================== -->
+            <div id="dev-panel-governance-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(34,197,94,0.04);border-radius:8px;border-left:2px solid #22c55e;">
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -1843,8 +1849,22 @@ LawAIApp.Debug.DevPanel = {
             var cogContainer = document.getElementById('dev-panel-cognitive-section');
             if (cogContainer && LawAIApp.Debug && LawAIApp.Debug.DevPanelCognitive) {
                 LawAIApp.Debug.DevPanelCognitive.render(cogContainer);
-    }
-}, 300);
+            }
+        }, 300);
+
+        // ============================================================
+        // 🔥 PART 49.7: GOVERNANCE DASHBOARD
+        // ============================================================
+        var governanceContainer = document.getElementById('dev-panel-governance-section');
+        if (governanceContainer) {
+            var govHTML = this._getGovernanceDashboardHTML();
+            if (govHTML) {
+                governanceContainer.innerHTML = govHTML;
+            } else {
+                governanceContainer.innerHTML = '<div style="font-weight:bold;color:#22c55e;font-size:11px;">🏛️ Governance</div>' +
+                    '<div style="font-size:10px;color:#64748b;margin-top:4px;">Governance modules loading...</div>';
+            }
+        }
     },
 
     /**
@@ -3863,7 +3883,7 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
-        // ============================================================
+    // ============================================================
     // 🔥 PART 43.11: RUNTIME PERFORMANCE INFO
     // ============================================================
 
@@ -4158,6 +4178,55 @@ LawAIApp.Debug.DevPanel = {
 
         return info;
     },
+
+    
+/**
+ * Part 49.7: Governance Dashboard HTML
+ */
+_getGovernanceDashboardHTML: function() {
+    try {
+        var policy = window.LawAIApp.Policy;
+        var perm = window.LawAIApp.Permissions;
+        var valid = window.LawAIApp.Validation;
+        var safety = window.LawAIApp.Safety;
+        var aiGov = window.LawAIApp.AIGovernance;
+        
+        if (!policy && !perm && !safety) return null;
+        
+        var html = '<div style="font-weight:bold;color:#22c55e;font-size:11px;">🏛️ Governance Layer</div>';
+        html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;font-size:10px;">';
+        
+        if (policy && policy.getHealth) {
+            var ph = policy.getHealth();
+            html += '<span style="padding:2px 8px;border-radius:10px;background:' + (ph.status === 'HEALTHY' ? '#22c55e20' : '#f59e0b20') + ';color:' + (ph.status === 'HEALTHY' ? '#22c55e' : '#f59e0b') + ';">📋 Policies: ' + (ph.activePolicies || 0) + '</span>';
+        }
+        
+        if (perm && perm.getHealth) {
+            var pmh = perm.getHealth();
+            html += '<span style="padding:2px 8px;border-radius:10px;background:#22c55e20;color:#22c55e;">🔑 Perms: ' + (pmh.activePermissions || 0) + '</span>';
+        }
+        
+        if (valid && valid.getHealth) {
+            var vh = valid.getHealth();
+            html += '<span style="padding:2px 8px;border-radius:10px;background:#22c55e20;color:#22c55e;">✅ Validators: ' + (vh.validators || 0) + '</span>';
+        }
+        
+        if (safety && safety.getHealth) {
+            var sh = safety.getHealth();
+            html += '<span style="padding:2px 8px;border-radius:10px;background:' + (sh.status === 'SAFE' ? '#22c55e20' : '#ef444420') + ';color:' + (sh.status === 'SAFE' ? '#22c55e' : '#ef4444') + ';">🛡️ Safety: ' + (sh.activeLocks || 0) + ' locks</span>';
+        }
+        
+        if (aiGov && aiGov.getAILevel) {
+            var ai = aiGov.getAILevel();
+            html += '<span style="padding:2px 8px;border-radius:10px;background:#8b5cf620;color:#8b5cf6;">🤖 AI: ' + (ai.name || '?') + '</span>';
+        }
+        
+        html += '</div>';
+        return html;
+    } catch(e) {
+        return null;
+    }
+},
 
     /**
      * 导入备份（备选方法）
