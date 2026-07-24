@@ -72,7 +72,14 @@ var STAGES = {
         "core/rootCauseAnalysisEngine.js",
         "core/runtimePredictionEngine.js",
         "core/decisionSupportEngine.js",
-        "core/aiCognitiveIntegration.js"       
+        "core/aiCognitiveIntegration.js"
+        "core/runtimeGovernanceFoundation.js',
+        "core/runtimePolicyEngine.js",
+        "core/runtimePermissionSystem.js",
+        "core/runtimeValidationSystem.js",
+        "core/runtimeSafetyCompliance.js",
+        "core/aiGovernanceIntegration.js",
+        "core/unifiedGovernanceDashboard.js"
     ],
     critical: [
         "storageEngine.js",
