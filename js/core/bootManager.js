@@ -149,8 +149,23 @@ LawAIApp.BootManager = {
         // ============================================================
         // 🔥 PART 45.3: STATE SYNC ENGINE INITIALIZATION
         // ============================================================
-        if (LawAIApp.StateSyncEngine && typeof LawAIApp.StateSyncEngine.init === 'function') {
+            if (LawAIApp.StateSyncEngine && typeof LawAIApp.StateSyncEngine.init === 'function') {
             LawAIApp.StateSyncEngine.init();
+        }
+
+        // 🔥 Part 45.9.1: Register runtime.state if not in registry
+        if (LawAIApp.StateRegistry && typeof LawAIApp.StateRegistry.register === 'function') {
+            var existing = LawAIApp.StateRegistry.get('runtime.state');
+            if (!existing) {
+                LawAIApp.StateRegistry.register({
+                    id: 'runtime.state',
+                    owner: 'BootManager',
+                    schema: null,
+                    enabled: true,
+                    description: 'Runtime boot state'
+                });
+                console.log('✅ runtime.state registered in StateRegistry');
+            }
         }
 
         // ============================================================
