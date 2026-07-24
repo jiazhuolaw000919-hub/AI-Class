@@ -1565,6 +1565,12 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 47.7: KNOWLEDGE GRAPH DASHBOARD -->
+            <!-- ========================================================== -->
+            <div id="dev-panel-kg-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+            </div>
+
+            <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
             <div style="margin-bottom:12px;">
@@ -1816,6 +1822,15 @@ LawAIApp.Debug.DevPanel = {
                 LawAIApp.Debug.DevPanelAI.render(aiContainer);
             }
         }, 100);
+
+        
+        // 🔥 Part 47.7: Render Knowledge Graph after AI Assistant
+        setTimeout(function() {
+            var kgContainer = document.getElementById('dev-panel-kg-section');
+            if (kgContainer && LawAIApp.Debug && LawAIApp.Debug.DevPanelKnowledgeGraph) {
+                LawAIApp.Debug.DevPanelKnowledgeGraph.render(kgContainer);
+            }
+        }, 200);
     },
 
     /**
