@@ -889,6 +889,44 @@
             setTimeout(function() { instance.init(); }, 1500);
         });
     }
+
+    /**
+ * 打开完整的 Governance Dashboard
+ */
+window.LawAIApp._openGovernanceDashboard = function() {
+    // 检查 Unified Dashboard 是否存在
+    var dashboard = window.LawAIApp.UnifiedGovernanceDashboard;
+    if (!dashboard) {
+        alert('Governance Dashboard not loaded yet. Please wait for modules to initialize.');
+        return;
+    }
+    
+    // 移除旧的面板（如果存在）
+    var existing = document.getElementById('governance-full-panel');
+    if (existing) {
+        existing.remove();
+        return;
+    }
+    
+    // 创建完整面板容器
+    var panel = document.createElement('div');
+    panel.id = 'governance-full-panel';
+    panel.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10001;width:700px;max-height:85vh;overflow-y:auto;';
+    
+    // 添加关闭按钮
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕ Close';
+    closeBtn.style.cssText = 'position:sticky;top:0;float:right;z-index:2;padding:8px 16px;background:#ef4444;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;margin-bottom:8px;';
+    closeBtn.onclick = function() { panel.remove(); };
+    panel.appendChild(closeBtn);
+    
+    // 渲染 Dashboard
+    dashboard._render(panel);
+    
+    document.body.appendChild(panel);
+    
+    console.log('🏛️ Governance Dashboard opened');
+};
     
     console.log('📊 Unified Governance Dashboard V5.0.0 ready (Engine V3.x + Runtime V4.9.7) | ' + instance.tabs.length + ' tabs');
 })();
