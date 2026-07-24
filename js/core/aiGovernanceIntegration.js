@@ -1065,5 +1065,3 @@ if (typeof window !== 'undefined') {
             window.LawAIApp.AIGovernanceIntegration.getReasoningTrail(decisionId)
     };
 }
-
-export default AIGovernanceIntegration;
