@@ -73,6 +73,7 @@ var STAGES = {
         "core/runtimePredictionEngine.js",
         "core/decisionSupportEngine.js",
         "core/aiCognitiveIntegration.js",
+        "core/governancePatch.js",
         "core/runtimeGovernanceFoundation.js",
         "core/runtimePolicyEngine.js",
         "core/runtimePermissionSystem.js",
