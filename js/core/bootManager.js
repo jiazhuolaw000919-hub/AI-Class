@@ -252,13 +252,6 @@ LawAIApp.BootManager = {
         var bootStartTime = Date.now();
 
         // ============================================================
-        // 🔥 PART 45.7: INIT BOOT STATE
-        // ============================================================
-        if (LawAIApp.RuntimeStateIntegration && typeof LawAIApp.RuntimeStateIntegration.initBootState === 'function') {
-            LawAIApp.RuntimeStateIntegration.initBootState();
-        }
-
-        // ============================================================
         // 🔥 INITIALIZE AND RUN PIPELINE
         // ============================================================
         if (window.bootPipeline && typeof window.bootPipeline.init === 'function') {
@@ -275,13 +268,6 @@ LawAIApp.BootManager = {
                 }
                 return Promise.reject({ status: 'failed' });
             }
-        }
-
-        // ============================================================
-        // 🔥 PART 45.7: COMPLETE BOOT STATE
-        // ============================================================
-        if (LawAIApp.RuntimeStateIntegration && typeof LawAIApp.RuntimeStateIntegration.completeBootState === 'function') {
-            LawAIApp.RuntimeStateIntegration.completeBootState(bootDuration, true);
         }
 
         var bootEndTime = Date.now();
