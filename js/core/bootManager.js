@@ -268,6 +268,7 @@ LawAIApp.BootManager = {
                 }
                 return { success: true, warning: 'No handler for: ' + stageName };
             });
+        }
 
         var bootEndTime = Date.now();
         var bootDuration = bootEndTime - bootStartTime;
@@ -343,7 +344,7 @@ LawAIApp.BootManager = {
 
         console.log('🚀 BootManager: Startup complete in', bootDuration + 'ms');
         return Promise.resolve({ status: 'started' });
-    }
+    },
 
     // ============================================================
     // 🆕 COORDINATOR LIFECYCLE METHODS
