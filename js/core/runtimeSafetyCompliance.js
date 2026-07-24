@@ -21,18 +21,15 @@ class RuntimeSafetyCompliance {
         this.version = '4.9.5';
         this.status = 'ACTIVE';
         
-        // Compliance record stores
         this.complianceRecords = [];
         this.auditTrail = [];
         this.incidentLog = [];
         this.recoveryPlans = new Map();
         this.safetyPolicies = new Map();
         
-        // Snapshot storage for rollback
         this.snapshots = new Map();
         this.snapshotIndex = [];
         
-        // Safety state tracking
         this.safetyState = {
             initialized: false,
             totalActions: 0,
@@ -44,7 +41,6 @@ class RuntimeSafetyCompliance {
             lastAuditTimestamp: null
         };
         
-        // Action classification
         this.actionClassifications = {
             SAFE: { level: 0, requiresApproval: false, autoExecute: true },
             OBSERVE: { level: 1, requiresApproval: false, autoExecute: true, monitored: true },
@@ -54,42 +50,26 @@ class RuntimeSafetyCompliance {
             CRITICAL: { level: 5, requiresApproval: true, needsAudit: true, needsRecoveryPlan: true, blocksOthers: true }
         };
         
-        // Monitored actions (always logged)
         this.monitoredActions = new Set();
-        
-        // Restricted actions (require approval)
         this.restrictedActions = new Set();
-        
-        // Dangerous actions (require recovery plan)
         this.dangerousActions = new Set();
         
-        // Active safety locks
         this.safetyLocks = new Map();
-        
-        // Recovery protocol states
         this.recoveryStates = new Map();
         
         this.init();
     }
     
-    /**
-     * Initialize Safety & Compliance Layer
-     */
     init() {
         console.log('[SafetyCompliance] Initializing...');
         
-        // Define action classifications
         this._classifyActions();
-        
-        // Register default safety policies
         this._registerSafetyPolicies();
-        
-        // Initialize recovery protocols
         this._initRecoveryProtocols();
         
         this.safetyState.initialized = true;
         
-        console.log(`[SafetyCompliance] Ready — ${this.monitoredActions.size} monitored, ${this.restrictedActions.size} restricted, ${this.dangerousActions.size} dangerous actions`);
+        console.log('[SafetyCompliance] Ready — ' + this.monitoredActions.size + ' monitored, ' + this.restrictedActions.size + ' restricted, ' + this.dangerousActions.size + ' dangerous actions');
         
         this._emitEvent('safetyCompliance.initialized', {
             version: this.version,
@@ -101,101 +81,80 @@ class RuntimeSafetyCompliance {
     
     // ========== CORE SAFETY CHECK ==========
     
-    /**
-     * Perform comprehensive safety check on an action
-     * This integrates Policy + Permission + Validation results
-     * and applies Safety Layer override.
-     * 
-     * @param {Object} actionRequest - The action being requested
-     * @param {Object} policyResult - Result from Policy Engine
-     * @param {Object} permissionResult - Result from Permission System
-     * @param {Object} validationResult - Result from Validation System
-     * @returns {Object} Final safety decision
-     */
-    evaluateSafety(actionRequest = {}, policyResult = null, permissionResult = null, validationResult = null) {
-        const startTime = performance.now();
-        const safetyId = `SAF-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+    evaluateSafety(actionRequest, policyResult, permissionResult, validationResult) {
+        if (!actionRequest) actionRequest = {};
+        
+        var startTime = performance.now();
+        var safetyId = 'SAF-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
         
         this.safetyState.totalActions++;
         
-        const {
-            action,
-            target,
-            source,
-            params = {},
-            context = {}
-        } = actionRequest;
+        var action = actionRequest.action;
+        var target = actionRequest.target;
+        var source = actionRequest.source;
+        var params = actionRequest.params || {};
+        var context = actionRequest.context || {};
         
         // Step 1: Classify the action
-        const classification = this._classifyAction(action, target);
+        var classification = this._classifyAction(action, target);
         
         // Step 2: Check active safety locks
-        const lockCheck = this._checkSafetyLocks(action, target, source);
+        var lockCheck = this._checkSafetyLocks(action, target, source);
         if (lockCheck.locked) {
-            const result = this._createSafetyResult(
+            var result = this._createSafetyResult(
                 safetyId, actionRequest, 'BLOCKED',
-                `Safety lock active: ${lockCheck.reason}`,
+                'Safety lock active: ' + lockCheck.reason,
                 classification, null
             );
             this._recordSafetyDecision(result);
             return result;
         }
         
-        // Step 3: Integrate governance results
-        const integratedRisk = this._integrateRiskAssessment(
-            classification,
-            policyResult,
-            permissionResult,
-            validationResult
+        // Step 3: Integrate risk assessments
+        var integratedRisk = this._integrateRiskAssessment(
+            classification, policyResult, permissionResult, validationResult
         );
         
         // Step 4: Determine safety decision
-        // Safety Rule 4: Safety Layer priority > Optimization
-        let safetyDecision = 'APPROVED';
-        let safetyReason = '';
-        const conditions = [];
-        const warnings = [];
+        var safetyDecision = 'APPROVED';
+        var safetyReason = '';
+        var conditions = [];
+        var warnings = [];
         
-        // Check classification requirements
         if (classification.requiresApproval && !context.approved) {
             safetyDecision = 'REQUIRES_APPROVAL';
-            safetyReason = `Action classified as "${classification.label}" requires human approval`;
+            safetyReason = 'Action classified as "' + classification.label + '" requires human approval';
             conditions.push('HUMAN_APPROVAL_REQUIRED');
         }
         
-        // Check policy result
         if (policyResult && policyResult.finalDecision === 'DENY') {
             safetyDecision = 'BLOCKED';
-            safetyReason = `Policy Engine denied: ${policyResult.finalReason}`;
+            safetyReason = 'Policy Engine denied: ' + policyResult.finalReason;
             conditions.push('POLICY_DENIED');
         }
         
-        // Check permission result
         if (permissionResult && !permissionResult.granted) {
             safetyDecision = 'BLOCKED';
-            safetyReason = `Permission denied: ${permissionResult.reason}`;
+            safetyReason = 'Permission denied: ' + permissionResult.reason;
             conditions.push('PERMISSION_DENIED');
         }
         
-        // Check validation result
         if (validationResult) {
             if (validationResult.decision === 'REJECT') {
                 safetyDecision = 'BLOCKED';
-                safetyReason = `Validation rejected: ${validationResult.recommendation}`;
+                safetyReason = 'Validation rejected: ' + validationResult.recommendation;
                 conditions.push('VALIDATION_REJECTED');
             } else if (validationResult.decision === 'REVIEW' && safetyDecision !== 'BLOCKED') {
                 safetyDecision = 'REQUIRES_APPROVAL';
-                safetyReason = `Validation requires review: Risk ${validationResult.risk?.label}`;
+                safetyReason = 'Validation requires review: Risk ' + (validationResult.risk ? validationResult.risk.label : 'UNKNOWN');
                 conditions.push('VALIDATION_REVIEW');
             }
             
-            // Collect warnings
             if (validationResult.warnings) {
-                warnings.push(...validationResult.warnings);
+                warnings = warnings.concat(validationResult.warnings);
             }
         }
         
-        // Check if action is dangerous and needs recovery plan
         if (classification.needsRecoveryPlan && !actionRequest.recoveryPlan) {
             if (safetyDecision !== 'BLOCKED') {
                 safetyDecision = 'REQUIRES_APPROVAL';
@@ -206,87 +165,65 @@ class RuntimeSafetyCompliance {
             }
         }
         
-        // If no issues, approve
         if (safetyDecision === 'APPROVED' || !safetyReason) {
             safetyDecision = 'APPROVED';
             safetyReason = 'All safety checks passed';
         }
         
-        // Step 5: Create snapshot for rollback if action is modifying
+        // Step 5: Create snapshot for rollback if needed
         if (classification.needsRecoveryPlan || this._isModifyingAction(action)) {
-            const snapshot = this._createSnapshot(action, target, params);
-            if (snapshot) {
-                conditions.push('SNAPSHOT_CREATED');
-            }
+            var snapshot = this._createSnapshot(action, target, params);
+            if (snapshot) conditions.push('SNAPSHOT_CREATED');
         }
         
         // Step 6: Build recovery plan if needed
-        let recoveryPlan = null;
+        var recoveryPlan = null;
         if (classification.needsRecoveryPlan || integratedRisk.level >= this.actionClassifications.RESTRICTED.level) {
             recoveryPlan = this._generateRecoveryPlan(action, target, params);
             this.recoveryPlans.set(safetyId, recoveryPlan);
         }
         
         // Step 7: Build final safety result
-        const result = this._createSafetyResult(
-            safetyId,
-            actionRequest,
-            safetyDecision,
-            safetyReason,
-            classification,
-            integratedRisk,
-            conditions,
-            warnings,
-            recoveryPlan,
+        var result = this._createSafetyResult(
+            safetyId, actionRequest, safetyDecision, safetyReason,
+            classification, integratedRisk,
+            conditions, warnings, recoveryPlan,
             {
-                policyResult: policyResult?.finalDecision,
-                permissionResult: permissionResult?.granted,
-                validationResult: validationResult?.decision
+                policyResult: policyResult ? policyResult.finalDecision : null,
+                permissionResult: permissionResult ? permissionResult.granted : null,
+                validationResult: validationResult ? validationResult.decision : null
             }
         );
         
-        result.evaluationTime = `${(performance.now() - startTime).toFixed(2)}ms`;
+        result.evaluationTime = (performance.now() - startTime).toFixed(2) + 'ms';
         
-        // Step 8: Record compliance data
+        // Step 8: Record and emit
         this._recordSafetyDecision(result);
-        
-        // Step 9: Create compliance record
         this._createComplianceRecord(result);
-        
-        // Step 10: Emit safety event
         this._emitSafetyEvent(result);
         
         return result;
     }
     
-    /**
-     * Quick safety check — without needing full governance results
-     * @param {Object} actionRequest
-     * @returns {Object}
-     */
-    quickSafetyCheck(actionRequest = {}) {
-        // Run through local governance if available
-        let policyResult = null;
-        let permissionResult = null;
-        let validationResult = null;
+    quickSafetyCheck(actionRequest) {
+        if (!actionRequest) actionRequest = {};
+        
+        var policyResult = null;
+        var permissionResult = null;
+        var validationResult = null;
         
         try {
-            if (window.LawAIApp?.Policy?.isAllowed) {
-                policyResult = window.LawAIApp.Policy.isAllowed(
-                    actionRequest.action,
-                    actionRequest
-                );
-                // Convert to expected format
+            if (window.LawAIApp && window.LawAIApp.Policy && window.LawAIApp.Policy.isAllowed) {
+                var pCheck = window.LawAIApp.Policy.isAllowed(actionRequest.action, actionRequest);
                 policyResult = {
-                    finalDecision: policyResult.allowed ? 'ALLOW' : 
-                                   policyResult.requiresReview ? 'REVIEW' : 'DENY',
-                    finalReason: policyResult.reason
+                    finalDecision: pCheck.allowed ? 'ALLOW' : (pCheck.requiresReview ? 'REVIEW' : 'DENY'),
+                    finalReason: pCheck.reason
                 };
             }
-        } catch (e) { /* non-blocking */ }
+        } catch (e) {}
         
         try {
-            if (window.LawAIApp?.Permissions?.checkAccess) {
+            if (window.LawAIApp && window.LawAIApp.Permissions && window.LawAIApp.Permissions.checkAccess) {
                 permissionResult = window.LawAIApp.Permissions.checkAccess(
                     actionRequest.source || 'unknown',
                     actionRequest.target || '*',
@@ -294,32 +231,26 @@ class RuntimeSafetyCompliance {
                     actionRequest
                 );
             }
-        } catch (e) { /* non-blocking */ }
+        } catch (e) {}
         
         try {
-            if (window.LawAIApp?.Validation?.quickValidate) {
+            if (window.LawAIApp && window.LawAIApp.Validation && window.LawAIApp.Validation.quickValidate) {
                 validationResult = window.LawAIApp.Validation.quickValidate(actionRequest);
             }
-        } catch (e) { /* non-blocking */ }
+        } catch (e) {}
         
         return this.evaluateSafety(actionRequest, policyResult, permissionResult, validationResult);
     }
     
     // ========== SAFETY LOCKS ==========
     
-    /**
-     * Activate a safety lock
-     * @param {string} lockId - Unique lock identifier
-     * @param {string} scope - What is locked (module, action, resource)
-     * @param {string} reason - Why the lock is active
-     * @param {Object} options - Lock options
-     * @returns {Object} The lock
-     */
-    activateLock(lockId, scope, reason, options = {}) {
-        const lock = {
-            lockId,
-            scope,          // e.g., 'BootManager', 'MODIFY', '*'
-            reason,
+    activateLock(lockId, scope, reason, options) {
+        if (!options) options = {};
+        
+        var lock = {
+            lockId: lockId,
+            scope: scope,
+            reason: reason,
             activatedAt: new Date().toISOString(),
             activatedBy: options.activatedBy || 'SafetySystem',
             expiresAt: options.expiresAt || null,
@@ -333,84 +264,64 @@ class RuntimeSafetyCompliance {
         this._audit('SAFETY_LOCK_ACTIVATED', lock);
         this._emitEvent('safetyCompliance.lockActivated', lock);
         
-        // Update safety status
         this._updateSafetyStatus();
         
-        console.warn(`[SafetyCompliance] 🔒 Lock activated: ${lockId} — ${reason}`);
+        console.warn('[SafetyCompliance] 🔒 Lock activated: ' + lockId + ' — ' + reason);
         
         return lock;
     }
     
-    /**
-     * Release a safety lock
-     * @param {string} lockId
-     * @returns {boolean}
-     */
     releaseLock(lockId) {
-        const lock = this.safetyLocks.get(lockId);
+        var lock = this.safetyLocks.get(lockId);
         if (!lock) return false;
         
         lock.releasedAt = new Date().toISOString();
         lock.status = 'RELEASED';
         
         this.safetyLocks.delete(lockId);
-        this.safetyState.activeRestrictions = this.safetyState.activeRestrictions.filter(l => l !== lockId);
+        this.safetyState.activeRestrictions = this.safetyState.activeRestrictions.filter(function(l) { return l !== lockId; });
         
-        this._audit('SAFETY_LOCK_RELEASED', { lockId, lock });
-        this._emitEvent('safetyCompliance.lockReleased', { lockId });
+        this._audit('SAFETY_LOCK_RELEASED', { lockId: lockId, lock: lock });
+        this._emitEvent('safetyCompliance.lockReleased', { lockId: lockId });
         
         this._updateSafetyStatus();
         
-        console.log(`[SafetyCompliance] 🔓 Lock released: ${lockId}`);
+        console.log('[SafetyCompliance] 🔓 Lock released: ' + lockId);
         
         return true;
     }
     
-    /**
-     * Get all active safety locks
-     * @returns {Array}
-     */
     getActiveLocks() {
         return Array.from(this.safetyLocks.values());
     }
     
     // ========== SNAPSHOT & RECOVERY ==========
     
-    /**
-     * Create a state snapshot for rollback
-     * @param {string} action - Action being performed
-     * @param {string} target - Target of the action
-     * @param {Object} params - Action parameters
-     * @returns {Object} Snapshot metadata
-     */
     _createSnapshot(action, target, params) {
         try {
-            const snapshotId = `SNAP-${Date.now()}`;
+            var snapshotId = 'SNAP-' + Date.now();
+            var state = this._collectTargetState(target);
             
-            // Collect current state of the target
-            const state = this._collectTargetState(target);
-            
-            const snapshot = {
-                snapshotId,
-                target,
-                action,
-                state,
-                params,
+            var snapshot = {
+                snapshotId: snapshotId,
+                target: target,
+                action: action,
+                state: state,
+                params: params,
                 timestamp: new Date().toISOString(),
                 version: this.version
             };
             
             this.snapshots.set(snapshotId, snapshot);
             this.snapshotIndex.push({
-                snapshotId,
-                target,
-                action,
+                snapshotId: snapshotId,
+                target: target,
+                action: action,
                 timestamp: snapshot.timestamp
             });
             
-            // Keep only last 50 snapshots
             if (this.snapshotIndex.length > 50) {
-                const oldest = this.snapshotIndex.shift();
+                var oldest = this.snapshotIndex.shift();
                 this.snapshots.delete(oldest.snapshotId);
             }
             
@@ -421,18 +332,13 @@ class RuntimeSafetyCompliance {
         }
     }
     
-    /**
-     * Restore from a snapshot
-     * @param {string} snapshotId
-     * @returns {Object} Recovery result
-     */
     restoreSnapshot(snapshotId) {
-        const snapshot = this.snapshots.get(snapshotId);
+        var snapshot = this.snapshots.get(snapshotId);
         
         if (!snapshot) {
             return {
                 success: false,
-                error: `Snapshot ${snapshotId} not found`,
+                error: 'Snapshot ' + snapshotId + ' not found',
                 timestamp: new Date().toISOString()
             };
         }
@@ -441,20 +347,20 @@ class RuntimeSafetyCompliance {
             this._restoreTargetState(snapshot.target, snapshot.state);
             
             this._audit('SNAPSHOT_RESTORED', {
-                snapshotId,
+                snapshotId: snapshotId,
                 target: snapshot.target,
                 action: snapshot.action,
                 restoredAt: new Date().toISOString()
             });
             
             this._emitEvent('safetyCompliance.snapshotRestored', {
-                snapshotId,
+                snapshotId: snapshotId,
                 target: snapshot.target
             });
             
             return {
                 success: true,
-                snapshotId,
+                snapshotId: snapshotId,
                 target: snapshot.target,
                 restoredState: snapshot.state,
                 timestamp: new Date().toISOString()
@@ -463,7 +369,7 @@ class RuntimeSafetyCompliance {
             console.error('[SafetyCompliance] Snapshot restore failed:', e);
             
             this._reportIncident('SNAPSHOT_RESTORE_FAILED', {
-                snapshotId,
+                snapshotId: snapshotId,
                 target: snapshot.target,
                 error: e.message
             });
@@ -471,38 +377,34 @@ class RuntimeSafetyCompliance {
             return {
                 success: false,
                 error: e.message,
-                snapshotId,
+                snapshotId: snapshotId,
                 timestamp: new Date().toISOString()
             };
         }
     }
     
-    /**
-     * Execute recovery protocol
-     * @param {string} safetyId - Safety decision ID
-     * @returns {Object} Recovery result
-     */
     executeRecovery(safetyId) {
-        const recoveryPlan = this.recoveryPlans.get(safetyId);
+        var recoveryPlan = this.recoveryPlans.get(safetyId);
         
         if (!recoveryPlan) {
             return {
                 success: false,
-                error: `No recovery plan found for ${safetyId}`,
+                error: 'No recovery plan found for ' + safetyId,
                 timestamp: new Date().toISOString()
             };
         }
         
-        const recoveryId = `REC-${Date.now()}`;
-        const startTime = performance.now();
-        const steps = [];
-        let overallSuccess = true;
+        var recoveryId = 'REC-' + Date.now();
+        var startTime = performance.now();
+        var steps = [];
+        var overallSuccess = true;
         
-        console.log(`[SafetyCompliance] 🏥 Executing recovery plan for ${safetyId}...`);
+        console.log('[SafetyCompliance] 🏥 Executing recovery plan for ' + safetyId + '...');
         
-        for (const step of recoveryPlan.steps) {
+        for (var i = 0; i < recoveryPlan.steps.length; i++) {
+            var step = recoveryPlan.steps[i];
             try {
-                const stepResult = this._executeRecoveryStep(step, recoveryPlan);
+                var stepResult = this._executeRecoveryStep(step, recoveryPlan);
                 steps.push({
                     step: step.name,
                     success: stepResult.success,
@@ -512,7 +414,7 @@ class RuntimeSafetyCompliance {
                 
                 if (!stepResult.success) {
                     overallSuccess = false;
-                    if (step.critical) break; // Stop on critical step failure
+                    if (step.critical) break;
                 }
             } catch (e) {
                 steps.push({
@@ -526,14 +428,14 @@ class RuntimeSafetyCompliance {
             }
         }
         
-        const recoveryResult = {
-            recoveryId,
-            safetyId,
+        var recoveryResult = {
+            recoveryId: recoveryId,
+            safetyId: safetyId,
             action: recoveryPlan.action,
             target: recoveryPlan.target,
             success: overallSuccess,
-            steps,
-            totalTime: `${(performance.now() - startTime).toFixed(2)}ms`,
+            steps: steps,
+            totalTime: (performance.now() - startTime).toFixed(2) + 'ms',
             timestamp: new Date().toISOString()
         };
         
@@ -547,109 +449,78 @@ class RuntimeSafetyCompliance {
     
     // ========== INCIDENT MANAGEMENT ==========
     
-    /**
-     * Report a safety incident
-     * @param {string} incidentType
-     * @param {Object} details
-     * @returns {Object} Incident record
-     */
-    reportIncident(incidentType, details = {}) {
+    reportIncident(incidentType, details) {
+        if (!details) details = {};
         return this._reportIncident(incidentType, details);
     }
     
-    /**
-     * Get incident log
-     * @param {number} limit
-     * @returns {Array}
-     */
-    getIncidents(limit = 50) {
+    getIncidents(limit) {
+        if (!limit) limit = 50;
         return this.incidentLog.slice(-limit);
     }
     
     // ========== COMPLIANCE REPORTING ==========
     
-    /**
-     * Generate compliance report
-     * @param {Object} options - Report options
-     * @returns {Object} Compliance report
-     */
-    generateComplianceReport(options = {}) {
-        const {
-            startDate = null,
-            endDate = null,
-            includeAudit = true,
-            includeIncidents = true
-        } = options;
+    generateComplianceReport(options) {
+        if (!options) options = {};
         
-        let records = [...this.complianceRecords];
+        var startDate = options.startDate || null;
+        var endDate = options.endDate || null;
+        var includeAudit = options.includeAudit !== false;
+        var includeIncidents = options.includeIncidents !== false;
         
-        // Filter by date range
+        var records = this.complianceRecords.slice();
+        
         if (startDate) {
-            records = records.filter(r => new Date(r.timestamp) >= new Date(startDate));
+            records = records.filter(function(r) { return new Date(r.timestamp) >= new Date(startDate); });
         }
         if (endDate) {
-            records = records.filter(r => new Date(r.timestamp) <= new Date(endDate));
+            records = records.filter(function(r) { return new Date(r.timestamp) <= new Date(endDate); });
         }
         
-        // Calculate statistics
-        const approvedCount = records.filter(r => r.safetyDecision === 'APPROVED').length;
-        const blockedCount = records.filter(r => r.safetyDecision === 'BLOCKED').length;
-        const approvalRequiredCount = records.filter(r => r.safetyDecision === 'REQUIRES_APPROVAL').length;
-        
-        const byAction = {};
-        for (const record of records) {
-            const action = record.action || 'unknown';
-            if (!byAction[action]) {
-                byAction[action] = { total: 0, approved: 0, blocked: 0, requiresApproval: 0 };
-            }
-            byAction[action].total++;
-            if (record.safetyDecision === 'APPROVED') byAction[action].approved++;
-            if (record.safetyDecision === 'BLOCKED') byAction[action].blocked++;
-            if (record.safetyDecision === 'REQUIRES_APPROVAL') byAction[action].requiresApproval++;
+        var approvedCount = 0, blockedCount = 0, approvalRequiredCount = 0;
+        for (var i = 0; i < records.length; i++) {
+            if (records[i].safetyDecision === 'APPROVED') approvedCount++;
+            else if (records[i].safetyDecision === 'BLOCKED') blockedCount++;
+            else if (records[i].safetyDecision === 'REQUIRES_APPROVAL') approvalRequiredCount++;
         }
         
-        const report = {
-            reportId: `COMP-REPORT-${Date.now()}`,
+        var byAction = {};
+        for (var j = 0; j < records.length; j++) {
+            var record = records[j];
+            var act = record.action || 'unknown';
+            if (!byAction[act]) byAction[act] = { total: 0, approved: 0, blocked: 0, requiresApproval: 0 };
+            byAction[act].total++;
+            if (record.safetyDecision === 'APPROVED') byAction[act].approved++;
+            if (record.safetyDecision === 'BLOCKED') byAction[act].blocked++;
+            if (record.safetyDecision === 'REQUIRES_APPROVAL') byAction[act].requiresApproval++;
+        }
+        
+        var report = {
+            reportId: 'COMP-REPORT-' + Date.now(),
             version: this.version,
             generatedAt: new Date().toISOString(),
-            period: {
-                start: startDate || 'beginning',
-                end: endDate || 'now'
-            },
+            period: { start: startDate || 'beginning', end: endDate || 'now' },
             summary: {
                 totalActions: records.length,
                 approved: approvedCount,
                 blocked: blockedCount,
                 requiresApproval: approvalRequiredCount,
-                approvalRate: records.length > 0 
-                    ? `${((approvedCount / records.length) * 100).toFixed(1)}%` 
-                    : 'N/A',
+                approvalRate: records.length > 0 ? ((approvedCount / records.length) * 100).toFixed(1) + '%' : 'N/A',
                 safetyStatus: this.safetyState.safetyStatus
             },
-            byAction,
+            byAction: byAction,
             activeLocks: this.getActiveLocks().length,
-            incidents: includeIncidents ? {
-                total: this.incidentLog.length,
-                recent: this.incidentLog.slice(-10)
-            } : undefined,
-            auditTrail: includeAudit ? {
-                total: this.auditTrail.length,
-                recent: this.auditTrail.slice(-20)
-            } : undefined,
-            safetyPolicies: Array.from(this.safetyPolicies.values()).map(p => ({
-                policyId: p.policyId,
-                name: p.name,
-                active: p.active
-            }))
+            incidents: includeIncidents ? { total: this.incidentLog.length, recent: this.incidentLog.slice(-10) } : undefined,
+            auditTrail: includeAudit ? { total: this.auditTrail.length, recent: this.auditTrail.slice(-20) } : undefined,
+            safetyPolicies: Array.from(this.safetyPolicies.values()).map(function(p) {
+                return { policyId: p.policyId, name: p.name, active: p.active };
+            })
         };
         
         return report;
     }
     
-    /**
-     * Get safety system report
-     * @returns {Object}
-     */
     getReport() {
         return {
             version: this.version,
@@ -662,26 +533,20 @@ class RuntimeSafetyCompliance {
             },
             locks: {
                 active: this.safetyLocks.size,
-                list: this.getActiveLocks().map(l => ({
-                    id: l.lockId,
-                    scope: l.scope,
-                    reason: l.reason,
-                    activatedAt: l.activatedAt
-                }))
+                list: this.getActiveLocks().map(function(l) {
+                    return { id: l.lockId, scope: l.scope, reason: l.reason, activatedAt: l.activatedAt };
+                })
             },
-            classifications: Object.entries(this.actionClassifications).map(([key, val]) => ({
-                label: key,
-                level: val.level,
-                requiresApproval: val.requiresApproval,
-                needsRecoveryPlan: val.needsRecoveryPlan || false
-            })),
-            snapshots: {
-                total: this.snapshots.size,
-                recent: this.snapshotIndex.slice(-5)
-            },
-            recoveryPlans: {
-                total: this.recoveryPlans.size
-            },
+            classifications: Object.entries(this.actionClassifications).map(function(entry) {
+                return {
+                    label: entry[0],
+                    level: entry[1].level,
+                    requiresApproval: entry[1].requiresApproval,
+                    needsRecoveryPlan: entry[1].needsRecoveryPlan || false
+                };
+            }),
+            snapshots: { total: this.snapshots.size, recent: this.snapshotIndex.slice(-5) },
+            recoveryPlans: { total: this.recoveryPlans.size },
             rules: [
                 'Rule 1: Critical actions must have human confirmation ✅',
                 'Rule 2: All modifications must be traceable ✅',
@@ -692,16 +557,12 @@ class RuntimeSafetyCompliance {
         };
     }
     
-    /**
-     * Get safety health
-     * @returns {Object}
-     */
     getHealth() {
-        const blockRate = this.safetyState.totalActions > 0
+        var blockRate = this.safetyState.totalActions > 0
             ? this.safetyState.blockedActions / this.safetyState.totalActions
             : 0;
         
-        let health = 'SAFE';
+        var health = 'SAFE';
         if (blockRate > 0.5) health = 'RESTRICTIVE';
         if (this.safetyState.incidentsReported > 10) health = 'INCIDENT_PRONE';
         if (this.safetyLocks.size > 5) health = 'LOCKED_DOWN';
@@ -714,125 +575,90 @@ class RuntimeSafetyCompliance {
             version: this.version,
             activeLocks: this.safetyLocks.size,
             totalIncidents: this.safetyState.incidentsReported,
-            blockRate: `${(blockRate * 100).toFixed(1)}%`,
+            blockRate: (blockRate * 100).toFixed(1) + '%',
             lastAudit: this.safetyState.lastAuditTimestamp,
-            isOperational: true, // Rule 3: Safety never crashes runtime
-            safetyOverOptimization: true // Rule 4
+            isOperational: true,
+            safetyOverOptimization: true
         };
     }
     
-    /**
-     * Get compliance records
-     * @param {number} limit
-     * @returns {Array}
-     */
-    getComplianceRecords(limit = 50) {
+    getComplianceRecords(limit) {
+        if (!limit) limit = 50;
         return this.complianceRecords.slice(-limit);
     }
     
-    /**
-     * Get full audit trail
-     * @param {number} limit
-     * @returns {Array}
-     */
-    getAuditTrail(limit = 100) {
+    getAuditTrail(limit) {
+        if (!limit) limit = 100;
         return this.auditTrail.slice(-limit);
     }
     
     // ========== PRIVATE: INITIALIZATION ==========
     
-    /**
-     * Classify all known actions
-     */
     _classifyActions() {
-        // Safe actions
-        ['READ', 'VIEW', 'LIST', 'GET', 'QUERY'].forEach(a => {
-            this.monitoredActions.add(a);
-        });
+        var safeActions = ['READ', 'VIEW', 'LIST', 'GET', 'QUERY'];
+        var observeActions = ['ANALYZE', 'MONITOR', 'OBSERVE', 'TRACK'];
+        var cautionActions = ['RECOMMEND', 'SUGGEST', 'PREDICT', 'OPTIMIZE', 'CALCULATE'];
+        var restrictedActions = ['MODIFY', 'UPDATE', 'CHANGE', 'CONFIGURE', 'REGISTER'];
+        var dangerousActions = ['DELETE', 'REMOVE', 'UNLOAD', 'SHUTDOWN', 'RESET', 'DESTROY', 'OVERRIDE'];
         
-        // Observe actions
-        ['ANALYZE', 'MONITOR', 'OBSERVE', 'TRACK'].forEach(a => {
-            this.monitoredActions.add(a);
-        });
-        
-        // Caution actions
-        ['RECOMMEND', 'SUGGEST', 'PREDICT', 'OPTIMIZE', 'CALCULATE'].forEach(a => {
-            this.monitoredActions.add(a);
-        });
-        
-        // Restricted actions
-        ['MODIFY', 'UPDATE', 'CHANGE', 'CONFIGURE', 'REGISTER'].forEach(a => {
-            this.restrictedActions.add(a);
-            this.monitoredActions.add(a);
-        });
-        
-        // Dangerous actions
-        ['DELETE', 'REMOVE', 'UNLOAD', 'SHUTDOWN', 'RESET', 'DESTROY', 'OVERRIDE'].forEach(a => {
-            this.dangerousActions.add(a);
-            this.restrictedActions.add(a);
-            this.monitoredActions.add(a);
-        });
+        for (var i = 0; i < safeActions.length; i++) this.monitoredActions.add(safeActions[i]);
+        for (var j = 0; j < observeActions.length; j++) this.monitoredActions.add(observeActions[j]);
+        for (var k = 0; k < cautionActions.length; k++) this.monitoredActions.add(cautionActions[k]);
+        for (var m = 0; m < restrictedActions.length; m++) { this.restrictedActions.add(restrictedActions[m]); this.monitoredActions.add(restrictedActions[m]); }
+        for (var n = 0; n < dangerousActions.length; n++) { this.dangerousActions.add(dangerousActions[n]); this.restrictedActions.add(dangerousActions[n]); this.monitoredActions.add(dangerousActions[n]); }
     }
     
-    /**
-     * Register default safety policies
-     */
     _registerSafetyPolicies() {
         this.safetyPolicies.set('SP-001', {
-            policyId: 'SP-001',
-            name: 'Critical Module Protection',
+            policyId: 'SP-001', name: 'Critical Module Protection',
             description: 'Modifications to critical modules require explicit safety approval',
             active: true,
-            condition: (action, target) => {
-                const criticalModules = ['BootManager', 'RuntimeKernel', 'StateSyncEngine', 'EventBus'];
-                return criticalModules.includes(target);
+            condition: function(action, target) {
+                var criticalModules = ['BootManager', 'RuntimeKernel', 'StateSyncEngine', 'EventBus'];
+                return criticalModules.indexOf(target) !== -1;
             },
             requiredLevel: 'RESTRICTED'
         });
         
         this.safetyPolicies.set('SP-002', {
-            policyId: 'SP-002',
-            name: 'Destructive Action Safeguard',
+            policyId: 'SP-002', name: 'Destructive Action Safeguard',
             description: 'Destructive actions require recovery plan and approval',
             active: true,
-            condition: (action) => {
-                const destructive = ['DELETE', 'SHUTDOWN', 'DESTROY', 'RESET'];
-                return destructive.some(a => action?.toUpperCase().includes(a));
+            condition: function(action) {
+                var destructive = ['DELETE', 'SHUTDOWN', 'DESTROY', 'RESET'];
+                if (!action) return false;
+                var upper = action.toUpperCase();
+                for (var i = 0; i < destructive.length; i++) {
+                    if (upper.indexOf(destructive[i]) !== -1) return true;
+                }
+                return false;
             },
             requiredLevel: 'DANGEROUS'
         });
         
         this.safetyPolicies.set('SP-003', {
-            policyId: 'SP-003',
-            name: 'AI Modification Restriction',
+            policyId: 'SP-003', name: 'AI Modification Restriction',
             description: 'AI agents cannot modify safety-critical configurations',
             active: true,
-            condition: (action, target, source) => {
-                const aiSources = ['SUB-AI-001', 'ai_assistant', 'AIEngine'];
-                const safetyConfigs = ['safetyLevel', 'confidenceThreshold', 'governanceConfig'];
-                return aiSources.includes(source) && safetyConfigs.includes(target);
+            condition: function(action, target, source) {
+                var aiSources = ['SUB-AI-001', 'ai_assistant', 'AIEngine'];
+                var safetyConfigs = ['safetyLevel', 'confidenceThreshold', 'governanceConfig'];
+                return aiSources.indexOf(source) !== -1 && safetyConfigs.indexOf(target) !== -1;
             },
             requiredLevel: 'CRITICAL'
         });
         
         this.safetyPolicies.set('SP-004', {
-            policyId: 'SP-004',
-            name: 'Runtime Freeze During Critical Operations',
+            policyId: 'SP-004', name: 'Runtime Freeze During Critical Operations',
             description: 'Critical operations temporarily restrict other actions',
             active: true,
-            condition: (action) => {
-                return action === 'CRITICAL_OPERATION';
-            },
+            condition: function(action) { return action === 'CRITICAL_OPERATION'; },
             requiredLevel: 'CRITICAL',
             blocksOthers: true
         });
     }
     
-    /**
-     * Initialize recovery protocols
-     */
     _initRecoveryProtocols() {
-        // Register standard recovery protocols
         this.recoveryProtocols = {
             ROLLBACK_STATE: {
                 name: 'Rollback State',
@@ -870,346 +696,255 @@ class RuntimeSafetyCompliance {
     
     // ========== PRIVATE: CORE LOGIC ==========
     
-    /**
-     * Classify an action
-     */
     _classifyAction(action, target) {
-        const actionUpper = action?.toUpperCase() || 'UNKNOWN';
+        var actionUpper = action ? action.toUpperCase() : 'UNKNOWN';
         
-        // Check dangerous first (highest priority)
         if (this.dangerousActions.has(actionUpper)) {
-            // Check if it's a critical target
-            const criticalModules = ['BootManager', 'RuntimeKernel', 'StateSyncEngine'];
-            if (target && criticalModules.includes(target)) {
-                return {
-                    ...this.actionClassifications.CRITICAL,
-                    label: 'CRITICAL',
-                    reason: `Action "${action}" on critical module "${target}"`
-                };
+            var criticalModules = ['BootManager', 'RuntimeKernel', 'StateSyncEngine'];
+            if (target && criticalModules.indexOf(target) !== -1) {
+                var crit = Object.assign({}, this.actionClassifications.CRITICAL);
+                crit.label = 'CRITICAL';
+                crit.reason = 'Action "' + action + '" on critical module "' + target + '"';
+                return crit;
             }
-            return {
-                ...this.actionClassifications.DANGEROUS,
-                label: 'DANGEROUS',
-                reason: `Action "${action}" is classified as dangerous`
-            };
+            var dang = Object.assign({}, this.actionClassifications.DANGEROUS);
+            dang.label = 'DANGEROUS';
+            dang.reason = 'Action "' + action + '" is classified as dangerous';
+            return dang;
         }
         
         if (this.restrictedActions.has(actionUpper)) {
-            return {
-                ...this.actionClassifications.RESTRICTED,
-                label: 'RESTRICTED',
-                reason: `Action "${action}" requires restriction`
-            };
+            var rest = Object.assign({}, this.actionClassifications.RESTRICTED);
+            rest.label = 'RESTRICTED';
+            rest.reason = 'Action "' + action + '" requires restriction';
+            return rest;
         }
         
         if (this.monitoredActions.has(actionUpper)) {
-            return {
-                ...this.actionClassifications.CAUTION,
-                label: 'CAUTION',
-                reason: `Action "${action}" is monitored`
-            };
+            var caut = Object.assign({}, this.actionClassifications.CAUTION);
+            caut.label = 'CAUTION';
+            caut.reason = 'Action "' + action + '" is monitored';
+            return caut;
         }
         
-        // Unknown actions get CAUTION classification by default
-        return {
-            ...this.actionClassifications.CAUTION,
-            label: 'CAUTION',
-            reason: `Unknown action "${action}" — proceeding with caution`
-        };
+        var def = Object.assign({}, this.actionClassifications.CAUTION);
+        def.label = 'CAUTION';
+        def.reason = 'Unknown action "' + action + '" — proceeding with caution';
+        return def;
     }
     
-    /**
-     * Check if any safety locks apply
-     */
     _checkSafetyLocks(action, target, source) {
-        for (const [lockId, lock] of this.safetyLocks) {
-            // Check if lock has expired
+        var entries = Array.from(this.safetyLocks.entries());
+        for (var i = 0; i < entries.length; i++) {
+            var lockId = entries[i][0];
+            var lock = entries[i][1];
+            
             if (lock.expiresAt && new Date(lock.expiresAt) < new Date()) {
                 this.releaseLock(lockId);
                 continue;
             }
             
-            // Check if lock scope matches
-            if (lock.scope === '*' || 
-                lock.scope === target || 
-                lock.scope === action ||
-                lock.affectedActions.includes(action) ||
-                lock.affectedActions.includes('*')) {
-                return {
-                    locked: true,
-                    lockId,
-                    reason: lock.reason,
-                    lock
-                };
+            if (lock.scope === '*' || lock.scope === target || lock.scope === action ||
+                lock.affectedActions.indexOf(action) !== -1 || lock.affectedActions.indexOf('*') !== -1) {
+                return { locked: true, lockId: lockId, reason: lock.reason, lock: lock };
             }
         }
         
         return { locked: false };
     }
     
-    /**
-     * Integrate risk assessments from all governance layers
-     */
     _integrateRiskAssessment(classification, policyResult, permissionResult, validationResult) {
-        let riskLevel = classification.level;
-        const factors = [classification.reason];
+        var riskLevel = classification.level;
+        var factors = [classification.reason];
         
-        // Factor in policy result
-        if (policyResult?.finalDecision === 'DENY') {
+        if (policyResult && policyResult.finalDecision === 'DENY') {
             riskLevel = Math.max(riskLevel, this.actionClassifications.CRITICAL.level);
             factors.push('Policy Engine: DENIED');
-        } else if (policyResult?.finalDecision === 'REVIEW') {
+        } else if (policyResult && policyResult.finalDecision === 'REVIEW') {
             riskLevel = Math.max(riskLevel, this.actionClassifications.RESTRICTED.level);
             factors.push('Policy Engine: REVIEW');
         }
         
-        // Factor in permission result
         if (permissionResult && !permissionResult.granted) {
             riskLevel = Math.max(riskLevel, this.actionClassifications.CRITICAL.level);
             factors.push('Permission: DENIED');
         }
         
-        // Factor in validation result
-        if (validationResult) {
-            if (validationResult.risk?.level) {
-                riskLevel = Math.max(riskLevel, validationResult.risk.level + 1);
-                factors.push(`Validation Risk: ${validationResult.risk.label}`);
-            }
+        if (validationResult && validationResult.risk && validationResult.risk.level) {
+            riskLevel = Math.max(riskLevel, validationResult.risk.level + 1);
+            factors.push('Validation Risk: ' + validationResult.risk.label);
         }
         
-        // Cap at CRITICAL
         riskLevel = Math.min(riskLevel, this.actionClassifications.CRITICAL.level);
         
-        const riskLabels = ['SAFE', 'OBSERVE', 'CAUTION', 'RESTRICTED', 'DANGEROUS', 'CRITICAL'];
+        var riskLabels = ['SAFE', 'OBSERVE', 'CAUTION', 'RESTRICTED', 'DANGEROUS', 'CRITICAL'];
         
-        return {
-            level: riskLevel,
-            label: riskLabels[riskLevel] || 'CRITICAL',
-            factors
-        };
+        return { level: riskLevel, label: riskLabels[riskLevel] || 'CRITICAL', factors: factors };
     }
     
-    /**
-     * Determine if an action is modifying state
-     */
     _isModifyingAction(action) {
-        const modifyingActions = ['MODIFY', 'UPDATE', 'CHANGE', 'DELETE', 'EXECUTE', 'CONFIGURE', 'REGISTER', 'UNLOAD'];
-        return modifyingActions.some(a => action?.toUpperCase().includes(a));
+        if (!action) return false;
+        var modifyingActions = ['MODIFY', 'UPDATE', 'CHANGE', 'DELETE', 'EXECUTE', 'CONFIGURE', 'REGISTER', 'UNLOAD'];
+        var upper = action.toUpperCase();
+        for (var i = 0; i < modifyingActions.length; i++) {
+            if (upper.indexOf(modifyingActions[i]) !== -1) return true;
+        }
+        return false;
     }
     
-    /**
-     * Collect current state of a target
-     */
     _collectTargetState(target) {
         try {
-            if (window.LawAIApp?.StateSyncEngine) {
-                const allState = window.LawAIApp.StateSyncEngine.getAll();
+            if (window.LawAIApp && window.LawAIApp.StateSyncEngine) {
+                var allState = window.LawAIApp.StateSyncEngine.getAll();
                 if (target === '*' || !target) {
-                    return { ...allState };
+                    return Object.assign({}, allState);
                 }
-                // Get module-specific state
-                const moduleKey = `module.${target}`;
-                return allState[moduleKey] || { target, state: 'unknown' };
+                var moduleKey = 'module.' + target;
+                return allState[moduleKey] || { target: target, state: 'unknown' };
             }
-        } catch (e) { /* non-blocking */ }
+        } catch (e) {}
         
-        return { target, state: 'unavailable', timestamp: new Date().toISOString() };
+        return { target: target, state: 'unavailable', timestamp: new Date().toISOString() };
     }
     
-    /**
-     * Restore target state
-     */
     _restoreTargetState(target, state) {
         try {
-            if (window.LawAIApp?.StateSyncEngine?.update) {
+            if (window.LawAIApp && window.LawAIApp.StateSyncEngine && window.LawAIApp.StateSyncEngine.update) {
                 if (target === '*' || !target) {
-                    // Restore all state
-                    for (const [key, value] of Object.entries(state)) {
-                        window.LawAIApp.StateSyncEngine.update(key, value, 'SafetyCompliance');
+                    var keys = Object.keys(state);
+                    for (var i = 0; i < keys.length; i++) {
+                        window.LawAIApp.StateSyncEngine.update(keys[i], state[keys[i]], 'SafetyCompliance');
                     }
                 } else {
-                    const moduleKey = `module.${target}`;
+                    var moduleKey = 'module.' + target;
                     window.LawAIApp.StateSyncEngine.update(moduleKey, state, 'SafetyCompliance');
                 }
             }
         } catch (e) {
-            throw new Error(`State restoration failed: ${e.message}`);
+            throw new Error('State restoration failed: ' + e.message);
         }
     }
     
-    /**
-     * Generate a recovery plan
-     */
     _generateRecoveryPlan(action, target, params) {
-        // Find the most recent snapshot for this target
-        const relevantSnapshots = this.snapshotIndex
-            .filter(s => s.target === target || s.target === '*')
-            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        var relevantSnapshots = this.snapshotIndex
+            .filter(function(s) { return s.target === target || s.target === '*'; })
+            .sort(function(a, b) { return new Date(b.timestamp) - new Date(a.timestamp); });
         
-        const latestSnapshot = relevantSnapshots[0];
+        var latestSnapshot = relevantSnapshots[0];
         
-        // Select recovery protocol based on action
-        let protocol;
-        if (['DELETE', 'DESTROY', 'UNLOAD'].some(a => action?.toUpperCase().includes(a))) {
+        var protocol;
+        var upper = action ? action.toUpperCase() : '';
+        if (upper.indexOf('DELETE') !== -1 || upper.indexOf('DESTROY') !== -1 || upper.indexOf('UNLOAD') !== -1) {
             protocol = this.recoveryProtocols.ROLLBACK_STATE;
-        } else if (['MODIFY', 'UPDATE', 'CONFIGURE'].some(a => action?.toUpperCase().includes(a))) {
+        } else if (upper.indexOf('MODIFY') !== -1 || upper.indexOf('UPDATE') !== -1 || upper.indexOf('CONFIGURE') !== -1) {
             protocol = this.recoveryProtocols.RESTART_MODULE;
         } else {
             protocol = this.recoveryProtocols.ISOLATE_AND_CONTAIN;
         }
         
         return {
-            action,
-            target,
+            action: action,
+            target: target,
             protocol: protocol.name,
-            steps: protocol.steps.map(s => ({ ...s })),
-            snapshotId: latestSnapshot?.snapshotId || null,
+            steps: protocol.steps.map(function(s) { return Object.assign({}, s); }),
+            snapshotId: latestSnapshot ? latestSnapshot.snapshotId : null,
             createdAt: new Date().toISOString()
         };
     }
     
-    /**
-     * Execute a single recovery step
-     */
     _executeRecoveryStep(step, recoveryPlan) {
+        var self = this;
+        
         switch (step.name) {
             case 'IDENTIFY_SNAPSHOT':
-                return {
-                    success: !!recoveryPlan.snapshotId,
-                    details: recoveryPlan.snapshotId 
-                        ? `Snapshot identified: ${recoveryPlan.snapshotId}` 
-                        : 'No snapshot available'
-                };
+                return { success: !!recoveryPlan.snapshotId, details: recoveryPlan.snapshotId ? 'Snapshot identified: ' + recoveryPlan.snapshotId : 'No snapshot available' };
             
             case 'VALIDATE_SNAPSHOT':
-                const snapshot = recoveryPlan.snapshotId 
-                    ? this.snapshots.get(recoveryPlan.snapshotId) 
-                    : null;
-                return {
-                    success: !!snapshot,
-                    details: snapshot 
-                        ? `Snapshot validated: ${snapshot.target} at ${snapshot.timestamp}` 
-                        : 'Snapshot validation failed'
-                };
+                var snapshot = recoveryPlan.snapshotId ? this.snapshots.get(recoveryPlan.snapshotId) : null;
+                return { success: !!snapshot, details: snapshot ? 'Snapshot validated: ' + snapshot.target + ' at ' + snapshot.timestamp : 'Snapshot validation failed' };
             
             case 'RESTORE_STATE':
                 if (recoveryPlan.snapshotId) {
-                    const restoreResult = this.restoreSnapshot(recoveryPlan.snapshotId);
-                    return {
-                        success: restoreResult.success,
-                        details: restoreResult.success ? 'State restored successfully' : restoreResult.error
-                    };
+                    var restoreResult = this.restoreSnapshot(recoveryPlan.snapshotId);
+                    return { success: restoreResult.success, details: restoreResult.success ? 'State restored successfully' : restoreResult.error };
                 }
                 return { success: false, details: 'No snapshot to restore from' };
             
             case 'VERIFY_RESTORATION':
             case 'VERIFY_HEALTH':
-                // Check if system is healthy after recovery
-                return {
-                    success: true,
-                    details: 'Verification passed'
-                };
+                return { success: true, details: 'Verification passed' };
             
             case 'REPORT_RESULT':
             case 'NOTIFY_ADMIN':
-                this._audit('RECOVERY_STEP_COMPLETED', {
-                    step: step.name,
-                    target: recoveryPlan.target,
-                    protocol: recoveryPlan.protocol
-                });
-                return { success: true, details: `${step.name} completed` };
+                this._audit('RECOVERY_STEP_COMPLETED', { step: step.name, target: recoveryPlan.target, protocol: recoveryPlan.protocol });
+                return { success: true, details: step.name + ' completed' };
             
             case 'ACTIVATE_LOCK':
-                this.activateLock(
-                    `RECOVERY-LOCK-${Date.now()}`,
-                    recoveryPlan.target,
-                    'Automatic lock during recovery',
-                    { autoRelease: true }
-                );
+                this.activateLock('RECOVERY-LOCK-' + Date.now(), recoveryPlan.target, 'Automatic lock during recovery', { autoRelease: true });
                 return { success: true, details: 'Safety lock activated' };
             
             case 'ISOLATE_TARGET':
-                return { success: true, details: `Target ${recoveryPlan.target} isolated` };
+                return { success: true, details: 'Target ' + recoveryPlan.target + ' isolated' };
             
             case 'ASSESS_DAMAGE':
-                return {
-                    success: true,
-                    details: `Damage assessment completed for ${recoveryPlan.target}`
-                };
+                return { success: true, details: 'Damage assessment completed for ' + recoveryPlan.target };
+            
+            case 'STOP_MODULE':
+                return { success: true, details: 'Module ' + recoveryPlan.target + ' stopped' };
+            
+            case 'CLEAR_STATE':
+                return { success: true, details: 'State cleared for ' + recoveryPlan.target };
+            
+            case 'REINIT_MODULE':
+                return { success: true, details: 'Module ' + recoveryPlan.target + ' reinitialized' };
             
             default:
-                return { success: true, details: `Step "${step.name}" executed` };
+                return { success: true, details: 'Step "' + step.name + '" executed' };
         }
     }
     
-    /**
-     * Create a safety result object
-     */
-    _createSafetyResult(
-        safetyId,
-        actionRequest,
-        decision,
-        reason,
-        classification,
-        integratedRisk,
-        conditions = [],
-        warnings = [],
-        recoveryPlan = null,
-        governanceResults = {}
-    ) {
+    _createSafetyResult(safetyId, actionRequest, decision, reason, classification, integratedRisk, conditions, warnings, recoveryPlan, governanceResults) {
+        if (!conditions) conditions = [];
+        if (!warnings) warnings = [];
+        if (!governanceResults) governanceResults = {};
+        
         return {
-            safetyId,
+            safetyId: safetyId,
             action: actionRequest.action,
             target: actionRequest.target,
             source: actionRequest.source,
-            decision,           // APPROVED | REQUIRES_APPROVAL | BLOCKED
-            reason,
+            decision: decision,
+            reason: reason,
             classification: {
                 label: classification.label,
                 level: classification.level,
                 requiresApproval: classification.requiresApproval
             },
-            risk: integratedRisk || {
-                level: classification.level,
-                label: classification.label
-            },
-            conditions,
-            warnings,
+            risk: integratedRisk || { level: classification.level, label: classification.label },
+            conditions: conditions,
+            warnings: warnings,
             recoveryPlan: recoveryPlan ? {
                 protocol: recoveryPlan.protocol,
                 snapshotId: recoveryPlan.snapshotId,
                 stepsCount: recoveryPlan.steps.length
             } : null,
-            governanceResults,
+            governanceResults: governanceResults,
             timestamp: new Date().toISOString(),
             version: this.version
         };
     }
     
-    /**
-     * Create a compliance record
-     */
     _createComplianceRecord(safetyResult) {
-        const record = {
-            complianceId: `COMP-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-            ...safetyResult,
-            // Compliance-specific fields (Chapter 52)
+        var record = Object.assign({
+            complianceId: 'COMP-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6),
             who: safetyResult.source,
-            action: safetyResult.action,
-            target: safetyResult.target,
-            reason: safetyResult.reason,
-            permission: safetyResult.governanceResults?.permissionResult,
-            validation: safetyResult.governanceResults?.validationResult,
             result: safetyResult.decision,
-            timestamp: safetyResult.timestamp,
-            // Additional compliance data
             safetyVersion: this.version,
-            auditTrailRef: `AUDIT-${safetyResult.safetyId}`
-        };
+            auditTrailRef: 'AUDIT-' + safetyResult.safetyId
+        }, safetyResult);
         
         this.complianceRecords.push(record);
         
-        // Keep records manageable
         if (this.complianceRecords.length > 1000) {
             this.complianceRecords = this.complianceRecords.slice(-500);
         }
@@ -1217,9 +952,6 @@ class RuntimeSafetyCompliance {
         return record;
     }
     
-    /**
-     * Record a safety decision
-     */
     _recordSafetyDecision(result) {
         if (result.decision === 'APPROVED') {
             this.safetyState.approvedActions++;
@@ -1231,18 +963,17 @@ class RuntimeSafetyCompliance {
             safetyId: result.safetyId,
             action: result.action,
             decision: result.decision,
-            classification: result.classification?.label
+            classification: result.classification ? result.classification.label : null
         });
     }
     
-    /**
-     * Report a safety incident
-     */
-    _reportIncident(incidentType, details = {}) {
-        const incident = {
-            incidentId: `INC-${Date.now()}`,
+    _reportIncident(incidentType, details) {
+        if (!details) details = {};
+        
+        var incident = {
+            incidentId: 'INC-' + Date.now(),
             type: incidentType,
-            details,
+            details: details,
             timestamp: new Date().toISOString(),
             version: this.version
         };
@@ -1250,7 +981,6 @@ class RuntimeSafetyCompliance {
         this.incidentLog.push(incident);
         this.safetyState.incidentsReported++;
         
-        // Keep log manageable
         if (this.incidentLog.length > 200) {
             this.incidentLog = this.incidentLog.slice(-100);
         }
@@ -1258,18 +988,17 @@ class RuntimeSafetyCompliance {
         this._audit('INCIDENT_REPORTED', incident);
         this._emitEvent('safetyCompliance.incident', incident);
         
-        console.error(`[SafetyCompliance] 🚨 Incident: ${incidentType}`, details);
+        console.error('[SafetyCompliance] 🚨 Incident: ' + incidentType, details);
         
         return incident;
     }
     
-    /**
-     * Audit an action (complete audit trail)
-     */
-    _audit(action, data = {}) {
-        const auditEntry = {
-            action,
-            data,
+    _audit(action, data) {
+        if (!data) data = {};
+        
+        var auditEntry = {
+            action: action,
+            data: data,
             timestamp: new Date().toISOString(),
             version: this.version
         };
@@ -1277,15 +1006,11 @@ class RuntimeSafetyCompliance {
         this.auditTrail.push(auditEntry);
         this.safetyState.lastAuditTimestamp = auditEntry.timestamp;
         
-        // Keep trail manageable
         if (this.auditTrail.length > 2000) {
             this.auditTrail = this.auditTrail.slice(-1000);
         }
     }
     
-    /**
-     * Emit safety event
-     */
     _emitSafetyEvent(result) {
         if (result.decision === 'BLOCKED') {
             this._emitEvent('safetyCompliance.actionBlocked', {
@@ -1296,11 +1021,8 @@ class RuntimeSafetyCompliance {
         }
     }
     
-    /**
-     * Update overall safety status
-     */
     _updateSafetyStatus() {
-        const activeLocks = this.safetyLocks.size;
+        var activeLocks = this.safetyLocks.size;
         
         if (activeLocks > 10) {
             this.safetyState.safetyStatus = 'LOCKED_DOWN';
@@ -1313,67 +1035,66 @@ class RuntimeSafetyCompliance {
         }
     }
     
-    /**
-     * Emit runtime event
-     */
     _emitEvent(type, data) {
-        if (window.LawAIApp?.RuntimeEventCollector) {
-            try {
-                window.LawAIApp.RuntimeEventCollector.emit({
-                    type,
+        try {
+            var collector = window.LawAIApp && window.LawAIApp.RuntimeEventCollector;
+            if (!collector) return;
+            var emitFn = collector.emit || collector.emitEvent || collector.log || collector.track;
+            if (typeof emitFn === 'function') {
+                emitFn.call(collector, {
+                    type: type,
                     source: 'RuntimeSafetyCompliance',
-                    data
+                    data: data,
+                    timestamp: new Date().toISOString()
                 });
-            } catch (e) {
-                // Rule 3: Event emission failure doesn't affect runtime
             }
-        }
+        } catch (e) {}
     }
 }
 
 // Export to global namespace
 if (typeof window !== 'undefined') {
-    if (!window.LawAIApp) {
-        window.LawAIApp = {};
-    }
+    if (!window.LawAIApp) window.LawAIApp = {};
     window.LawAIApp.RuntimeSafetyCompliance = new RuntimeSafetyCompliance();
     
-    // API shortcuts
     window.LawAIApp.Safety = {
-        // Core safety check
-        evaluate: (request, policy, permission, validation) => 
-            window.LawAIApp.RuntimeSafetyCompliance.evaluateSafety(request, policy, permission, validation),
-        quickCheck: (request) => 
-            window.LawAIApp.RuntimeSafetyCompliance.quickSafetyCheck(request),
-        
-        // Safety locks
-        activateLock: (id, scope, reason, options) => 
-            window.LawAIApp.RuntimeSafetyCompliance.activateLock(id, scope, reason, options),
-        releaseLock: (id) => 
-            window.LawAIApp.RuntimeSafetyCompliance.releaseLock(id),
-        getActiveLocks: () => 
-            window.LawAIApp.RuntimeSafetyCompliance.getActiveLocks(),
-        
-        // Recovery
-        restoreSnapshot: (snapshotId) => 
-            window.LawAIApp.RuntimeSafetyCompliance.restoreSnapshot(snapshotId),
-        executeRecovery: (safetyId) => 
-            window.LawAIApp.RuntimeSafetyCompliance.executeRecovery(safetyId),
-        
-        // Incidents
-        reportIncident: (type, details) => 
-            window.LawAIApp.RuntimeSafetyCompliance.reportIncident(type, details),
-        getIncidents: (limit) => 
-            window.LawAIApp.RuntimeSafetyCompliance.getIncidents(limit),
-        
-        // Reporting
-        getReport: () => window.LawAIApp.RuntimeSafetyCompliance.getReport(),
-        getHealth: () => window.LawAIApp.RuntimeSafetyCompliance.getHealth(),
-        generateComplianceReport: (options) => 
-            window.LawAIApp.RuntimeSafetyCompliance.generateComplianceReport(options),
-        getComplianceRecords: (limit) => 
-            window.LawAIApp.RuntimeSafetyCompliance.getComplianceRecords(limit),
-        getAuditTrail: (limit) => 
-            window.LawAIApp.RuntimeSafetyCompliance.getAuditTrail(limit)
+        evaluate: function(request, policy, permission, validation) {
+            return window.LawAIApp.RuntimeSafetyCompliance.evaluateSafety(request, policy, permission, validation);
+        },
+        quickCheck: function(request) {
+            return window.LawAIApp.RuntimeSafetyCompliance.quickSafetyCheck(request);
+        },
+        activateLock: function(id, scope, reason, options) {
+            return window.LawAIApp.RuntimeSafetyCompliance.activateLock(id, scope, reason, options);
+        },
+        releaseLock: function(id) {
+            return window.LawAIApp.RuntimeSafetyCompliance.releaseLock(id);
+        },
+        getActiveLocks: function() {
+            return window.LawAIApp.RuntimeSafetyCompliance.getActiveLocks();
+        },
+        restoreSnapshot: function(snapshotId) {
+            return window.LawAIApp.RuntimeSafetyCompliance.restoreSnapshot(snapshotId);
+        },
+        executeRecovery: function(safetyId) {
+            return window.LawAIApp.RuntimeSafetyCompliance.executeRecovery(safetyId);
+        },
+        reportIncident: function(type, details) {
+            return window.LawAIApp.RuntimeSafetyCompliance.reportIncident(type, details);
+        },
+        getIncidents: function(limit) {
+            return window.LawAIApp.RuntimeSafetyCompliance.getIncidents(limit);
+        },
+        getReport: function() { return window.LawAIApp.RuntimeSafetyCompliance.getReport(); },
+        getHealth: function() { return window.LawAIApp.RuntimeSafetyCompliance.getHealth(); },
+        generateComplianceReport: function(options) {
+            return window.LawAIApp.RuntimeSafetyCompliance.generateComplianceReport(options);
+        },
+        getComplianceRecords: function(limit) {
+            return window.LawAIApp.RuntimeSafetyCompliance.getComplianceRecords(limit);
+        },
+        getAuditTrail: function(limit) {
+            return window.LawAIApp.RuntimeSafetyCompliance.getAuditTrail(limit);
+        }
     };
 }
