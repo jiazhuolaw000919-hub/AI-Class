@@ -787,5 +787,3 @@ if (typeof window !== 'undefined') {
         getRequestTypeStats: () => window.LawAIApp.RuntimePolicyEngine.getRequestTypeStats()
     };
 }
-
-export default RuntimePolicyEngine;
