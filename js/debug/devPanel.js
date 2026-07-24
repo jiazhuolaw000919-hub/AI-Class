@@ -1852,8 +1852,10 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
+                
     // ============================================================
-    // 🔥 PART 2: RUNTIME INFO
+    // 🔥 PART 2: RUNTIME INFO — FIXED (Part 45.9.1)
+    // Bind to live Runtime objects: BootManager + Performance
     // ============================================================
 
     _getRuntimeInfo: function() {
@@ -1867,33 +1869,61 @@ LawAIApp.Debug.DevPanel = {
         };
 
         try {
-            // Runtime Status
-            var runtimeStatus = LawAIApp.RuntimeStatus || window.runtimeStatus;
-            if (runtimeStatus && typeof runtimeStatus.getStatus === 'function') {
-                info.status = runtimeStatus.getStatus();
-                info.ready = runtimeStatus.isReady ? runtimeStatus.isReady() : false;
-            }
-
-            // Runtime Kernel
-            var runtimeKernel = LawAIApp.RuntimeKernel || window.runtimeKernel;
-            if (runtimeKernel && typeof runtimeKernel.health === 'function') {
-                var health = runtimeKernel.health();
-                info.version = health.version || 'N/A';
-                info.uptime = health.uptime ? Math.round(health.uptime / 1000) + 's' : '0s';
-            }
-
-            // Runtime Registry
-            var runtimeRegistry = LawAIApp.RuntimeRegistry || window.runtimeRegistry;
-            if (runtimeRegistry && typeof runtimeRegistry.getAll === 'function') {
-                var all = runtimeRegistry.getAll();
-                info.registryCount = all.length;
-                info.registryModules = all.map(function(e) { return e.name; }).join(', ');
-            }
-
-        } catch (err) {
-            console.warn('Could not get runtime info:', err);
+            // ── PRIMARY SOURCE: BootManager (the real runtime heartbeat) ──
+            var bm = LawAIApp.BootManager || window.bootManager;
+        
+            if (bm) {
+                // Boot status → Runtime status
+                info.ready = !!(bm._booted || (typeof bm.isBooted === 'function' && bm.isBooted()));
+                info.status = info.ready ? 'running' : (bm._booting ? 'booting' : 'idle');
+            
+                // Uptime from performance framework
+                var perf = LawAIApp.Performance;
+                if (perf && perf._bootStartTime) {
+                    var elapsed = Date.now() - perf._bootStartTime;
+                    info.uptime = Math.round(elapsed / 1000) + 's';
+                } else if (bm._bootTimestamp) {
+                    var elapsed = Date.now() - bm._bootTimestamp;
+                    info.uptime = Math.round(elapsed / 1000) + 's';
+                }
         }
 
+            // ── FALLBACK: check if bootPipeline reports ready ──
+            if (!info.ready) {
+                var pipeline = LawAIApp.BootPipeline || window.bootPipeline;
+                if (pipeline && typeof pipeline.getPipelineStatus === 'function') {
+                    var ps = pipeline.getPipelineStatus();
+                    if (ps && ps.status === 'completed') {
+                        info.ready = true;
+                        info.status = 'running';
+                    } else if (ps && ps.status === 'running') {
+                        info.status = 'booting';
+                    }
+                }
+            }
+
+            // ── VERSION: from SystemComposer (already referenced elsewhere) ──
+            info.version = (LawAIApp.SystemComposer && LawAIApp.SystemComposer.version) || 'V4.5.9';
+
+            // ── REGISTRY COUNT: count modules on LawAIApp namespace ──
+            var count = 0;
+            var names = [];
+            for (var key in LawAIApp) {
+                if (LawAIApp.hasOwnProperty(key) && typeof LawAIApp[key] === 'object' && LawAIApp[key] !== null) {
+                    // Count top-level engine/module objects (skip Debug, _private, primitive wrappers)
+                    if (key !== 'Debug' && key !== 'DevPanel' && key.charAt(0) !== '_') {
+                        count++;
+                        if (names.length < 10) names.push(key);
+                    }
+                }
+            }
+            info.registryCount = count;
+            info.registryModules = names.join(', ') + (count > 10 ? '...' : '');
+
+        } catch (err) {
+            console.warn('[DevPanel] Could not get runtime info:', err);
+        }
+    
         return info;
     },
 
