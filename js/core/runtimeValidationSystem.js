@@ -21,13 +21,11 @@ class RuntimeValidationSystem {
         this.version = '4.9.4';
         this.status = 'ACTIVE';
         
-        // Validation stores
         this.validationHistory = [];
-        this.validators = new Map();      // Registered validation checks
-        this.riskProfiles = new Map();    // Risk profiles for different action types
-        this.dependencyGraph = new Map(); // Module dependency tracking
+        this.validators = new Map();
+        this.riskProfiles = new Map();
+        this.dependencyGraph = new Map();
         
-        // Validation types
         this.validationTypes = {
             STATE: 'state',
             DEPENDENCY: 'dependency',
@@ -36,7 +34,6 @@ class RuntimeValidationSystem {
             SAFETY: 'safety'
         };
         
-        // Risk levels
         this.riskLevels = {
             LOW: { level: 1, label: 'LOW', description: 'Safe to proceed', autoAllow: true },
             MEDIUM: { level: 2, label: 'MEDIUM', description: 'Requires confirmation', autoAllow: false },
@@ -44,14 +41,12 @@ class RuntimeValidationSystem {
             CRITICAL: { level: 4, label: 'CRITICAL', description: 'Execution blocked', autoAllow: false }
         };
         
-        // Decision types
         this.decisions = {
             ALLOW: 'ALLOW',
             REVIEW: 'REVIEW',
             REJECT: 'REJECT'
         };
         
-        // Sensitive modules that trigger higher risk
         this.criticalModules = [
             'BootManager',
             'StateSyncEngine',
@@ -60,7 +55,6 @@ class RuntimeValidationSystem {
             'EventBus'
         ];
         
-        // System state
         this.systemState = {
             initialized: false,
             totalValidations: 0,
@@ -73,24 +67,16 @@ class RuntimeValidationSystem {
         this.init();
     }
     
-    /**
-     * Initialize Validation System
-     */
     init() {
         console.log('[ValidationSystem] Initializing...');
         
-        // Register default validators
         this._registerDefaultValidators();
-        
-        // Build initial dependency graph
         this._buildDependencyGraph();
-        
-        // Define risk profiles
         this._defineRiskProfiles();
         
         this.systemState.initialized = true;
         
-        console.log(`[ValidationSystem] Ready — ${this.validators.size} validators registered`);
+        console.log('[ValidationSystem] Ready — ' + this.validators.size + ' validators registered');
         
         this._emitEvent('validationSystem.initialized', {
             version: this.version,
@@ -101,93 +87,78 @@ class RuntimeValidationSystem {
     
     // ========== VALIDATOR REGISTRATION ==========
     
-    /**
-     * Register a custom validator
-     * @param {Object} validatorDefinition
-     * @returns {Object} Registered validator
-     */
-    registerValidator({ validatorId, name, type, check, priority = 10, metadata = {} }) {
-        // Validate type
-        const validTypes = Object.values(this.validationTypes);
-        if (!validTypes.includes(type)) {
-            throw new Error(`Invalid validator type: ${type}. Must be one of: ${validTypes.join(', ')}`);
+    registerValidator(def) {
+        var validatorId = def.validatorId;
+        var name = def.name;
+        var type = def.type;
+        var check = def.check;
+        var priority = def.priority || 10;
+        var metadata = def.metadata || {};
+        
+        var validTypes = Object.values(this.validationTypes);
+        if (validTypes.indexOf(type) === -1) {
+            throw new Error('Invalid validator type: ' + type + '. Must be one of: ' + validTypes.join(', '));
         }
         
-        // Validate check is a function
         if (typeof check !== 'function') {
             throw new Error('Validator check must be a function');
         }
         
-        const validator = {
-            validatorId: validatorId || `VAL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            name,
-            type,
-            check,          // (context, runtimeState) => { passed, risk, details }
-            priority,
-            metadata: {
-                registeredAt: new Date().toISOString(),
-                ...metadata
-            },
-            stats: {
-                executions: 0,
-                passed: 0,
-                failed: 0,
-                lastRun: null
-            }
+        var validator = {
+            validatorId: validatorId || 'VAL-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+            name: name,
+            type: type,
+            check: check,
+            priority: priority,
+            metadata: Object.assign({ registeredAt: new Date().toISOString() }, metadata),
+            stats: { executions: 0, passed: 0, failed: 0, lastRun: null }
         };
         
         this.validators.set(validator.validatorId, validator);
-        
-        this._audit('VALIDATOR_REGISTERED', { validatorId: validator.validatorId, name, type });
+        this._audit('VALIDATOR_REGISTERED', { validatorId: validator.validatorId, name: name, type: type });
         
         return validator;
     }
     
     // ========== CORE VALIDATION ==========
     
-    /**
-     * Validate an action request before execution
-     * This is the main entry point for validation.
-     * 
-     * @param {Object} request - Action request to validate
-     * @param {Object} options - Validation options
-     * @returns {Object} Validation result
-     */
-    validate(request = {}, options = {}) {
-        const startTime = performance.now();
-        const validationId = `VALREQ-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+    validate(request, options) {
+        if (!request) request = {};
+        if (!options) options = {};
         
-        const {
-            action,
-            target,
-            source,
-            params = {},
-            context = {}
-        } = request;
+        var startTime = performance.now();
+        var validationId = 'VALREQ-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+        
+        var action = request.action;
+        var target = request.target;
+        var source = request.source;
+        var params = request.params || {};
+        var context = request.context || {};
         
         this.systemState.totalValidations++;
         this.systemState.lastValidation = new Date().toISOString();
         
         // Step 1: Collect runtime context
-        const runtimeContext = this._collectRuntimeContext();
+        var runtimeContext = this._collectRuntimeContext();
         
         // Step 2: Determine which validators to run
-        const relevantValidators = this._getRelevantValidators(action, target, options);
+        var relevantValidators = this._getRelevantValidators(action, target, options);
         
         // Step 3: Run all validation checks
-        const checks = [];
-        let overallRisk = this.riskLevels.LOW;
-        const warnings = [];
-        const errors = [];
+        var checks = [];
+        var overallRisk = this.riskLevels.LOW;
+        var warnings = [];
+        var errors = [];
         
-        for (const validator of relevantValidators) {
-            const checkResult = this._runValidator(validator, {
-                action,
-                target,
-                source,
-                params,
-                context,
-                runtimeContext
+        for (var i = 0; i < relevantValidators.length; i++) {
+            var validator = relevantValidators[i];
+            var checkResult = this._runValidator(validator, {
+                action: action,
+                target: target,
+                source: source,
+                params: params,
+                context: context,
+                runtimeContext: runtimeContext
             });
             
             checks.push(checkResult);
@@ -201,44 +172,47 @@ class RuntimeValidationSystem {
                 validator.stats.failed++;
             }
             
-            // Collect warnings
-            if (checkResult.warnings?.length > 0) {
-                warnings.push(...checkResult.warnings);
+            if (checkResult.warnings && checkResult.warnings.length > 0) {
+                warnings = warnings.concat(checkResult.warnings);
             }
             
-            // Collect errors
-            if (checkResult.errors?.length > 0) {
-                errors.push(...checkResult.errors);
+            if (checkResult.errors && checkResult.errors.length > 0) {
+                errors = errors.concat(checkResult.errors);
             }
             
-            // Track highest risk level
             if (checkResult.risk && checkResult.risk.level > overallRisk.level) {
                 overallRisk = checkResult.risk;
             }
         }
         
         // Step 4: Determine decision based on risk
-        const decision = this._determineDecision(overallRisk, errors.length > 0);
+        var decision = this._determineDecision(overallRisk, errors.length > 0);
         
         // Step 5: Build validation result
-        const result = {
-            validationId,
-            request: { action, target, source, params },
-            checks,
-            checksSummary: {
-                total: checks.length,
-                passed: checks.filter(c => c.passed).length,
-                failed: checks.filter(c => !c.passed).length,
-                warnings: warnings.length,
-                errors: errors.length
-            },
+        var checksSummary = {
+            total: checks.length,
+            passed: 0,
+            failed: 0,
+            warnings: warnings.length,
+            errors: errors.length
+        };
+        for (var j = 0; j < checks.length; j++) {
+            if (checks[j].passed) checksSummary.passed++;
+            else checksSummary.failed++;
+        }
+        
+        var result = {
+            validationId: validationId,
+            request: { action: action, target: target, source: source, params: params },
+            checks: checks,
+            checksSummary: checksSummary,
             risk: overallRisk,
-            decision,
+            decision: decision,
             warnings: warnings.length > 0 ? warnings : undefined,
             errors: errors.length > 0 ? errors : undefined,
             recommendation: this._generateRecommendation(overallRisk, decision, checks),
             context: runtimeContext,
-            evaluationTime: `${(performance.now() - startTime).toFixed(2)}ms`,
+            evaluationTime: (performance.now() - startTime).toFixed(2) + 'ms',
             timestamp: new Date().toISOString(),
             systemVersion: this.version
         };
@@ -250,13 +224,9 @@ class RuntimeValidationSystem {
         return result;
     }
     
-    /**
-     * Quick validation — returns simple pass/fail
-     * @param {Object} request
-     * @returns {Object} { valid, decision, risk, reason }
-     */
-    quickValidate(request = {}) {
-        const result = this.validate(request);
+    quickValidate(request) {
+        if (!request) request = {};
+        var result = this.validate(request);
         
         return {
             valid: result.decision === 'ALLOW',
@@ -268,142 +238,115 @@ class RuntimeValidationSystem {
         };
     }
     
-    /**
-     * Validate with specific check types only
-     * @param {Object} request
-     * @param {Array} checkTypes - e.g., ['state', 'safety']
-     * @returns {Object}
-     */
-    validateWithTypes(request = {}, checkTypes = []) {
+    validateWithTypes(request, checkTypes) {
+        if (!request) request = {};
+        if (!checkTypes) checkTypes = [];
         return this.validate(request, { specificTypes: checkTypes });
     }
     
     // ========== SPECIFIC VALIDATION METHODS ==========
     
-    /**
-     * Validate state consistency
-     * @returns {Object}
-     */
     validateState() {
-        const runtimeContext = this._collectRuntimeContext();
-        const checks = [];
+        var runtimeContext = this._collectRuntimeContext();
+        var checks = [];
         
-        // Check 1: Core modules loaded
-        const coreModules = ['BootManager', 'RuntimeKernel', 'EventBus'];
-        const loadedModules = runtimeContext.modules?.loaded || [];
-        const missingCore = coreModules.filter(m => !loadedModules.includes(m));
+        var coreModules = ['BootManager', 'RuntimeKernel', 'EventBus'];
+        var loadedModules = (runtimeContext.modules && runtimeContext.modules.loaded) || [];
+        var missingCore = [];
+        for (var i = 0; i < coreModules.length; i++) {
+            if (loadedModules.indexOf(coreModules[i]) === -1) missingCore.push(coreModules[i]);
+        }
         
         checks.push({
             type: 'STATE',
             name: 'Core Module Check',
             passed: missingCore.length === 0,
             risk: missingCore.length > 0 ? this.riskLevels.CRITICAL : this.riskLevels.LOW,
-            details: missingCore.length > 0 
-                ? `Missing core modules: ${missingCore.join(', ')}`
-                : 'All core modules loaded'
+            details: missingCore.length > 0 ? 'Missing core modules: ' + missingCore.join(', ') : 'All core modules loaded'
         });
         
-        // Check 2: System health
-        const healthStatus = runtimeContext.health?.status || 'UNKNOWN';
+        var healthStatus = (runtimeContext.health && runtimeContext.health.status) || 'UNKNOWN';
         checks.push({
             type: 'STATE',
             name: 'System Health Check',
             passed: healthStatus === 'HEALTHY' || healthStatus === 'running',
-            risk: healthStatus === 'CRITICAL' ? this.riskLevels.CRITICAL : 
-                  healthStatus === 'WARNING' ? this.riskLevels.MEDIUM : this.riskLevels.LOW,
-            details: `System health: ${healthStatus}`
+            risk: healthStatus === 'CRITICAL' ? this.riskLevels.CRITICAL : (healthStatus === 'WARNING' ? this.riskLevels.MEDIUM : this.riskLevels.LOW),
+            details: 'System health: ' + healthStatus
         });
         
         return {
-            checks,
+            checks: checks,
             overallRisk: this._calculateOverallRisk(checks),
             timestamp: new Date().toISOString()
         };
     }
     
-    /**
-     * Validate dependencies for a module
-     * @param {string} moduleName
-     * @returns {Object}
-     */
     validateDependencies(moduleName) {
-        const dependencies = this.dependencyGraph.get(moduleName) || [];
-        const checks = [];
+        var dependencies = this.dependencyGraph.get(moduleName) || [];
+        var checks = [];
         
-        // Check direct dependencies
-        for (const dep of dependencies) {
-            const depLoaded = this._isModuleLoaded(dep);
+        for (var i = 0; i < dependencies.length; i++) {
+            var dep = dependencies[i];
+            var depLoaded = this._isModuleLoaded(dep);
             checks.push({
                 type: 'DEPENDENCY',
-                name: `Dependency: ${moduleName} → ${dep}`,
+                name: 'Dependency: ' + moduleName + ' → ' + dep,
                 passed: depLoaded,
-                risk: depLoaded ? this.riskLevels.LOW : 
-                      this.criticalModules.includes(dep) ? this.riskLevels.CRITICAL : this.riskLevels.HIGH,
-                details: depLoaded ? `${dep} is loaded` : `${dep} is NOT loaded`
+                risk: depLoaded ? this.riskLevels.LOW : (this.criticalModules.indexOf(dep) !== -1 ? this.riskLevels.CRITICAL : this.riskLevels.HIGH),
+                details: depLoaded ? dep + ' is loaded' : dep + ' is NOT loaded'
             });
         }
         
-        // Check circular dependencies
-        const circularDeps = this._detectCircularDependencies(moduleName);
+        var circularDeps = this._detectCircularDependencies(moduleName);
         if (circularDeps.length > 0) {
             checks.push({
                 type: 'DEPENDENCY',
                 name: 'Circular Dependency Check',
                 passed: false,
                 risk: this.riskLevels.HIGH,
-                details: `Circular dependencies detected: ${circularDeps.join(' → ')}`,
+                details: 'Circular dependencies detected: ' + circularDeps.join(' → '),
                 warnings: ['Circular dependencies may cause initialization issues']
             });
         }
         
-        // Check affected modules (reverse dependencies)
-        const affectedModules = this._getAffectedModules(moduleName);
+        var affectedModules = this._getAffectedModules(moduleName);
         if (affectedModules.length > 0) {
             checks.push({
                 type: 'DEPENDENCY',
                 name: 'Affected Modules Check',
-                passed: true, // Informational
-                risk: affectedModules.length > 10 ? this.riskLevels.HIGH :
-                      affectedModules.length > 5 ? this.riskLevels.MEDIUM : this.riskLevels.LOW,
-                details: `${affectedModules.length} modules depend on ${moduleName}: ${affectedModules.join(', ')}`
+                passed: true,
+                risk: affectedModules.length > 10 ? this.riskLevels.HIGH : (affectedModules.length > 5 ? this.riskLevels.MEDIUM : this.riskLevels.LOW),
+                details: affectedModules.length + ' modules depend on ' + moduleName + ': ' + affectedModules.join(', ')
             });
         }
         
         return {
-            moduleName,
-            checks,
-            dependencies,
-            affectedModules,
+            moduleName: moduleName,
+            checks: checks,
+            dependencies: dependencies,
+            affectedModules: affectedModules,
             overallRisk: this._calculateOverallRisk(checks),
             timestamp: new Date().toISOString()
         };
     }
     
-    /**
-     * Validate performance impact of an action
-     * @param {Object} request
-     * @returns {Object}
-     */
-    validatePerformance(request = {}) {
-        const checks = [];
+    validatePerformance(request) {
+        if (!request) request = {};
+        var checks = [];
         
-        // Check estimated resource usage
         if (request.estimatedCost) {
-            const cost = request.estimatedCost;
+            var cost = request.estimatedCost;
             checks.push({
                 type: 'PERFORMANCE',
                 name: 'Resource Cost Check',
                 passed: cost < 200,
-                risk: cost > 500 ? this.riskLevels.CRITICAL :
-                      cost > 200 ? this.riskLevels.HIGH :
-                      cost > 100 ? this.riskLevels.MEDIUM : this.riskLevels.LOW,
-                details: `Estimated resource cost: ${cost} units`
+                risk: cost > 500 ? this.riskLevels.CRITICAL : (cost > 200 ? this.riskLevels.HIGH : (cost > 100 ? this.riskLevels.MEDIUM : this.riskLevels.LOW)),
+                details: 'Estimated resource cost: ' + cost + ' units'
             });
         }
         
-        // Check if system is under load
-        const runtimeContext = this._collectRuntimeContext();
-        const currentLoad = runtimeContext.performance?.currentLoad || 0;
+        var runtimeContext = this._collectRuntimeContext();
+        var currentLoad = (runtimeContext.performance && runtimeContext.performance.currentLoad) || 0;
         
         if (currentLoad > 80) {
             checks.push({
@@ -411,29 +354,24 @@ class RuntimeValidationSystem {
                 name: 'System Load Check',
                 passed: false,
                 risk: this.riskLevels.HIGH,
-                details: `System under high load (${currentLoad}%) — action may degrade performance`,
-                warnings: [`Current system load is ${currentLoad}%`]
+                details: 'System under high load (' + currentLoad + '%) — action may degrade performance',
+                warnings: ['Current system load is ' + currentLoad + '%']
             });
         }
         
         return {
-            checks,
+            checks: checks,
             overallRisk: this._calculateOverallRisk(checks),
             timestamp: new Date().toISOString()
         };
     }
     
-    /**
-     * Validate data integrity
-     * @param {Object} dataContext
-     * @returns {Object}
-     */
-    validateData(dataContext = {}) {
-        const checks = [];
+    validateData(dataContext) {
+        if (!dataContext) dataContext = {};
+        var checks = [];
         
-        // Check data structure
         if (dataContext.schema && dataContext.data) {
-            const schemaValid = this._validateSchema(dataContext.data, dataContext.schema);
+            var schemaValid = this._validateSchema(dataContext.data, dataContext.schema);
             checks.push({
                 type: 'DATA',
                 name: 'Data Schema Check',
@@ -443,62 +381,62 @@ class RuntimeValidationSystem {
             });
         }
         
-        // Check data size
         if (dataContext.size) {
-            const sizeLimit = dataContext.sizeLimit || 1024 * 1024; // Default 1MB
+            var sizeLimit = dataContext.sizeLimit || 1048576;
             checks.push({
                 type: 'DATA',
                 name: 'Data Size Check',
                 passed: dataContext.size <= sizeLimit,
-                risk: dataContext.size > sizeLimit * 2 ? this.riskLevels.HIGH :
-                      dataContext.size > sizeLimit ? this.riskLevels.MEDIUM : this.riskLevels.LOW,
-                details: `Data size: ${(dataContext.size / 1024).toFixed(1)}KB (limit: ${(sizeLimit / 1024).toFixed(1)}KB)`
+                risk: dataContext.size > sizeLimit * 2 ? this.riskLevels.HIGH : (dataContext.size > sizeLimit ? this.riskLevels.MEDIUM : this.riskLevels.LOW),
+                details: 'Data size: ' + (dataContext.size / 1024).toFixed(1) + 'KB (limit: ' + (sizeLimit / 1024).toFixed(1) + 'KB)'
             });
         }
         
         return {
-            checks,
+            checks: checks,
             overallRisk: this._calculateOverallRisk(checks),
             timestamp: new Date().toISOString()
         };
     }
     
-    /**
-     * Validate safety boundaries
-     * @param {Object} request
-     * @returns {Object}
-     */
-    validateSafety(request = {}) {
-        const checks = [];
-        const runtimeContext = this._collectRuntimeContext();
+    validateSafety(request) {
+        if (!request) request = {};
+        var checks = [];
+        var runtimeContext = this._collectRuntimeContext();
         
-        // Check if action targets critical module
-        if (request.target && this.criticalModules.includes(request.target)) {
+        if (request.target && this.criticalModules.indexOf(request.target) !== -1) {
             checks.push({
                 type: 'SAFETY',
                 name: 'Critical Module Protection',
                 passed: false,
                 risk: this.riskLevels.HIGH,
-                details: `Target "${request.target}" is a critical system module`,
+                details: 'Target "' + request.target + '" is a critical system module',
                 warnings: ['Modifying critical modules may destabilize the system']
             });
         }
         
-        // Check if action is destructive
-        const destructiveActions = ['DELETE', 'SHUTDOWN', 'UNLOAD', 'RESET', 'DESTROY'];
-        if (request.action && destructiveActions.some(a => request.action.toUpperCase().includes(a))) {
+        var destructiveActions = ['DELETE', 'SHUTDOWN', 'UNLOAD', 'RESET', 'DESTROY'];
+        var isDestructive = false;
+        if (request.action) {
+            for (var i = 0; i < destructiveActions.length; i++) {
+                if (request.action.toUpperCase().indexOf(destructiveActions[i]) !== -1) {
+                    isDestructive = true;
+                    break;
+                }
+            }
+        }
+        if (isDestructive) {
             checks.push({
                 type: 'SAFETY',
                 name: 'Destructive Action Check',
                 passed: false,
                 risk: this.riskLevels.CRITICAL,
-                details: `Action "${request.action}" is potentially destructive`,
+                details: 'Action "' + request.action + '" is potentially destructive',
                 warnings: ['Destructive actions require explicit approval']
             });
         }
         
-        // Check runtime freeze status
-        if (runtimeContext.governance?.freezeActive) {
+        if (runtimeContext.governance && runtimeContext.governance.freezeActive) {
             checks.push({
                 type: 'SAFETY',
                 name: 'Runtime Freeze Check',
@@ -509,21 +447,20 @@ class RuntimeValidationSystem {
             });
         }
         
-        // Check if action affects multiple modules
-        const affectedModules = request.target ? this._getAffectedModules(request.target) : [];
+        var affectedModules = request.target ? this._getAffectedModules(request.target) : [];
         if (affectedModules.length > 15) {
             checks.push({
                 type: 'SAFETY',
                 name: 'Wide Impact Check',
                 passed: false,
                 risk: this.riskLevels.HIGH,
-                details: `Action affects ${affectedModules.length} modules — wide impact`,
-                warnings: [`${affectedModules.length} modules will be affected by this action`]
+                details: 'Action affects ' + affectedModules.length + ' modules — wide impact',
+                warnings: [affectedModules.length + ' modules will be affected by this action']
             });
         }
         
         return {
-            checks,
+            checks: checks,
             overallRisk: this._calculateOverallRisk(checks),
             timestamp: new Date().toISOString()
         };
@@ -531,70 +468,53 @@ class RuntimeValidationSystem {
     
     // ========== DEPENDENCY MANAGEMENT ==========
     
-    /**
-     * Register a dependency relationship
-     * @param {string} module - Module name
-     * @param {Array} dependencies - Array of dependency module names
-     */
-    registerDependencies(module, dependencies = []) {
-        this.dependencyGraph.set(module, [...dependencies]);
-        
-        this._audit('DEPENDENCIES_REGISTERED', { module, dependencies });
+    registerDependencies(module, dependencies) {
+        if (!dependencies) dependencies = [];
+        this.dependencyGraph.set(module, dependencies.slice());
+        this._audit('DEPENDENCIES_REGISTERED', { module: module, dependencies: dependencies });
     }
     
-    /**
-     * Get module dependency tree
-     * @param {string} moduleName
-     * @returns {Object}
-     */
     getDependencyTree(moduleName) {
-        const direct = this.dependencyGraph.get(moduleName) || [];
-        const reverse = this._getAffectedModules(moduleName);
+        var direct = this.dependencyGraph.get(moduleName) || [];
+        var reverse = this._getAffectedModules(moduleName);
         
         return {
             module: moduleName,
             dependsOn: direct,
             dependedBy: reverse,
-            isCritical: this.criticalModules.includes(moduleName),
+            isCritical: this.criticalModules.indexOf(moduleName) !== -1,
             totalConnections: direct.length + reverse.length
         };
     }
     
     // ========== REPORTING ==========
     
-    /**
-     * Get validation system report
-     * @returns {Object}
-     */
     getReport() {
-        const validatorsByType = {};
-        for (const type of Object.values(this.validationTypes)) {
-            validatorsByType[type] = Array.from(this.validators.values())
-                .filter(v => v.type === type).length;
+        var validatorsByType = {};
+        var types = Object.values(this.validationTypes);
+        for (var i = 0; i < types.length; i++) {
+            var type = types[i];
+            var count = 0;
+            var all = Array.from(this.validators.values());
+            for (var j = 0; j < all.length; j++) {
+                if (all[j].type === type) count++;
+            }
+            validatorsByType[type] = count;
         }
         
         return {
             version: this.version,
             status: this.systemState.systemHealth,
-            validators: {
-                total: this.validators.size,
-                byType: validatorsByType
-            },
+            validators: { total: this.validators.size, byType: validatorsByType },
             validations: {
                 total: this.systemState.totalValidations,
                 byDecision: this.systemState.validationsByDecision,
                 byRisk: this.systemState.validationsByRisk
             },
-            dependencyGraph: {
-                modules: this.dependencyGraph.size,
-                criticalModules: this.criticalModules
-            },
-            riskLevels: Object.values(this.riskLevels).map(r => ({
-                level: r.level,
-                label: r.label,
-                description: r.description,
-                autoAllow: r.autoAllow
-            })),
+            dependencyGraph: { modules: this.dependencyGraph.size, criticalModules: this.criticalModules },
+            riskLevels: Object.values(this.riskLevels).map(function(r) {
+                return { level: r.level, label: r.label, description: r.description, autoAllow: r.autoAllow };
+            }),
             rules: [
                 'Rule 1: Validation must be context-based ✅',
                 'Rule 2: High risk actions must not auto-execute ✅',
@@ -605,16 +525,12 @@ class RuntimeValidationSystem {
         };
     }
     
-    /**
-     * Get validation system health
-     * @returns {Object}
-     */
     getHealth() {
-        const rejectRate = this.systemState.totalValidations > 0
+        var rejectRate = this.systemState.totalValidations > 0
             ? this.systemState.validationsByDecision.REJECT / this.systemState.totalValidations
             : 0;
         
-        let health = 'HEALTHY';
+        var health = 'HEALTHY';
         if (rejectRate > 0.3) health = 'RESTRICTIVE';
         if (!this.systemState.initialized) health = 'NOT_INITIALIZED';
         
@@ -625,137 +541,133 @@ class RuntimeValidationSystem {
             version: this.version,
             validators: this.validators.size,
             totalValidations: this.systemState.totalValidations,
-            rejectRate: `${(rejectRate * 100).toFixed(1)}%`,
+            rejectRate: (rejectRate * 100).toFixed(1) + '%',
             lastValidation: this.systemState.lastValidation,
-            isOperational: true // Rule 4
+            isOperational: true
         };
     }
     
-    /**
-     * Get validation history
-     * @param {number} limit
-     * @returns {Array}
-     */
-    getValidationHistory(limit = 50) {
+    getValidationHistory(limit) {
+        if (!limit) limit = 50;
         return this.validationHistory.slice(-limit);
     }
     
     // ========== PRIVATE METHODS ==========
     
-    /**
-     * Register default validators
-     */
     _registerDefaultValidators() {
-        // State validator
+        var self = this;
+        
         this.registerValidator({
             validatorId: 'VAL-STATE-001',
             name: 'Runtime State Check',
             type: 'state',
-            priority: 1, // Run first
-            check: (ctx) => {
-                const runtimeCtx = ctx.runtimeContext;
-                const passed = runtimeCtx?.status === 'running' || runtimeCtx?.status === 'ready';
+            priority: 1,
+            check: function(ctx) {
+                var runtimeCtx = ctx.runtimeContext;
+                var passed = runtimeCtx && (runtimeCtx.status === 'running' || runtimeCtx.status === 'ready');
                 return {
-                    passed,
-                    risk: passed ? this.riskLevels.LOW : this.riskLevels.CRITICAL,
-                    details: `Runtime status: ${runtimeCtx?.status || 'UNKNOWN'}`
+                    passed: passed,
+                    risk: passed ? self.riskLevels.LOW : self.riskLevels.CRITICAL,
+                    details: 'Runtime status: ' + ((runtimeCtx && runtimeCtx.status) || 'UNKNOWN')
                 };
             }
         });
         
-        // Dependency validator
         this.registerValidator({
             validatorId: 'VAL-DEP-001',
             name: 'Module Dependency Check',
             type: 'dependency',
             priority: 5,
-            check: (ctx) => {
+            check: function(ctx) {
                 if (!ctx.target) {
-                    return { passed: true, risk: this.riskLevels.LOW, details: 'No target module specified' };
+                    return { passed: true, risk: self.riskLevels.LOW, details: 'No target module specified' };
                 }
                 
-                const deps = this.dependencyGraph.get(ctx.target) || [];
-                const missing = deps.filter(d => !this._isModuleLoaded(d));
+                var deps = self.dependencyGraph.get(ctx.target) || [];
+                var missing = [];
+                for (var i = 0; i < deps.length; i++) {
+                    if (!self._isModuleLoaded(deps[i])) missing.push(deps[i]);
+                }
+                
+                var isCriticalMissing = false;
+                for (var j = 0; j < missing.length; j++) {
+                    if (self.criticalModules.indexOf(missing[j]) !== -1) {
+                        isCriticalMissing = true;
+                        break;
+                    }
+                }
                 
                 return {
                     passed: missing.length === 0,
-                    risk: missing.length > 0 ? 
-                        (this.criticalModules.some(m => missing.includes(m)) ? 
-                            this.riskLevels.CRITICAL : this.riskLevels.HIGH) 
-                        : this.riskLevels.LOW,
-                    details: missing.length > 0 
-                        ? `Missing dependencies: ${missing.join(', ')}` 
-                        : 'All dependencies satisfied',
-                    warnings: missing.length > 0 ? [`Missing ${missing.length} dependencies`] : []
+                    risk: missing.length > 0 ? (isCriticalMissing ? self.riskLevels.CRITICAL : self.riskLevels.HIGH) : self.riskLevels.LOW,
+                    details: missing.length > 0 ? 'Missing dependencies: ' + missing.join(', ') : 'All dependencies satisfied',
+                    warnings: missing.length > 0 ? ['Missing ' + missing.length + ' dependencies'] : []
                 };
             }
         });
         
-        // Safety validator
         this.registerValidator({
             validatorId: 'VAL-SAF-001',
             name: 'Critical Module Protection',
             type: 'safety',
             priority: 3,
-            check: (ctx) => {
-                if (ctx.target && this.criticalModules.includes(ctx.target)) {
+            check: function(ctx) {
+                if (ctx.target && self.criticalModules.indexOf(ctx.target) !== -1) {
                     return {
                         passed: ctx.source === 'SUB-DEV-001' || ctx.source === 'SUB-SYS-001',
-                        risk: this.riskLevels.HIGH,
-                        details: `Target "${ctx.target}" is a critical module — requires elevated permissions`,
-                        warnings: [`Critical module "${ctx.target}" — proceed with caution`]
+                        risk: self.riskLevels.HIGH,
+                        details: 'Target "' + ctx.target + '" is a critical module — requires elevated permissions',
+                        warnings: ['Critical module "' + ctx.target + '" — proceed with caution']
                     };
                 }
-                return { passed: true, risk: this.riskLevels.LOW, details: 'Target is not critical' };
+                return { passed: true, risk: self.riskLevels.LOW, details: 'Target is not critical' };
             }
         });
         
-        // Performance validator
         this.registerValidator({
             validatorId: 'VAL-PERF-001',
             name: 'System Load Check',
             type: 'performance',
             priority: 10,
-            check: (ctx) => {
-                const load = ctx.runtimeContext?.performance?.currentLoad || 0;
-                const passed = load < 80;
+            check: function(ctx) {
+                var load = (ctx.runtimeContext && ctx.runtimeContext.performance && ctx.runtimeContext.performance.currentLoad) || 0;
+                var passed = load < 80;
                 return {
-                    passed,
-                    risk: load > 90 ? this.riskLevels.CRITICAL :
-                          load > 80 ? this.riskLevels.HIGH :
-                          load > 60 ? this.riskLevels.MEDIUM : this.riskLevels.LOW,
-                    details: `System load: ${load}%`,
-                    warnings: load > 80 ? [`High system load (${load}%) — performance may degrade`] : []
+                    passed: passed,
+                    risk: load > 90 ? self.riskLevels.CRITICAL : (load > 80 ? self.riskLevels.HIGH : (load > 60 ? self.riskLevels.MEDIUM : self.riskLevels.LOW)),
+                    details: 'System load: ' + load + '%',
+                    warnings: load > 80 ? ['High system load (' + load + '%) — performance may degrade'] : []
                 };
             }
         });
         
-        // Data validator
         this.registerValidator({
             validatorId: 'VAL-DATA-001',
             name: 'Data Integrity Check',
             type: 'data',
             priority: 15,
-            check: (ctx) => {
-                // Check if params contain valid data
+            check: function(ctx) {
                 if (ctx.params && Object.keys(ctx.params).length > 0) {
-                    const hasNullValues = Object.values(ctx.params).some(v => v === null || v === undefined);
+                    var values = Object.values(ctx.params);
+                    var hasNull = false;
+                    for (var i = 0; i < values.length; i++) {
+                        if (values[i] === null || values[i] === undefined) {
+                            hasNull = true;
+                            break;
+                        }
+                    }
                     return {
-                        passed: !hasNullValues,
-                        risk: hasNullValues ? this.riskLevels.MEDIUM : this.riskLevels.LOW,
-                        details: hasNullValues ? 'Params contain null/undefined values' : 'Params validated'
+                        passed: !hasNull,
+                        risk: hasNull ? self.riskLevels.MEDIUM : self.riskLevels.LOW,
+                        details: hasNull ? 'Params contain null/undefined values' : 'Params validated'
                     };
                 }
-                return { passed: true, risk: this.riskLevels.LOW, details: 'No params to validate' };
+                return { passed: true, risk: self.riskLevels.LOW, details: 'No params to validate' };
             }
         });
     }
     
-    /**
-     * Build initial dependency graph
-     */
     _buildDependencyGraph() {
-        // Core module dependencies
         this.registerDependencies('BootManager', ['RuntimeKernel', 'EventBus', 'StorageEngine']);
         this.registerDependencies('StateSyncEngine', ['EventBus', 'StorageEngine']);
         this.registerDependencies('RuntimePolicyEngine', ['RuntimeGovernanceFoundation']);
@@ -768,9 +680,6 @@ class RuntimeValidationSystem {
         this.registerDependencies('DevPanel', ['BootManager', 'StateSyncEngine', 'EventBus']);
     }
     
-    /**
-     * Define risk profiles for different action types
-     */
     _defineRiskProfiles() {
         this.riskProfiles.set('READ', { baseRisk: this.riskLevels.LOW, description: 'Read operations' });
         this.riskProfiles.set('ANALYZE', { baseRisk: this.riskLevels.LOW, description: 'Analysis operations' });
@@ -782,29 +691,23 @@ class RuntimeValidationSystem {
         this.riskProfiles.set('SHUTDOWN', { baseRisk: this.riskLevels.CRITICAL, description: 'System shutdown' });
     }
     
-    /**
-     * Get validators relevant to a specific action
-     */
-    _getRelevantValidators(action, target, options = {}) {
-        let validators = Array.from(this.validators.values());
+    _getRelevantValidators(action, target, options) {
+        var validators = Array.from(this.validators.values());
         
-        // Filter by specific types if requested
         if (options.specificTypes && options.specificTypes.length > 0) {
-            validators = validators.filter(v => options.specificTypes.includes(v.type));
+            validators = validators.filter(function(v) {
+                return options.specificTypes.indexOf(v.type) !== -1;
+            });
         }
         
-        // Sort by priority
-        validators.sort((a, b) => a.priority - b.priority);
+        validators.sort(function(a, b) { return a.priority - b.priority; });
         
         return validators;
     }
     
-    /**
-     * Run a single validator
-     */
     _runValidator(validator, context) {
         try {
-            const result = validator.check(context);
+            var result = validator.check(context);
             
             return {
                 validatorId: validator.validatorId,
@@ -818,8 +721,7 @@ class RuntimeValidationSystem {
                 timestamp: new Date().toISOString()
             };
         } catch (error) {
-            // Rule 4: Validator failure doesn't break runtime
-            console.error(`[ValidationSystem] Validator ${validator.validatorId} failed:`, error);
+            console.error('[ValidationSystem] Validator ' + validator.validatorId + ' failed:', error);
             
             return {
                 validatorId: validator.validatorId,
@@ -827,67 +729,55 @@ class RuntimeValidationSystem {
                 type: validator.type,
                 passed: false,
                 risk: this.riskLevels.MEDIUM,
-                details: `Validator error: ${error.message}`,
-                errors: [`Validator ${validator.name} threw an error`],
+                details: 'Validator error: ' + error.message,
+                errors: ['Validator ' + validator.name + ' threw an error'],
                 timestamp: new Date().toISOString()
             };
         }
     }
     
-    /**
-     * Collect current runtime context
-     */
     _collectRuntimeContext() {
-        const context = {
+        var context = {
             status: 'running',
             timestamp: new Date().toISOString(),
-            modules: {
-                loaded: [],
-                count: 0
-            },
-            health: {
-                status: 'HEALTHY'
-            },
-            performance: {
-                currentLoad: 0
-            },
-            governance: {
-                freezeActive: false
-            }
+            modules: { loaded: [], count: 0 },
+            health: { status: 'HEALTHY' },
+            performance: { currentLoad: 0 },
+            governance: { freezeActive: false }
         };
         
-        // Try to get real data from runtime
         try {
-            if (window.LawAIApp?.BootManager) {
-                context.status = window.LawAIApp.BootManager.getStatus()?.status || 'unknown';
+            if (window.LawAIApp && window.LawAIApp.BootManager) {
+                var status = window.LawAIApp.BootManager.getStatus();
+                context.status = (status && status.status) || 'unknown';
             }
             
-            if (window.LawAIApp?.StateSyncEngine) {
-                const state = window.LawAIApp.StateSyncEngine.getAll() || {};
-                context.modules.loaded = Object.keys(state).filter(k => k.startsWith('module.'));
-                context.modules.count = context.modules.length;
+            if (window.LawAIApp && window.LawAIApp.StateSyncEngine) {
+                var state = window.LawAIApp.StateSyncEngine.getAll() || {};
+                var loaded = [];
+                var keys = Object.keys(state);
+                for (var i = 0; i < keys.length; i++) {
+                    if (keys[i].indexOf('module.') === 0) loaded.push(keys[i]);
+                }
+                context.modules.loaded = loaded;
+                context.modules.count = loaded.length;
             }
             
-            if (window.LawAIApp?.RuntimePerformanceCollector) {
-                context.performance.currentLoad = 
-                    window.LawAIApp.RuntimePerformanceCollector.getCurrentLoad?.() || 0;
+            if (window.LawAIApp && window.LawAIApp.RuntimePerformanceCollector && window.LawAIApp.RuntimePerformanceCollector.getCurrentLoad) {
+                context.performance.currentLoad = window.LawAIApp.RuntimePerformanceCollector.getCurrentLoad() || 0;
             }
             
-            // Check freeze status
-            const freezeCheck = window.LawAIApp?.Governance?.getReport?.();
-            if (freezeCheck?.freezeActive) {
-                context.governance.freezeActive = true;
+            if (window.LawAIApp && window.LawAIApp.Governance && window.LawAIApp.Governance.getReport) {
+                var freezeCheck = window.LawAIApp.Governance.getReport();
+                if (freezeCheck && freezeCheck.freezeActive) {
+                    context.governance.freezeActive = true;
+                }
             }
-        } catch (e) {
-            // Use defaults if real data unavailable
-        }
+        } catch (e) {}
         
         return context;
     }
     
-    /**
-     * Determine decision based on risk level and errors
-     */
     _determineDecision(risk, hasErrors) {
         if (hasErrors) return this.decisions.REJECT;
         if (risk.level >= this.riskLevels.CRITICAL.level) return this.decisions.REJECT;
@@ -896,121 +786,114 @@ class RuntimeValidationSystem {
         return this.decisions.ALLOW;
     }
     
-    /**
-     * Calculate overall risk from multiple checks
-     */
     _calculateOverallRisk(checks) {
         if (checks.length === 0) return this.riskLevels.LOW;
         
-        let maxRisk = this.riskLevels.LOW;
-        
-        for (const check of checks) {
-            if (check.risk && check.risk.level > maxRisk.level) {
-                maxRisk = check.risk;
+        var maxRisk = this.riskLevels.LOW;
+        for (var i = 0; i < checks.length; i++) {
+            if (checks[i].risk && checks[i].risk.level > maxRisk.level) {
+                maxRisk = checks[i].risk;
             }
         }
-        
         return maxRisk;
     }
     
-    /**
-     * Generate human-readable recommendation
-     */
     _generateRecommendation(risk, decision, checks) {
-        const failedChecks = checks.filter(c => !c.passed);
+        var failedChecks = [];
+        for (var i = 0; i < checks.length; i++) {
+            if (!checks[i].passed) failedChecks.push(checks[i]);
+        }
         
         if (decision === 'ALLOW') {
             return 'All validation checks passed. Action can proceed safely.';
         } else if (decision === 'REVIEW') {
-            const reasons = failedChecks.map(c => c.details).join('; ');
-            return `Review required — Risk: ${risk.label}. Issues: ${reasons}`;
+            var reasons = [];
+            for (var j = 0; j < failedChecks.length; j++) {
+                reasons.push(failedChecks[j].details);
+            }
+            return 'Review required — Risk: ' + risk.label + '. Issues: ' + reasons.join('; ');
         } else {
-            const reasons = failedChecks.map(c => c.details).join('; ');
-            return `Action blocked — Risk: ${risk.label}. Issues: ${reasons}`;
+            var reasons2 = [];
+            for (var k = 0; k < failedChecks.length; k++) {
+                reasons2.push(failedChecks[k].details);
+            }
+            return 'Action blocked — Risk: ' + risk.label + '. Issues: ' + reasons2.join('; ');
         }
     }
     
-    /**
-     * Check if a module is loaded
-     */
     _isModuleLoaded(moduleName) {
         try {
-            const state = window.LawAIApp?.StateSyncEngine?.getAll() || {};
-            const moduleState = state[`module.${moduleName}`];
-            return moduleState?.loaded === true;
-        } catch {
-            return false;
-        }
+            if (window.LawAIApp && window.LawAIApp.StateSyncEngine) {
+                var state = window.LawAIApp.StateSyncEngine.getAll() || {};
+                var moduleState = state['module.' + moduleName];
+                return moduleState && moduleState.loaded === true;
+            }
+        } catch (e) {}
+        return false;
     }
     
-    /**
-     * Get modules that depend on a given module
-     */
     _getAffectedModules(moduleName) {
-        const affected = [];
+        var affected = [];
+        var entries = Array.from(this.dependencyGraph.entries());
         
-        for (const [mod, deps] of this.dependencyGraph) {
-            if (deps.includes(moduleName)) {
+        for (var i = 0; i < entries.length; i++) {
+            var mod = entries[i][0];
+            var deps = entries[i][1];
+            if (deps.indexOf(moduleName) !== -1) {
                 affected.push(mod);
-                // Recursively find indirect dependents
-                const indirect = this._getAffectedModules(mod);
-                affected.push(...indirect.filter(m => !affected.includes(m)));
+                var indirect = this._getAffectedModules(mod);
+                for (var j = 0; j < indirect.length; j++) {
+                    if (affected.indexOf(indirect[j]) === -1) affected.push(indirect[j]);
+                }
             }
         }
         
-        return [...new Set(affected)];
+        return affected;
     }
     
-    /**
-     * Detect circular dependencies
-     */
-    _detectCircularDependencies(startModule, visited = new Set(), path = []) {
+    _detectCircularDependencies(startModule, visited, path) {
+        if (!visited) visited = new Set();
+        if (!path) path = [];
+        
         if (visited.has(startModule)) {
-            const cycleStart = path.indexOf(startModule);
+            var cycleStart = path.indexOf(startModule);
             return cycleStart >= 0 ? path.slice(cycleStart) : [];
         }
         
         visited.add(startModule);
         path.push(startModule);
         
-        const deps = this.dependencyGraph.get(startModule) || [];
+        var deps = this.dependencyGraph.get(startModule) || [];
         
-        for (const dep of deps) {
-            const cycle = this._detectCircularDependencies(dep, new Set(visited), [...path]);
+        for (var i = 0; i < deps.length; i++) {
+            var cycle = this._detectCircularDependencies(deps[i], new Set(visited), path.slice());
             if (cycle.length > 0) return cycle;
         }
         
         return [];
     }
     
-    /**
-     * Simple schema validation
-     */
     _validateSchema(data, schema) {
         try {
-            for (const [key, expectedType] of Object.entries(schema)) {
+            var keys = Object.keys(schema);
+            for (var i = 0; i < keys.length; i++) {
+                var key = keys[i];
+                var expectedType = schema[key];
                 if (data[key] === undefined) return false;
                 if (typeof data[key] !== expectedType) return false;
             }
             return true;
-        } catch {
+        } catch (e) {
             return false;
         }
     }
     
-    /**
-     * Record validation result
-     */
     _recordValidation(result) {
         this.validationHistory.push(result);
         
-        // Update counters
-        this.systemState.validationsByDecision[result.decision] = 
-            (this.systemState.validationsByDecision[result.decision] || 0) + 1;
-        this.systemState.validationsByRisk[result.risk.label] = 
-            (this.systemState.validationsByRisk[result.risk.label] || 0) + 1;
+        this.systemState.validationsByDecision[result.decision] = (this.systemState.validationsByDecision[result.decision] || 0) + 1;
+        this.systemState.validationsByRisk[result.risk.label] = (this.systemState.validationsByRisk[result.risk.label] || 0) + 1;
         
-        // Keep history manageable
         if (this.validationHistory.length > 500) {
             this.validationHistory = this.validationHistory.slice(-250);
         }
@@ -1022,9 +905,6 @@ class RuntimeValidationSystem {
         });
     }
     
-    /**
-     * Emit validation result
-     */
     _emitValidationResult(result) {
         this._emitEvent('validationSystem.result', {
             validationId: result.validationId,
@@ -1036,69 +916,48 @@ class RuntimeValidationSystem {
         });
     }
     
-    /**
-     * Audit an action
-     */
-    _audit(action, data = {}) {
-        const auditEntry = {
-            action,
-            data,
-            timestamp: new Date().toISOString(),
-            version: this.version
-        };
-        
+    _audit(action, data) {
+        if (!data) data = {};
+        var auditEntry = { action: action, data: data, timestamp: new Date().toISOString(), version: this.version };
         this._emitEvent('validationSystem.audit', auditEntry);
     }
     
-    /**
-     * Emit runtime event
-     */
     _emitEvent(type, data) {
-        if (window.LawAIApp?.RuntimeEventCollector) {
-            try {
-                window.LawAIApp.RuntimeEventCollector.emit({
-                    type,
+        try {
+            var collector = window.LawAIApp && window.LawAIApp.RuntimeEventCollector;
+            if (!collector) return;
+            var emitFn = collector.emit || collector.emitEvent || collector.log || collector.track;
+            if (typeof emitFn === 'function') {
+                emitFn.call(collector, {
+                    type: type,
                     source: 'RuntimeValidationSystem',
-                    data
+                    data: data,
+                    timestamp: new Date().toISOString()
                 });
-            } catch (e) {
-                // Rule 4: Event emission failure doesn't affect runtime
             }
-        }
+        } catch (e) {}
     }
 }
 
 // Export to global namespace
 if (typeof window !== 'undefined') {
-    if (!window.LawAIApp) {
-        window.LawAIApp = {};
-    }
+    if (!window.LawAIApp) window.LawAIApp = {};
     window.LawAIApp.RuntimeValidationSystem = new RuntimeValidationSystem();
     
-    // API shortcuts
     window.LawAIApp.Validation = {
-        // Main validation
-        validate: (request, options) => window.LawAIApp.RuntimeValidationSystem.validate(request, options),
-        quickValidate: (request) => window.LawAIApp.RuntimeValidationSystem.quickValidate(request),
-        validateWithTypes: (request, types) => window.LawAIApp.RuntimeValidationSystem.validateWithTypes(request, types),
-        
-        // Specific validations
-        validateState: () => window.LawAIApp.RuntimeValidationSystem.validateState(),
-        validateDependencies: (module) => window.LawAIApp.RuntimeValidationSystem.validateDependencies(module),
-        validatePerformance: (request) => window.LawAIApp.RuntimeValidationSystem.validatePerformance(request),
-        validateData: (dataContext) => window.LawAIApp.RuntimeValidationSystem.validateData(dataContext),
-        validateSafety: (request) => window.LawAIApp.RuntimeValidationSystem.validateSafety(request),
-        
-        // Validator management
-        registerValidator: (def) => window.LawAIApp.RuntimeValidationSystem.registerValidator(def),
-        
-        // Dependency management
-        registerDependencies: (module, deps) => window.LawAIApp.RuntimeValidationSystem.registerDependencies(module, deps),
-        getDependencyTree: (module) => window.LawAIApp.RuntimeValidationSystem.getDependencyTree(module),
-        
-        // Reporting
-        getReport: () => window.LawAIApp.RuntimeValidationSystem.getReport(),
-        getHealth: () => window.LawAIApp.RuntimeValidationSystem.getHealth(),
-        getValidationHistory: (limit) => window.LawAIApp.RuntimeValidationSystem.getValidationHistory(limit)
+        validate: function(request, options) { return window.LawAIApp.RuntimeValidationSystem.validate(request, options); },
+        quickValidate: function(request) { return window.LawAIApp.RuntimeValidationSystem.quickValidate(request); },
+        validateWithTypes: function(request, types) { return window.LawAIApp.RuntimeValidationSystem.validateWithTypes(request, types); },
+        validateState: function() { return window.LawAIApp.RuntimeValidationSystem.validateState(); },
+        validateDependencies: function(module) { return window.LawAIApp.RuntimeValidationSystem.validateDependencies(module); },
+        validatePerformance: function(request) { return window.LawAIApp.RuntimeValidationSystem.validatePerformance(request); },
+        validateData: function(dataContext) { return window.LawAIApp.RuntimeValidationSystem.validateData(dataContext); },
+        validateSafety: function(request) { return window.LawAIApp.RuntimeValidationSystem.validateSafety(request); },
+        registerValidator: function(def) { return window.LawAIApp.RuntimeValidationSystem.registerValidator(def); },
+        registerDependencies: function(module, deps) { return window.LawAIApp.RuntimeValidationSystem.registerDependencies(module, deps); },
+        getDependencyTree: function(module) { return window.LawAIApp.RuntimeValidationSystem.getDependencyTree(module); },
+        getReport: function() { return window.LawAIApp.RuntimeValidationSystem.getReport(); },
+        getHealth: function() { return window.LawAIApp.RuntimeValidationSystem.getHealth(); },
+        getValidationHistory: function(limit) { return window.LawAIApp.RuntimeValidationSystem.getValidationHistory(limit); }
     };
 }
