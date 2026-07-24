@@ -55,6 +55,12 @@ var STAGES = {
         "core/statePersistence.js",
         "core/stateIntelligence.js",
         "core/runtimeStateIntegration.js"
+        "core/aiContextEngine.js",
+        "core/aiRuntimeKnowledge.js",
+        "core/aiReasoningEngine.js",
+        "core/aiRecommendationEngine.js",
+        "core/aiRuntimeAssistant.js",
+        "core/aiRuntimeInteraction.js"
     ],
     critical: [
         "storageEngine.js",
@@ -68,6 +74,7 @@ var STAGES = {
         "experienceEngine.js",
         "recommendationEngine.js",
         "debug/devPanel.js"
+        "debug/devPanelAIAssistant.js"
     ],
     intelligence: [
         "lessonEngine.js",
