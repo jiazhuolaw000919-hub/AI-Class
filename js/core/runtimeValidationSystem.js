@@ -1102,5 +1102,3 @@ if (typeof window !== 'undefined') {
         getValidationHistory: (limit) => window.LawAIApp.RuntimeValidationSystem.getValidationHistory(limit)
     };
 }
-
-export default RuntimeValidationSystem;
