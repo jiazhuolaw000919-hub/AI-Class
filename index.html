@@ -44,13 +44,28 @@
   <script src="js/dev/runtimeReport.js"></script>
   <script src="js/dev/developerOverlay.js"></script>
 
-  <!-- 6. 启动脚本 -->
+  <!-- 6. 启动脚本 (Part 45.9.1 Fixed — Auto BootManager.start()) -->
   <script>
     console.log('🚀 Starting Law AI Academy...');
     
     function initApp() {
       console.log('✅ System ready, initializing App...');
+
+      // ────────────────────────────────────────────────
+      // 🔥 Part 45.9.1 Fix: Auto-trigger BootManager
+      //    Checks _booted to prevent double boot.
+      // ────────────────────────────────────────────────
+      var bm = (window.LawAIApp && LawAIApp.BootManager) || window.bootManager;
+      if (bm && typeof bm.start === 'function' && !bm._booted) {
+        console.log('🔥 Auto-starting BootManager...');
+        bm.start();
+      } else if (bm && bm._booted) {
+        console.log('✅ BootManager already booted, skipping');
+      } else {
+        console.warn('⚠️ BootManager not available for auto-start');
+      }
       
+      // ── SystemComposer ──
       if (window.LawAIApp && window.LawAIApp.SystemComposer) {
         try {
           window.LawAIApp.SystemComposer.init({});
@@ -62,7 +77,15 @@
         setTimeout(initApp, 500);
         return;
       }
+
+      // ── DevPanel refresh after boot pipeline completes ──
+      setTimeout(function() {
+        if (LawAIApp.Debug && LawAIApp.Debug.DevPanel && typeof LawAIApp.Debug.DevPanel.refresh === 'function') {
+          LawAIApp.Debug.DevPanel.refresh();
+        }
+      }, 300);
       
+      // ── Loading placeholder fade ──
       setTimeout(function() {
         var el = document.getElementById('loading-placeholder');
         if (el) {
@@ -79,6 +102,7 @@
       initApp();
     });
 
+    // Fallback: if SYSTEM_READY never fires, force init after 5s
     setTimeout(function() {
       var root = document.getElementById('law-runtime-root');
       if (root && root.innerHTML.trim() === '') {
@@ -87,6 +111,7 @@
       }
     }, 5000);
 
+    // Ultimate fallback: hide loading placeholder after 7s no matter what
     setTimeout(function() {
       var el = document.getElementById('loading-placeholder');
       if (el && el.style.display !== 'none') {
