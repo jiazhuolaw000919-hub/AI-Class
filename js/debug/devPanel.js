@@ -4193,7 +4193,7 @@ _getGovernanceDashboardHTML: function() {
         
         if (!policy && !perm && !safety) return null;
         
-        var html = '<div style="font-weight:bold;color:#22c55e;font-size:11px;">🏛️ Governance Layer</div>';
+        var html = '<div style="font-weight:bold;color:#22c55e;font-size:11px;cursor:pointer;" onclick="window.LawAIApp._openGovernanceDashboard()" title="Click to open full Governance Dashboard">🏛️ Governance Layer 🔗</div>';
         html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;font-size:10px;">';
         
         if (policy && policy.getHealth) {
