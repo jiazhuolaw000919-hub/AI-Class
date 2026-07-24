@@ -1578,7 +1578,11 @@ LawAIApp.Debug.DevPanel = {
                 </div>
             </div>
 
-            
+            <!-- ========================================================== -->
+            <!-- 🔥 PART 46.7: AI RUNTIME ASSISTANT -->
+            <!-- ========================================================== -->
+            <div id="dev-panel-ai-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+            </div>
 
             <!-- ========================================================== -->
             <!-- ACTIONS -->
