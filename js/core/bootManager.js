@@ -343,7 +343,7 @@ LawAIApp.BootManager = {
 
         console.log('🚀 BootManager: Startup complete in', bootDuration + 'ms');
         return Promise.resolve({ status: 'started' });
-    },
+    }
 
     // ============================================================
     // 🆕 COORDINATOR LIFECYCLE METHODS
