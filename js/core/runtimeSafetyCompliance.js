@@ -1377,5 +1377,3 @@ if (typeof window !== 'undefined') {
             window.LawAIApp.RuntimeSafetyCompliance.getAuditTrail(limit)
     };
 }
-
-export default RuntimeSafetyCompliance;
