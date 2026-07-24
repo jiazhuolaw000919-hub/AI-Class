@@ -108,10 +108,13 @@ if (typeof window !== 'undefined') {
     logHealthReport: logHealthReport,
     getHealth: generateHealthReport,
     init: function() {
-      console.log('✅ RuntimeMetricsHealth ready');
+      console.log('✅ RuntimeMetricsHealth ready (deferred report)');
+      return this;
+    },
+    report: function() {
       var report = generateHealthReport();
       logHealthReport(report);
-      return this;
+      return report;
     }
   };
   
