@@ -74,7 +74,8 @@ var STAGES = {
         "experienceEngine.js",
         "recommendationEngine.js",
         "debug/devPanel.js",
-        "debug/devPanelAIAssistant.js"
+        "debug/devPanelAIAssistant.js",
+        "debug/devPanelKnowledgeGraph.js"
     ],
     intelligence: [
         "lessonEngine.js",
