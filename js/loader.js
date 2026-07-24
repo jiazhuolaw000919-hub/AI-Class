@@ -118,13 +118,19 @@ var STAGES = {
         // ═══════════════════════════════════════
         // Part 49: Runtime Governance Layer
         // ═══════════════════════════════════════
-        "core/runtimeGovernanceFoundation.js",   // 49.1
-        "core/runtimePolicyEngine.js",           // 49.2
-        "core/runtimePermissionSystem.js",       // 49.3
-        "core/runtimeValidationSystem.js",       // 49.4
-        "core/runtimeSafetyCompliance.js",       // 49.5
-        "core/aiGovernanceIntegration.js",       // 49.6
-        "core/unifiedGovernanceDashboard.js"     // 49.7 融合版
+        "core/runtimeGovernanceFoundation.js",
+        "core/runtimePolicyEngine.js",
+        "core/runtimePermissionSystem.js",
+        "core/runtimeValidationSystem.js",
+        "core/runtimeSafetyCompliance.js",
+        "core/aiGovernanceIntegration.js",
+        "core/unifiedGovernanceDashboard.js",
+        "core/panelRegistry.js",
+        "core/panelManager.js",
+        "core/devPanelCore.js",
+        "panels/governancePanel.js",
+        "components/panelCard.js",
+        "components/statusBadge.js"
     ],
     critical: [
         "storageEngine.js",
