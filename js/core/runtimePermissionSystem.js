@@ -1101,5 +1101,3 @@ if (typeof window !== 'undefined') {
         getAccessHistory: (limit) => window.LawAIApp.RuntimePermissionSystem.getAccessHistory(limit)
     };
 }
-
-export default RuntimePermissionSystem;
