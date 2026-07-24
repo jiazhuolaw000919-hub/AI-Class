@@ -2,6 +2,7 @@
  * Runtime State Integration
  * Runtime State Integration Layer
  * Part 45.7 - Runtime State Integration
+ * Part 45.9 - Fixed: State updates via Event, not direct calls
  */
 
 // ============================================================
@@ -11,6 +12,7 @@
 var _isInitialized = false;
 var _integrationHandlers = {};
 var _stateEventMap = {};
+var _eventListenersSetup = false;
 
 // ============================================================
 // HELPER FUNCTIONS
@@ -68,7 +70,7 @@ var DEFAULT_MAPPINGS = {
     'runtime.boot.complete': {
         stateId: 'runtime.state',
         transform: function(payload) {
-            return { status: 'running', ready: true, bootDuration: payload.duration || 0 };
+            return { status: 'running', ready: true, bootDuration: payload.duration || 0, bootCompletedAt: new Date().toISOString() };
         }
     },
     'runtime.module.loaded': {
@@ -115,6 +117,97 @@ var DEFAULT_MAPPINGS = {
         }
     }
 };
+
+// ============================================================
+// 🆕 EVENT LISTENER SETUP (Part 45.9)
+// ============================================================
+
+function setupEventListeners() {
+    if (_eventListenersSetup) return;
+    
+    var collector = getEventCollector();
+    if (!collector) {
+        if (isDebugMode()) {
+            console.warn('[State Integration] Event collector not available for listeners');
+        }
+        return;
+    }
+
+    if (isDebugMode()) {
+        console.log('[State Integration] Setting up event listeners...');
+    }
+
+    // Use the collector's on method if available
+    if (typeof collector.on === 'function') {
+        // Listen to boot events
+        collector.on('BOOT_STARTED', function(payload) {
+            if (isDebugMode()) {
+                console.log('[State Integration] Received BOOT_STARTED event');
+            }
+            var engine = getEngine();
+            if (engine && typeof engine.update === 'function') {
+                engine.update('runtime.state', {
+                    status: 'booting',
+                    ready: false,
+                    startedAt: payload.timestamp || new Date().toISOString()
+                }, 'RuntimeEventCollector', { source: 'BOOT_STARTED' });
+            }
+        });
+
+        collector.on('BOOT_COMPLETE', function(payload) {
+            if (isDebugMode()) {
+                console.log('[State Integration] Received BOOT_COMPLETE event');
+            }
+            var engine = getEngine();
+            if (engine && typeof engine.update === 'function') {
+                engine.update('runtime.state', {
+                    status: 'running',
+                    ready: true,
+                    bootDuration: payload.duration || 0,
+                    bootCompletedAt: new Date().toISOString()
+                }, 'RuntimeEventCollector', { source: 'BOOT_COMPLETE' });
+            }
+        });
+
+        // Listen to module events
+        collector.on('MODULE_LOADED', function(payload) {
+            if (isDebugMode()) {
+                console.log('[State Integration] Received MODULE_LOADED event');
+            }
+            var engine = getEngine();
+            if (engine && typeof engine.update === 'function') {
+                engine.update('module.state', {
+                    loaded: true,
+                    ready: false,
+                    name: payload.moduleName || 'unknown'
+                }, 'RuntimeEventCollector', { source: 'MODULE_LOADED' });
+            }
+        });
+
+        collector.on('MODULE_READY', function(payload) {
+            if (isDebugMode()) {
+                console.log('[State Integration] Received MODULE_READY event');
+            }
+            var engine = getEngine();
+            if (engine && typeof engine.update === 'function') {
+                engine.update('module.state', {
+                    loaded: true,
+                    ready: true,
+                    name: payload.moduleName || 'unknown'
+                }, 'RuntimeEventCollector', { source: 'MODULE_READY' });
+            }
+        });
+
+        _eventListenersSetup = true;
+        if (isDebugMode()) {
+            console.log('[State Integration] Event listeners established');
+        }
+    } else {
+        if (isDebugMode()) {
+            console.warn('[State Integration] Event collector does not support .on() method');
+        }
+    }
+}
 
 // ============================================================
 // REGISTRATION API
@@ -181,7 +274,6 @@ export function handleEvent(event) {
 
     var mapping = getMapping(event.eventId);
     if (!mapping) {
-        // No mapping, skip silently
         return { success: false, error: 'No mapping for event: ' + event.eventId };
     }
 
@@ -190,7 +282,6 @@ export function handleEvent(event) {
         return { success: false, error: 'Engine not available' };
     }
 
-    // Get current state value for transform
     var currentValue = safeCall(function() {
         if (typeof engine.get === 'function') {
             return engine.get(mapping.stateId);
@@ -198,7 +289,6 @@ export function handleEvent(event) {
         return null;
     }, null);
 
-    // Apply transform
     var newValue;
     try {
         if (typeof mapping.transform === 'function') {
@@ -213,7 +303,6 @@ export function handleEvent(event) {
         return { success: false, error: 'Transform failed: ' + e.message };
     }
 
-    // Update state
     var result = safeCall(function() {
         if (typeof engine.update === 'function') {
             return engine.update(mapping.stateId, newValue, 'Event:' + event.eventId, {
@@ -248,11 +337,11 @@ export function setupAutoIntegration() {
         return false;
     }
 
-    // Register default mappings
     var registered = registerMappings(DEFAULT_MAPPINGS);
 
-    // Listen to events via collector
-    // Note: This is a simplified integration - in production, we'd use EventBus
+    // 🆕 Setup event listeners for state updates
+    setupEventListeners();
+
     if (isDebugMode()) {
         console.log('[State Integration] Auto integration setup:', registered + ' mappings registered');
     }
@@ -265,7 +354,6 @@ export function setupAutoIntegration() {
 // ============================================================
 
 export function handlePerformanceMetric(metricId, value, metadata) {
-    // Performance metrics can influence state
     if (!metricId) return { success: false, error: 'Invalid metric' };
 
     var engine = getEngine();
@@ -276,7 +364,6 @@ export function handlePerformanceMetric(metricId, value, metadata) {
     var stateId = null;
     var newValue = {};
 
-    // Map performance metrics to state updates
     if (metricId === 'BOOT_TIME') {
         stateId = 'runtime.state';
         var currentState = safeCall(function() {
@@ -334,88 +421,23 @@ export function handlePerformanceMetric(metricId, value, metadata) {
 }
 
 // ============================================================
-// BOOT INTEGRATION
+// 🆕 DEPRECATED: Boot Integration (Part 45.9 - No longer used)
 // ============================================================
 
 export function initBootState() {
-    var engine = getEngine();
-    if (!engine) {
-        return { success: false, error: 'Engine not available' };
+    if (isDebugMode()) {
+        console.warn('[State Integration] initBootState() is deprecated. Use Event-based state updates instead.');
     }
-
-    // Initialize boot state
-    var bootState = {
-        status: 'initializing',
-        ready: false,
-        startedAt: new Date().toISOString(),
-        bootCount: 0
-    };
-
-    var result = safeCall(function() {
-        if (typeof engine.update === 'function') {
-            return engine.update('runtime.state', bootState, 'BootManager', { boot: true });
-        }
-        return null;
-    }, null);
-
-    if (result && result.success) {
-        if (isDebugMode()) {
-            console.log('[State Integration] Boot state initialized');
-        }
-        return { success: true };
-    }
-
-    return { success: false, error: 'Boot state initialization failed' };
+    // Event listeners now handle this via BOOT_STARTED event
+    return { success: true, message: 'Deprecated - use Event-based updates' };
 }
 
 export function completeBootState(duration, success) {
-    var engine = getEngine();
-    if (!engine) {
-        return { success: false, error: 'Engine not available' };
+    if (isDebugMode()) {
+        console.warn('[State Integration] completeBootState() is deprecated. Use Event-based state updates instead.');
     }
-
-    var currentState = safeCall(function() {
-        if (typeof engine.get === 'function') {
-            return engine.get('runtime.state');
-        }
-        return null;
-    }, {});
-
-    var newState = {
-        status: success ? 'running' : 'boot_failed',
-        ready: success || false,
-        bootDuration: duration || 0,
-        bootCompletedAt: new Date().toISOString(),
-        bootSuccess: success !== false
-    };
-
-    // Merge with existing
-    if (currentState && typeof currentState === 'object') {
-        for (var key in currentState) {
-            if (newState[key] === undefined && currentState.hasOwnProperty(key)) {
-                newState[key] = currentState[key];
-            }
-        }
-    }
-
-    var result = safeCall(function() {
-        if (typeof engine.update === 'function') {
-            return engine.update('runtime.state', newState, 'BootManager', {
-                bootComplete: true,
-                duration: duration
-            });
-        }
-        return null;
-    }, null);
-
-    if (result && result.success) {
-        if (isDebugMode()) {
-            console.log('[State Integration] Boot state completed');
-        }
-        return { success: true };
-    }
-
-    return { success: false, error: 'Boot state completion failed' };
+    // Event listeners now handle this via BOOT_COMPLETE event
+    return { success: true, message: 'Deprecated - use Event-based updates' };
 }
 
 // ============================================================
@@ -435,7 +457,6 @@ export function getUnifiedState() {
         return {};
     }, {});
 
-    // Structure unified state
     var unified = {
         runtime: allStates['runtime.state'] || { status: 'unknown', ready: false },
         modules: allStates['module.state'] || { loaded: false, ready: false },
@@ -459,7 +480,8 @@ export function getIntegrationStatus() {
         mappings: Object.keys(_stateEventMap).length,
         engineAvailable: !!getEngine(),
         collectorAvailable: !!getEventCollector(),
-        intelligenceAvailable: !!getIntelligence()
+        intelligenceAvailable: !!getIntelligence(),
+        eventListenersActive: _eventListenersSetup
     };
 
     return status;
@@ -472,6 +494,7 @@ export function getIntegrationStatus() {
 export function reset() {
     _stateEventMap = {};
     _integrationHandlers = {};
+    _eventListenersSetup = false;
     if (isDebugMode()) {
         console.log('[State Integration] Reset complete');
     }
@@ -486,7 +509,6 @@ export function initIntegration() {
         return { success: true, status: 'already_initialized' };
     }
 
-    // Setup auto integration
     var setupResult = setupAutoIntegration();
 
     _isInitialized = true;
@@ -494,6 +516,7 @@ export function initIntegration() {
     if (isDebugMode()) {
         console.log('[State Integration] Initialized');
         console.log('[State Integration] Mappings:', Object.keys(_stateEventMap).length);
+        console.log('[State Integration] Event Listeners:', _eventListenersSetup ? '✅ Active' : '❌ Inactive');
     }
 
     return { success: true, status: 'initialized' };
@@ -513,6 +536,7 @@ if (typeof window !== 'undefined') {
         handleEvent: handleEvent,
         setupAutoIntegration: setupAutoIntegration,
         handlePerformanceMetric: handlePerformanceMetric,
+        // Deprecated - kept for backward compatibility
         initBootState: initBootState,
         completeBootState: completeBootState,
         getUnifiedState: getUnifiedState,
