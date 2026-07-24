@@ -128,18 +128,37 @@ LawAIApp.Debug.DevPanel = {
         this._isOpen = true;
 
         // ============================================================
-        // 🔥 PART 24: BOOT ORCHESTRATION - 在 panel 添加到 DOM 后渲染
+        // 🔥 PART 24: BOOT ORCHESTRATION — FIXED
         // ============================================================
         var bootContainer = document.getElementById('boot-panel-container');
         if (bootContainer) {
-            var bootPanel = window.bootPanel || LawAIApp.BootPanel;
-            if (bootPanel && typeof bootPanel.render === 'function') {
-                bootPanel.render(bootContainer, 15000);
-            } else {
-                bootContainer.innerHTML = 
-                    '<div style="font-weight:bold;color:#f59e0b;font-size:11px;">🚀 Boot Orchestration</div>' +
-                    '<div style="font-size:10px;color:#475569;">Loading...</div>';
+            // Use BootManager directly — the live source of truth
+            var bm = LawAIApp.BootManager || window.bootManager;
+            var pipeline = LawAIApp.BootPipeline || window.bootPipeline;
+    
+            var bootStages = 'N/A';
+            var bootStatus = 'idle';
+            var bootDuration = 'N/A';
+    
+            if (pipeline && typeof pipeline.getPipelineStatus === 'function') {
+                var ps = pipeline.getPipelineStatus();
+                bootStages = (ps.completedStages ? ps.completedStages.length : 0) + '/' + (ps.totalStages || 9);
+                bootStatus = ps.status || 'idle';
+                bootDuration = ps.totalDuration ? ps.totalDuration + 'ms' : 'N/A';
+            } else if (bm) {
+                bootStatus = bm._booted ? 'completed' : (bm._booting ? 'running' : 'idle');
+                bootStages = bm._booted ? '9/9' : '0/9';
             }
+    
+            var statusColor = bootStatus === 'completed' ? '#22c55e' : (bootStatus === 'running' ? '#f59e0b' : '#64748b');
+    
+            bootContainer.innerHTML = 
+                '<div style="font-weight:bold;color:#f59e0b;font-size:11px;">🚀 Boot Orchestration</div>' +
+                '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">' +
+                    '<span>Status: <span style="color:' + statusColor + ';">' + bootStatus + '</span></span>' +
+                    '<span>Stages: ' + bootStages + '</span>' +
+                    '<span>Duration: ' + bootDuration + '</span>' +
+                '</div>';
         }
 
         // Part 25: System Reality Info
