@@ -82,6 +82,15 @@ window.App = {
 
         this._boot = payload?.boot || window.LawAIApp.bootStatus || {};
 
+        // 🔥 Part 45.9.1: Auto-trigger BootManager from App.init()
+        var bm = LawAIApp.BootManager || window.bootManager;
+        if (bm && typeof bm.start === 'function' && !bm._booted) {
+            console.log('🔥 App.init → Auto-starting BootManager...');
+            bm.start();
+        } else if (bm && bm._booted) {
+            console.log('✅ BootManager already booted, skipping');
+        }
+
         this.mountRoot();
         this._renderImmediately();
         this._setupComposerListener();
