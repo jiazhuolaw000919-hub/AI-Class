@@ -1570,6 +1570,12 @@ LawAIApp.Debug.DevPanel = {
             <div id="dev-panel-kg-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
             </div>
 
+            !-- ========================================================== -->
+            <!-- 🔥 PART 48.7: COGNITIVE DASHBOARD -->
+            <!-- ========================================================== -->
+            <div id="dev-panel-cognitive-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+            </div>
+
             <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
             <!-- ========================================================== -->
@@ -1831,6 +1837,14 @@ LawAIApp.Debug.DevPanel = {
                 LawAIApp.Debug.DevPanelKnowledgeGraph.render(kgContainer);
             }
         }, 200);
+
+        //🔥 PART 48.7: COGNITIVE DASHBOARD
+        setTimeout(function() {
+            var cogContainer = document.getElementById('dev-panel-cognitive-section');
+            if (cogContainer && LawAIApp.Debug && LawAIApp.Debug.DevPanelCognitive) {
+                LawAIApp.Debug.DevPanelCognitive.render(cogContainer);
+    }
+}, 300);
     },
 
     /**
