@@ -14,7 +14,7 @@ var STAGES = {
     // 使用 ES Module 动态导入
     runtime: [
         // Core
-        "core/BootManager.js",
+        "core/bootManager.js",
         "core/bootPipeline.js",
         "core/bootStageRegistry.js",
         "core/bootStageHandlers.js",
