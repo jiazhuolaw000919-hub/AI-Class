@@ -605,5 +605,3 @@ if (typeof window !== 'undefined') {
         getScope: () => window.LawAIApp.RuntimeGovernanceFoundation.getScope()
     };
 }
-
-export default RuntimeGovernanceFoundation;
