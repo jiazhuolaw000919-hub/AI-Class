@@ -1,11 +1,37 @@
 // ================================================================
-// loader.js – V5.3.6 - Runtime Boot Bridge Hotfix (ES Module Support + Path Fix)
+// loader.js – V5.3.7 - Runtime Boot Bridge Hotfix (Part 49 Governance Ready)
 // Runtime Core loads BEFORE application engines
 // Supports ES Module loading for Runtime Framework
-// Fixed path ordering - js/core/ loads before /core/
+// Fixed: RuntimeEventCollector pre-creation + Governance module ordering
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
+
+// ============================================================
+// 🔥 Part 49 前置 — 确保 RuntimeEventCollector 存在
+// ============================================================
+(function() {
+    if (!window.LawAIApp.RuntimeEventCollector) {
+        window.LawAIApp.RuntimeEventCollector = {
+            events: [],
+            emit: function(event) {
+                this.events.push(Object.assign({}, event, { _timestamp: Date.now() }));
+                if (this.events.length > 200) this.events = this.events.slice(-100);
+            },
+            emitEvent: function(event) {
+                return this.emit(event);
+            },
+            getEvents: function() { return this.events; },
+            clear: function() { this.events = []; }
+        };
+        console.log('[Loader] ✅ RuntimeEventCollector pre-created for Part 49');
+    } else if (typeof window.LawAIApp.RuntimeEventCollector.emit !== 'function') {
+        window.LawAIApp.RuntimeEventCollector.emit = function(event) {
+            (this.events = this.events || []).push(Object.assign({}, event, { _timestamp: Date.now() }));
+        };
+        console.log('[Loader] ✅ RuntimeEventCollector.emit patched');
+    }
+})();
 
 // ============================================================
 // 精简阶段分组
@@ -13,12 +39,7 @@ window.LawAIApp = window.LawAIApp || {};
 var STAGES = {
     // 🆕 Runtime Core - MUST load before everything!
     runtime: [
-        "core/bootManager.js",
-        "core/bootPipeline.js",
-        "core/bootStageRegistry.js",
-        "core/bootStageHandlers.js",
-        "core/bootDiagnostics.js",
-        "core/bootReporter.js",
+        // Part 40-42: Observation / Metrics / Tracing
         "core/runtimeObservationManifest.js",
         "core/runtimeObservationCollector.js",
         "core/runtimeObservationValidator.js",
@@ -31,6 +52,8 @@ var STAGES = {
         "core/runtimeTraceCollector.js",
         "core/runtimeTraceValidator.js",
         "core/runtimeTraceHealth.js",
+        
+        // Part 43: Performance Framework
         "core/runtimePerformanceManifest.js",
         "core/runtimeMetricRegistry.js",
         "core/runtimePerformanceCollector.js",
@@ -40,6 +63,8 @@ var STAGES = {
         "core/runtimePerformanceReport.js",
         "core/runtimePerformanceAPI.js",
         "core/runtimePerformanceDashboard.js",
+        
+        // Part 44: Event Intelligence
         "core/runtimeEventRegistry.js",
         "core/runtimeEventCollector.js",
         "core/runtimeEventStore.js",
@@ -47,6 +72,8 @@ var STAGES = {
         "core/runtimeEventIntelligence.js",
         "core/runtimeEventTimeline.js",
         "core/runtimeEventAPI.js",
+        
+        // Part 45: State Synchronization
         "core/stateSyncManifest.js",
         "core/stateSchema.js",
         "core/stateRegistry.js",
@@ -55,32 +82,49 @@ var STAGES = {
         "core/statePersistence.js",
         "core/stateIntelligence.js",
         "core/runtimeStateIntegration.js",
+        
+        // Part 39: Boot Core (after state/events are ready)
+        "core/bootManager.js",
+        "core/bootPipeline.js",
+        "core/bootStageRegistry.js",
+        "core/bootStageHandlers.js",
+        "core/bootDiagnostics.js",
+        "core/bootReporter.js",
+        
+        // Part 46: AI Runtime Assistant
         "core/aiContextEngine.js",
         "core/aiRuntimeKnowledge.js",
         "core/aiReasoningEngine.js",
         "core/aiRecommendationEngine.js",
         "core/aiRuntimeAssistant.js",
         "core/aiRuntimeInteraction.js",
+        
+        // Part 47: Knowledge Graph
         "core/runtimeKnowledgeGraph.js",
         "core/runtimeEntityRegistry.js",
         "core/runtimeRelationshipEngine.js",
         "core/knowledgeGraphAnalyzer.js",
         "core/impactAnalysisEngine.js",
         "core/aiKnowledgeIntegration.js",
+        
+        // Part 48: Cognitive Engine
         "core/runtimeCognitiveEngine.js",
         "core/dependencyIntelligenceEngine.js",
         "core/rootCauseAnalysisEngine.js",
         "core/runtimePredictionEngine.js",
         "core/decisionSupportEngine.js",
         "core/aiCognitiveIntegration.js",
-        "core/governancePatch.js",
-        "core/runtimeGovernanceFoundation.js",
-        "core/runtimePolicyEngine.js",
-        "core/runtimePermissionSystem.js",
-        "core/runtimeValidationSystem.js",
-        "core/runtimeSafetyCompliance.js",
-        "core/aiGovernanceIntegration.js",
-        "core/unifiedGovernanceDashboard.js"
+        
+        // ═══════════════════════════════════════
+        // Part 49: Runtime Governance Layer
+        // ═══════════════════════════════════════
+        "core/runtimeGovernanceFoundation.js",   // 49.1
+        "core/runtimePolicyEngine.js",           // 49.2
+        "core/runtimePermissionSystem.js",       // 49.3
+        "core/runtimeValidationSystem.js",       // 49.4
+        "core/runtimeSafetyCompliance.js",       // 49.5
+        "core/aiGovernanceIntegration.js",       // 49.6
+        "core/unifiedGovernanceDashboard.js"     // 49.7 融合版
     ],
     critical: [
         "storageEngine.js",
@@ -179,6 +223,7 @@ function loadModule(src) {
 
 function tryLoadModule(paths, index, resolve, src, engineName) {
     if (index >= paths.length) {
+        console.error('❌ Failed to load:', src, '(all paths exhausted)');
         resolve({ file: src, status: "missing" });
         return;
     }
@@ -215,9 +260,11 @@ function tryLoadLegacy(src, resolve, fileSrc, engineName) {
         if (LawAIApp.DevTools?.RuntimeProfiler) {
             LawAIApp.DevTools.RuntimeProfiler.engineLoaded(engineName);
         }
+        console.log('✅ Loaded (Legacy):', fileSrc);
         resolve({ file: fileSrc, status: "ok" });
     };
     script.onerror = function() {
+        console.error('❌ Legacy load failed:', src);
         resolve({ file: fileSrc, status: "missing" });
     };
     document.head.appendChild(script);
@@ -268,6 +315,7 @@ function loadScript(src) {
 
 function tryLoad(paths, index, resolve, src, engineName) {
     if (index >= paths.length) {
+        console.error('❌ Failed to load:', src);
         resolve({ file: src, status: "missing" });
         return;
     }
@@ -298,13 +346,19 @@ function loadStage(name, files, delay) {
                 LawAIApp.DevTools.RuntimeProfiler.mark('stage_' + name + '_start');
             }
 
-            console.log(`[Loader] ⏳ Stage ${name}: Loading ${files.length} files...`);
+            console.log('[Loader] ⏳ Stage ' + name + ': Loading ' + files.length + ' files...');
 
             Promise.all(files.map(loadScript)).then(function(results) {
-                var loaded = results.filter(function(r) { return r.status === "ok"; }).length;
+                var loaded = results.filter(function(r) { return r.status === 'ok'; }).length;
+                var missing = results.filter(function(r) { return r.status === 'missing'; });
+                
                 console.log('✅ Stage ' + name + ': ' + loaded + '/' + files.length + ' loaded');
+                
+                if (missing.length > 0) {
+                    console.warn('⚠️ Stage ' + name + ' missing files:', missing.map(function(r) { return r.file; }));
+                }
 
-                console.log(`[Loader] ✅ Stage ${name} Ready`);
+                console.log('[Loader] ✅ Stage ' + name + ' Ready');
 
                 if (LawAIApp.DevTools?.RuntimeProfiler) {
                     LawAIApp.DevTools.RuntimeProfiler.mark('stage_' + name + '_end');
@@ -329,7 +383,8 @@ async function boot() {
     }
 
     console.log('[Loader] ⏳ Runtime Loading...');
-    console.log("🚀 Loader V5.3.6 starting...");
+    console.log('🚀 Loader V5.3.7 starting...');
+    console.log('[Loader] ✅ RuntimeEventCollector ready:', !!window.LawAIApp.RuntimeEventCollector?.emit);
 
     await loadStage('runtime', STAGES.runtime, 0);
     await loadStage('critical', STAGES.critical, 0);
@@ -346,14 +401,14 @@ async function boot() {
     console.log('[Loader] ✅ Composer Ready');
 
     setTimeout(function() {
-        window.dispatchEvent(new CustomEvent("SYSTEM_READY", {
+        window.dispatchEvent(new CustomEvent('SYSTEM_READY', {
             detail: { boot: status, timestamp: Date.now() }
         }));
 
         console.log('[Loader] ✅ Application Ready');
         console.log('[Loader] ✅ Recovery Core Runtime Ready');
 
-        console.log("✅ SYSTEM_READY dispatched");
+        console.log('✅ SYSTEM_READY dispatched');
     }, 50);
 
     loadStage('ux', STAGES.ux, 100);
@@ -368,7 +423,7 @@ async function boot() {
             'loader_boot_end'
         );
     }
-    console.log("🚀 Loader pipeline started");
+    console.log('🚀 Loader pipeline started');
 }
 
 // ============================================================
@@ -394,12 +449,12 @@ LawAIApp.getLoadStatus = function() {
 // ============================================================
 // 🔥 启动
 // ============================================================
-if (document.readyState === "complete" || document.readyState === "interactive") {
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
     setTimeout(boot, 50);
 } else {
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener('DOMContentLoaded', function() {
         setTimeout(boot, 50);
     });
 }
 
-console.log("🚀 Loader V5.3.6 ready (Runtime Boot Bridge Hotfix - ES Module Support)");
+console.log('🚀 Loader V5.3.7 ready (Part 49 Governance Ready)');
