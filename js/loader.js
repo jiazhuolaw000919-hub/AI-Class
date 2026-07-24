@@ -1,8 +1,8 @@
 // ================================================================
-// loader.js – V5.3.5 - Runtime Boot Bridge Hotfix (ES Module Support + Path Fix)
+// loader.js – V5.3.6 - Runtime Boot Bridge Hotfix (ES Module Support + Path Fix)
 // Runtime Core loads BEFORE application engines
 // Supports ES Module loading for Runtime Framework
-// Added /core/ path support for root-level core folder
+// Fixed path ordering - js/core/ loads before /core/
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -12,31 +12,25 @@ window.LawAIApp = window.LawAIApp || {};
 // ============================================================
 var STAGES = {
     // 🆕 Runtime Core - MUST load before everything!
-    // 使用 ES Module 动态导入
     runtime: [
-        // Core
         "core/bootManager.js",
         "core/bootPipeline.js",
         "core/bootStageRegistry.js",
         "core/bootStageHandlers.js",
         "core/bootDiagnostics.js",
         "core/bootReporter.js",
-        // Observation
         "core/runtimeObservationManifest.js",
         "core/runtimeObservationCollector.js",
         "core/runtimeObservationValidator.js",
         "core/runtimeObservationHealth.js",
-        // Metrics
         "core/runtimeMetricsManifest.js",
         "core/runtimeMetricsCollector.js",
         "core/runtimeMetricsValidator.js",
         "core/runtimeMetricsHealth.js",
-        // Tracing
         "core/runtimeTraceManifest.js",
         "core/runtimeTraceCollector.js",
         "core/runtimeTraceValidator.js",
         "core/runtimeTraceHealth.js",
-        // Performance
         "core/runtimePerformanceManifest.js",
         "core/runtimeMetricRegistry.js",
         "core/runtimePerformanceCollector.js",
@@ -46,7 +40,6 @@ var STAGES = {
         "core/runtimePerformanceReport.js",
         "core/runtimePerformanceAPI.js",
         "core/runtimePerformanceDashboard.js",
-        // Events
         "core/runtimeEventRegistry.js",
         "core/runtimeEventCollector.js",
         "core/runtimeEventStore.js",
@@ -54,7 +47,6 @@ var STAGES = {
         "core/runtimeEventIntelligence.js",
         "core/runtimeEventTimeline.js",
         "core/runtimeEventAPI.js",
-        // State Sync
         "core/stateSyncManifest.js",
         "core/stateSchema.js",
         "core/stateRegistry.js",
@@ -115,7 +107,7 @@ function getBasePath() {
 var BASE_PATH = getBasePath();
 
 // ============================================================
-// 🔥 ES Module 加载函数（支持 import/export）
+// 🔥 ES Module 加载函数
 // ============================================================
 function loadModule(src) {
     if (_loadCache[src]) {
@@ -127,7 +119,6 @@ function loadModule(src) {
 
     var engineName = src.replace('.js', '').replace(/\//g, '_');
     
-    // 🔥 注册引擎并记录依赖
     if (LawAIApp.DevTools?.RuntimeProfiler) {
         LawAIApp.DevTools.RuntimeProfiler.registerEngine(engineName);
         var caller = 'Loader';
@@ -138,19 +129,18 @@ function loadModule(src) {
     }
 
     var promise = new Promise(function(resolve) {
+        // 🔥 路径顺序：先尝试正确的 js/core/ 路径
         var paths = [
-            '/' + src,
-            '/core/' + src.replace('core/', ''),  // 🆕 根目录 core/ 路径
-            BASE_PATH + src,
-            'js/' + src,
-            '../' + src
+            BASE_PATH + src,        // js/core/bootManager.js
+            'js/' + src,            // js/core/bootManager.js
+            '/' + src,              // /core/bootManager.js
+            '../' + src             // ../core/bootManager.js
         ];
         var unique = [];
         for (var i = 0; i < paths.length; i++) {
             if (unique.indexOf(paths[i]) === -1) unique.push(paths[i]);
         }
         
-        // 🔥 使用 ES Module 方式加载
         tryLoadModule(unique, 0, resolve, src, engineName);
     });
 
@@ -166,13 +156,11 @@ function tryLoadModule(paths, index, resolve, src, engineName) {
     
     var fullPath = paths[index];
     
-    // 🔥 使用 import() 动态加载 ES Module
     import(fullPath)
         .then(function(module) {
             _loadCache[src] = true;
             _loadedModules[src] = true;
             
-            // 🔥 通知 Profiler 引擎加载完成
             if (LawAIApp.DevTools?.RuntimeProfiler) {
                 LawAIApp.DevTools.RuntimeProfiler.engineLoaded(engineName);
             }
@@ -182,13 +170,12 @@ function tryLoadModule(paths, index, resolve, src, engineName) {
         })
         .catch(function(err) {
             console.warn('⚠️ ESM load failed:', fullPath, err.message);
-            // 如果 import 失败，尝试传统方式加载
             tryLoadLegacy(fullPath, resolve, src, engineName);
         });
 }
 
 // ============================================================
-// 🔥 传统加载（Fallback for non-ESM files）
+// 🔥 传统加载（Fallback）
 // ============================================================
 function tryLoadLegacy(src, resolve, fileSrc, engineName) {
     var script = document.createElement("script");
@@ -208,15 +195,13 @@ function tryLoadLegacy(src, resolve, fileSrc, engineName) {
 }
 
 // ============================================================
-// 🔥 兼容加载：自动检测 ES Module 或传统 script
+// 🔥 兼容加载
 // ============================================================
 function loadScript(src) {
-    // 对于 core/ 目录下的文件，使用 ES Module 加载
     if (src.startsWith('core/')) {
         return loadModule(src);
     }
     
-    // 其他文件使用传统方式
     if (_loadCache[src]) {
         return Promise.resolve({ file: src, status: "ok" });
     }
@@ -237,7 +222,6 @@ function loadScript(src) {
     var promise = new Promise(function(resolve) {
         var paths = [
             '/js/' + src,
-            '/core/' + src.replace('core/', ''),  // 🆕 根目录 core/ 路径
             BASE_PATH + src,
             'js/' + src,
             '../js/' + src
@@ -316,12 +300,9 @@ async function boot() {
     }
 
     console.log('[Loader] ⏳ Runtime Loading...');
-    console.log("🚀 Loader V5.3.5 starting...");
+    console.log("🚀 Loader V5.3.6 starting...");
 
-    // 🆕 Load Runtime Core FIRST (ES Module)
     await loadStage('runtime', STAGES.runtime, 0);
-
-    // Then load critical
     await loadStage('critical', STAGES.critical, 0);
 
     console.log('[Loader] ✅ Runtime Ready');
@@ -346,7 +327,6 @@ async function boot() {
         console.log("✅ SYSTEM_READY dispatched");
     }, 50);
 
-    // 异步加载其他阶段
     loadStage('ux', STAGES.ux, 100);
     loadStage('intelligence', STAGES.intelligence, 500);
     loadStage('background', STAGES.background, 1000);
@@ -393,4 +373,4 @@ if (document.readyState === "complete" || document.readyState === "interactive")
     });
 }
 
-console.log("🚀 Loader V5.3.5 ready (Runtime Boot Bridge Hotfix - ES Module Support + Path Fix)");
+console.log("🚀 Loader V5.3.6 ready (Runtime Boot Bridge Hotfix - ES Module Support)");
