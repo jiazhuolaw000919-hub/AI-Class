@@ -2,8 +2,8 @@
  * Boot Pipeline
  * Central boot execution pipeline.
  * Integrated with Runtime Observation (Part 40), Metrics (Part 41),
- * Tracing (Part 42), Performance Framework (Part 43), and
- * Event Intelligence (Part 44.9)
+ * Tracing (Part 42), Performance Framework (Part 43),
+ * Event Intelligence (Part 44.9), and State Integration (Part 45.7)
  */
 
 import { BOOT_STAGE_REGISTRY } from './bootStageRegistry.js';
@@ -45,10 +45,6 @@ function setMetric(id, value) {
   } catch (e) { /* ignore */ }
 }
 
-// ============================================================
-// 🆕 EVENT HELPERS (Part 44.9)
-// ============================================================
-
 function emitEvent(eventId, payload, metadata) {
   try {
     var collector = LawAIApp.RuntimeEventCollector || window.runtimeEventCollector;
@@ -68,10 +64,6 @@ function emitStageEvent(stageName, eventType, duration, error) {
   };
   return emitEvent(eventId, payload, { source: 'bootPipeline' });
 }
-
-// ============================================================
-// TRACE HELPERS (Part 42)
-// ============================================================
 
 function startTrace(type, source, parentTraceId, metadata) {
   try {
@@ -102,10 +94,6 @@ function failTrace(traceId, error, metadata) {
   } catch (e) { /* ignore */ }
   return null;
 }
-
-// ============================================================
-// PERFORMANCE HELPERS (Part 43.10)
-// ============================================================
 
 function trackStagePerformance(stageName, callback) {
   try {
@@ -150,7 +138,27 @@ export function getPipelineStatus() {
   return _pipelineStatus;
 }
 
+// ============================================================
+// 🔥 runPipeline 修复：executorFn 必须始终是函数
+// ============================================================
+
 export function runPipeline(executorFn) {
+  // 🔥 确保 executorFn 是函数
+  var execFn = executorFn;
+  if (typeof execFn !== 'function') {
+    console.warn('[Boot Pipeline] executorFn is not a function, creating default executor');
+    // 创建默认执行器
+    execFn = function(stageName, stage) {
+      var handlerName = 'handle' + stageName;
+      var handlers = LawAIApp.BootStageHandlers || window.bootStageHandlers || {};
+      var handler = handlers[handlerName];
+      if (typeof handler === 'function') {
+        return handler();
+      }
+      return { success: true, warning: 'No handler for: ' + stageName };
+    };
+  }
+
   if (_isRunning) {
     console.warn('⚠️ Pipeline already running');
     return false;
@@ -167,7 +175,6 @@ export function runPipeline(executorFn) {
   _pipelineStatus.completedStages = [];
   _pipelineStatus.failedStage = null;
 
-  // Start PIPELINE trace (Part 42)
   var pipelineTrace = startTrace('PIPELINE', 'bootPipeline', null, { startedAt: _pipelineStatus.startedAt });
   _pipelineTraceId = pipelineTrace ? pipelineTrace.traceId : null;
 
@@ -183,10 +190,8 @@ export function runPipeline(executorFn) {
 
     _pipelineStatus.currentStage = stageName;
 
-    // 🆕 Emit STAGE_START event (Part 44.9)
     emitStageEvent(stageName, 'start');
 
-    // Start STAGE trace (Part 42)
     var stageTrace = startTrace('STAGE', 'bootPipeline', _pipelineTraceId, { 
       stage: stageName,
       order: stage.order,
@@ -205,9 +210,9 @@ export function runPipeline(executorFn) {
     var startTime = Date.now();
 
     try {
-      // Execute with Performance Tracking (Part 43.10)
       var result = trackStagePerformance(stageName, function() {
-        return executorFn(stageName, stage);
+        // 🔥 使用 execFn（确保是函数）
+        return execFn(stageName, stage);
       });
 
       if (result && result.error) {
@@ -220,7 +225,6 @@ export function runPipeline(executorFn) {
       _pipelineStatus.completedStages.push(stageName);
       _stageResults[stageName] = { success: true, duration: stage.duration };
 
-      // 🆕 Emit STAGE_COMPLETE event (Part 44.9)
       emitStageEvent(stageName, 'complete', stage.duration);
 
       if (stageTraceId) {
@@ -244,7 +248,6 @@ export function runPipeline(executorFn) {
       _pipelineStatus.status = 'failed';
       _stageResults[stageName] = { success: false, error: err.message };
 
-      // 🆕 Emit STAGE_FAILED event (Part 44.9)
       emitStageEvent(stageName, 'failed', stage.duration, err.message);
 
       if (stageTraceId) {
