@@ -1,7 +1,7 @@
 // ===========================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
-// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22, 23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39, 40, 41, 42, 43, 44 Complete
+// Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22, 23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39, 40, 41, 42, 43, 44，46 Complete
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -52,7 +52,7 @@ LawAIApp.Debug.DevPanel = {
         `;
 
         // ============================================================
-        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39, 40, 41, 42, 43, 44)
+        // 🔥 COLLECT ALL RECOVERY INFO (Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18，19，20，21, 22，23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39, 40, 41, 42, 43, 44，46)
         // ============================================================
         
         // Part 1: Architecture Info
@@ -1557,6 +1557,12 @@ LawAIApp.Debug.DevPanel = {
                 </div>
                 `}
             </div>
+            
+            <!-- ========================================================== -->
+            <!-- 🔥 PART 46.7: AI RUNTIME ASSISTANT -->
+            <!-- ========================================================== -->
+            <div id="dev-panel-ai-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+            </div>
 
             <!-- ========================================================== -->
             <!-- SYSTEM INFO -->
@@ -1796,8 +1802,16 @@ LawAIApp.Debug.DevPanel = {
             <input type="file" id="dev-import-input" accept=".json" style="display:none" onchange="LawAIApp.FactoryReset?.importBackup?.(this.files[0]) || LawAIApp.Debug?.DevPanel?._importBackup?.(this.files[0])">
         `;
 
-        document.body.appendChild(this._panel);
+                document.body.appendChild(this._panel);
         this._isOpen = true;
+
+        // 🔥 Part 46.7: Render AI Assistant after panel is in DOM
+        setTimeout(function() {
+            var aiContainer = document.getElementById('dev-panel-ai-section');
+            if (aiContainer && LawAIApp.Debug && LawAIApp.Debug.DevPanelAI) {
+                LawAIApp.Debug.DevPanelAI.render(aiContainer);
+            }
+        }, 100);
     },
 
     /**
