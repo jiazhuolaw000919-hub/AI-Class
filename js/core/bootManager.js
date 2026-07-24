@@ -259,16 +259,15 @@ LawAIApp.BootManager = {
         }
 
         if (window.bootPipeline && typeof window.bootPipeline.runPipeline === 'function') {
-            var success = window.bootPipeline.runPipeline(LawAIApp.BootStageHandlers || {});
-            if (!success) {
-                console.error('🚀 BootManager: Pipeline failed');
-                // Still finish boot tracking even on failure
-                if (LawAIApp.Performance && typeof LawAIApp.Performance.finishBoot === 'function') {
-                    LawAIApp.Performance.finishBoot({ success: false, error: 'Pipeline failed' });
+            var success = window.bootPipeline.runPipeline(function(stageName, stage) {
+                var handlers = LawAIApp.BootStageHandlers || window.bootStageHandlers || {};
+                var handlerName = 'handle' + stageName;
+                var handler = handlers[handlerName];
+                if (typeof handler === 'function') {
+                    return handler();
                 }
-                return Promise.reject({ status: 'failed' });
-            }
-        }
+                return { success: true, warning: 'No handler for: ' + stageName };
+            });
 
         var bootEndTime = Date.now();
         var bootDuration = bootEndTime - bootStartTime;
