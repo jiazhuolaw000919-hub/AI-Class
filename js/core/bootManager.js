@@ -333,7 +333,7 @@ LawAIApp.BootManager = {
                 ready: true,
                 bootDuration: bootDuration,
                 bootCompletedAt: new Date().toISOString()
-            }, 'BootManager', { source: 'BOOT_COMPLETE' });
+            }, 'Runtime', { source: 'BOOT_COMPLETE' });
         }
 
         // ============================================================
