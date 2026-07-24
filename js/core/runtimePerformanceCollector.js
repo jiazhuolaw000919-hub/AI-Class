@@ -117,12 +117,14 @@ export function start(metricId, target, metadata) {
     return null;
   }
   
-  // Validate metric exists
-  if (!validateMetricId(metricId)) {
-    if (isDebugMode()) {
-      console.warn('[Performance] Unknown metric:', metricId);
+  // Validate metric exists (skip if registry not available)
+  if (typeof validateMetricId === 'function') {
+    if (!validateMetricId(metricId)) {
+      if (isDebugMode()) {
+        console.warn('[Performance] Unknown metric:', metricId);
+      }
+      // Still allow collection — don't block on missing registry
     }
-    return null;
   }
   
   // Check for duplicate active start
@@ -205,12 +207,14 @@ export function record(metricId, target, duration, metadata) {
     return null;
   }
   
-  // Validate metric exists
-  if (!validateMetricId(metricId)) {
-    if (isDebugMode()) {
-      console.warn('[Performance] Unknown metric:', metricId);
+  // Validate metric exists (skip if registry not available)
+  if (typeof validateMetricId === 'function') {
+    if (!validateMetricId(metricId)) {
+      if (isDebugMode()) {
+        console.warn('[Performance] Unknown metric:', metricId);
+      }
+      // Still allow recording
     }
-    return null;
   }
   
   var record = createRecord(metricId, target, null, metadata);
