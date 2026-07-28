@@ -1,8 +1,11 @@
-// ===========================================
+// ===========================================================
 // devPanel.js
 // 开发者面板 - Ctrl+Shift+L 调出
 // Recovery R1 Parts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13，14, 15, 16，17，18, 19，20，21, 22, 23, 24, 25, 26, 27，28, 29，30，31，32，33，34，35，36，37，38，39, 40, 41, 42, 43, 44，46 Complete
-// ===========================================
+// ===========================================================
+// 🔥 PART 49.8.2: RuntimePanel extracted to runtimePanel.js
+// RuntimePanel available at LawAIApp.Debug.Panels.RuntimePanel
+// ===========================================================
 
 window.LawAIApp = window.LawAIApp || {};
 LawAIApp.Debug = LawAIApp.Debug || {};
@@ -58,8 +61,10 @@ LawAIApp.Debug.DevPanel = {
         // Part 1: Architecture Info
         var archInfo = this._getArchitectureInfo();
         
-        // Part 2: Runtime Info
-        var runtimeInfo = this._getRuntimeInfo();
+        // 🔥 PART 49.8.2: Runtime Info now from RuntimePanel
+        var runtimeInfo = LawAIApp.Debug.Panels.RuntimePanel ? 
+            LawAIApp.Debug.Panels.RuntimePanel._getData() : 
+            this._getRuntimeInfoFallback();
         
         // Part 3: Feature Governance Info
         var featureInfo = this._getFeatureInfo();
@@ -255,22 +260,9 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
-            <!-- 🔥 PART 2: RUNTIME STATUS -->
+            <!-- 🔥 PART 49.8.2: RUNTIME STATUS — RuntimePanel -->
             <!-- ========================================================== -->
-            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(74,158,255,0.06);border-radius:8px;border-left:2px solid #4a9eff;">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">⚡ Runtime</span>
-                    <span style="font-size:10px;color:${runtimeInfo.ready ? '#22c55e' : '#f59e0b'};">${runtimeInfo.ready ? '✅ Ready' : '⏳ ' + runtimeInfo.status}</span>
-                </div>
-                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
-                    <span>Status: ${runtimeInfo.status}</span>
-                    <span>Uptime: ${runtimeInfo.uptime}</span>
-                    <span>Version: ${runtimeInfo.version}</span>
-                </div>
-                <div style="font-size:9px;color:#475569;margin-top:2px;">
-                    Registry: ${runtimeInfo.registryCount} modules loaded
-                </div>
-            </div>
+            <div id="runtime-panel-placeholder" style="margin-bottom:8px;"></div>
 
             <!-- ========================================================== -->
             <!-- 🔥 PART 1: ARCHITECTURE STATUS -->
@@ -1570,7 +1562,7 @@ LawAIApp.Debug.DevPanel = {
             <div id="dev-panel-kg-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
             </div>
 
-            !-- ========================================================== -->
+            <!-- ========================================================== -->
             <!-- 🔥 PART 48.7: COGNITIVE DASHBOARD -->
             <!-- ========================================================== -->
             <div id="dev-panel-cognitive-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
@@ -1597,16 +1589,10 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
-            <!-- 🔥 PART 46.7: AI RUNTIME ASSISTANT -->
-            <!-- ========================================================== -->
-            <div id="dev-panel-ai-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
-            </div>
-
-            <!-- ========================================================== -->
             <!-- ACTIONS -->
             <!-- ========================================================== -->
             <div style="display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;">
-                <button onclick="if(confirm("⚠️ Delete ALL data?")){LawAIApp.FactoryReset?.resetAll?.() || LawAIApp.FactoryReset?.execute?.()}" style="padding:6px 14px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.2);border-radius:8px;color:#ef4444;font-size:12px;cursor:pointer;">🗑️ Reset</button>
+                <button onclick="if(confirm('⚠️ Delete ALL data?')){LawAIApp.FactoryReset?.resetAll?.() || LawAIApp.FactoryReset?.execute?.()}" style="padding:6px 14px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.2);border-radius:8px;color:#ef4444;font-size:12px;cursor:pointer;">🗑️ Reset</button>
                 <button onclick="LawAIApp.FactoryReset?.exportBackup?.() || LawAIApp.Debug?.StorageAudit?.exportAll?.()" style="padding:6px 14px;background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.15);border-radius:8px;color:#4a9eff;font-size:12px;cursor:pointer;">💾 Export</button>
                 <button onclick="document.getElementById('dev-import-input').click()" style="padding:6px 14px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.15);border-radius:8px;color:#8b5cf6;font-size:12px;cursor:pointer;">📥 Import</button>
                 <button onclick="var r=LawAIApp.Debug?.StorageAudit?.cleanOrphans?.();if(r!==undefined){alert('Removed '+r+' orphan keys');}else{alert('StorageAudit not available');}" style="padding:6px 14px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.15);border-radius:8px;color:#f59e0b;font-size:12px;cursor:pointer;">🧹 Clean</button>
@@ -1824,8 +1810,29 @@ LawAIApp.Debug.DevPanel = {
             <input type="file" id="dev-import-input" accept=".json" style="display:none" onchange="LawAIApp.FactoryReset?.importBackup?.(this.files[0]) || LawAIApp.Debug?.DevPanel?._importBackup?.(this.files[0])">
         `;
 
-                document.body.appendChild(this._panel);
+        document.body.appendChild(this._panel);
         this._isOpen = true;
+
+        // 🔥 PART 49.8.2: Render RuntimePanel
+        setTimeout(function() {
+            var runtimeContainer = document.getElementById('runtime-panel-placeholder');
+            if (runtimeContainer && LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.RuntimePanel) {
+                LawAIApp.Debug.Panels.RuntimePanel.render(runtimeContainer);
+            } else if (runtimeContainer) {
+                // Fallback: show basic runtime info
+                runtimeContainer.innerHTML = `
+                    <div style="margin-bottom:8px;padding:8px 12px;background:rgba(74,158,255,0.06);border-radius:8px;border-left:2px solid #4a9eff;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="font-size:11px;color:#94a3b8;font-weight:600;">⚡ Runtime</span>
+                            <span style="font-size:10px;color:#f59e0b;">⏳ Loading...</span>
+                        </div>
+                        <div style="font-size:9px;color:#475569;margin-top:4px;">
+                            RuntimePanel loading...
+                        </div>
+                    </div>
+                `;
+            }
+        }, 50);
 
         // 🔥 Part 46.7: Render AI Assistant after panel is in DOM
         setTimeout(function() {
@@ -1835,7 +1842,6 @@ LawAIApp.Debug.DevPanel = {
             }
         }, 100);
 
-        
         // 🔥 Part 47.7: Render Knowledge Graph after AI Assistant
         setTimeout(function() {
             var kgContainer = document.getElementById('dev-panel-kg-section');
@@ -1844,7 +1850,7 @@ LawAIApp.Debug.DevPanel = {
             }
         }, 200);
 
-        //🔥 PART 48.7: COGNITIVE DASHBOARD
+        // 🔥 PART 48.7: COGNITIVE DASHBOARD
         setTimeout(function() {
             var cogContainer = document.getElementById('dev-panel-cognitive-section');
             if (cogContainer && LawAIApp.Debug && LawAIApp.Debug.DevPanelCognitive) {
@@ -1871,11 +1877,72 @@ LawAIApp.Debug.DevPanel = {
      * 隐藏面板
      */
     hide: function() {
+        // 🔥 PART 49.8.2: Cleanup RuntimePanel
+        if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.RuntimePanel) {
+            LawAIApp.Debug.Panels.RuntimePanel.destroy();
+        }
+        
         if (this._panel) {
             this._panel.remove();
             this._panel = null;
         }
         this._isOpen = false;
+    },
+
+    // ============================================================
+    // 🔥 PART 49.8.2: Runtime Info Fallback (if RuntimePanel not available)
+    // ============================================================
+
+    _getRuntimeInfoFallback: function() {
+        var info = {
+            ready: false,
+            status: 'unknown',
+            uptime: '0s',
+            version: 'N/A',
+            registryCount: 0,
+            registryModules: ''
+        };
+
+        try {
+            var bm = LawAIApp.BootManager || window.bootManager;
+            if (bm) {
+                info.ready = !!(bm._booted || (typeof bm.isBooted === 'function' && bm.isBooted()));
+                info.status = info.ready ? 'running' : (bm._booting ? 'booting' : 'idle');
+                if (bm._bootTimestamp) {
+                    var elapsed = Date.now() - bm._bootTimestamp;
+                    info.uptime = Math.round(elapsed / 1000) + 's';
+                }
+            }
+
+            var perf = LawAIApp.Performance;
+            if (perf && perf._bootStartTime) {
+                var elapsed = Date.now() - perf._bootStartTime;
+                info.uptime = Math.round(elapsed / 1000) + 's';
+            }
+
+            info.version = (LawAIApp.SystemComposer && LawAIApp.SystemComposer.version) || 'V4.5.9';
+
+            var count = 0;
+            var names = [];
+            for (var key in LawAIApp) {
+                if (LawAIApp.hasOwnProperty(key) && 
+                    typeof LawAIApp[key] === 'object' && 
+                    LawAIApp[key] !== null &&
+                    key !== 'Debug' && 
+                    key !== 'DevPanel' &&
+                    key.charAt(0) !== '_') {
+                    count++;
+                    if (names.length < 10) names.push(key);
+                }
+            }
+            info.registryCount = count;
+            info.registryModules = names.join(', ') + (count > 10 ? '...' : '');
+
+        } catch (err) {
+            console.warn('[DevPanel] Runtime fallback error:', err);
+        }
+
+        return info;
     },
 
     // ============================================================
@@ -1894,7 +1961,6 @@ LawAIApp.Debug.DevPanel = {
         };
 
         try {
-            // Domain Registry
             var domainRegistry = LawAIApp.DomainRegistry || window.domainRegistry;
             if (domainRegistry && typeof domainRegistry.list === 'function') {
                 var domains = domainRegistry.list();
@@ -1902,7 +1968,6 @@ LawAIApp.Debug.DevPanel = {
                 info.domainList = domains.map(function(d) { return d.name; }).join(', ');
             }
 
-            // Layer Registry
             var layerRegistry = LawAIApp.LayerRegistry || window.layerRegistry;
             if (layerRegistry && typeof layerRegistry.list === 'function') {
                 var layers = layerRegistry.list();
@@ -1910,13 +1975,11 @@ LawAIApp.Debug.DevPanel = {
                 info.layerList = Object.keys(layers).join(', ');
             }
 
-            // Architecture Validator - check warnings
             var archValidator = LawAIApp.ArchitectureValidator || window.architectureValidator;
             if (archValidator && archValidator.warnings) {
                 info.warnings = archValidator.warnings.length || 0;
             }
 
-            // Recovery Flags
             var constants = LawAIApp.ArchitectureConstants || window.architectureConstants;
             if (constants && constants.RECOVERY_FLAGS) {
                 var flags = constants.RECOVERY_FLAGS;
@@ -1938,81 +2001,6 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
-                
-    // ============================================================
-    // 🔥 PART 2: RUNTIME INFO — FIXED (Part 45.9.1)
-    // Bind to live Runtime objects: BootManager + Performance
-    // ============================================================
-
-    _getRuntimeInfo: function() {
-        var info = {
-            ready: false,
-            status: 'unknown',
-            uptime: '0s',
-            version: 'N/A',
-            registryCount: 0,
-            registryModules: ''
-        };
-
-        try {
-            // ── PRIMARY SOURCE: BootManager (the real runtime heartbeat) ──
-            var bm = LawAIApp.BootManager || window.bootManager;
-        
-            if (bm) {
-                // Boot status → Runtime status
-                info.ready = !!(bm._booted || (typeof bm.isBooted === 'function' && bm.isBooted()));
-                info.status = info.ready ? 'running' : (bm._booting ? 'booting' : 'idle');
-            
-                // Uptime from performance framework
-                var perf = LawAIApp.Performance;
-                if (perf && perf._bootStartTime) {
-                    var elapsed = Date.now() - perf._bootStartTime;
-                    info.uptime = Math.round(elapsed / 1000) + 's';
-                } else if (bm._bootTimestamp) {
-                    var elapsed = Date.now() - bm._bootTimestamp;
-                    info.uptime = Math.round(elapsed / 1000) + 's';
-                }
-        }
-
-            // ── FALLBACK: check if bootPipeline reports ready ──
-            if (!info.ready) {
-                var pipeline = LawAIApp.BootPipeline || window.bootPipeline;
-                if (pipeline && typeof pipeline.getPipelineStatus === 'function') {
-                    var ps = pipeline.getPipelineStatus();
-                    if (ps && ps.status === 'completed') {
-                        info.ready = true;
-                        info.status = 'running';
-                    } else if (ps && ps.status === 'running') {
-                        info.status = 'booting';
-                    }
-                }
-            }
-
-            // ── VERSION: from SystemComposer (already referenced elsewhere) ──
-            info.version = (LawAIApp.SystemComposer && LawAIApp.SystemComposer.version) || 'V4.5.9';
-
-            // ── REGISTRY COUNT: count modules on LawAIApp namespace ──
-            var count = 0;
-            var names = [];
-            for (var key in LawAIApp) {
-                if (LawAIApp.hasOwnProperty(key) && typeof LawAIApp[key] === 'object' && LawAIApp[key] !== null) {
-                    // Count top-level engine/module objects (skip Debug, _private, primitive wrappers)
-                    if (key !== 'Debug' && key !== 'DevPanel' && key.charAt(0) !== '_') {
-                        count++;
-                        if (names.length < 10) names.push(key);
-                    }
-                }
-            }
-            info.registryCount = count;
-            info.registryModules = names.join(', ') + (count > 10 ? '...' : '');
-
-        } catch (err) {
-            console.warn('[DevPanel] Could not get runtime info:', err);
-        }
-    
-        return info;
-    },
-
     // ============================================================
     // 🔥 PART 3: FEATURE GOVERNANCE INFO
     // ============================================================
@@ -2031,13 +2019,11 @@ LawAIApp.Debug.DevPanel = {
         };
 
         try {
-            // Feature Registry
             var featureRegistry = LawAIApp.FeatureRegistry || window.featureRegistry;
             if (featureRegistry && typeof featureRegistry.list === 'function') {
                 var features = featureRegistry.list();
                 info.total = features.length;
                 
-                // Count healthy/unhealthy
                 var healthyCount = 0;
                 var unhealthyCount = 0;
                 var disabledCount = 0;
@@ -2061,20 +2047,17 @@ LawAIApp.Debug.DevPanel = {
                 info.broken = brokenList.length;
                 info.brokenList = brokenList;
                 
-                // Health score
                 var total = features.length - disabledCount;
                 if (total > 0) {
                     info.healthScore = Math.round((healthyCount / total) * 100);
                 }
                 
-                // Domains
                 if (typeof featureRegistry.getDomains === 'function') {
                     var domains = featureRegistry.getDomains();
                     info.domains = domains.join(', ');
                 }
             }
 
-            // Feature Validator warnings
             var featureValidator = LawAIApp.FeatureValidator || window.featureValidator;
             if (featureValidator && typeof featureValidator.getWarnings === 'function') {
                 var warnings = featureValidator.getWarnings();
@@ -2106,13 +2089,11 @@ LawAIApp.Debug.DevPanel = {
         };
 
         try {
-            // UI Registry
             var uiRegistry = LawAIApp.UIRegistry || window.uiRegistry;
             if (uiRegistry && typeof uiRegistry.list === 'function') {
                 var components = uiRegistry.list();
                 info.total = components.length;
                 
-                // Count healthy/unhealthy
                 var healthyCount = 0;
                 var unhealthyCount = 0;
                 var unusedCount = 0;
@@ -2135,19 +2116,16 @@ LawAIApp.Debug.DevPanel = {
                 info.broken = brokenList.length;
                 info.brokenList = brokenList;
                 
-                // Health score
                 if (info.total > 0) {
                     info.healthScore = Math.round((healthyCount / info.total) * 100);
                 }
                 
-                // Categories
                 if (typeof uiRegistry.getCategories === 'function') {
                     var categories = uiRegistry.getCategories();
                     info.categories = categories.join(', ');
                 }
             }
 
-            // UI Validator warnings
             var uiValidator = LawAIApp.UIValidator || window.uiValidator;
             if (uiValidator && typeof uiValidator.getWarnings === 'function') {
                 var warnings = uiValidator.getWarnings();
@@ -2221,7 +2199,6 @@ LawAIApp.Debug.DevPanel = {
         };
 
         try {
-            // Check Architecture Guard
             var guard = LawAIApp.ArchitectureGuard || window.architectureGuard;
             if (guard) {
                 info.guardStatus = 'Ready';
@@ -2236,7 +2213,6 @@ LawAIApp.Debug.DevPanel = {
                 }
             }
 
-            // Determine freeze status
             if (guard) {
                 info.active = true;
                 info.status = info.passed ? 'Compliant' : 'Violations Detected';
@@ -2270,7 +2246,6 @@ LawAIApp.Debug.DevPanel = {
         };
 
         try {
-            // Engine Health
             var health = LawAIApp.EngineHealth || window.engineHealth;
             if (health && typeof health.getHealth === 'function') {
                 var data = health.getHealth();
@@ -2285,14 +2260,12 @@ LawAIApp.Debug.DevPanel = {
                 info.failed = data.failed ? data.failed.length : 0;
             }
 
-            // Engine Manifest
             var manifest = LawAIApp.EngineManifest || window.engineManifest;
             if (manifest && typeof manifest.getEngines === 'function') {
                 info.constitutionLoaded = true;
                 info.manifestReady = true;
             }
 
-            // Engine Validator
             var validator = LawAIApp.EngineValidator || window.engineValidator;
             if (validator) {
                 info.validatorReady = true;
@@ -2324,14 +2297,12 @@ LawAIApp.Debug.DevPanel = {
         };
 
         try {
-            // Runtime Policy
             var policy = LawAIApp.RuntimePolicy || window.runtimePolicy;
             if (policy) {
                 info.policyReady = true;
                 info.constitutionLoaded = true;
             }
 
-            // Runtime Validator
             var validator = LawAIApp.RuntimeValidator || window.runtimeValidator;
             if (validator) {
                 info.validatorReady = true;
@@ -2340,7 +2311,6 @@ LawAIApp.Debug.DevPanel = {
                 }
             }
 
-            // Runtime Manifest
             var manifest = LawAIApp.RuntimeManifest || window.runtimeManifest;
             if (manifest && typeof manifest.getModules === 'function') {
                 info.manifestReady = true;
@@ -2350,7 +2320,6 @@ LawAIApp.Debug.DevPanel = {
                 info.modulesMissing = modules.filter(function(m) { return !m.exists; }).length;
             }
 
-            // Runtime Health
             var health = LawAIApp.RuntimeHealth || window.runtimeHealth;
             if (health && typeof health.getHealth === 'function') {
                 info.healthReady = true;
@@ -2387,14 +2356,12 @@ LawAIApp.Debug.DevPanel = {
         };
 
         try {
-            // Registry Policy
             var policy = LawAIApp.RegistryPolicy || window.registryPolicy;
             if (policy) {
                 info.policyReady = true;
                 info.constitutionLoaded = true;
             }
 
-            // Registry Validator
             var validator = LawAIApp.RegistryValidator || window.registryValidator;
             if (validator) {
                 info.validatorReady = true;
@@ -2403,7 +2370,6 @@ LawAIApp.Debug.DevPanel = {
                 }
             }
 
-            // Registry Manifest
             var manifest = LawAIApp.RegistryManifest || window.registryManifest;
             if (manifest && typeof manifest.getRegistries === 'function') {
                 info.manifestReady = true;
@@ -2413,7 +2379,6 @@ LawAIApp.Debug.DevPanel = {
                 info.registriesMissing = registries.filter(function(r) { return !r.exists; }).length;
             }
 
-            // Registry Health
             var health = LawAIApp.RegistryHealth || window.registryHealth;
             if (health && typeof health.getHealth === 'function') {
                 info.healthReady = true;
@@ -2522,7 +2487,6 @@ LawAIApp.Debug.DevPanel = {
                 info.domainList = data.domainList || [];
             }
 
-            // Classification summary from engine metadata
             for (var key in LawAIApp) {
                 if (LawAIApp.hasOwnProperty(key)) {
                     var value = LawAIApp[key];
@@ -2912,7 +2876,7 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
-        // ============================================================
+    // ============================================================
     // 🔥 PART 20: ENGINE DISCOVERY INFO
     // ============================================================
 
@@ -3238,7 +3202,6 @@ LawAIApp.Debug.DevPanel = {
                 info.trendDetails = data.trendDetails || {};
             }
 
-            // Count improving/declining/stable from dashboard
             try {
                 var dashboard = LawAIApp.SystemReflectionDashboard || window.systemReflectionDashboard;
                 if (dashboard && typeof dashboard.getSummary === 'function') {
@@ -3301,7 +3264,7 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
-        // ============================================================
+    // ============================================================
     // 🔥 PART 30: SYSTEM EVOLUTION INFO
     // ============================================================
 
@@ -3341,7 +3304,6 @@ LawAIApp.Debug.DevPanel = {
                 info.validationWarnings = data.validationWarnings || 0;
             }
 
-            // Get manifest data
             try {
                 var manifest = LawAIApp.SystemEvolutionManifest || window.systemEvolutionManifest;
                 if (manifest) {
@@ -3425,7 +3387,6 @@ LawAIApp.Debug.DevPanel = {
                 info.validationWarnings = data.validationWarnings || 0;
             }
 
-            // Get context list
             try {
                 var collector = LawAIApp.SystemContextCollector || window.systemContextCollector;
                 if (collector && typeof collector.getAvailableContexts === 'function') {
@@ -3469,7 +3430,6 @@ LawAIApp.Debug.DevPanel = {
                 info.validationWarnings = data.validationWarnings || 0;
             }
 
-            // Get intention distribution
             try {
                 var dashboard = LawAIApp.SystemIntentionDashboard || window.systemIntentionDashboard;
                 if (dashboard && typeof dashboard.getIntentionStats === 'function') {
@@ -3525,7 +3485,7 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
-        // ============================================================
+    // ============================================================
     // 🔥 PART 35: SYSTEM COHERENCE INFO
     // ============================================================
 
@@ -3723,7 +3683,6 @@ LawAIApp.Debug.DevPanel = {
         };
 
         try {
-            // Get pipeline status
             var pipeline = window.bootPipeline || LawAIApp.BootPipeline;
             if (pipeline && typeof pipeline.getPipelineStatus === 'function') {
                 var status = pipeline.getPipelineStatus();
@@ -3733,13 +3692,11 @@ LawAIApp.Debug.DevPanel = {
                 info.duration = status.totalDuration || 0;
             }
 
-            // Get stage registry
             var registry = window.bootStageRegistry || LawAIApp.BootStageRegistry;
             if (registry && typeof registry.getStageCount === 'function') {
                 info.totalStages = registry.getStageCount();
             }
 
-            // Get diagnostics
             var diagnostics = window.bootDiagnostics || LawAIApp.BootDiagnostics;
             if (diagnostics && typeof diagnostics.getBootStatus === 'function') {
                 var status = diagnostics.getBootStatus();
@@ -3749,7 +3706,6 @@ LawAIApp.Debug.DevPanel = {
                 info.totalStages = Math.max(info.totalStages, status.total || 0);
             }
 
-            // Get reporter
             var reporter = window.bootReporter || LawAIApp.BootReporter;
             if (reporter && typeof reporter.generateBootReport === 'function') {
                 var report = reporter.generateBootReport();
@@ -3844,7 +3800,7 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
-        // ============================================================
+    // ============================================================
     // 🔥 PART 42: RUNTIME TRACING INFO
     // ============================================================
 
@@ -3904,7 +3860,6 @@ LawAIApp.Debug.DevPanel = {
         };
 
         try {
-            // Primary: Performance API
             var perf = LawAIApp.Performance || (window.LawAIApp && window.LawAIApp.Performance);
             if (perf) {
                 info.isAvailable = true;
@@ -3933,7 +3888,6 @@ LawAIApp.Debug.DevPanel = {
                 }
             }
 
-            // Fallback: BootPipeline directly (real data, not fake)
             if (!info.hasData) {
                 var pipeline = LawAIApp.BootPipeline || window.bootPipeline;
                 if (pipeline && typeof pipeline.getPipelineStatus === 'function') {
@@ -3953,7 +3907,6 @@ LawAIApp.Debug.DevPanel = {
                 }
             }
 
-            // Fallback: BootManager (real data, not fake)
             if (!info.hasData) {
                 var bm = LawAIApp.BootManager || window.bootManager;
                 if (bm && bm._booted) {
@@ -4003,18 +3956,15 @@ LawAIApp.Debug.DevPanel = {
 
             info.isAvailable = true;
 
-            // Get event count
             if (typeof events.getEventCount === 'function') {
                 var count = events.getEventCount();
                 info.totalEvents = count || 0;
             }
 
-            // Get session count
             if (typeof events.getSessionCount === 'function') {
                 info.sessionCount = events.getSessionCount() || 0;
             }
 
-            // Get statistics
             if (typeof events.getStatistics === 'function') {
                 var stats = events.getStatistics();
                 if (stats) {
@@ -4025,7 +3975,6 @@ LawAIApp.Debug.DevPanel = {
                 }
             }
 
-            // Get recent events (via timeline entries)
             if (typeof events.getTimelineEntries === 'function') {
                 var entries = events.getTimelineEntries();
                 if (entries && entries.length > 0) {
@@ -4035,7 +3984,6 @@ LawAIApp.Debug.DevPanel = {
                 }
             }
 
-            // Get insights
             if (typeof events.getInsights === 'function') {
                 var insights = events.getInsights();
                 if (insights && insights.length > 0) {
@@ -4044,7 +3992,6 @@ LawAIApp.Debug.DevPanel = {
                 }
             }
 
-            // Get recommendations
             if (typeof events.getRecommendations === 'function') {
                 var recs = events.getRecommendations();
                 if (recs && recs.length > 0) {
@@ -4052,7 +3999,6 @@ LawAIApp.Debug.DevPanel = {
                 }
             }
 
-            // Get risks
             if (typeof events.getRisks === 'function') {
                 var risks = events.getRisks();
                 if (risks && risks.length > 0) {
@@ -4060,7 +4006,6 @@ LawAIApp.Debug.DevPanel = {
                 }
             }
 
-            // Get dependencies
             if (typeof events.getDependencies === 'function') {
                 var deps = events.getDependencies();
                 if (deps && deps.length > 0) {
@@ -4075,7 +4020,7 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
-        // ============================================================
+    // ============================================================
     // 🔥 PART 45.8: STATE DASHBOARD INFO
     // ============================================================
 
@@ -4094,7 +4039,6 @@ LawAIApp.Debug.DevPanel = {
         };
 
         try {
-            // Get state registry
             var registry = LawAIApp.StateRegistry || window.stateRegistry;
             if (registry) {
                 var states = null;
@@ -4109,7 +4053,6 @@ LawAIApp.Debug.DevPanel = {
                 info.isAvailable = true;
             }
 
-            // Get sync engine status
             var engine = LawAIApp.StateSyncEngine || window.stateSyncEngine;
             if (engine) {
                 if (typeof engine.getHistory === 'function') {
@@ -4123,7 +4066,6 @@ LawAIApp.Debug.DevPanel = {
                 info.isAvailable = true;
             }
 
-            // Get conflicts
             var resolver = LawAIApp.StateConflictResolver || window.stateConflictResolver;
             if (resolver) {
                 if (typeof resolver.getConflictCount === 'function') {
@@ -4132,7 +4074,6 @@ LawAIApp.Debug.DevPanel = {
                 info.isAvailable = true;
             }
 
-            // Get snapshots
             var persistence = LawAIApp.StatePersistence || window.statePersistence;
             if (persistence) {
                 if (typeof persistence.getStats === 'function') {
@@ -4145,7 +4086,6 @@ LawAIApp.Debug.DevPanel = {
                 info.isAvailable = true;
             }
 
-            // Get insights
             var intelligence = LawAIApp.StateIntelligence || window.stateIntelligence;
             if (intelligence) {
                 if (typeof intelligence.getInsightCount === 'function') {
@@ -4154,7 +4094,6 @@ LawAIApp.Debug.DevPanel = {
                 info.isAvailable = true;
             }
 
-            // Get runtime state
             var integration = LawAIApp.RuntimeStateIntegration || window.runtimeStateIntegration;
             if (integration) {
                 if (typeof integration.getUnifiedState === 'function') {
@@ -4179,54 +4118,53 @@ LawAIApp.Debug.DevPanel = {
         return info;
     },
 
-    
-/**
- * Part 49.7: Governance Dashboard HTML
- */
-_getGovernanceDashboardHTML: function() {
-    try {
-        var policy = window.LawAIApp.Policy;
-        var perm = window.LawAIApp.Permissions;
-        var valid = window.LawAIApp.Validation;
-        var safety = window.LawAIApp.Safety;
-        var aiGov = window.LawAIApp.AIGovernance;
-        
-        if (!policy && !perm && !safety) return null;
-        
-        var html = '<div style="font-weight:bold;color:#22c55e;font-size:11px;cursor:pointer;" onclick="window.LawAIApp._openGovernanceDashboard()" title="Click to open full Governance Dashboard">🏛️ Governance Layer 🔗</div>';
-        html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;font-size:10px;">';
-        
-        if (policy && policy.getHealth) {
-            var ph = policy.getHealth();
-            html += '<span style="padding:2px 8px;border-radius:10px;background:' + (ph.status === 'HEALTHY' ? '#22c55e20' : '#f59e0b20') + ';color:' + (ph.status === 'HEALTHY' ? '#22c55e' : '#f59e0b') + ';">📋 Policies: ' + (ph.activePolicies || 0) + '</span>';
+    /**
+     * Part 49.7: Governance Dashboard HTML
+     */
+    _getGovernanceDashboardHTML: function() {
+        try {
+            var policy = window.LawAIApp.Policy;
+            var perm = window.LawAIApp.Permissions;
+            var valid = window.LawAIApp.Validation;
+            var safety = window.LawAIApp.Safety;
+            var aiGov = window.LawAIApp.AIGovernance;
+            
+            if (!policy && !perm && !safety) return null;
+            
+            var html = '<div style="font-weight:bold;color:#22c55e;font-size:11px;cursor:pointer;" onclick="window.LawAIApp._openGovernanceDashboard()" title="Click to open full Governance Dashboard">🏛️ Governance Layer 🔗</div>';
+            html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;font-size:10px;">';
+            
+            if (policy && policy.getHealth) {
+                var ph = policy.getHealth();
+                html += '<span style="padding:2px 8px;border-radius:10px;background:' + (ph.status === 'HEALTHY' ? '#22c55e20' : '#f59e0b20') + ';color:' + (ph.status === 'HEALTHY' ? '#22c55e' : '#f59e0b') + ';">📋 Policies: ' + (ph.activePolicies || 0) + '</span>';
+            }
+            
+            if (perm && perm.getHealth) {
+                var pmh = perm.getHealth();
+                html += '<span style="padding:2px 8px;border-radius:10px;background:#22c55e20;color:#22c55e;">🔑 Perms: ' + (pmh.activePermissions || 0) + '</span>';
+            }
+            
+            if (valid && valid.getHealth) {
+                var vh = valid.getHealth();
+                html += '<span style="padding:2px 8px;border-radius:10px;background:#22c55e20;color:#22c55e;">✅ Validators: ' + (vh.validators || 0) + '</span>';
+            }
+            
+            if (safety && safety.getHealth) {
+                var sh = safety.getHealth();
+                html += '<span style="padding:2px 8px;border-radius:10px;background:' + (sh.status === 'SAFE' ? '#22c55e20' : '#ef444420') + ';color:' + (sh.status === 'SAFE' ? '#22c55e' : '#ef4444') + ';">🛡️ Safety: ' + (sh.activeLocks || 0) + ' locks</span>';
+            }
+            
+            if (aiGov && aiGov.getAILevel) {
+                var ai = aiGov.getAILevel();
+                html += '<span style="padding:2px 8px;border-radius:10px;background:#8b5cf620;color:#8b5cf6;">🤖 AI: ' + (ai.name || '?') + '</span>';
+            }
+            
+            html += '</div>';
+            return html;
+        } catch(e) {
+            return null;
         }
-        
-        if (perm && perm.getHealth) {
-            var pmh = perm.getHealth();
-            html += '<span style="padding:2px 8px;border-radius:10px;background:#22c55e20;color:#22c55e;">🔑 Perms: ' + (pmh.activePermissions || 0) + '</span>';
-        }
-        
-        if (valid && valid.getHealth) {
-            var vh = valid.getHealth();
-            html += '<span style="padding:2px 8px;border-radius:10px;background:#22c55e20;color:#22c55e;">✅ Validators: ' + (vh.validators || 0) + '</span>';
-        }
-        
-        if (safety && safety.getHealth) {
-            var sh = safety.getHealth();
-            html += '<span style="padding:2px 8px;border-radius:10px;background:' + (sh.status === 'SAFE' ? '#22c55e20' : '#ef444420') + ';color:' + (sh.status === 'SAFE' ? '#22c55e' : '#ef4444') + ';">🛡️ Safety: ' + (sh.activeLocks || 0) + ' locks</span>';
-        }
-        
-        if (aiGov && aiGov.getAILevel) {
-            var ai = aiGov.getAILevel();
-            html += '<span style="padding:2px 8px;border-radius:10px;background:#8b5cf620;color:#8b5cf6;">🤖 AI: ' + (ai.name || '?') + '</span>';
-        }
-        
-        html += '</div>';
-        return html;
-    } catch(e) {
-        return null;
-    }
-},
+    },
 
     /**
      * 导入备份（备选方法）
@@ -4253,12 +4191,12 @@ _getGovernanceDashboardHTML: function() {
         reader.readAsText(file);
     }
 };
+
 // ============================================================
 // KEYBOARD SHORTCUT - Ctrl+Shift+L
 // ============================================================
 
 document.addEventListener('keydown', function(e) {
-    // 检测 Ctrl+Shift+L
     if (e.ctrlKey && e.shiftKey && (e.key === 'L' || e.key === 'l')) {
         e.preventDefault();
         LawAIApp.Debug.DevPanel.toggle();
@@ -4274,8 +4212,10 @@ if (!LawAIApp.DevPanel) {
 }
 
 console.log('🛠️ DevPanel ready (Ctrl+Shift+L)');
+console.log('   ✅ Part 49.8.2 — RuntimePanel extracted');
+console.log('   ✅ RuntimePanel available at LawAIApp.Debug.Panels.RuntimePanel');
 console.log('   ✅ Recovery R1 Part 1 - Architecture');
-console.log('   ✅ Recovery R1 Part 2 - Runtime');
+console.log('   ✅ Recovery R1 Part 2 - Runtime (via RuntimePanel)');
 console.log('   ✅ Recovery R1 Part 3 - Feature Governance');
 console.log('   ✅ Recovery R1 Part 4 - UI Constitution');
 console.log('   ✅ Recovery R1 Part 5 - Architecture Audit');
@@ -4354,3 +4294,7 @@ console.log('   ✅ Recovery R1 Part 45.8 - State Dashboard');
 console.log('   ✅ Law AI Academy Architecture Stable');
 console.log('   ✅ Engine Renaissance Fully Complete');
 console.log('🚀 Runtime Excellence Era Continuing...');
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+console.log('📦 Part 49.8.2 — RuntimePanel Extracted ✅');
+console.log('   📊 devPanel.js reduced by ~150 lines');
+console.log('   📁 RuntimePanel available at js/debug/panels/runtimePanel.js');
