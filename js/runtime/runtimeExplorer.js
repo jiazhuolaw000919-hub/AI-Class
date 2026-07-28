@@ -741,6 +741,22 @@ if (document.readyState === 'loading') {
     tryConnect();
 })();
 
+// 在 runtimeExplorer.js 的底部添加连接
+
+// ── Inspector 连接 ──
+LawAIApp.Runtime.Explorer.inspect = function(id) {
+    return LawAIApp.Runtime.Inspector.inspect(id);
+};
+
+LawAIApp.Runtime.Explorer.inspectDeep = function(id, depth) {
+    return LawAIApp.Runtime.Inspector.inspectDeep(id, depth);
+};
+
+LawAIApp.Runtime.Explorer.getSnapshot = function(id) {
+    return LawAIApp.Runtime.Inspector.getSnapshot(id);
+};
+
 console.log('🔍 [Part 49.9.1] Runtime Explorer Foundation loaded');
 console.log('   📋 API: init() | getTree() | register() | createSnapshot()');
 console.log('   🔒 Read-Only Mode: ENABLED');
+console.log('🔗 [RuntimeExplorer] Connected to RuntimeInspector ✅');
