@@ -114,7 +114,7 @@ LawAIApp.Debug.Panels.RuntimePanel = {
      * @private
      * @returns {Object} Runtime 信息
      */
-    _getData: function() {
+       _getData: function() {
         var info = {
             ready: false,
             status: 'unknown',
@@ -127,65 +127,57 @@ LawAIApp.Debug.Panels.RuntimePanel = {
         };
 
         try {
+            // ── 🔥 NEW: 从 RuntimeExplorer 获取数据 ──
+            var explorer = LawAIApp.Runtime && LawAIApp.Runtime.Explorer;
+        
             // ── 1. BOOT MANAGER ──
             var bm = LawAIApp.BootManager || window.bootManager;
             if (bm) {
                 info.ready = !!(bm._booted || (typeof bm.isBooted === 'function' && bm.isBooted()));
                 info.status = info.ready ? 'running' : (bm._booting ? 'booting' : 'idle');
-                
+            
                 if (bm._bootTimestamp) {
                     var elapsed = Date.now() - bm._bootTimestamp;
                     info.uptime = this._formatDuration(Math.round(elapsed / 1000));
                 }
             }
 
-            // ── 2. PERFORMANCE (more accurate uptime) ──
-            var perf = LawAIApp.Performance;
-            if (perf && perf._bootStartTime) {
-                var elapsed = Date.now() - perf._bootStartTime;
-                info.uptime = this._formatDuration(Math.round(elapsed / 1000));
-            }
-
-            // ── 3. BOOT PIPELINE (fallback + progress) ──
-            var pipeline = LawAIApp.BootPipeline || window.bootPipeline;
-            if (pipeline && typeof pipeline.getPipelineStatus === 'function') {
-                var ps = pipeline.getPipelineStatus();
-                if (ps) {
-                    if (ps.status === 'completed') {
-                        info.ready = true;
-                        info.status = 'running';
-                    } else if (ps.status === 'running') {
-                        info.status = 'booting';
-                    }
-                    info.bootStage = ps.currentStage || 'N/A';
-                    info.bootProgress = ps.progress || 0;
-                    
-                    // 如果 ready 仍为 false，从 pipeline 读取
-                    if (!info.ready && ps.status === 'completed') {
-                        info.ready = true;
-                    }
+            // ── 2. 🔥 从 Explorer 获取更多信息 ──
+            if (explorer && explorer.getEntry) {
+                var bootEntry = explorer.getEntry('BootManager');
+                if (bootEntry) {
+                    info.bootStage = bootEntry.metadata?.stage || 'N/A';
+                    info.bootProgress = bootEntry.metadata?.progress || 0;
+                }
+            
+                // ── 获取 Registry Count ──
+                var allEntries = explorer.getAllEntries();
+                if (allEntries) {
+                    info.registryCount = Object.keys(allEntries).length;
                 }
             }
 
-            // ── 4. VERSION ──
+            // ── 3. VERSION ──
             info.version = (LawAIApp.SystemComposer && LawAIApp.SystemComposer.version) || 'V4.5.9';
 
-            // ── 5. REGISTRY COUNT ──
-            var count = 0;
-            var names = [];
-            for (var key in LawAIApp) {
-                if (LawAIApp.hasOwnProperty(key) && 
-                    typeof LawAIApp[key] === 'object' && 
-                    LawAIApp[key] !== null &&
-                    key !== 'Debug' && 
-                    key !== 'DevPanel' &&
-                    key.charAt(0) !== '_') {
-                    count++;
-                    if (names.length < 10) names.push(key);
+            // ── 4. REGISTRY COUNT (Fallback) ──
+            if (info.registryCount === 0) {
+                var count = 0;
+                var names = [];
+                for (var key in LawAIApp) {
+                    if (LawAIApp.hasOwnProperty(key) && 
+                        typeof LawAIApp[key] === 'object' && 
+                        LawAIApp[key] !== null &&
+                        key !== 'Debug' && 
+                        key !== 'DevPanel' &&
+                        key.charAt(0) !== '_') {
+                        count++;
+                        if (names.length < 10) names.push(key);
+                    }
                 }
+                info.registryCount = count;
+                info.registryModules = names.join(', ') + (count > 10 ? '...' : '');
             }
-            info.registryCount = count;
-            info.registryModules = names.join(', ') + (count > 10 ? '...' : '');
 
         } catch (err) {
             console.warn('[RuntimePanel] Could not get runtime data:', err);
@@ -193,7 +185,6 @@ LawAIApp.Debug.Panels.RuntimePanel = {
 
         return info;
     },
-
     // ============================================================
     // UI RENDERING — 所有 Runtime HTML 在此控制
     // ============================================================
