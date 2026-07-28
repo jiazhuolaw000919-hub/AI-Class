@@ -1420,6 +1420,11 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
+            <!-- 🔥 PART 43.11: RUNTIME PERFORMANCE (PerformancePanel) -->
+            <!-- ========================================================== -->
+            <div id="performance-panel-placeholder" style="margin-bottom:8px;"></div>
+
+            <!-- ========================================================== -->
             <!-- 🔥 PART 44.10: RUNTIME EVENTS -->
             <!-- ========================================================== -->
             <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
@@ -1793,6 +1798,27 @@ LawAIApp.Debug.DevPanel = {
             }
         }, 50);
 
+                // 🔥 PART 49.8.3: Render PerformancePanel
+        setTimeout(function() {
+            var perfContainer = document.getElementById('performance-panel-placeholder');
+            if (perfContainer && LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.PerformancePanel) {
+                LawAIApp.Debug.Panels.PerformancePanel.render(perfContainer);
+            } else if (perfContainer) {
+                // Fallback: show basic performance info
+                perfContainer.innerHTML = `
+                    <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="font-size:11px;color:#94a3b8;font-weight:600;">⚡ Runtime Performance</span>
+                            <span style="font-size:10px;color:#f59e0b;">⏳ Loading...</span>
+                        </div>
+                        <div style="font-size:9px;color:#475569;margin-top:4px;">
+                            PerformancePanel loading...
+                        </div>
+                    </div>
+                `;
+            }
+        }, 50);
+
         // 🔥 Part 46.7: Render AI Assistant after panel is in DOM
         setTimeout(function() {
             var aiContainer = document.getElementById('dev-panel-ai-section');
@@ -1835,10 +1861,15 @@ LawAIApp.Debug.DevPanel = {
     /**
      * 隐藏面板
      */
-    hide: function() {
+        hide: function() {
         // 🔥 PART 49.8.2: Cleanup RuntimePanel
         if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.RuntimePanel) {
             LawAIApp.Debug.Panels.RuntimePanel.destroy();
+        }
+        
+        // 🔥 PART 49.8.3: Cleanup PerformancePanel
+        if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.PerformancePanel) {
+            LawAIApp.Debug.Panels.PerformancePanel.destroy();
         }
         
         if (this._panel) {
