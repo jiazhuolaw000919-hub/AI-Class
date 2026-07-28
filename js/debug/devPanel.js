@@ -592,7 +592,6 @@ LawAIApp.Debug.DevPanel = {
 },
 
         <!-- Panel Placeholders -->
-        <div id="runtime-panel-placeholder"></div>
         <div id="performance-panel-placeholder"></div>
         <div id="metrics-panel-placeholder"></div>
         <div id="trace-panel-placeholder"></div>
