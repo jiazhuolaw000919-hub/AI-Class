@@ -202,6 +202,188 @@ LawAIApp.Debug.DevPanel = {
         }
     },
 
+        // ============================================================
+    // EXPLORER METHODS
+    // ============================================================
+
+    /**
+     * 打开 Runtime Explorer 浮窗
+     * @private
+     */
+    _openExplorer: function() {
+        console.log('🔍 Opening Runtime Explorer from DevPanel...');
+
+        var explorer = LawAIApp.Runtime && LawAIApp.Runtime.Explorer;
+        if (!explorer || !explorer.isInitialized || !explorer.isInitialized()) {
+            alert('⚠️ Runtime Explorer not available. Please check console for errors.');
+            return;
+        }
+
+        var tree = explorer.getTree ? explorer.getTree() : null;
+        var stats = explorer.getStats ? explorer.getStats() : null;
+        var content = this._buildExplorerContent(tree, stats);
+        this._createExplorerPopup(content);
+    },
+
+    /**
+     * 构建 Explorer 内容
+     * @private
+     */
+    _buildExplorerContent: function(tree, stats) {
+        var html = '';
+        html += '<div style="max-width:640px;max-height:85vh;overflow-y:auto;padding:4px;">';
+
+        // Header
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:8px;margin-bottom:10px;">';
+        html += '<span style="font-size:16px;font-weight:700;color:#4a9eff;">🔍 Runtime Explorer</span>';
+        html += '<span style="font-size:10px;color:#475569;">v4.9.9.5</span>';
+        html += '</div>';
+
+        // Stats
+        if (stats) {
+            html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">';
+            html += '<div style="padding:8px;background:rgba(255,255,255,0.03);border-radius:6px;text-align:center;"><div style="font-size:20px;font-weight:700;color:#4a9eff;">' + stats.total + '</div><div style="font-size:9px;color:#475569;">Components</div></div>';
+            html += '<div style="padding:8px;background:rgba(255,255,255,0.03);border-radius:6px;text-align:center;"><div style="font-size:20px;font-weight:700;color:#22c55e;">' + (stats.byStatus?.active || 0) + '</div><div style="font-size:9px;color:#475569;">Active</div></div>';
+            html += '<div style="padding:8px;background:rgba(255,255,255,0.03);border-radius:6px;text-align:center;"><div style="font-size:20px;font-weight:700;color:#8b5cf6;">' + Object.keys(stats.byType || {}).length + '</div><div style="font-size:9px;color:#475569;">Types</div></div>';
+            html += '</div>';
+        }
+
+        // Tree
+        if (tree) {
+            html += '<div style="font-size:10px;color:#94a3b8;margin-bottom:4px;">📂 Runtime Structure</div>';
+            html += '<div style="padding:8px;background:rgba(255,255,255,0.02);border-radius:6px;font-size:9px;font-family:monospace;max-height:300px;overflow-y:auto;white-space:pre;">';
+            html += this._renderTree(tree, 0);
+            html += '</div>';
+        }
+
+        // Type summary
+        if (stats) {
+            html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;padding:6px;background:rgba(255,255,255,0.02);border-radius:6px;font-size:8px;color:#475569;">';
+            for (var type in stats.byType) {
+                if (stats.byType.hasOwnProperty(type)) {
+                    html += '<span style="padding:2px 8px;background:rgba(255,255,255,0.04);border-radius:4px;">' + type + ': ' + stats.byType[type] + '</span>';
+                }
+            }
+            html += '</div>';
+        }
+
+        // Actions
+        html += '<div style="display:flex;gap:6px;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);flex-wrap:wrap;">';
+        html += '<button onclick="LawAIApp.Runtime.Snapshot && LawAIApp.Runtime.Snapshot.export({format:\'json\',download:true})" style="padding:4px 12px;background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.15);border-radius:6px;color:#4a9eff;font-size:10px;cursor:pointer;">📸 Export JSON</button>';
+        html += '<button onclick="LawAIApp.Runtime.Snapshot && LawAIApp.Runtime.Snapshot.export({format:\'markdown\',download:true})" style="padding:4px 12px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.15);border-radius:6px;color:#8b5cf6;font-size:10px;cursor:pointer;">📊 Export MD</button>';
+        html += '<button onclick="LawAIApp.Runtime.Snapshot && LawAIApp.Runtime.Snapshot.build && alert(\'✅ Snapshot built!\')" style="padding:4px 12px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.15);border-radius:6px;color:#22c55e;font-size:10px;cursor:pointer;">📸 Snapshot</button>';
+        html += '<button onclick="LawAIApp.Debug.DevPanel._closeExplorerPopup()" style="padding:4px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#64748b;font-size:10px;cursor:pointer;">✕ Close</button>';
+        html += '</div>';
+
+        html += '</div>';
+        return html;
+    },
+
+    /**
+     * 渲染 Tree
+     * @private
+     */
+    _renderTree: function(node, depth) {
+        var indent = '  '.repeat(depth);
+        var html = '';
+        if (!node) return '';
+
+        if (node.label) {
+            var icon = node.type === 'root' ? '📁' : (node.type === 'collection' ? '📂' : '📄');
+            var color = node.type === 'root' ? '#4a9eff' : (node.type === 'collection' ? '#f59e0b' : '#94a3b8');
+            html += indent + '<span style="color:' + color + ';">' + icon + ' ' + node.label + '</span>';
+            if (node.id && node.id !== node.label) {
+                html += ' <span style="color:#475569;font-size:8px;">(' + node.id + ')</span>';
+            }
+            html += '\n';
+        }
+
+        if (node.children && node.children.length > 0) {
+            for (var i = 0; i < node.children.length; i++) {
+                html += this._renderTree(node.children[i], depth + 1);
+            }
+        }
+        return html;
+    },
+
+    /**
+     * 创建 Explorer 浮窗
+     * @private
+     */
+    _createExplorerPopup: function(content) {
+        this._closeExplorerPopup();
+
+        var overlay = document.createElement('div');
+        overlay.id = 'explorer-popup-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 10001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        `;
+
+        var popup = document.createElement('div');
+        popup.id = 'explorer-popup';
+        popup.style.cssText = `
+            background: #1a1a2e;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 14px;
+            padding: 20px;
+            max-width: 640px;
+            width: 90%;
+            max-height: 85vh;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            color: #e2e8f0;
+            font-family: 'Inter', -apple-system, sans-serif;
+            font-size: 13px;
+        `;
+        popup.innerHTML = content;
+
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                LawAIApp.Debug.DevPanel._closeExplorerPopup();
+            }
+        });
+
+        var escHandler = function(e) {
+            if (e.key === 'Escape') {
+                LawAIApp.Debug.DevPanel._closeExplorerPopup();
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+
+        overlay.appendChild(popup);
+        document.body.appendChild(overlay);
+
+        this._popupOverlay = overlay;
+        this._popup = popup;
+        this._popupEscHandler = escHandler;
+    },
+
+    /**
+     * 关闭 Explorer 浮窗
+     * @private
+     */
+    _closeExplorerPopup: function() {
+        if (this._popupOverlay) {
+            this._popupOverlay.remove();
+            this._popupOverlay = null;
+            this._popup = null;
+        }
+        if (this._popupEscHandler) {
+            document.removeEventListener('keydown', this._popupEscHandler);
+            this._popupEscHandler = null;
+        }
+    },
+
     _destroyAllPanels: function() {
         for (var i = 0; i < this._registeredPanels.length; i++) {
             var entry = this._registeredPanels[i];
