@@ -555,42 +555,41 @@ LawAIApp.Debug.DevPanel = {
         <!-- PANEL PLACEHOLDERS — Click any panel for full details -->
         <!-- ========================================================== -->
 
-        <div id="runtime-panel-placeholder"></div>
-        <div id="performance-panel-placeholder"></div>
-        <div id="metrics-panel-placeholder"></div>
-        <div id="trace-panel-placeholder"></div>
-        <div id="event-panel-placeholder"></div>
-        <div id="state-panel-placeholder"></div>
-        <div id="knowledge-panel-placeholder"></div>
-        <div id="cognitive-panel-placeholder"></div>
-        <div id="governance-panel-placeholder"></div>
-        <div id="explorer-panel-placeholder"></div>
+            <div id="runtime-panel-placeholder"></div>
+            <div id="performance-panel-placeholder"></div>
+            <div id="metrics-panel-placeholder"></div>
+            <div id="trace-panel-placeholder"></div>
+            <div id="event-panel-placeholder"></div>
+            <div id="state-panel-placeholder"></div>
+            <div id="knowledge-panel-placeholder"></div>
+            <div id="cognitive-panel-placeholder"></div>
+            <div id="governance-panel-placeholder"></div>
+            <div id="explorer-panel-placeholder"></div>
 
         <!-- ========================================================== -->
         <!-- LEGACY PANEL PLACEHOLDERS -->
         <!-- ========================================================== -->
 
-        <div id="dev-panel-ai-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;"></div>
-        <div id="dev-panel-kg-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;"></div>
+            <div id="dev-panel-ai-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;"></div>
+            <div id="dev-panel-kg-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;"></div>
 
         <!-- ========================================================== -->
         <!-- DEBUG ACTIONS -->
         <!-- ========================================================== -->
 
-        <div id="debug-actions-container" style="display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;"></div>
+            <div id="debug-actions-container" style="display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;"></div>
 
-        <input type="file" id="dev-import-input" accept=".json" style="display:none">
+            <input type="file" id="dev-import-input" accept=".json" style="display:none">
 
         <!-- ========================================================== -->
         <!-- FOOTER -->
         <!-- ========================================================== -->
 
-        <div style="font-size:10px;color:#475569;text-align:center;border-top:1px solid rgba(255,255,255,0.04);padding-top:10px;margin-top:12px;">
-            Press Ctrl+Shift+L to close
-        </div>
-    `;
-},
-
+            <div style="font-size:10px;color:#475569;text-align:center;border-top:1px solid rgba(255,255,255,0.04);padding-top:10px;margin-top:12px;">
+                Press Ctrl+Shift+L to close
+            </div>
+        `;
+    
         <!-- Panel Placeholders -->
         <div id="performance-panel-placeholder"></div>
         <div id="metrics-panel-placeholder"></div>
