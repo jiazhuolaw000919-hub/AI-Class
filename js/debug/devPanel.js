@@ -535,9 +535,6 @@ LawAIApp.Debug.DevPanel = {
     _buildHTML: function() {
     var version = (LawAIApp.SystemComposer && LawAIApp.SystemComposer.version) || '4.0.17';
 
-    _buildHTML: function() {
-    var version = (LawAIApp.SystemComposer && LawAIApp.SystemComposer.version) || '4.0.17';
-
     return `
         <!-- Header -->
         <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px;margin-bottom:12px;">
