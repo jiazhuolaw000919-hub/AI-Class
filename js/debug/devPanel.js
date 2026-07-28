@@ -220,9 +220,6 @@ LawAIApp.Debug.DevPanel = {
         // Part 42: Runtime Tracing Info
         var runtimeTraceInfo = this._getRuntimeTraceInfo();
 
-        // Part 43.11: Runtime Performance Info
-        var runtimePerformanceInfo = this._getRuntimePerformanceInfo();
-
         // Part 44.10: Runtime Event Info
         var runtimeEventInfo = this._getRuntimeEventInfo();
 
@@ -1423,43 +1420,6 @@ LawAIApp.Debug.DevPanel = {
             </div>
 
             <!-- ========================================================== -->
-            <!-- 🔥 PART 43.11: RUNTIME PERFORMANCE -->
-            <!-- ========================================================== -->
-            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">⚡ Runtime Performance</span>
-                    <span style="font-size:10px;color:${runtimePerformanceInfo.score >= 80 ? '#22c55e' : (runtimePerformanceInfo.score >= 50 ? '#f59e0b' : '#ef4444')};">${runtimePerformanceInfo.isAvailable ? runtimePerformanceInfo.score + '%' : 'N/A'}</span>
-                </div>
-                ${runtimePerformanceInfo.isAvailable && runtimePerformanceInfo.hasData ? `
-                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;font-size:10px;color:#64748b;">
-                    <span>Status: <span style="color:${runtimePerformanceInfo.score >= 80 ? '#22c55e' : (runtimePerformanceInfo.score >= 50 ? '#f59e0b' : '#ef4444')};">${runtimePerformanceInfo.label}</span></span>
-                    <span>Boot: ${runtimePerformanceInfo.bootDuration}</span>
-                    <span>Modules: ${runtimePerformanceInfo.totalModules}</span>
-                    <span>Records: ${runtimePerformanceInfo.totalRecords}</span>
-                </div>
-                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;font-size:8px;color:#475569;">
-                    <span>Avg: ${runtimePerformanceInfo.averageDuration}</span>
-                    <span>Slowest: ${runtimePerformanceInfo.slowestModule}</span>
-                    <span>Fastest: ${runtimePerformanceInfo.fastestModule}</span>
-                </div>
-                ${runtimePerformanceInfo.warnings && runtimePerformanceInfo.warnings.length > 0 ? `
-                    <div style="font-size:9px;color:#f59e0b;margin-top:2px;">
-                        ⚠️ ${runtimePerformanceInfo.warnings.length} performance ${runtimePerformanceInfo.warnings.length === 1 ? 'warning' : 'warnings'}
-                    </div>
-                ` : ''}
-                ` : `
-                <div style="font-size:10px;color:#64748b;margin-top:4px;">
-                    ${runtimePerformanceInfo.isAvailable ? '⏳ Collecting performance data...' : '⚠️ Performance framework not available'}
-                </div>
-                `}
-                ${!runtimePerformanceInfo.isAvailable ? `
-                    <div style="font-size:8px;color:#475569;margin-top:2px;">
-                        Enable debug mode or restart to collect data
-                    </div>
-                ` : ''}
-            </div>
-
-            <!-- ========================================================== -->
             <!-- 🔥 PART 44.10: RUNTIME EVENTS -->
             <!-- ========================================================== -->
             <div style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
@@ -1785,7 +1745,6 @@ LawAIApp.Debug.DevPanel = {
                     <div style="padding-left:12px;">Traces: ${runtimeTraceInfo.totalTraces}</div>
                     <div style="padding-left:12px;">Coverage: ${runtimeTraceInfo.coverage}%</div>
                     <div style="padding-left:12px;">Health: ${runtimeTraceInfo.healthScore}%</div>
-                    <div><strong>Part 43.11 - Runtime Performance:</strong></div>
                     <div style="padding-left:12px;">Score: ${runtimePerformanceInfo.isAvailable ? runtimePerformanceInfo.score + '%' : 'N/A'}</div>
                     <div style="padding-left:12px;">Status: ${runtimePerformanceInfo.isAvailable ? runtimePerformanceInfo.label : 'N/A'}</div>
                     <div style="padding-left:12px;">Boot: ${runtimePerformanceInfo.bootDuration}</div>
@@ -3834,93 +3793,6 @@ LawAIApp.Debug.DevPanel = {
 
         } catch (err) {
             console.warn('Could not get runtime trace info:', err);
-        }
-
-        return info;
-    },
-
-    // ============================================================
-    // 🔥 PART 43.11: RUNTIME PERFORMANCE INFO
-    // ============================================================
-
-    _getRuntimePerformanceInfo: function() {
-        var info = {
-            score: 0,
-            status: 'UNKNOWN',
-            label: 'Unknown',
-            bootDuration: 'N/A',
-            averageDuration: 'N/A',
-            slowestModule: 'N/A',
-            fastestModule: 'N/A',
-            totalModules: 0,
-            totalRecords: 0,
-            warnings: [],
-            hasData: false,
-            isAvailable: false
-        };
-
-        try {
-            var perf = LawAIApp.Performance || (window.LawAIApp && window.LawAIApp.Performance);
-            if (perf) {
-                info.isAvailable = true;
-                var report = null;
-                if (typeof perf.report === 'function') {
-                    report = perf.report();
-                }
-                if (report) {
-                    info.hasData = !!(report.summary && report.summary.hasData);
-                    if (report.health) {
-                        info.score = report.health.score || 0;
-                        info.status = report.health.status || 'UNKNOWN';
-                        info.label = report.health.label || 'Unknown';
-                    }
-                    if (report.summary) {
-                        info.bootDuration = report.summary.bootDuration || 'N/A';
-                        info.averageDuration = report.summary.averageDuration || 'N/A';
-                        info.slowestModule = report.summary.slowestModule || 'N/A';
-                        info.fastestModule = report.summary.fastestModule || 'N/A';
-                        info.totalModules = report.summary.totalModules || 0;
-                        info.totalRecords = report.summary.totalRecords || 0;
-                    }
-                    if (report.warnings) {
-                        info.warnings = report.warnings;
-                    }
-                }
-            }
-
-            if (!info.hasData) {
-                var pipeline = LawAIApp.BootPipeline || window.bootPipeline;
-                if (pipeline && typeof pipeline.getPipelineStatus === 'function') {
-                    var ps = pipeline.getPipelineStatus();
-                    if (ps && ps.status === 'completed') {
-                        info.isAvailable = true;
-                        info.hasData = true;
-                        info.bootDuration = ps.totalDuration ? ps.totalDuration + 'ms' : 'N/A';
-                        info.totalModules = (ps.completedStages && ps.completedStages.length) || 0;
-                        info.score = 100;
-                        info.status = 'EXCELLENT';
-                        info.label = 'Boot Completed';
-                    } else if (ps && ps.status === 'running') {
-                        info.isAvailable = true;
-                        info.label = 'Booting...';
-                    }
-                }
-            }
-
-            if (!info.hasData) {
-                var bm = LawAIApp.BootManager || window.bootManager;
-                if (bm && bm._booted) {
-                    info.isAvailable = true;
-                    info.hasData = true;
-                    info.score = 100;
-                    info.status = 'EXCELLENT';
-                    info.label = 'Booted';
-                    info.bootDuration = 'N/A';
-                }
-            }
-
-        } catch (err) {
-            console.warn('Could not get runtime performance info:', err);
         }
 
         return info;
