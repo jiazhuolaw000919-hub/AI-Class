@@ -234,7 +234,7 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
                 </div>
                 `}
 
-                !-- Click Hint -->
+                <!-- Click Hint -->
                 <div style="font-size:7px;color:#475569;text-align:right;margin-top:2px;">
                     🔍 Click for details
                 </div>
