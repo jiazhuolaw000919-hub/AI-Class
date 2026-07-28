@@ -176,8 +176,9 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
 
         return `
             <div id="explorer-panel-container" 
-                 style="margin-bottom:8px;padding:8px 12px;background:rgba(74,158,255,0.04);border-radius:8px;border-left:2px solid #4a9eff;cursor:pointer;"
-                 onclick="LawAIApp.Debug.Panels.ExplorerPanel._openExplorer()">
+             style="margin-bottom:8px;padding:8px 12px;background:rgba(74,158,255,0.04);border-radius:8px;border-left:2px solid #4a9eff;cursor:pointer;"
+             onclick="LawAIApp.Debug.Details.PanelDetailManager.open('explorer')"
+             title="Click for full details">
                 
                 <!-- Header -->
                 <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -232,6 +233,11 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
                     Please wait for system to load
                 </div>
                 `}
+
+                !-- Click Hint -->
+                <div style="font-size:7px;color:#475569;text-align:right;margin-top:2px;">
+                    🔍 Click for details
+                </div>
             </div>
         `;
     },
