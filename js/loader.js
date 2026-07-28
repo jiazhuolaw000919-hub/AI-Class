@@ -114,7 +114,7 @@ var STAGES = {
         "core/rootCauseAnalysisEngine.js",
         "core/runtimePredictionEngine.js",
         "core/decisionSupportEngine.js",
-        "core/aiCognitiveIntegration.js",
+        "core/aiCognitiveIntegration.js"
         
         // ═══════════════════════════════════════
         // Part 49: Runtime Governance Layer
@@ -135,16 +135,16 @@ var STAGES = {
         "core/devPanelCore.js",
         
         // ── DevPanel Panels ──
-        "panels/runtimePanel.js",
-        "panels/performancePanel.js",
-        "panels/metricsPanel.js",
-        "panels/eventPanel.js",
-        "panels/tracePanel.js",
-        "panels/statePanel.js",
-        "panels/knowledgePanel.js",
-        "panels/cognitivePanel.js",
-        "panels/governancePanel.js",
-        "panels/explorerPanel.js",          // 🆕 Explorer Panel
+        "debug/panels/runtimePanel.js",
+        "debug/panels/performancePanel.js",
+        "debug/panels/metricsPanel.js",
+        "debug/panels/eventPanel.js",
+        "debug/panels/tracePanel.js",
+        "debug/panels/statePanel.js",
+        "debug/panels/knowledgePanel.js",
+        "debug/panels/cognitivePanel.js",
+        "debug/panels/governancePanel.js",
+        "debug/panels/explorerPanel.js",
         
         // ── Components ──
         "components/panelCard.js",
