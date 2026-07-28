@@ -114,7 +114,7 @@ var STAGES = {
         "core/rootCauseAnalysisEngine.js",
         "core/runtimePredictionEngine.js",
         "core/decisionSupportEngine.js",
-        "core/aiCognitiveIntegration.js"
+        "core/aiCognitiveIntegration.js",
         
         // ═══════════════════════════════════════
         // Part 49: Runtime Governance Layer
