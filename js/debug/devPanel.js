@@ -369,6 +369,9 @@ LawAIApp.Debug.DevPanel = {
             <div id="cognitive-panel-placeholder"></div>
             <div id="governance-panel-placeholder"></div>
 
+            <!-- 🆕 Explorer Panel Placeholder -->
+            <div id="explorer-panel-placeholder"></div>
+
             <div id="dev-panel-ai-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;"></div>
             <div id="dev-panel-kg-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;"></div>
 
@@ -378,10 +381,6 @@ LawAIApp.Debug.DevPanel = {
 
             <div style="font-size:10px;color:#475569;text-align:center;border-top:1px solid rgba(255,255,255,0.04);padding-top:10px;margin-top:12px;">
                 Press Ctrl+Shift+L to close
-            </div>
-            // ── Panel Placeholders ──
-            // ... existing placeholders ...
-            <div id="explorer-panel-placeholder">
             </div>
         `;
     },
