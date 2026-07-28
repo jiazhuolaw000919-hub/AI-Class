@@ -1,8 +1,9 @@
 // ================================================================
-// loader.js – V5.3.7 - Runtime Boot Bridge Hotfix (Part 49 Governance Ready)
+// loader.js – V5.3.8 - Runtime Boot Bridge + Explorer Panel
 // Runtime Core loads BEFORE application engines
 // Supports ES Module loading for Runtime Framework
 // Fixed: RuntimeEventCollector pre-creation + Governance module ordering
+// Added: ExplorerPanel registration
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -125,12 +126,38 @@ var STAGES = {
         "core/runtimeSafetyCompliance.js",
         "core/aiGovernanceIntegration.js",
         "core/unifiedGovernanceDashboard.js",
+        
+        // ═══════════════════════════════════════
+        // Part 49.8: DevPanel Core + Panels
+        // ═══════════════════════════════════════
         "core/panelRegistry.js",
         "core/panelManager.js",
         "core/devPanelCore.js",
+        
+        // ── DevPanel Panels ──
+        "panels/runtimePanel.js",
+        "panels/performancePanel.js",
+        "panels/metricsPanel.js",
+        "panels/eventPanel.js",
+        "panels/tracePanel.js",
+        "panels/statePanel.js",
+        "panels/knowledgePanel.js",
+        "panels/cognitivePanel.js",
         "panels/governancePanel.js",
+        "panels/explorerPanel.js",          // 🆕 Explorer Panel
+        
+        // ── Components ──
         "components/panelCard.js",
-        "components/statusBadge.js"
+        "components/statusBadge.js",
+        
+        // ═══════════════════════════════════════
+        // Part 49.9: Runtime Explorer Layer
+        // ═══════════════════════════════════════
+        "runtime/runtimeExplorer.js",
+        "runtime/runtimeRegistry.js",
+        "runtime/runtimeInspector.js",
+        "runtime/runtimeSearch.js",
+        "runtime/runtimeSnapshot.js"
     ],
     critical: [
         "storageEngine.js",
@@ -389,7 +416,7 @@ async function boot() {
     }
 
     console.log('[Loader] ⏳ Runtime Loading...');
-    console.log('🚀 Loader V5.3.7 starting...');
+    console.log('🚀 Loader V5.3.8 starting...');
     console.log('[Loader] ✅ RuntimeEventCollector ready:', !!window.LawAIApp.RuntimeEventCollector?.emit);
 
     await loadStage('runtime', STAGES.runtime, 0);
@@ -406,6 +433,14 @@ async function boot() {
 
     console.log('[Loader] ✅ Composer Ready');
 
+    // ── 🔥 延迟初始化 DevPanel (确保所有 Panel 已加载) ──
+    setTimeout(function() {
+        if (window.LawAIApp.Debug && window.LawAIApp.Debug.DevPanel) {
+            window.LawAIApp.Debug.DevPanel.init();
+            console.log('[Loader] ✅ DevPanel initialized after all panels loaded');
+        }
+    }, 100);
+
     setTimeout(function() {
         window.dispatchEvent(new CustomEvent('SYSTEM_READY', {
             detail: { boot: status, timestamp: Date.now() }
@@ -413,7 +448,6 @@ async function boot() {
 
         console.log('[Loader] ✅ Application Ready');
         console.log('[Loader] ✅ Recovery Core Runtime Ready');
-
         console.log('✅ SYSTEM_READY dispatched');
     }, 50);
 
@@ -463,4 +497,4 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     });
 }
 
-console.log('🚀 Loader V5.3.7 ready (Part 49 Governance Ready)');
+console.log('🚀 Loader V5.3.8 ready (Part 49 Governance + Explorer Panel)');
