@@ -214,29 +214,28 @@ LawAIApp.Debug.DevPanel = {
         var labels = {
             'runtime': '⚡ Runtime',
             'performance': '⚡ Runtime Performance',
-            'metrics': '📈 Runtime Metrics',        // NEW!
+            'metrics': '📈 Runtime Metrics',
             'event': '🧠 Runtime Events',
             'trace': '🛰 Runtime Tracing',
             'state': '🔄 State Dashboard',
-            'knowledge': '🧠 Knowledge Graph',      // NEW!
+            'knowledge': '🧠 Knowledge Graph',
             'cognitive': '🧠 Cognitive Engine',
             'governance': '🏛️ Governance Layer'
         };
-        var label = labels[id] || id;
-        // ... rest same
-    },
-        var label = labels[id] || id;
-        return `
-            <div style="margin-bottom:8px;padding:8px 12px;background:rgba(74,158,255,0.04);border-radius:8px;border-left:2px solid #4a9eff;">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <span style="font-size:11px;color:#94a3b8;font-weight:600;">${label}</span>
-                    <span style="font-size:10px;color:#f59e0b;">⏳ Loading...</span>
-                </div>
-                <div style="font-size:9px;color:#475569;margin-top:4px;">
-                    Panel not available
-                </div>
-            </div>
-        `;
+    
+    var label = labels[id] || id;
+    
+        return [
+            '<div style="margin-bottom:8px;padding:8px 12px;background:rgba(74,158,255,0.04);border-radius:8px;border-left:2px solid #4a9eff;">',
+                '<div style="display:flex;justify-content:space-between;align-items:center;">',
+                    '<span style="font-size:11px;color:#94a3b8;font-weight:600;">' + label + '</span>',
+                    '<span style="font-size:10px;color:#f59e0b;">⏳ Loading...</span>',
+                '</div>',
+                '<div style="font-size:9px;color:#475569;margin-top:4px;">',
+                    'Panel not available',
+                '</div>',
+            '</div>'
+        ].join('');
     },
 
     _getErrorHTML: function(id, message) {
@@ -252,7 +251,7 @@ LawAIApp.Debug.DevPanel = {
             </div>
         `;
     },
-
+    
     // ============================================================
     // LEGACY PANELS
     // ============================================================
