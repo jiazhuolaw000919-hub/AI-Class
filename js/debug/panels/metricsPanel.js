@@ -79,6 +79,8 @@ LawAIApp.Debug.Panels.MetricsPanel = {
     // METRICS API
     // ============================================================
 
+    // metricsPanel.js — _getData() 方法
+
     _getData: function() {
         var info = {
             status: 'unknown',
@@ -98,43 +100,50 @@ LawAIApp.Debug.Panels.MetricsPanel = {
         };
 
         try {
+            // ── 🔥 NEW: 从 RuntimeExplorer 获取数据 ──
+            var explorer = LawAIApp.Runtime && LawAIApp.Runtime.Explorer;
+        
+            if (explorer && explorer.getAllEntries) {
+                var allEntries = explorer.getAllEntries();
+                if (allEntries) {
+                    // 过滤出 metrics 类型的组件
+                    var metricsEntries = [];
+                    for (var id in allEntries) {
+                        if (allEntries.hasOwnProperty(id)) {
+                            var entry = allEntries[id];
+                            if (entry.type === 'metric' || entry.category === 'performance') {
+                                metricsEntries.push(entry);
+                            }
+                        }
+                    }
+                    info.totalMetrics = metricsEntries.length;
+                    info.collectedMetrics = metricsEntries.filter(function(e) { 
+                        return e.status === 'active'; 
+                    }).length;
+                    info.hasData = info.collectedMetrics > 0;
+                
+                    if (info.totalMetrics > 0) {
+                        info.coverage = Math.round((info.collectedMetrics / info.totalMetrics) * 100);
+                    }
+                }
+            }
+
+            // ── 原有 Metrics Health 逻辑 ──
             var health = LawAIApp.RuntimeMetricsHealth || window.runtimeMetricsHealth;
             if (health && typeof health.getHealth === 'function') {
                 var data = health.getHealth();
                 if (data) {
                     info.status = data.status || 'unknown';
-                    info.totalMetrics = data.totalMetrics || 0;
-                    info.collectedMetrics = data.collectedMetrics || 0;
-                    info.coverage = data.coverageScore || 0;
+                    info.totalMetrics = data.totalMetrics || info.totalMetrics;
+                    info.collectedMetrics = data.collectedMetrics || info.collectedMetrics;
+                    info.coverage = data.coverageScore || info.coverage;
                     info.healthScore = data.healthScore || 0;
                     info.errors = data.errors || 0;
                     info.warnings = data.warnings || 0;
                     info.missingMetrics = data.missingMetrics || [];
                     info.validationWarnings = data.validationWarnings || 0;
                     info.isAvailable = true;
-                    info.hasData = info.collectedMetrics > 0;
-                }
-            }
-
-            // ── Get metric names from collector ──
-            try {
-                var collector = LawAIApp.RuntimeMetricsCollector || window.runtimeMetricsCollector;
-                if (collector && typeof collector.getMetrics === 'function') {
-                    var metrics = collector.getMetrics();
-                    if (metrics && metrics.length > 0) {
-                        info.metricNames = metrics.slice(0, 10).map(function(m) { return m.id || m.name; });
-                        info.hasData = true;
-                    }
-                }
-            } catch (e) { /* ignore */ }
-
-            // ── Fallback ──
-            if (!info.isAvailable) {
-                var manifest = LawAIApp.RuntimeMetricsManifest || window.runtimeMetricsManifest;
-                if (manifest && typeof manifest.getMetrics === 'function') {
-                    var metrics = manifest.getMetrics();
-                    info.totalMetrics = metrics ? metrics.length : 0;
-                    info.isAvailable = true;
+                    info.hasData = info.hasData || info.collectedMetrics > 0;
                 }
             }
 
@@ -161,7 +170,7 @@ LawAIApp.Debug.Panels.MetricsPanel = {
         } catch (err) {
             console.warn('[MetricsPanel] Could not get metrics data:', err);
         }
-
+    
         return info;
     },
 
