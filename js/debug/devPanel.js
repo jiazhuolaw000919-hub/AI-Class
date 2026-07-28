@@ -351,38 +351,50 @@ LawAIApp.Debug.DevPanel = {
     // ============================================================
 
     _buildHTML: function() {
-        var version = (LawAIApp.SystemComposer && LawAIApp.SystemComposer.version) || '4.0.17';
+    var version = (LawAIApp.SystemComposer && LawAIApp.SystemComposer.version) || '4.0.17';
 
-        return `
-            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px;margin-bottom:12px;">
-                <span style="font-size:16px;font-weight:700;color:#4a9eff;">🛠️ Dev Panel</span>
+    return `
+        <!-- Header -->
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px;margin-bottom:12px;">
+            <span style="font-size:16px;font-weight:700;color:#4a9eff;">🛠️ Dev Panel</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <!-- 🆕 Explorer Button -->
+                <button onclick="LawAIApp.Debug.DevPanel._openExplorer()" 
+                        style="background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.2);border-radius:6px;color:#4a9eff;font-size:11px;padding:2px 10px;cursor:pointer;"
+                        title="Open Runtime Explorer">
+                    🔍 Explorer
+                </button>
                 <span style="font-size:10px;color:#475569;">v${version}</span>
                 <button onclick="LawAIApp.Debug.DevPanel.hide()" style="background:none;border:none;color:#64748b;font-size:18px;cursor:pointer;">✕</button>
             </div>
+        </div>
 
-            <div id="runtime-panel-placeholder"></div>
-            <div id="performance-panel-placeholder"></div>
-            <div id="trace-panel-placeholder"></div>
-            <div id="event-panel-placeholder"></div>
-            <div id="state-panel-placeholder"></div>
-            <div id="cognitive-panel-placeholder"></div>
-            <div id="governance-panel-placeholder"></div>
+        <!-- Panel Placeholders -->
+        <div id="runtime-panel-placeholder"></div>
+        <div id="performance-panel-placeholder"></div>
+        <div id="metrics-panel-placeholder"></div>
+        <div id="trace-panel-placeholder"></div>
+        <div id="event-panel-placeholder"></div>
+        <div id="state-panel-placeholder"></div>
+        <div id="knowledge-panel-placeholder"></div>
+        <div id="cognitive-panel-placeholder"></div>
+        <div id="governance-panel-placeholder"></div>
+        <div id="explorer-panel-placeholder"></div>
 
-            <!-- 🆕 Explorer Panel Placeholder -->
-            <div id="explorer-panel-placeholder"></div>
+        <!-- Legacy Panel Placeholders -->
+        <div id="dev-panel-ai-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;"></div>
+        <div id="dev-panel-kg-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;"></div>
 
-            <div id="dev-panel-ai-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;"></div>
-            <div id="dev-panel-kg-section" style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;"></div>
+        <!-- Debug Actions -->
+        <div id="debug-actions-container" style="display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;"></div>
 
-            <div id="debug-actions-container" style="display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;"></div>
+        <input type="file" id="dev-import-input" accept=".json" style="display:none">
 
-            <input type="file" id="dev-import-input" accept=".json" style="display:none">
-
-            <div style="font-size:10px;color:#475569;text-align:center;border-top:1px solid rgba(255,255,255,0.04);padding-top:10px;margin-top:12px;">
-                Press Ctrl+Shift+L to close
-            </div>
-        `;
-    },
+        <div style="font-size:10px;color:#475569;text-align:center;border-top:1px solid rgba(255,255,255,0.04);padding-top:10px;margin-top:12px;">
+            Press Ctrl+Shift+L to close
+        </div>
+    `;
+},
 
     // ============================================================
     // KEYBOARD SHORTCUT
