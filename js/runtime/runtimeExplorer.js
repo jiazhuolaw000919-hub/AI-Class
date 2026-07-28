@@ -756,6 +756,126 @@ LawAIApp.Runtime.Explorer.getSnapshot = function(id) {
     return LawAIApp.Runtime.Inspector.getSnapshot(id);
 };
 
+// ============================================================
+// RUNTIME EXPLORER — SEARCH CONNECTION
+// ============================================================
+
+(function connectExplorerToSearch() {
+    var maxAttempts = 10;
+    var attempts = 0;
+    
+    function tryConnect() {
+        attempts++;
+        
+        if (LawAIApp.Runtime && LawAIApp.Runtime.Explorer && LawAIApp.Runtime.Search) {
+            var explorer = LawAIApp.Runtime.Explorer;
+            var search = LawAIApp.Runtime.Search;
+            
+            // ── 委托方法 ──
+            explorer.search = function(keyword, options) {
+                return search.search(keyword, options);
+            };
+            
+            explorer.findByType = function(type) {
+                return search.findByType(type);
+            };
+            
+            explorer.findByCategory = function(category) {
+                return search.findByCategory(category);
+            };
+            
+            explorer.findRelated = function(id, depth) {
+                return search.findRelated(id, depth);
+            };
+            
+            explorer.findDependencies = function(id) {
+                return search.findDependencies(id);
+            };
+            
+            explorer.findDependents = function(id) {
+                return search.findDependents(id);
+            };
+            
+            explorer.getSuggestions = function(prefix, limit) {
+                return search.getSuggestions(prefix, limit);
+            };
+            
+            explorer.discoverAll = function() {
+                return search.discoverAll();
+            };
+            
+            explorer.refreshSearchIndex = function() {
+                return search.refreshIndex();
+            };
+            
+            console.log('🔗 [RuntimeExplorer] Connected to RuntimeSearch ✅');
+            return;
+        }
+        
+        if (attempts < maxAttempts) {
+            setTimeout(tryConnect, 200);
+        } else {
+            console.warn('🔗 [RuntimeExplorer] Could not connect to RuntimeSearch after ' + maxAttempts + ' attempts');
+        }
+    }
+    
+    tryConnect();
+})();
+
+// ============================================================
+// RUNTIME EXPLORER — SNAPSHOT CONNECTION
+// ============================================================
+
+(function connectExplorerToSnapshot() {
+    var maxAttempts = 10;
+    var attempts = 0;
+    
+    function tryConnect() {
+        attempts++;
+        
+        if (LawAIApp.Runtime && LawAIApp.Runtime.Explorer && LawAIApp.Runtime.Snapshot) {
+            var explorer = LawAIApp.Runtime.Explorer;
+            var snapshot = LawAIApp.Runtime.Snapshot;
+            
+            // ── 委托方法 ──
+            explorer.buildSnapshot = function(options) {
+                return snapshot.build(options);
+            };
+            
+            explorer.exportSnapshot = function(options) {
+                return snapshot.export(options);
+            };
+            
+            explorer.getSnapshots = function() {
+                return snapshot.getSnapshots();
+            };
+            
+            explorer.getLatestSnapshot = function() {
+                return snapshot.getLatestSnapshot();
+            };
+            
+            explorer.clearSnapshots = function() {
+                return snapshot.clearSnapshots();
+            };
+            
+            explorer.collectRuntimeData = function(options) {
+                return snapshot.collect(options);
+            };
+            
+            console.log('🔗 [RuntimeExplorer] Connected to RuntimeSnapshot ✅');
+            return;
+        }
+        
+        if (attempts < maxAttempts) {
+            setTimeout(tryConnect, 200);
+        } else {
+            console.warn('🔗 [RuntimeExplorer] Could not connect to RuntimeSnapshot after ' + maxAttempts + ' attempts');
+        }
+    }
+    
+    tryConnect();
+})();
+
 console.log('🔍 [Part 49.9.1] Runtime Explorer Foundation loaded');
 console.log('   📋 API: init() | getTree() | register() | createSnapshot()');
 console.log('   🔒 Read-Only Mode: ENABLED');
