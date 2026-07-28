@@ -25,6 +25,9 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
     _refreshInterval: null,
     _data: null,
     _expanded: false,
+    _popupOverlay: null,
+    _popup: null,
+    _popupEscHandler: null,
 
     // ============================================================
     // PANEL CONTRACT
@@ -97,7 +100,6 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
             var search = LawAIApp.Runtime && LawAIApp.Runtime.Search;
             var snapshot = LawAIApp.Runtime && LawAIApp.Runtime.Snapshot;
 
-            // ── Check availability ──
             if (explorer && explorer.isInitialized && explorer.isInitialized()) {
                 info.isAvailable = true;
                 info.registryReady = true;
@@ -108,7 +110,6 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
                 if (all) {
                     info.componentCount = Object.keys(all).length;
                     
-                    // ── Count by status ──
                     var healthy = 0, warning = 0, error = 0;
                     for (var id in all) {
                         if (!all.hasOwnProperty(id)) continue;
@@ -141,7 +142,6 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
                 info.searchReady = true;
             }
 
-            // ── Status ──
             if (info.healthScore >= 80) {
                 info.statusColor = '#22c55e';
                 info.statusText = 'Healthy';
@@ -176,9 +176,9 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
 
         return `
             <div id="explorer-panel-container" 
-             style="margin-bottom:8px;padding:8px 12px;background:rgba(74,158,255,0.04);border-radius:8px;border-left:2px solid #4a9eff;cursor:pointer;"
-             onclick="LawAIApp.Debug.Details.PanelDetailManager.open('explorer')"
-             title="Click for full details">
+                 style="margin-bottom:8px;padding:8px 12px;background:rgba(74,158,255,0.04);border-radius:8px;border-left:2px solid #4a9eff;cursor:pointer;"
+                 onclick="LawAIApp.Debug.Details.PanelDetailManager.open('explorer')"
+                 title="Click for full details">
                 
                 <!-- Header -->
                 <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -219,11 +219,6 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
                     ${data.searchReady ? '<span>🔎 Search ✅</span>' : '<span>🔎 Search ⏳</span>'}
                     <span>📸 ${data.snapshotCount} snapshots</span>
                 </div>
-                
-                <!-- Click Hint -->
-                <div style="font-size:7px;color:#475569;margin-top:2px;text-align:center;border-top:1px solid rgba(255,255,255,0.04);padding-top:3px;">
-                    Click to open full Explorer
-                </div>
                 ` : `
                 <!-- Loading State -->
                 <div style="font-size:10px;color:#64748b;margin-top:4px;">
@@ -234,7 +229,7 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
                 </div>
                 `}
 
-                <!-- Click Hint -->
+                <!-- 🔥 Click Hint — 只有这一个！-->
                 <div style="font-size:7px;color:#475569;text-align:right;margin-top:2px;">
                     🔍 Click for details
                 </div>
@@ -251,37 +246,21 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
     // ACTIONS
     // ============================================================
 
-    /**
-     * 打开完整的 Runtime Explorer
-     * @private
-     */
     _openExplorer: function() {
         console.log('🔍 [ExplorerPanel] Opening Runtime Explorer...');
         
-        // ── 检查 Explorer 是否可用 ──
         var explorer = LawAIApp.Runtime && LawAIApp.Runtime.Explorer;
         if (!explorer || !explorer.isInitialized || !explorer.isInitialized()) {
             alert('⚠️ Runtime Explorer not available. Please check console for errors.');
             return;
         }
 
-        // ── 获取 Tree ──
         var tree = explorer.getTree ? explorer.getTree() : null;
-        
-        // ── 获取 Stats ──
         var stats = explorer.getStats ? explorer.getStats() : null;
-
-        // ── 构建弹窗内容 ──
         var content = this._buildExplorerContent(tree, stats);
-        
-        // ── 创建浮窗 ──
         this._createExplorerPopup(content);
     },
 
-    /**
-     * 构建 Explorer 内容
-     * @private
-     */
     _buildExplorerContent: function(tree, stats) {
         var html = '';
 
@@ -322,10 +301,6 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
         return html;
     },
 
-    /**
-     * 渲染 Tree
-     * @private
-     */
     _renderTree: function(node, depth) {
         var indent = '  '.repeat(depth);
         var html = '';
@@ -333,10 +308,10 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
         if (!node) return '';
 
         if (node.label) {
-            var icon = node.type === 'root' ? '📁' : '📄';
-            var color = node.type === 'collection' ? '#4a9eff' : '#94a3b8';
+            var icon = node.type === 'root' ? '📁' : (node.type === 'collection' ? '📂' : '📄');
+            var color = node.type === 'root' ? '#4a9eff' : (node.type === 'collection' ? '#f59e0b' : '#94a3b8');
             html += indent + '<span style="color:' + color + ';">' + icon + ' ' + node.label + '</span>';
-            if (node.id) {
+            if (node.id && node.id !== node.label) {
                 html += ' <span style="color:#475569;font-size:8px;">(' + node.id + ')</span>';
             }
             html += '\n';
@@ -351,15 +326,9 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
         return html;
     },
 
-    /**
-     * 创建 Explorer 弹窗
-     * @private
-     */
     _createExplorerPopup: function(content) {
-        // ── 移除旧弹窗 ──
         this._closeExplorerPopup();
 
-        // ── 创建弹窗 ──
         var overlay = document.createElement('div');
         overlay.id = 'explorer-popup-overlay';
         overlay.style.cssText = `
@@ -393,37 +362,40 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
         `;
         popup.innerHTML = content;
 
-        // ── 点击外部关闭 ──
         overlay.addEventListener('click', function(e) {
             if (e.target === overlay) {
                 LawAIApp.Debug.Panels.ExplorerPanel._closeExplorerPopup();
             }
         });
 
+        var escHandler = function(e) {
+            if (e.key === 'Escape') {
+                LawAIApp.Debug.Panels.ExplorerPanel._closeExplorerPopup();
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+
         overlay.appendChild(popup);
         document.body.appendChild(overlay);
 
-        // ── 保存引用 ──
         this._popupOverlay = overlay;
         this._popup = popup;
+        this._popupEscHandler = escHandler;
     },
 
-    /**
-     * 关闭 Explorer 弹窗
-     * @private
-     */
     _closeExplorerPopup: function() {
         if (this._popupOverlay) {
             this._popupOverlay.remove();
             this._popupOverlay = null;
             this._popup = null;
         }
+        if (this._popupEscHandler) {
+            document.removeEventListener('keydown', this._popupEscHandler);
+            this._popupEscHandler = null;
+        }
     },
 
-    /**
-     * 构建 Snapshot
-     * @private
-     */
     _buildSnapshot: function() {
         var snapshot = LawAIApp.Runtime && LawAIApp.Runtime.Snapshot;
         if (snapshot && snapshot.build) {
@@ -437,10 +409,6 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
         }
     },
 
-    /**
-     * 导出 Report
-     * @private
-     */
     _exportReport: function() {
         var snapshot = LawAIApp.Runtime && LawAIApp.Runtime.Snapshot;
         if (snapshot && snapshot.export) {
@@ -450,10 +418,6 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
         }
     },
 
-    /**
-     * 刷新 Explorer
-     * @private
-     */
     _refreshExplorer: function() {
         var explorer = LawAIApp.Runtime && LawAIApp.Runtime.Explorer;
         if (explorer && explorer.refreshSearchIndex) {
@@ -501,7 +465,7 @@ LawAIApp.Debug.Panels.ExplorerPanel = {
         if (this._refreshInterval) return;
         this._refreshInterval = setInterval(function() {
             this.refresh();
-        }.bind(this), 10000); // 10 seconds
+        }.bind(this), 10000);
     },
 
     _stopAutoRefresh: function() {
