@@ -64,7 +64,6 @@ LawAIApp.Debug.DevPanel = {
         if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.GovernancePanel) {
             this.registerPanel('governance', LawAIApp.Debug.Panels.GovernancePanel, 'governance-panel-placeholder', 300);
         }
-    },
 
         // ── Part 49.9.6: ExplorerPanel ──
         if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.ExplorerPanel) {
