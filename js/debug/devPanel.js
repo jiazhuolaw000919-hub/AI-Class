@@ -588,7 +588,6 @@ LawAIApp.Debug.DevPanel = {
             <div style="font-size:10px;color:#475569;text-align:center;border-top:1px solid rgba(255,255,255,0.04);padding-top:10px;margin-top:12px;">
                 Press Ctrl+Shift+L to close
             </div>
-        `;
     
         <!-- Panel Placeholders -->
         <div id="performance-panel-placeholder"></div>
