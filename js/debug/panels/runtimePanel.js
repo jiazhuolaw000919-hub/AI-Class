@@ -201,7 +201,9 @@ LawAIApp.Debug.Panels.RuntimePanel = {
         
         return `
             <div id="runtime-panel-container" 
-                 style="margin-bottom:8px;padding:8px 12px;background:rgba(74,158,255,0.06);border-radius:8px;border-left:2px solid #4a9eff;">
+             style="margin-bottom:8px;padding:8px 12px;background:rgba(74,158,255,0.06);border-radius:8px;border-left:2px solid #4a9eff;cursor:pointer;"
+             onclick="LawAIApp.Debug.Details.PanelDetailManager.open('runtime')"
+             title="Click for full details">
                 
                 <!-- Header -->
                 <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -221,7 +223,7 @@ LawAIApp.Debug.Panels.RuntimePanel = {
                     Registry: ${data.registryCount} modules loaded
                     ${data.registryModules ? ' — ' + data.registryModules : ''}
                 </div>
-                
+                                
                 <!-- Boot Progress (if booting) -->
                 ${data.status === 'booting' ? `
                 <div style="margin-top:4px;">
@@ -240,6 +242,11 @@ LawAIApp.Debug.Panels.RuntimePanel = {
                           onclick="LawAIApp.Debug.Panels.RuntimePanel._handleRefresh()">
                         🔄 refresh
                     </span>
+                </div>
+
+                <!-- Click Hint -->
+                <div style="font-size:7px;color:#475569;text-align:right;margin-top:2px;">
+                    🔍 Click for details
                 </div>
             </div>
         `;
