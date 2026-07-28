@@ -79,120 +79,157 @@ LawAIApp.Debug.Panels.EventPanel = {
     // EVENT API — 统一通过 LawAIApp.Events
     // ============================================================
 
-    _getData: function() {
-        var info = {
-            totalEvents: 0,
-            sessionCount: 0,
-            categories: {},
-            sources: {},
-            topEvents: [],
-            recentEvents: [],
-            insights: [],
-            recommendations: [],
-            risks: [],
-            dependencies: [],
-            hasData: false,
-            isAvailable: false,
-            timelineEntries: 0,
-            intelligenceReady: false,
-            categoryCount: 0,
-            sourceCount: 0,
-            statusColor: '#64748b',
-            statusText: 'Collecting'
-        };
+    // eventPanel.js — _getData() 方法 (完整替换)
 
-        try {
-            var events = LawAIApp.Events || window.LawAIApp?.Events;
-            if (!events) {
-                return info;
-            }
+_getData: function() {
+    var info = {
+        totalEvents: 0,
+        sessionCount: 0,
+        categories: {},
+        sources: {},
+        topEvents: [],
+        recentEvents: [],
+        insights: [],
+        recommendations: [],
+        risks: [],
+        dependencies: [],
+        hasData: false,
+        isAvailable: false,
+        timelineEntries: 0,
+        intelligenceReady: false,
+        categoryCount: 0,
+        sourceCount: 0,
+        statusColor: '#64748b',
+        statusText: 'Collecting'
+    };
 
-            info.isAvailable = true;
-
-            // ── Event Count ──
-            if (typeof events.getEventCount === 'function') {
-                info.totalEvents = events.getEventCount() || 0;
-            }
-
-            // ── Session Count ──
-            if (typeof events.getSessionCount === 'function') {
-                info.sessionCount = events.getSessionCount() || 0;
-            }
-
-            // ── Statistics ──
-            if (typeof events.getStatistics === 'function') {
-                var stats = events.getStatistics();
-                if (stats) {
-                    info.categories = stats.categories || {};
-                    info.sources = stats.sources || {};
-                    info.topEvents = stats.topEvents || [];
-                    info.categoryCount = Object.keys(info.categories).length;
-                    info.sourceCount = Object.keys(info.sources).length;
-                    info.hasData = (stats.total || 0) > 0;
+    try {
+        // ── 🔥 NEW: 从 RuntimeExplorer 获取数据 ──
+        var explorer = LawAIApp.Runtime && LawAIApp.Runtime.Explorer;
+        
+        if (explorer && explorer.getTreeNode) {
+            var eventNode = explorer.getTreeNode('runtime.events');
+            if (eventNode && eventNode.children) {
+                info.totalEvents = eventNode.children.length;
+                info.hasData = info.totalEvents > 0;
+                
+                // 提取 categories
+                var categories = {};
+                var sources = {};
+                for (var i = 0; i < eventNode.children.length; i++) {
+                    var child = eventNode.children[i];
+                    if (child.metadata && child.metadata.category) {
+                        categories[child.metadata.category] = (categories[child.metadata.category] || 0) + 1;
+                    }
+                    if (child.metadata && child.metadata.source) {
+                        sources[child.metadata.source] = (sources[child.metadata.source] || 0) + 1;
+                    }
                 }
+                info.categories = categories;
+                info.sources = sources;
+                info.categoryCount = Object.keys(categories).length;
+                info.sourceCount = Object.keys(sources).length;
             }
-
-            // ── Timeline Entries ──
-            if (typeof events.getTimelineEntries === 'function') {
-                var entries = events.getTimelineEntries();
-                if (entries && entries.length > 0) {
-                    info.timelineEntries = entries.length;
-                    info.recentEvents = entries.slice(-10).reverse();
-                    info.hasData = true;
-                }
-            }
-
-            // ── Insights ──
-            if (typeof events.getInsights === 'function') {
-                var insights = events.getInsights();
-                if (insights && insights.length > 0) {
-                    info.insights = insights.slice(0, 5);
-                    info.intelligenceReady = true;
-                }
-            }
-
-            // ── Recommendations ──
-            if (typeof events.getRecommendations === 'function') {
-                var recs = events.getRecommendations();
-                if (recs && recs.length > 0) {
-                    info.recommendations = recs.slice(0, 3);
-                }
-            }
-
-            // ── Risks ──
-            if (typeof events.getRisks === 'function') {
-                var risks = events.getRisks();
-                if (risks && risks.length > 0) {
-                    info.risks = risks;
-                }
-            }
-
-            // ── Dependencies ──
-            if (typeof events.getDependencies === 'function') {
-                var deps = events.getDependencies();
-                if (deps && deps.length > 0) {
-                    info.dependencies = deps.slice(0, 5);
-                }
-            }
-
-            // ── Status ──
-            if (info.hasData) {
-                info.statusColor = '#22c55e';
-                info.statusText = 'Active';
-            } else if (info.isAvailable) {
-                info.statusColor = '#f59e0b';
-                info.statusText = 'Collecting';
-            } else {
-                info.statusColor = '#64748b';
-                info.statusText = 'Unavailable';
-            }
-
-        } catch (err) {
-            console.warn('[EventPanel] Could not get event data:', err);
         }
 
-        return info;
-    },
+        // ── Events API (原有逻辑) ──
+        var events = LawAIApp.Events || window.LawAIApp?.Events;
+        if (!events) {
+            // 即使 Events 不存在，如果 Explorer 有数据，仍然可用
+            if (info.hasData) {
+                info.isAvailable = true;
+                info.statusColor = '#22c55e';
+                info.statusText = 'Active';
+            }
+            return info;
+        }
+
+        info.isAvailable = true;
+
+        // ── Event Count ──
+        if (typeof events.getEventCount === 'function') {
+            info.totalEvents = events.getEventCount() || info.totalEvents;
+        }
+
+        // ── Session Count ──
+        if (typeof events.getSessionCount === 'function') {
+            info.sessionCount = events.getSessionCount() || 0;
+        }
+
+        // ── Statistics ──
+        if (typeof events.getStatistics === 'function') {
+            var stats = events.getStatistics();
+            if (stats) {
+                info.categories = stats.categories || info.categories;
+                info.sources = stats.sources || info.sources;
+                info.topEvents = stats.topEvents || [];
+                info.categoryCount = Object.keys(info.categories).length;
+                info.sourceCount = Object.keys(info.sources).length;
+                info.hasData = info.hasData || (stats.total || 0) > 0;
+            }
+        }
+
+        // ── Timeline Entries ──
+        if (typeof events.getTimelineEntries === 'function') {
+            var entries = events.getTimelineEntries();
+            if (entries && entries.length > 0) {
+                info.timelineEntries = entries.length;
+                info.recentEvents = entries.slice(-10).reverse();
+                info.hasData = true;
+            }
+        }
+
+        // ── Insights ──
+        if (typeof events.getInsights === 'function') {
+            var insights = events.getInsights();
+            if (insights && insights.length > 0) {
+                info.insights = insights.slice(0, 5);
+                info.intelligenceReady = true;
+            }
+        }
+
+        // ── Recommendations ──
+        if (typeof events.getRecommendations === 'function') {
+            var recs = events.getRecommendations();
+            if (recs && recs.length > 0) {
+                info.recommendations = recs.slice(0, 3);
+            }
+        }
+
+        // ── Risks ──
+        if (typeof events.getRisks === 'function') {
+            var risks = events.getRisks();
+            if (risks && risks.length > 0) {
+                info.risks = risks;
+            }
+        }
+
+        // ── Dependencies ──
+        if (typeof events.getDependencies === 'function') {
+            var deps = events.getDependencies();
+            if (deps && deps.length > 0) {
+                info.dependencies = deps.slice(0, 5);
+            }
+        }
+
+        // ── Status ──
+        if (info.hasData) {
+            info.statusColor = '#22c55e';
+            info.statusText = 'Active';
+        } else if (info.isAvailable) {
+            info.statusColor = '#f59e0b';
+            info.statusText = 'Collecting';
+        } else {
+            info.statusColor = '#64748b';
+            info.statusText = 'Unavailable';
+        }
+
+    } catch (err) {
+        console.warn('[EventPanel] Could not get event data:', err);
+    }
+
+    return info;
+},
 
     // ============================================================
     // UI RENDERING
