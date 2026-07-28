@@ -436,10 +436,27 @@ async function boot() {
     // ── 🔥 延迟初始化 DevPanel (确保所有 Panel 已加载) ──
     setTimeout(function() {
         if (window.LawAIApp.Debug && window.LawAIApp.Debug.DevPanel) {
-            window.LawAIApp.Debug.DevPanel.init();
-            console.log('[Loader] ✅ DevPanel initialized after all panels loaded');
+            if (typeof window.LawAIApp.Debug.DevPanel.init === 'function') {
+                window.LawAIApp.Debug.DevPanel.init();
+                console.log('[Loader] ✅ DevPanel initialized after all panels loaded');
+            } else {
+                console.warn('[Loader] ⚠️ DevPanel.init not ready, retrying...');
+                // 重试一次
+                setTimeout(function() {
+                    if (window.LawAIApp.Debug && window.LawAIApp.Debug.DevPanel) {
+                        if (typeof window.LawAIApp.Debug.DevPanel.init === 'function') {
+                            window.LawAIApp.Debug.DevPanel.init();
+                            console.log('[Loader] ✅ DevPanel initialized (retry)');
+                        } else {
+                            console.warn('[Loader] ❌ DevPanel.init still not available');
+                        }
+                    }
+                }, 300);
+            }
+        } else {
+            console.warn('[Loader] ⚠️ DevPanel not available');
         }
-    }, 100);
+    }, 150);
 
     setTimeout(function() {
         window.dispatchEvent(new CustomEvent('SYSTEM_READY', {
