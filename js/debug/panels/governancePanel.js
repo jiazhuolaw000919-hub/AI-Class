@@ -424,82 +424,91 @@
             // BUILD HTML — 构建 UI
             // ────────────────────────────────────────────────
             
-            _buildHTML: function(data) {
-                var statusColor = data.statusColor || '#64748b';
-                var statusText = data.statusText || 'Unknown';
+_buildHTML: function(data) {
+    var statusColor = data.statusColor || '#64748b';
+    var statusText = data.statusText || 'Unknown';
 
-                // ── 构建状态徽章 ──
-                var badges = [];
-                
-                if (data.policyCount > 0) {
-                    var policyColor = data.policyStatus === 'healthy' ? '#22c55e' : '#f59e0b';
-                    badges.push('<span style="padding:2px 8px;border-radius:10px;background:' + policyColor + '20;color:' + policyColor + ';font-size:9px;">📋 ' + data.policyCount + '</span>');
-                }
-                
-                if (data.permissionCount > 0) {
-                    badges.push('<span style="padding:2px 8px;border-radius:10px;background:#3b82f620;color:#3b82f6;font-size:9px;">🔑 ' + data.permissionCount + '</span>');
-                }
-                
-                if (data.validatorCount > 0) {
-                    badges.push('<span style="padding:2px 8px;border-radius:10px;background:#8b5cf620;color:#8b5cf6;font-size:9px;">✅ ' + data.validatorCount + '</span>');
-                }
-                
-                if (data.safetyLocks > 0) {
-                    var safetyColor = data.safetyStatus === 'safe' ? '#22c55e' : '#ef4444';
-                    badges.push('<span style="padding:2px 8px;border-radius:10px;background:' + safetyColor + '20;color:' + safetyColor + ';font-size:9px;">🛡️ ' + data.safetyLocks + '🔒</span>');
-                }
-                
-                if (data.aiLevel && data.aiLevel !== 'N/A') {
-                    badges.push('<span style="padding:2px 8px;border-radius:10px;background:#a855f720;color:#a855f7;font-size:9px;">🤖 ' + data.aiLevel + '</span>');
-                }
+    // ── 构建状态徽章 ──
+    var badges = [];
+    
+    if (data.policyCount > 0) {
+        var policyColor = data.policyStatus === 'healthy' ? '#22c55e' : '#f59e0b';
+        badges.push('<span style="padding:2px 8px;border-radius:10px;background:' + policyColor + '20;color:' + policyColor + ';font-size:9px;">📋 ' + data.policyCount + '</span>');
+    }
+    
+    if (data.permissionCount > 0) {
+        badges.push('<span style="padding:2px 8px;border-radius:10px;background:#3b82f620;color:#3b82f6;font-size:9px;">🔑 ' + data.permissionCount + '</span>');
+    }
+    
+    if (data.validatorCount > 0) {
+        badges.push('<span style="padding:2px 8px;border-radius:10px;background:#8b5cf620;color:#8b5cf6;font-size:9px;">✅ ' + data.validatorCount + '</span>');
+    }
+    
+    if (data.safetyLocks > 0) {
+        var safetyColor = data.safetyStatus === 'safe' ? '#22c55e' : '#ef4444';
+        badges.push('<span style="padding:2px 8px;border-radius:10px;background:' + safetyColor + '20;color:' + safetyColor + ';font-size:9px;">🛡️ ' + data.safetyLocks + '🔒</span>');
+    }
+    
+    if (data.aiLevel && data.aiLevel !== 'N/A') {
+        badges.push('<span style="padding:2px 8px;border-radius:10px;background:#a855f720;color:#a855f7;font-size:9px;">🤖 ' + data.aiLevel + '</span>');
+    }
 
-                // ── 健康分数徽章 ──
-                var scoreBadge = '';
-                if (data.healthScore > 0) {
-                    var scoreColor = data.healthScore >= 80 ? '#22c55e' : (data.healthScore >= 50 ? '#f59e0b' : '#ef4444');
-                    scoreBadge = '<span style="padding:2px 8px;border-radius:10px;background:' + scoreColor + '20;color:' + scoreColor + ';font-size:9px;">' + data.healthScore + '%</span>';
-                }
+    // ── 健康分数徽章 ──
+    var scoreBadge = '';
+    if (data.healthScore > 0) {
+        var scoreColor = data.healthScore >= 80 ? '#22c55e' : (data.healthScore >= 50 ? '#f59e0b' : '#ef4444');
+        scoreBadge = '<span style="padding:2px 8px;border-radius:10px;background:' + scoreColor + '20;color:' + scoreColor + ';font-size:9px;">' + data.healthScore + '%</span>';
+    }
 
-                // ── 完整 HTML ──
-                var html = '';
-                
-                // Header
-                html += '<div style="margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">';
-                html += '<span style="font-weight:bold;color:#22c55e;font-size:11px;cursor:pointer;" onclick="window.LawAIApp._openGovernanceDashboard && window.LawAIApp._openGovernanceDashboard()" title="Click for full dashboard">🏛️ Governance 🔗</span>';
-                html += '<span style="font-size:10px;color:' + statusColor + ';">' + statusText + '</span>';
-                html += '</div>';
-                
-                // Badges
-                if (badges.length > 0) {
-                    html += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px;">';
-                    html += badges.join('');
-                    if (scoreBadge) html += scoreBadge;
-                    html += '</div>';
-                }
-                
-                // Status bar
-                html += '<div style="display:flex;align-items:center;gap:6px;margin-top:2px;">';
-                html += '<div style="flex:1;height:2px;background:rgba(255,255,255,0.06);border-radius:1px;overflow:hidden;">';
-                html += '<div style="width:' + Math.min(data.healthScore || 0, 100) + '%;height:100%;background:' + statusColor + ';border-radius:1px;"></div>';
-                html += '</div>';
-                html += '<span style="font-size:8px;color:#475569;">' + (data.healthScore || 0) + '%</span>';
-                html += '</div>';
-                
-                // Violations warning
-                if (data.violations > 0) {
-                    html += '<div style="font-size:9px;color:#ef4444;margin-top:3px;">⚠️ ' + data.violations + ' violations detected</div>';
-                }
-                
-                // Recommendations
-                if (data.recommendations && data.recommendations.length > 0) {
-                    html += '<div style="font-size:8px;color:#4a9eff;margin-top:2px;max-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">💡 ' + data.recommendations.slice(0, 2).join(' | ') + (data.recommendations.length > 2 ? '...' : '') + '</div>';
-                }
-                
-                // Timestamp
-                html += '<div style="font-size:7px;color:#475569;margin-top:3px;text-align:right;">Updated: ' + this._formatTimestamp(Date.now()) + '</div>';
-                
-                return html;
-            },
+    // ── 完整 HTML ──
+    var html = '';
+    
+    // 🔥 容器 div — 加 cursor:pointer + onclick
+    html += '<div id="governance-panel-container" style="margin-bottom:8px;padding:8px 12px;background:rgba(34,197,94,0.04);border-radius:8px;border-left:2px solid #22c55e;cursor:pointer;" onclick="LawAIApp.Debug.Details.PanelDetailManager.open(\'governance\')" title="Click for full details">';
+    
+    // Header
+    html += '<div style="margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">';
+    html += '<span style="font-weight:bold;color:#22c55e;font-size:11px;cursor:pointer;" onclick="event.stopPropagation();window.LawAIApp._openGovernanceDashboard && window.LawAIApp._openGovernanceDashboard()" title="Click for full dashboard">🏛️ Governance 🔗</span>';
+    html += '<span style="font-size:10px;color:' + statusColor + ';">' + statusText + '</span>';
+    html += '</div>';
+    
+    // Badges
+    if (badges.length > 0) {
+        html += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px;">';
+        html += badges.join('');
+        if (scoreBadge) html += scoreBadge;
+        html += '</div>';
+    }
+    
+    // Status bar
+    html += '<div style="display:flex;align-items:center;gap:6px;margin-top:2px;">';
+    html += '<div style="flex:1;height:2px;background:rgba(255,255,255,0.06);border-radius:1px;overflow:hidden;">';
+    html += '<div style="width:' + Math.min(data.healthScore || 0, 100) + '%;height:100%;background:' + statusColor + ';border-radius:1px;"></div>';
+    html += '</div>';
+    html += '<span style="font-size:8px;color:#475569;">' + (data.healthScore || 0) + '%</span>';
+    html += '</div>';
+    
+    // Violations warning
+    if (data.violations > 0) {
+        html += '<div style="font-size:9px;color:#ef4444;margin-top:3px;">⚠️ ' + data.violations + ' violations detected</div>';
+    }
+    
+    // Recommendations
+    if (data.recommendations && data.recommendations.length > 0) {
+        html += '<div style="font-size:8px;color:#4a9eff;margin-top:2px;max-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">💡 ' + data.recommendations.slice(0, 2).join(' | ') + (data.recommendations.length > 2 ? '...' : '') + '</div>';
+    }
+    
+    // Timestamp
+    html += '<div style="font-size:7px;color:#475569;margin-top:3px;text-align:right;">Updated: ' + this._formatTimestamp(Date.now()) + '</div>';
+    
+    // 🔥 Click Hint — 放在最底部
+    html += '<div style="font-size:7px;color:#475569;text-align:right;margin-top:2px;">🔍 Click for details</div>';
+    
+    // 关闭容器
+    html += '</div>';
+    
+    return html;
+},
 
             // ────────────────────────────────────────────────
             // UTILITY
