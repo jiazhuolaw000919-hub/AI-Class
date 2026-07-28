@@ -682,6 +682,65 @@ if (document.readyState === 'loading') {
     }, 500);
 }
 
+// ============================================================
+// RUNTIME EXPLORER — REGISTRY CONNECTION
+// ============================================================
+
+// 建立 Explorer 与 Registry 的连接
+(function connectExplorerToRegistry() {
+    var maxAttempts = 10;
+    var attempts = 0;
+    
+    function tryConnect() {
+        attempts++;
+        
+        if (LawAIApp.Runtime && LawAIApp.Runtime.Explorer && LawAIApp.Runtime.Registry) {
+            var explorer = LawAIApp.Runtime.Explorer;
+            var registry = LawAIApp.Runtime.Registry;
+            
+            // ── 委托方法 ──
+            explorer.register = function(entry) {
+                return registry.register(entry);
+            };
+            
+            explorer.getEntry = function(id) {
+                return registry.get(id);
+            };
+            
+            explorer.getAllEntries = function() {
+                return registry.getAll();
+            };
+            
+            explorer.findByType = function(type) {
+                return registry.findByType(type);
+            };
+            
+            explorer.findByCategory = function(category) {
+                return registry.findByCategory(category);
+            };
+            
+            explorer.search = function(keyword) {
+                return registry.search(keyword);
+            };
+            
+            explorer.getRegistryStats = function() {
+                return registry.getStats();
+            };
+            
+            console.log('🔗 [RuntimeExplorer] Connected to RuntimeRegistry');
+            return;
+        }
+        
+        if (attempts < maxAttempts) {
+            setTimeout(tryConnect, 200);
+        } else {
+            console.warn('🔗 [RuntimeExplorer] Could not connect to RuntimeRegistry after ' + maxAttempts + ' attempts');
+        }
+    }
+    
+    tryConnect();
+})();
+
 console.log('🔍 [Part 49.9.1] Runtime Explorer Foundation loaded');
 console.log('   📋 API: init() | getTree() | register() | createSnapshot()');
 console.log('   🔒 Read-Only Mode: ENABLED');
