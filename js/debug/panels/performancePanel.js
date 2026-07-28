@@ -240,7 +240,9 @@ LawAIApp.Debug.Panels.PerformancePanel = {
         
         return `
             <div id="performance-panel-container" 
-                 style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;">
+             style="margin-bottom:8px;padding:8px 12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid #8b5cf6;cursor:pointer;"
+             onclick="LawAIApp.Debug.Details.PanelDetailManager.open('performance')"
+             title="Click for full details">
                 
                 <!-- Header -->
                 <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -290,6 +292,11 @@ LawAIApp.Debug.Panels.PerformancePanel = {
                           onclick="LawAIApp.Debug.Panels.PerformancePanel._handleRefresh()">
                         🔄 refresh
                     </span>
+                </div>
+
+                !-- Click Hint -->
+                <div style="font-size:7px;color:#475569;text-align:right;margin-top:2px;">
+                    🔍 Click for details
                 </div>
             </div>
         `;
