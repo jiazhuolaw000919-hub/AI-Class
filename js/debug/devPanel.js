@@ -66,6 +66,12 @@ LawAIApp.Debug.DevPanel = {
         }
     },
 
+        // ── Part 49.9.6: ExplorerPanel ──
+        if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.ExplorerPanel) {
+            this.registerPanel('explorer', LawAIApp.Debug.Panels.ExplorerPanel, 'explorer-panel-placeholder', 325);
+        }
+    },
+
     // ============================================================
     // CORE LIFECYCLE
     // ============================================================
@@ -372,6 +378,10 @@ LawAIApp.Debug.DevPanel = {
 
             <div style="font-size:10px;color:#475569;text-align:center;border-top:1px solid rgba(255,255,255,0.04);padding-top:10px;margin-top:12px;">
                 Press Ctrl+Shift+L to close
+            </div>
+            // ── Panel Placeholders ──
+            // ... existing placeholders ...
+            <div id="explorer-panel-placeholder">
             </div>
         `;
     },
