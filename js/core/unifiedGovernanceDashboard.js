@@ -551,6 +551,15 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
         var data = this._getValidationData();
         var html = '';
 
+        // ── 计算当前启用状态 ──
+        var validatorsList = data.validators || [];
+        var enabledCount = 0;
+        for (var i = 0; i < validatorsList.length; i++) {
+            if (validatorsList[i].enabled !== false) enabledCount++;
+        }
+        var allEnabled = enabledCount === validatorsList.length && validatorsList.length > 0;
+        var anyEnabled = enabledCount > 0;
+
         html += '<div class="gov-section">';
         html += '<h3 class="gov-section-title">✅ Validation System</h3>';
         html += this._renderStatusBadge(data.status);
@@ -559,6 +568,26 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
             { label: 'Validations Run', value: data.total },
             { label: 'Health Score', value: data.health + '%' }
         ]);
+
+        // ── 🔥 Toggle 开关 ──
+        html += '<div style="margin-top:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:6px 10px;background:rgba(255,255,255,0.02);border-radius:6px;">';
+        html += '<span style="font-size:11px;color:#94a3b8;">Validators:</span>';
+        html += '<span style="font-size:11px;color:' + (enabledCount > 0 ? '#22c55e' : '#64748b') + ';">' + enabledCount + '/' + validatorsList.length + ' active</span>';
+    
+        // ── Toggle 按钮 ──
+        var toggleLabel = allEnabled ? '⏸ Disable All' : (anyEnabled ? '▶ Enable All' : '▶ Enable All');
+        var toggleColor = allEnabled ? '#f59e0b' : '#22c55e';
+        var toggleBg = allEnabled ? 'rgba(245,158,11,0.1)' : 'rgba(34,197,94,0.1)';
+        var toggleBorder = allEnabled ? 'rgba(245,158,11,0.2)' : 'rgba(34,197,94,0.2)';
+    
+        html += '<button onclick="window.LawAIApp.UnifiedGovernanceDashboard._toggleAllValidators()" ';
+        html += 'style="padding:4px 14px;background:' + toggleBg + ';border:1px solid ' + toggleBorder + ';border-radius:6px;color:' + toggleColor + ';font-size:11px;cursor:pointer;transition:all 0.2s;">';
+        html += toggleLabel + '</button>';
+    
+        // ── 状态指示灯 ──
+        var dotColor = anyEnabled ? '#22c55e' : '#64748b';
+        html += '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + dotColor + ';margin-left:4px;"></span>';
+        html += '</div>';
 
         if (data.validators && data.validators.length > 0) {
             html += '<div style="margin-top:10px;text-align:center;">';
@@ -648,6 +677,52 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
         document.body.appendChild(overlay);
     },
 
+    // ============================================================
+    // TOGGLE ALL VALIDATORS — 开启/关闭
+    // ============================================================
+
+    _toggleAllValidators: function() {
+        try {
+            var validation = window.LawAIApp.Validation;
+            if (!validation) {
+                alert('⚠️ Validation system not available');
+                return;
+            }
+
+            var validators = validation.getAll ? validation.getAll() : [];
+            if (validators.length === 0) {
+                alert('⚠️ No validators found');
+                return;
+            }
+
+            // ── 检查当前状态 ──
+            var enabledCount = 0;
+            for (var i = 0; i < validators.length; i++) {
+                if (validators[i].enabled !== false) enabledCount++;
+            }
+            var allEnabled = enabledCount === validators.length;
+
+            // ── Toggle ──
+            var newState = !allEnabled;
+            var changed = 0;
+            for (var j = 0; j < validators.length; j++) {
+                if (validators[j].enabled !== undefined) {
+                    validators[j].enabled = newState;
+                    changed++;
+                }
+            }
+
+            var statusText = newState ? 'enabled' : 'disabled';
+            alert('✅ ' + changed + ' validators ' + statusText + ' successfully!');
+        
+            // ── 刷新 Dashboard ──
+            this.refresh();
+        } catch(e) {
+            console.error('[UnifiedGovernance] _toggleAllValidators error:', e);
+            alert('❌ Error toggling validators: ' + e.message);
+        }
+    },
+    
     // ============================================================
     // TAB: SAFETY — 带弹出窗口
     // ============================================================
