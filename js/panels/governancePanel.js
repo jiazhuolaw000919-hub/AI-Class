@@ -267,14 +267,14 @@
 
             return info;
         },
-
-        // ============================================================
-        // GET DATA FALLBACK — 直接 API 调用 (兼容性)
-        // ============================================================
         
+        // ────────────────────────────────────────────────
+        // GET DATA FALLBACK — 直接 API 调用 (兼容性)
+        // ────────────────────────────────────────────────
+
         _getDataFallback: function() {
             console.log('[GovernancePanel] Using fallback data source');
-            
+    
             var info = {
                 policyCount: 0,
                 permissionCount: 0,
@@ -304,78 +304,51 @@
                 var safety = window.LawAIApp.Safety;
                 var aiGov = window.LawAIApp.AIGovernance;
 
-                if (policy) {
+                if (policy && typeof policy.getHealth === 'function') {
                     hasAnyGov = true;
                     info.isAvailable = true;
-                    if (typeof policy.getHealth === 'function') {
-                        try {
-                            var ph = policy.getHealth();
-                            info.policyCount = ph.activePolicies || 0;
-                            info.healthScore = Math.max(info.healthScore, ph.healthScore || 0);
-                        } catch(e) {}
-                    }
-                    if (typeof policy.getViolations === 'function') {
-                        try {
-                            var violations = policy.getViolations();
-                            info.violations = violations ? violations.length : 0;
-                        } catch(e) {}
-                    }
-                }
+                    var ph = policy.getHealth();
+                    info.policyCount = ph.activePolicies || 0;
+                    info.healthScore = Math.max(info.healthScore, ph.healthScore || 0);
+                    info.policyStatus = ph.status || 'unknown';
+                }       
 
-                if (perm) {
+                if (perm && typeof perm.getHealth === 'function') {
                     hasAnyGov = true;
                     info.isAvailable = true;
-                    if (typeof perm.getHealth === 'function') {
-                        try {
-                            var pmh = perm.getHealth();
-                            info.permissionCount = pmh.activePermissions || 0;
-                            info.healthScore = Math.max(info.healthScore, pmh.healthScore || 0);
-                        } catch(e) {}
-                    }
+                    var pmh = perm.getHealth();
+                    info.permissionCount = pmh.activePermissions || 0;
+                    info.healthScore = Math.max(info.healthScore, pmh.healthScore || 0);
+                    info.permissionStatus = pmh.status || 'unknown';
                 }
 
-                if (valid) {
+                if (valid && typeof valid.getHealth === 'function') {
                     hasAnyGov = true;
                     info.isAvailable = true;
-                    if (typeof valid.getHealth === 'function') {
-                        try {
-                            var vh = valid.getHealth();
-                            info.validatorCount = vh.validators || 0;
-                            info.healthScore = Math.max(info.healthScore, vh.healthScore || 0);
-                        } catch(e) {}
-                    }
+                    var vh = valid.getHealth();
+                    info.validatorCount = vh.validators || 0;
+                    info.healthScore = Math.max(info.healthScore, vh.healthScore || 0);
+                    info.validationStatus = vh.status || 'unknown';
                 }
 
-                if (safety) {
+                if (safety && typeof safety.getHealth === 'function') {
                     hasAnyGov = true;
                     info.isAvailable = true;
-                    if (typeof safety.getHealth === 'function') {
-                        try {
-                            var sh = safety.getHealth();
-                            info.safetyLocks = sh.activeLocks || 0;
-                            info.healthScore = Math.max(info.healthScore, sh.healthScore || 0);
-                        } catch(e) {}
-                    }
+                    var sh = safety.getHealth();
+                    info.safetyLocks = sh.activeLocks || 0;
+                    info.healthScore = Math.max(info.healthScore, sh.healthScore || 0);
+                    info.safetyStatus = sh.status || 'unknown';
                 }
 
-                if (aiGov) {
+                if (aiGov && typeof aiGov.getAILevel === 'function') {
                     hasAnyGov = true;
                     info.isAvailable = true;
-                    if (typeof aiGov.getAILevel === 'function') {
-                        try {
-                            var ai = aiGov.getAILevel();
-                            info.aiLevel = ai.name || 'N/A';
-                        } catch(e) {}
-                    }
-                    if (typeof aiGov.getRecommendations === 'function') {
-                        try {
-                            var recs = aiGov.getRecommendations();
-                            info.recommendations = recs ? recs.slice(0, 3) : [];
-                        } catch(e) {}
-                    }
+                    var ai = aiGov.getAILevel();
+                    info.aiLevel = ai.name || 'N/A';
+                    info.aiStatus = ai.status || 'unknown';
                 }
 
-                info.hasData = hasAnyGov;
+                info.hasData = hasAnyGov || info.hasData;
 
                 if (info.violations > 0) {
                     info.status = 'violations';
