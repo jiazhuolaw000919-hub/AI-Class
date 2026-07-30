@@ -436,29 +436,41 @@ async function boot() {
     console.log('[Loader] ✅ Composer Ready');
 
     // ── 🔥 延迟初始化 DevPanel (确保所有 Panel 已加载) ──
+    // ── 🔥 延迟初始化 DevPanel (确保所有 Panel 已加载) ──
     setTimeout(function() {
         if (window.LawAIApp.Debug && window.LawAIApp.Debug.DevPanel) {
             if (typeof window.LawAIApp.Debug.DevPanel.init === 'function') {
                 window.LawAIApp.Debug.DevPanel.init();
                 console.log('[Loader] ✅ DevPanel initialized after all panels loaded');
             } else {
-                console.warn('[Loader] ⚠️ DevPanel.init not ready, retrying...');
-                // 重试一次
+                console.warn('[Loader] ⚠️ DevPanel.init not ready, retrying in 500ms...');
+                // 重试一次 (延迟增加)
                 setTimeout(function() {
                     if (window.LawAIApp.Debug && window.LawAIApp.Debug.DevPanel) {
                         if (typeof window.LawAIApp.Debug.DevPanel.init === 'function') {
                             window.LawAIApp.Debug.DevPanel.init();
                             console.log('[Loader] ✅ DevPanel initialized (retry)');
                         } else {
-                            console.warn('[Loader] ❌ DevPanel.init still not available');
+                            console.warn('[Loader] ❌ DevPanel.init still not available after retry');
+                            // 再试最后一次 (延迟更长)
+                            setTimeout(function() {
+                                if (window.LawAIApp.Debug && window.LawAIApp.Debug.DevPanel) {
+                                    if (typeof window.LawAIApp.Debug.DevPanel.init === 'function') {
+                                        window.LawAIApp.Debug.DevPanel.init();
+                                        console.log('[Loader] ✅ DevPanel initialized (final retry)');
+                                    } else {
+                                        console.warn('[Loader] ❌ DevPanel.init still not available, giving up');
+                                    }
+                                }
+                            }, 500);
                         }
                     }
-                }, 300);
+                }, 500);  // 从 300ms 增加到 500ms
             }
         } else {
             console.warn('[Loader] ⚠️ DevPanel not available');
         }
-    }, 150);
+    }, 200);
 
     setTimeout(function() {
         window.dispatchEvent(new CustomEvent('SYSTEM_READY', {
