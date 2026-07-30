@@ -313,17 +313,64 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
             { label: 'Total Policies', value: data.total },
             { label: 'Health Score', value: data.health + '%' }
         ]);
+    
         if (data.violations > 0) {
             html += '<div class="gov-warning">⚠️ ' + data.violations + ' violations detected</div>';
         }
+
+        // ── 🔥 新增：Policy 列表 ──
+        if (data.policies && data.policies.length > 0) {
+            html += '<div class="gov-policy-list">';
+            html += '<h4 style="margin:10px 0 6px 0;font-size:0.85em;color:#aaa;">📋 Policy Rules</h4>';
+            for (var i = 0; i < data.policies.length; i++) {
+                var rule = data.policies[i];
+                var statusColor = rule.enabled ? '#4caf50' : '#f44336';
+                html += '<div class="gov-policy-item">';
+                html += '<div class="gov-policy-header">';
+                html += '<span class="gov-policy-id">#' + (i + 1) + '</span>';
+                html += '<span class="gov-policy-name" style="font-weight:600;color:#e2e8f0;">' + (rule.name || rule.id || 'Unnamed') + '</span>';
+                html += '<span class="gov-badge-sm" style="background:' + statusColor + '20;color:' + statusColor + ';">' + (rule.enabled ? '✅ Active' : '⛔ Disabled') + '</span>';
+                html += '</div>';
+                if (rule.description) {
+                    html += '<div class="gov-policy-desc" style="font-size:0.8em;color:#94a3b8;margin:2px 0 4px 20px;">' + rule.description + '</div>';
+                }
+                if (rule.action || rule.decision) {
+                    html += '<div class="gov-policy-action" style="font-size:0.75em;color:#64748b;margin-left:20px;">';
+                    html += 'Action: <span style="color:#e2e8f0;">' + (rule.action || rule.decision) + '</span>';
+                    if (rule.condition) {
+                        html += ' | Condition: <span style="color:#e2e8f0;">' + rule.condition + '</span>';
+                    }
+                    html += '</div>';
+                }
+                if (rule.metadata) {
+                    html += '<div class="gov-policy-meta" style="font-size:0.7em;color:#475569;margin-left:20px;">';
+                    if (rule.metadata.createdBy) html += 'Created by: ' + rule.metadata.createdBy + ' ';
+                    if (rule.metadata.createdAt) html += '| Created: ' + this._formatTime(rule.metadata.createdAt);
+                    html += '</div>';
+                }
+                html += '</div>';
+            }
+            html += '</div>';
+        } else {
+            html += '<div class="gov-empty">No policy rules found</div>';
+        }
+
+        // ── Recent Decisions ──
         if (data.recent && data.recent.length > 0) {
-            html += '<div class="gov-recent-list"><h4>Recent Decisions</h4>';
-            for (var i = 0; i < Math.min(data.recent.length, 5); i++) {
-                var r = data.recent[i];
-                html += '<div class="gov-list-item"><span class="gov-badge-sm ' + (r.decision === 'allow' ? 'status-healthy' : 'status-critical') + '">' + r.decision + '</span><span>' + r.action + '</span></div>';
+            html += '<div class="gov-recent-list" style="margin-top:12px;">';
+            html += '<h4 style="font-size:0.85em;color:#aaa;">Recent Decisions</h4>';
+            for (var j = 0; j < Math.min(data.recent.length, 5); j++) {
+                var r = data.recent[j];
+                var cls = (r.decision === 'allow' || r.decision === 'approved') ? 'status-healthy' : 'status-critical';
+                html += '<div class="gov-list-item">';
+                html += '<span class="gov-badge-sm ' + cls + '">' + (r.decision || r.result || '?') + '</span>';
+                html += '<span>' + (r.action || r.request || '') + '</span>';
+                html += '<span style="color:#666;font-size:0.75em;">' + this._formatTime(r.timestamp) + '</span>';
+                html += '</div>';
             }
             html += '</div>';
         }
+
         html += '</div>';
 
         return html;
@@ -592,18 +639,43 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
     _getPolicyData: function() {
         try {
             var p = window.LawAIApp.Policy;
-            if (!p || !p.getHealth) return { active: 0, total: 0, health: 0, violations: 0, status: 'unknown', recent: [] };
-            var h = p.getHealth();
+            if (!p) {
+                return { active: 0, total: 0, health: 0, violations: 0, status: 'unknown', recent: [], policies: [] };
+            }
+        
+            var h = p.getHealth ? p.getHealth() : {};
+        
+            // ── 获取 Policy 列表 ──
+            var policyList = [];
+            if (p.getAllPolicies) {
+                policyList = p.getAllPolicies() || [];
+            } else if (p._policies) {
+                policyList = p._policies;
+            } else if (p.getReport) {
+                var report = p.getReport();
+                if (report && report.policies) {
+                    policyList = report.policies;
+                }
+            }
+        
+            // ── 获取 Recent Decisions ──
+            var recent = [];
+            if (p.getDecisions) {
+                recent = p.getDecisions(10) || [];
+            }
+
             return {
                 active: h.activePolicies || 0,
                 total: h.totalPolicies || 0,
                 health: h.healthScore || 0,
                 violations: h.violations || 0,
                 status: h.status || 'unknown',
-                recent: p.getDecisions ? p.getDecisions(5) || [] : []
+                recent: recent,
+                policies: policyList
             };
         } catch(e) {
-            return { active: 0, total: 0, health: 0, violations: 0, status: 'unknown', recent: [] };
+            console.warn('[UnifiedGovernance] _getPolicyData error:', e);
+            return { active: 0, total: 0, health: 0, violations: 0, status: 'unknown', recent: [], policies: [] };
         }
     },
 
@@ -951,6 +1023,9 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
             .gov-dashboard::-webkit-scrollbar{width:4px}
             .gov-dashboard::-webkit-scrollbar-track{background:#1a1a2e}
             .gov-dashboard::-webkit-scrollbar-thumb{background:#3a3a5a;border-radius:2px}
+            .gov-policy-item{background:#1a1a35;border:1px solid #2a2a4a;border-radius:4px;padding:8px 12px;margin-bottom:6px}
+            .gov-policy-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+            .gov-policy-id{font-size:0.7em;color:#475569;background:#0d0d1a;padding:1px 6px;border-radius:3px}
         `;
     }
 };
