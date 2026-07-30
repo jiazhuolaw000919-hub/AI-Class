@@ -536,7 +536,7 @@ LawAIApp.Debug.DevPanel = {
     var version = (LawAIApp.SystemComposer && LawAIApp.SystemComposer.version) || '4.0.17';
 
     return `
-        <!-- Header -->
+       <!-- Header -->
         <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px;margin-bottom:12px;">
             <span style="font-size:16px;font-weight:700;color:#4a9eff;">🛠️ Dev Panel</span>
             <div style="display:flex;align-items:center;gap:8px;">
@@ -546,6 +546,14 @@ LawAIApp.Debug.DevPanel = {
                         title="Open Runtime Explorer">
                     🔍 Explorer
                 </button>
+        
+                <!-- 🆕 Governance Button -->
+                <button onclick="LawAIApp.Debug.Governance.DashboardLoader.open()" 
+                        style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);border-radius:6px;color:#22c55e;font-size:11px;padding:2px 10px;cursor:pointer;"
+                        title="Open Governance Dashboard">
+                    🏛️ Governance
+                </button>
+        
                 <span style="font-size:10px;color:#475569;">v${version}</span>
                 <button onclick="LawAIApp.Debug.DevPanel.hide()" style="background:none;border:none;color:#64748b;font-size:18px;cursor:pointer;">✕</button>
             </div>
