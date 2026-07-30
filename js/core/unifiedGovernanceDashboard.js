@@ -1,5 +1,5 @@
 // ============================================================
-// unifiedGovernanceDashboard.js — Full Version
+// unifiedGovernanceDashboard.js — Full Version with Popups
 // Part 49.7 — Unified Governance Dashboard (Complete)
 // ============================================================
 
@@ -11,11 +11,11 @@ window.LawAIApp = window.LawAIApp || {};
  * 包含 9 个 Tabs:
  * 1. Overview — 总览
  * 2. Engine — 引擎治理 (Season 1-3)
- * 3. Policies — 策略引擎
- * 4. Permissions — 权限系统
- * 5. Validations — 验证系统
- * 6. Safety — 安全合规
- * 7. AI Governance — AI 治理
+ * 3. Policies — 策略引擎 (带弹出窗口)
+ * 4. Permissions — 权限系统 (带弹出窗口)
+ * 5. Validations — 验证系统 (带弹出窗口)
+ * 6. Safety — 安全合规 (带弹出窗口)
+ * 7. AI Governance — AI 治理 (带弹出窗口)
  * 8. Audit — 审计追踪
  * 9. Health — 健康状态
  */
@@ -26,13 +26,12 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
     _currentTab: 'overview',
 
     // ============================================================
-    // OPEN — 打开 Dashboard
+    // OPEN
     // ============================================================
 
     open: function() {
         console.log('🏛️ [Governance] Opening full dashboard...');
 
-        // 移除旧弹窗
         var old = document.getElementById('governance-dashboard-overlay');
         if (old) old.remove();
 
@@ -73,14 +72,12 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
         popup.appendChild(container);
         overlay.appendChild(popup);
 
-        // 点击遮罩关闭
         overlay.addEventListener('click', function(e) {
             if (e.target === overlay) {
                 window.LawAIApp.UnifiedGovernanceDashboard.close();
             }
         });
 
-        // ESC 关闭
         var escHandler = function(e) {
             if (e.key === 'Escape') {
                 window.LawAIApp.UnifiedGovernanceDashboard.close();
@@ -98,14 +95,13 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
     },
 
     // ============================================================
-    // RENDER — 渲染完整 Dashboard
+    // RENDER
     // ============================================================
 
     render: function(container) {
         if (!container) container = this._container;
         if (!container) return;
 
-        // 注入样式
         if (!document.getElementById('gov-dashboard-styles')) {
             var styles = document.createElement('style');
             styles.id = 'gov-dashboard-styles';
@@ -117,7 +113,6 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
         this._bindEvents();
         this._renderContent();
 
-        // 启动自动刷新
         if (this._refreshInterval) clearInterval(this._refreshInterval);
         this._refreshInterval = setInterval(function() {
             if (this._container && this._isOpen) {
@@ -127,7 +122,7 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
     },
 
     // ============================================================
-    // BUILD HTML — 构建界面
+    // BUILD HTML
     // ============================================================
 
     _buildHTML: function() {
@@ -146,7 +141,6 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
         var html = '';
         html += '<div class="gov-dashboard">';
 
-        // Header
         html += '<div class="gov-dashboard-header">';
         html += '<span class="gov-dashboard-title">🏛️ Unified Governance</span>';
         html += '<div class="gov-dashboard-meta">';
@@ -157,7 +151,6 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
         html += '</div>';
         html += '</div>';
 
-        // Tabs
         html += '<div class="gov-tabs" id="gov-tabs">';
         for (var i = 0; i < tabs.length; i++) {
             var t = tabs[i];
@@ -166,10 +159,8 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
         }
         html += '</div>';
 
-        // Content
         html += '<div class="gov-content" id="gov-content"></div>';
 
-        // Footer
         html += '<div class="gov-footer">';
         html += '<span>Auto-refresh every 5s</span>';
         html += '<span id="gov-timestamp">' + new Date().toLocaleTimeString() + '</span>';
@@ -205,7 +196,7 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
     },
 
     // ============================================================
-    // RENDER CONTENT — 根据 Tab 渲染内容
+    // RENDER CONTENT
     // ============================================================
 
     _renderContent: function() {
@@ -251,7 +242,6 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
 
         content.innerHTML = html;
 
-        // 更新时间戳
         var ts = container.querySelector('#gov-timestamp');
         if (ts) ts.textContent = new Date().toLocaleTimeString();
     },
@@ -266,13 +256,11 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
 
         var html = '';
 
-        // Runtime Governance Summary
         html += '<div class="gov-section">';
         html += '<h3 class="gov-section-title">🛡️ Runtime Governance <span class="gov-section-ver">Part 49</span></h3>';
         html += this._renderRuntimeCards(runtimeData);
         html += '</div>';
 
-        // Engine Governance Summary
         html += '<div class="gov-section">';
         html += '<h3 class="gov-section-title">⚙️ Engine Governance <span class="gov-section-ver">Season 1-3</span></h3>';
         html += this._renderEngineCards(engineData);
@@ -298,7 +286,7 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
     },
 
     // ============================================================
-    // TAB: POLICIES
+    // TAB: POLICIES — 带弹出窗口
     // ============================================================
 
     _renderPolicies: function() {
@@ -313,49 +301,21 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
             { label: 'Total Policies', value: data.total },
             { label: 'Health Score', value: data.health + '%' }
         ]);
-    
+        
         if (data.violations > 0) {
             html += '<div class="gov-warning">⚠️ ' + data.violations + ' violations detected</div>';
         }
 
-        // ── 🔥 新增：Policy 列表 ──
         if (data.policies && data.policies.length > 0) {
-            html += '<div class="gov-policy-list">';
-            html += '<h4 style="margin:10px 0 6px 0;font-size:0.85em;color:#aaa;">📋 Policy Rules</h4>';
-            for (var i = 0; i < data.policies.length; i++) {
-                var rule = data.policies[i];
-                var statusColor = rule.enabled ? '#4caf50' : '#f44336';
-                html += '<div class="gov-policy-item">';
-                html += '<div class="gov-policy-header">';
-                html += '<span class="gov-policy-id">#' + (i + 1) + '</span>';
-                html += '<span class="gov-policy-name" style="font-weight:600;color:#e2e8f0;">' + (rule.name || rule.id || 'Unnamed') + '</span>';
-                html += '<span class="gov-badge-sm" style="background:' + statusColor + '20;color:' + statusColor + ';">' + (rule.enabled ? '✅ Active' : '⛔ Disabled') + '</span>';
-                html += '</div>';
-                if (rule.description) {
-                    html += '<div class="gov-policy-desc" style="font-size:0.8em;color:#94a3b8;margin:2px 0 4px 20px;">' + rule.description + '</div>';
-                }
-                if (rule.action || rule.decision) {
-                    html += '<div class="gov-policy-action" style="font-size:0.75em;color:#64748b;margin-left:20px;">';
-                    html += 'Action: <span style="color:#e2e8f0;">' + (rule.action || rule.decision) + '</span>';
-                    if (rule.condition) {
-                        html += ' | Condition: <span style="color:#e2e8f0;">' + rule.condition + '</span>';
-                    }
-                    html += '</div>';
-                }
-                if (rule.metadata) {
-                    html += '<div class="gov-policy-meta" style="font-size:0.7em;color:#475569;margin-left:20px;">';
-                    if (rule.metadata.createdBy) html += 'Created by: ' + rule.metadata.createdBy + ' ';
-                    if (rule.metadata.createdAt) html += '| Created: ' + this._formatTime(rule.metadata.createdAt);
-                    html += '</div>';
-                }
-                html += '</div>';
-            }
+            html += '<div style="margin-top:10px;text-align:center;">';
+            html += '<button onclick="window.LawAIApp.UnifiedGovernanceDashboard._showPolicyPopup()" ';
+            html += 'style="padding:8px 20px;background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.2);border-radius:8px;color:#4a9eff;font-size:12px;cursor:pointer;">';
+            html += '📋 View All Policies (' + data.policies.length + ')</button>';
             html += '</div>';
         } else {
             html += '<div class="gov-empty">No policy rules found</div>';
         }
 
-        // ── Recent Decisions ──
         if (data.recent && data.recent.length > 0) {
             html += '<div class="gov-recent-list" style="margin-top:12px;">';
             html += '<h4 style="font-size:0.85em;color:#aaa;">Recent Decisions</h4>';
@@ -372,12 +332,111 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
         }
 
         html += '</div>';
-
         return html;
     },
 
     // ============================================================
-    // TAB: PERMISSIONS
+    // POLICY POPUP
+    // ============================================================
+
+    _showPolicyPopup: function() {
+        var data = this._getPolicyData();
+        if (!data.policies || data.policies.length === 0) {
+            alert('No policies found.');
+            return;
+        }
+
+        var old = document.getElementById('policy-popup-overlay');
+        if (old) old.remove();
+
+        var overlay = document.createElement('div');
+        overlay.id = 'policy-popup-overlay';
+        overlay.style.cssText = [
+            'position:fixed',
+            'top:0',
+            'left:0',
+            'width:100%',
+            'height:100%',
+            'background:rgba(0,0,0,0.6)',
+            'z-index:10060',
+            'display:flex',
+            'align-items:center',
+            'justify-content:center',
+            'backdrop-filter:blur(4px)'
+        ].join(';');
+
+        var popup = document.createElement('div');
+        popup.style.cssText = [
+            'background:#1a1a2e',
+            'border:1px solid rgba(255,255,255,0.1)',
+            'border-radius:14px',
+            'padding:20px',
+            'max-width:700px',
+            'width:95%',
+            'max-height:85vh',
+            'overflow-y:auto',
+            'box-shadow:0 20px 60px rgba(0,0,0,0.8)',
+            'color:#e2e8f0',
+            'font-family:Inter,-apple-system,sans-serif',
+            'font-size:13px'
+        ].join(';');
+
+        var html = '';
+
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px;margin-bottom:12px;">';
+        html += '<span style="font-size:16px;font-weight:700;color:#4a9eff;">📋 All Policies (' + data.policies.length + ')</span>';
+        html += '<button onclick="document.getElementById(\'policy-popup-overlay\').remove()" style="background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;">✕</button>';
+        html += '</div>';
+
+        var enabledCount = 0;
+        for (var i = 0; i < data.policies.length; i++) {
+            if (data.policies[i].enabled) enabledCount++;
+        }
+        html += '<div style="display:flex;gap:12px;margin-bottom:12px;font-size:12px;color:#94a3b8;">';
+        html += '<span>✅ Active: <strong style="color:#22c55e;">' + enabledCount + '</strong></span>';
+        html += '<span>⛔ Disabled: <strong style="color:#ef4444;">' + (data.policies.length - enabledCount) + '</strong></span>';
+        html += '</div>';
+
+        for (var i = 0; i < data.policies.length; i++) {
+            var rule = data.policies[i];
+            var statusColor = rule.enabled ? '#22c55e' : '#ef4444';
+            var statusText = rule.enabled ? '✅ Active' : '⛔ Disabled';
+            var actionColor = rule.action === 'allow' ? '#22c55e' : (rule.action === 'deny' ? '#ef4444' : '#f59e0b');
+            
+            html += '<div style="background:#16213e;border:1px solid #2a2a4a;border-radius:6px;padding:10px 12px;margin-bottom:8px;">';
+            html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+            html += '<span style="font-weight:600;color:#e2e8f0;">' + (rule.name || rule.id) + '</span>';
+            html += '<span style="font-size:10px;color:#475569;background:#0d0d1a;padding:1px 8px;border-radius:4px;">' + rule.id + '</span>';
+            html += '<span style="font-size:10px;padding:1px 8px;border-radius:4px;background:' + statusColor + '20;color:' + statusColor + ';">' + statusText + '</span>';
+            html += '<span style="font-size:10px;padding:1px 8px;border-radius:4px;background:' + actionColor + '20;color:' + actionColor + ';">' + (rule.action || 'allow').toUpperCase() + '</span>';
+            html += '</div>';
+            if (rule.description) {
+                html += '<div style="font-size:11px;color:#94a3b8;margin-top:4px;">' + rule.description + '</div>';
+            }
+            if (rule.category) {
+                html += '<div style="font-size:9px;color:#475569;margin-top:2px;">Category: ' + rule.category + ' | Priority: ' + (rule.priority || 'N/A') + '</div>';
+            }
+            html += '</div>';
+        }
+
+        html += '<div style="text-align:center;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.04);">';
+        html += '<button onclick="document.getElementById(\'policy-popup-overlay\').remove()" style="padding:6px 24px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#64748b;cursor:pointer;">✕ Close</button>';
+        html += '</div>';
+
+        popup.innerHTML = html;
+
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                overlay.remove();
+            }
+        });
+
+        overlay.appendChild(popup);
+        document.body.appendChild(overlay);
+    },
+
+    // ============================================================
+    // TAB: PERMISSIONS — 带弹出窗口
     // ============================================================
 
     _renderPermissions: function() {
@@ -392,13 +451,100 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
             { label: 'Total Subjects', value: data.subjects },
             { label: 'Grant Rate', value: data.grantRate + '%' }
         ]);
-        html += '</div>';
 
+        if (data.permissions && data.permissions.length > 0) {
+            html += '<div style="margin-top:10px;text-align:center;">';
+            html += '<button onclick="window.LawAIApp.UnifiedGovernanceDashboard._showPermissionsPopup()" ';
+            html += 'style="padding:8px 20px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);border-radius:8px;color:#3b82f6;font-size:12px;cursor:pointer;">';
+            html += '🔑 View All Permissions (' + data.permissions.length + ')</button>';
+            html += '</div>';
+        }
+
+        html += '</div>';
         return html;
     },
 
     // ============================================================
-    // TAB: VALIDATIONS
+    // PERMISSIONS POPUP
+    // ============================================================
+
+    _showPermissionsPopup: function() {
+        var data = this._getPermissionData();
+        var perms = data.permissions || [];
+        if (perms.length === 0) {
+            alert('No permissions found.');
+            return;
+        }
+
+        var old = document.getElementById('permissions-popup-overlay');
+        if (old) old.remove();
+
+        var overlay = document.createElement('div');
+        overlay.id = 'permissions-popup-overlay';
+        overlay.style.cssText = [
+            'position:fixed',
+            'top:0',
+            'left:0',
+            'width:100%',
+            'height:100%',
+            'background:rgba(0,0,0,0.6)',
+            'z-index:10061',
+            'display:flex',
+            'align-items:center',
+            'justify-content:center',
+            'backdrop-filter:blur(4px)'
+        ].join(';');
+
+        var popup = document.createElement('div');
+        popup.style.cssText = [
+            'background:#1a1a2e',
+            'border:1px solid rgba(255,255,255,0.1)',
+            'border-radius:14px',
+            'padding:20px',
+            'max-width:700px',
+            'width:95%',
+            'max-height:85vh',
+            'overflow-y:auto',
+            'box-shadow:0 20px 60px rgba(0,0,0,0.8)',
+            'color:#e2e8f0',
+            'font-family:Inter,-apple-system,sans-serif',
+            'font-size:13px'
+        ].join(';');
+
+        var html = '';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px;margin-bottom:12px;">';
+        html += '<span style="font-size:16px;font-weight:700;color:#3b82f6;">🔑 All Permissions (' + perms.length + ')</span>';
+        html += '<button onclick="document.getElementById(\'permissions-popup-overlay\').remove()" style="background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;">✕</button>';
+        html += '</div>';
+
+        for (var i = 0; i < perms.length; i++) {
+            var p = perms[i];
+            html += '<div style="background:#16213e;border:1px solid #2a2a4a;border-radius:6px;padding:10px 12px;margin-bottom:8px;">';
+            html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+            html += '<span style="font-weight:600;color:#e2e8f0;">' + (p.name || p.id) + '</span>';
+            html += '<span style="font-size:10px;color:#475569;background:#0d0d1a;padding:1px 8px;border-radius:4px;">' + p.id + '</span>';
+            html += '<span style="font-size:10px;padding:1px 8px;border-radius:4px;background:' + (p.enabled ? '#22c55e20' : '#ef444420') + ';color:' + (p.enabled ? '#22c55e' : '#ef4444') + ';">' + (p.enabled ? '✅ Active' : '⛔ Disabled') + '</span>';
+            html += '</div>';
+            if (p.resource) {
+                html += '<div style="font-size:11px;color:#94a3b8;margin-top:4px;">Resource: ' + p.resource + ' | Action: ' + (p.action || '*') + '</div>';
+            }
+            if (p.subject) {
+                html += '<div style="font-size:9px;color:#475569;margin-top:2px;">Subject: ' + p.subject + '</div>';
+            }
+            html += '</div>';
+        }
+
+        html += '<div style="text-align:center;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.04);">';
+        html += '<button onclick="document.getElementById(\'permissions-popup-overlay\').remove()" style="padding:6px 24px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#64748b;cursor:pointer;">✕ Close</button>';
+        html += '</div>';
+
+        popup.innerHTML = html;
+        overlay.appendChild(popup);
+        document.body.appendChild(overlay);
+    },
+
+    // ============================================================
+    // TAB: VALIDATIONS — 带弹出窗口
     // ============================================================
 
     _renderValidations: function() {
@@ -413,13 +559,97 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
             { label: 'Validations Run', value: data.total },
             { label: 'Health Score', value: data.health + '%' }
         ]);
-        html += '</div>';
 
+        if (data.validators && data.validators.length > 0) {
+            html += '<div style="margin-top:10px;text-align:center;">';
+            html += '<button onclick="window.LawAIApp.UnifiedGovernanceDashboard._showValidationsPopup()" ';
+            html += 'style="padding:8px 20px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);border-radius:8px;color:#8b5cf6;font-size:12px;cursor:pointer;">';
+            html += '✅ View All Validators (' + data.validators.length + ')</button>';
+            html += '</div>';
+        }
+
+        html += '</div>';
         return html;
     },
 
     // ============================================================
-    // TAB: SAFETY
+    // VALIDATIONS POPUP
+    // ============================================================
+
+    _showValidationsPopup: function() {
+        var data = this._getValidationData();
+        var validators = data.validators || [];
+        if (validators.length === 0) {
+            alert('No validators found.');
+            return;
+        }
+
+        var old = document.getElementById('validations-popup-overlay');
+        if (old) old.remove();
+
+        var overlay = document.createElement('div');
+        overlay.id = 'validations-popup-overlay';
+        overlay.style.cssText = [
+            'position:fixed',
+            'top:0',
+            'left:0',
+            'width:100%',
+            'height:100%',
+            'background:rgba(0,0,0,0.6)',
+            'z-index:10062',
+            'display:flex',
+            'align-items:center',
+            'justify-content:center',
+            'backdrop-filter:blur(4px)'
+        ].join(';');
+
+        var popup = document.createElement('div');
+        popup.style.cssText = [
+            'background:#1a1a2e',
+            'border:1px solid rgba(255,255,255,0.1)',
+            'border-radius:14px',
+            'padding:20px',
+            'max-width:700px',
+            'width:95%',
+            'max-height:85vh',
+            'overflow-y:auto',
+            'box-shadow:0 20px 60px rgba(0,0,0,0.8)',
+            'color:#e2e8f0',
+            'font-family:Inter,-apple-system,sans-serif',
+            'font-size:13px'
+        ].join(';');
+
+        var html = '';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px;margin-bottom:12px;">';
+        html += '<span style="font-size:16px;font-weight:700;color:#8b5cf6;">✅ All Validators (' + validators.length + ')</span>';
+        html += '<button onclick="document.getElementById(\'validations-popup-overlay\').remove()" style="background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;">✕</button>';
+        html += '</div>';
+
+        for (var i = 0; i < validators.length; i++) {
+            var v = validators[i];
+            html += '<div style="background:#16213e;border:1px solid #2a2a4a;border-radius:6px;padding:10px 12px;margin-bottom:8px;">';
+            html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+            html += '<span style="font-weight:600;color:#e2e8f0;">' + (v.name || v.id) + '</span>';
+            html += '<span style="font-size:10px;color:#475569;background:#0d0d1a;padding:1px 8px;border-radius:4px;">' + v.id + '</span>';
+            html += '<span style="font-size:10px;padding:1px 8px;border-radius:4px;background:' + (v.enabled ? '#22c55e20' : '#ef444420') + ';color:' + (v.enabled ? '#22c55e' : '#ef4444') + ';">' + (v.enabled ? '✅ Active' : '⛔ Disabled') + '</span>';
+            html += '</div>';
+            if (v.type) {
+                html += '<div style="font-size:11px;color:#94a3b8;margin-top:4px;">Type: ' + v.type + ' | Rule: ' + (v.rule || 'N/A') + '</div>';
+            }
+            html += '</div>';
+        }
+
+        html += '<div style="text-align:center;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.04);">';
+        html += '<button onclick="document.getElementById(\'validations-popup-overlay\').remove()" style="padding:6px 24px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#64748b;cursor:pointer;">✕ Close</button>';
+        html += '</div>';
+
+        popup.innerHTML = html;
+        overlay.appendChild(popup);
+        document.body.appendChild(overlay);
+    },
+
+    // ============================================================
+    // TAB: SAFETY — 带弹出窗口
     // ============================================================
 
     _renderSafety: function() {
@@ -435,16 +665,102 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
             { label: 'Blocked Actions', value: data.blocked },
             { label: 'Incidents', value: data.incidents }
         ]);
+
         if (data.locks > 0) {
             html += '<div class="gov-warning">🔒 ' + data.locks + ' active safety locks</div>';
         }
-        html += '</div>';
 
+        if (data.safetyRules && data.safetyRules.length > 0) {
+            html += '<div style="margin-top:10px;text-align:center;">';
+            html += '<button onclick="window.LawAIApp.UnifiedGovernanceDashboard._showSafetyPopup()" ';
+            html += 'style="padding:8px 20px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:8px;color:#f59e0b;font-size:12px;cursor:pointer;">';
+            html += '🛡️ View Safety Rules (' + data.safetyRules.length + ')</button>';
+            html += '</div>';
+        }
+
+        html += '</div>';
         return html;
     },
 
     // ============================================================
-    // TAB: AI GOVERNANCE
+    // SAFETY POPUP
+    // ============================================================
+
+    _showSafetyPopup: function() {
+        var data = this._getSafetyData();
+        var rules = data.safetyRules || [];
+        if (rules.length === 0) {
+            alert('No safety rules found.');
+            return;
+        }
+
+        var old = document.getElementById('safety-popup-overlay');
+        if (old) old.remove();
+
+        var overlay = document.createElement('div');
+        overlay.id = 'safety-popup-overlay';
+        overlay.style.cssText = [
+            'position:fixed',
+            'top:0',
+            'left:0',
+            'width:100%',
+            'height:100%',
+            'background:rgba(0,0,0,0.6)',
+            'z-index:10063',
+            'display:flex',
+            'align-items:center',
+            'justify-content:center',
+            'backdrop-filter:blur(4px)'
+        ].join(';');
+
+        var popup = document.createElement('div');
+        popup.style.cssText = [
+            'background:#1a1a2e',
+            'border:1px solid rgba(255,255,255,0.1)',
+            'border-radius:14px',
+            'padding:20px',
+            'max-width:700px',
+            'width:95%',
+            'max-height:85vh',
+            'overflow-y:auto',
+            'box-shadow:0 20px 60px rgba(0,0,0,0.8)',
+            'color:#e2e8f0',
+            'font-family:Inter,-apple-system,sans-serif',
+            'font-size:13px'
+        ].join(';');
+
+        var html = '';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px;margin-bottom:12px;">';
+        html += '<span style="font-size:16px;font-weight:700;color:#f59e0b;">🛡️ Safety Rules (' + rules.length + ')</span>';
+        html += '<button onclick="document.getElementById(\'safety-popup-overlay\').remove()" style="background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;">✕</button>';
+        html += '</div>';
+
+        for (var i = 0; i < rules.length; i++) {
+            var r = rules[i];
+            var levelColor = r.level === 'critical' ? '#ef4444' : (r.level === 'high' ? '#f59e0b' : '#22c55e');
+            html += '<div style="background:#16213e;border:1px solid #2a2a4a;border-radius:6px;padding:10px 12px;margin-bottom:8px;border-left:3px solid ' + levelColor + ';">';
+            html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+            html += '<span style="font-weight:600;color:#e2e8f0;">' + (r.name || r.id) + '</span>';
+            html += '<span style="font-size:10px;color:#475569;background:#0d0d1a;padding:1px 8px;border-radius:4px;">' + r.id + '</span>';
+            html += '<span style="font-size:10px;padding:1px 8px;border-radius:4px;background:' + levelColor + '20;color:' + levelColor + ';">' + (r.level || 'medium').toUpperCase() + '</span>';
+            html += '</div>';
+            if (r.description) {
+                html += '<div style="font-size:11px;color:#94a3b8;margin-top:4px;">' + r.description + '</div>';
+            }
+            html += '</div>';
+        }
+
+        html += '<div style="text-align:center;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.04);">';
+        html += '<button onclick="document.getElementById(\'safety-popup-overlay\').remove()" style="padding:6px 24px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#64748b;cursor:pointer;">✕ Close</button>';
+        html += '</div>';
+
+        popup.innerHTML = html;
+        overlay.appendChild(popup);
+        document.body.appendChild(overlay);
+    },
+
+    // ============================================================
+    // TAB: AI GOVERNANCE — 带弹出窗口
     // ============================================================
 
     _renderAI: function() {
@@ -461,17 +777,96 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
             { label: 'Rejected', value: data.rejected },
             { label: 'Pending Review', value: data.pending }
         ]);
-        if (data.recent && data.recent.length > 0) {
-            html += '<div class="gov-recent-list"><h4>Recent Decisions</h4>';
-            for (var i = 0; i < Math.min(data.recent.length, 5); i++) {
-                var r = data.recent[i];
-                html += '<div class="gov-list-item"><span class="gov-badge-sm ' + (r.decision === 'approved' ? 'status-healthy' : 'status-critical') + '">' + r.decision + '</span><span>' + r.action + '</span></div>';
+
+        if (data.decisions && data.decisions.length > 0) {
+            html += '<div style="margin-top:10px;text-align:center;">';
+            html += '<button onclick="window.LawAIApp.UnifiedGovernanceDashboard._showAIDecisionsPopup()" ';
+            html += 'style="padding:8px 20px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.2);border-radius:8px;color:#a855f7;font-size:12px;cursor:pointer;">';
+            html += '🤖 View AI Decisions (' + data.decisions.length + ')</button>';
+            html += '</div>';
+        }
+
+        html += '</div>';
+        return html;
+    },
+
+    // ============================================================
+    // AI DECISIONS POPUP
+    // ============================================================
+
+    _showAIDecisionsPopup: function() {
+        var data = this._getAIData();
+        var decisions = data.decisions || [];
+        if (decisions.length === 0) {
+            alert('No AI decisions found.');
+            return;
+        }
+
+        var old = document.getElementById('ai-popup-overlay');
+        if (old) old.remove();
+
+        var overlay = document.createElement('div');
+        overlay.id = 'ai-popup-overlay';
+        overlay.style.cssText = [
+            'position:fixed',
+            'top:0',
+            'left:0',
+            'width:100%',
+            'height:100%',
+            'background:rgba(0,0,0,0.6)',
+            'z-index:10064',
+            'display:flex',
+            'align-items:center',
+            'justify-content:center',
+            'backdrop-filter:blur(4px)'
+        ].join(';');
+
+        var popup = document.createElement('div');
+        popup.style.cssText = [
+            'background:#1a1a2e',
+            'border:1px solid rgba(255,255,255,0.1)',
+            'border-radius:14px',
+            'padding:20px',
+            'max-width:700px',
+            'width:95%',
+            'max-height:85vh',
+            'overflow-y:auto',
+            'box-shadow:0 20px 60px rgba(0,0,0,0.8)',
+            'color:#e2e8f0',
+            'font-family:Inter,-apple-system,sans-serif',
+            'font-size:13px'
+        ].join(';');
+
+        var html = '';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px;margin-bottom:12px;">';
+        html += '<span style="font-size:16px;font-weight:700;color:#a855f7;">🤖 AI Decisions (' + decisions.length + ')</span>';
+        html += '<button onclick="document.getElementById(\'ai-popup-overlay\').remove()" style="background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;">✕</button>';
+        html += '</div>';
+
+        for (var i = 0; i < decisions.length; i++) {
+            var d = decisions[i];
+            var decisionColor = d.decision === 'approved' ? '#22c55e' : (d.decision === 'rejected' ? '#ef4444' : '#f59e0b');
+            html += '<div style="background:#16213e;border:1px solid #2a2a4a;border-radius:6px;padding:10px 12px;margin-bottom:8px;">';
+            html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+            html += '<span style="font-weight:600;color:#e2e8f0;">' + (d.action || d.id) + '</span>';
+            html += '<span style="font-size:10px;padding:1px 8px;border-radius:4px;background:' + decisionColor + '20;color:' + decisionColor + ';">' + (d.decision || 'pending').toUpperCase() + '</span>';
+            html += '</div>';
+            if (d.reason) {
+                html += '<div style="font-size:11px;color:#94a3b8;margin-top:4px;">' + d.reason + '</div>';
+            }
+            if (d.confidence) {
+                html += '<div style="font-size:9px;color:#475569;margin-top:2px;">Confidence: ' + (d.confidence * 100).toFixed(0) + '%</div>';
             }
             html += '</div>';
         }
+
+        html += '<div style="text-align:center;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.04);">';
+        html += '<button onclick="document.getElementById(\'ai-popup-overlay\').remove()" style="padding:6px 24px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#64748b;cursor:pointer;">✕ Close</button>';
         html += '</div>';
 
-        return html;
+        popup.innerHTML = html;
+        overlay.appendChild(popup);
+        document.body.appendChild(overlay);
     },
 
     // ============================================================
@@ -503,7 +898,6 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
         }
 
         html += '</div>';
-
         return html;
     },
 
@@ -518,7 +912,6 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
         html += '<div class="gov-section">';
         html += '<h3 class="gov-section-title">💚 Governance Health</h3>';
 
-        // 整体状态
         var overall = 'HEALTHY';
         for (var i = 0; i < layers.length; i++) {
             if (layers[i].status === 'ERROR') overall = 'DEGRADED';
@@ -529,7 +922,6 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
         html += '<span class="gov-badge-lg ' + (overall === 'HEALTHY' ? 'status-healthy' : overall === 'DEGRADED' ? 'status-warning' : 'status-critical') + '">' + overall + '</span>';
         html += '</div>';
 
-        // 各层状态
         html += '<div class="gov-health-grid">';
         for (var j = 0; j < layers.length; j++) {
             var l = layers[j];
@@ -546,7 +938,6 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
         html += '</div>';
 
         html += '</div>';
-
         return html;
     },
 
@@ -642,23 +1033,16 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
             if (!p) {
                 return { active: 0, total: 0, health: 0, violations: 0, status: 'unknown', recent: [], policies: [] };
             }
-        
+            
             var h = p.getHealth ? p.getHealth() : {};
-        
-            // ── 获取 Policy 列表 ──
+            
             var policyList = [];
-            if (p.getAllPolicies) {
+            if (p.getAll) {
+                policyList = p.getAll() || [];
+            } else if (p.getAllPolicies) {
                 policyList = p.getAllPolicies() || [];
-            } else if (p._policies) {
-                policyList = p._policies;
-            } else if (p.getReport) {
-                var report = p.getReport();
-                if (report && report.policies) {
-                    policyList = report.policies;
-                }
             }
-        
-            // ── 获取 Recent Decisions ──
+            
             var recent = [];
             if (p.getDecisions) {
                 recent = p.getDecisions(10) || [];
@@ -674,7 +1058,6 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
                 policies: policyList
             };
         } catch(e) {
-            console.warn('[UnifiedGovernance] _getPolicyData error:', e);
             return { active: 0, total: 0, health: 0, violations: 0, status: 'unknown', recent: [], policies: [] };
         }
     },
@@ -682,57 +1065,100 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
     _getPermissionData: function() {
         try {
             var p = window.LawAIApp.Permissions;
-            if (!p || !p.getHealth) return { active: 0, subjects: 0, grantRate: 0, status: 'unknown' };
-            var h = p.getHealth();
+            if (!p || !p.getHealth) {
+                return { active: 0, subjects: 0, grantRate: 0, status: 'unknown', permissions: [] };
+            }
+            var h = p.getHealth ? p.getHealth() : {};
+            
+            var permList = [];
+            if (p.getAll) {
+                permList = p.getAll() || [];
+            } else if (p.getAllPermissions) {
+                permList = p.getAllPermissions() || [];
+            }
+            
             return {
                 active: h.activePermissions || 0,
                 subjects: h.totalSubjects || 0,
                 grantRate: h.grantRate || 0,
-                status: h.status || 'unknown'
+                status: h.status || 'unknown',
+                permissions: permList
             };
         } catch(e) {
-            return { active: 0, subjects: 0, grantRate: 0, status: 'unknown' };
+            return { active: 0, subjects: 0, grantRate: 0, status: 'unknown', permissions: [] };
         }
     },
 
     _getValidationData: function() {
         try {
             var v = window.LawAIApp.Validation;
-            if (!v || !v.getHealth) return { validators: 0, total: 0, health: 0, status: 'unknown' };
-            var h = v.getHealth();
+            if (!v || !v.getHealth) {
+                return { validators: 0, total: 0, health: 0, status: 'unknown', validatorsList: [] };
+            }
+            var h = v.getHealth ? v.getHealth() : {};
+            
+            var validatorList = [];
+            if (v.getAll) {
+                validatorList = v.getAll() || [];
+            } else if (v.getAllValidators) {
+                validatorList = v.getAllValidators() || [];
+            }
+            
             return {
                 validators: h.validators || 0,
                 total: h.totalValidations || 0,
                 health: h.healthScore || 0,
-                status: h.status || 'unknown'
+                status: h.status || 'unknown',
+                validators: validatorList
             };
         } catch(e) {
-            return { validators: 0, total: 0, health: 0, status: 'unknown' };
+            return { validators: 0, total: 0, health: 0, status: 'unknown', validators: [] };
         }
     },
 
     _getSafetyData: function() {
         try {
             var s = window.LawAIApp.Safety;
-            if (!s || !s.getHealth) return { locks: 0, approved: 0, blocked: 0, incidents: 0, status: 'unknown' };
-            var h = s.getHealth();
+            if (!s || !s.getHealth) {
+                return { locks: 0, approved: 0, blocked: 0, incidents: 0, status: 'unknown', safetyRules: [] };
+            }
+            var h = s.getHealth ? s.getHealth() : {};
+            
+            var ruleList = [];
+            if (s.getAll) {
+                ruleList = s.getAll() || [];
+            } else if (s.getAllRules) {
+                ruleList = s.getAllRules() || [];
+            }
+            
             return {
                 locks: h.activeLocks || 0,
                 approved: h.approvedActions || 0,
                 blocked: h.blockedActions || 0,
                 incidents: h.incidents || 0,
-                status: h.status || 'unknown'
+                status: h.status || 'unknown',
+                safetyRules: ruleList
             };
         } catch(e) {
-            return { locks: 0, approved: 0, blocked: 0, incidents: 0, status: 'unknown' };
+            return { locks: 0, approved: 0, blocked: 0, incidents: 0, status: 'unknown', safetyRules: [] };
         }
     },
 
     _getAIData: function() {
         try {
             var a = window.LawAIApp.AIGovernance;
-            if (!a || !a.getAILevel) return { level: 'N/A', total: 0, approved: 0, rejected: 0, pending: 0, status: 'unknown', recent: [] };
-            var l = a.getAILevel();
+            if (!a || !a.getAILevel) {
+                return { level: 'N/A', total: 0, approved: 0, rejected: 0, pending: 0, status: 'unknown', recent: [], decisions: [] };
+            }
+            var l = a.getAILevel ? a.getAILevel() : {};
+            
+            var decisionList = [];
+            if (a.getAll) {
+                decisionList = a.getAll() || [];
+            } else if (a.getAllDecisions) {
+                decisionList = a.getAllDecisions() || [];
+            }
+            
             return {
                 level: l.name || 'N/A',
                 total: l.decisions || 0,
@@ -740,10 +1166,11 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
                 rejected: l.rejected || 0,
                 pending: l.pending || 0,
                 status: l.status || 'unknown',
-                recent: a.getDecisions ? a.getDecisions(5) || [] : []
+                recent: a.getDecisions ? a.getDecisions(5) || [] : [],
+                decisions: decisionList
             };
         } catch(e) {
-            return { level: 'N/A', total: 0, approved: 0, rejected: 0, pending: 0, status: 'unknown', recent: [] };
+            return { level: 'N/A', total: 0, approved: 0, rejected: 0, pending: 0, status: 'unknown', recent: [], decisions: [] };
         }
     },
 
@@ -799,7 +1226,6 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
                 var l = a.getAILevel();
                 layers.push({ name: 'AI Governance', icon: '🤖', status: l.status || 'UNKNOWN', detail: l.name || 'Level ' + l.current });
             }
-            // Engine Governance
             var eg = this._getEngineGovernanceData();
             if (eg.available) {
                 layers.push({ name: 'Engine Governance', icon: '⚙️', status: eg.status || 'UNKNOWN', detail: 'Score: ' + eg.score + '%' });
@@ -869,23 +1295,23 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
         html += '<div class="gov-detail-item"><span class="gov-detail-label">Status</span><span class="gov-detail-value">' + data.status + '</span></div>';
         html += '</div>';
 
-        // Maturity
         if (data.maturity) {
+            var maturityTotal = data.maturity.core + data.maturity.business + data.maturity.support + data.maturity.experimental + data.maturity.deprecated || 1;
+            var maturityColors = { core: '#4caf50', business: '#2196f3', support: '#ff9800', experimental: '#9c27b0', deprecated: '#f44336' };
+            var maturityLabels = { core: 'Core', business: 'Business', support: 'Support', experimental: 'Experimental', deprecated: 'Deprecated' };
+            
             html += '<div class="gov-maturity-bar">';
-            var total = data.maturity.core + data.maturity.business + data.maturity.support + data.maturity.experimental + data.maturity.deprecated || 1;
-            var colors = { core: '#4caf50', business: '#2196f3', support: '#ff9800', experimental: '#9c27b0', deprecated: '#f44336' };
-            var labels = { core: 'Core', business: 'Business', support: 'Support', experimental: 'Experimental', deprecated: 'Deprecated' };
             for (var key in data.maturity) {
                 if (data.maturity.hasOwnProperty(key)) {
-                    var pct = ((data.maturity[key] / total) * 100).toFixed(1);
-                    html += '<div class="gov-maturity-segment" style="flex:' + data.maturity[key] + ';background:' + (colors[key] || '#666') + ';" title="' + (labels[key] || key) + ': ' + data.maturity[key] + ' (' + pct + '%)"></div>';
+                    var pct = ((data.maturity[key] / maturityTotal) * 100).toFixed(1);
+                    html += '<div class="gov-maturity-segment" style="flex:' + data.maturity[key] + ';background:' + (maturityColors[key] || '#666') + ';" title="' + (maturityLabels[key] || key) + ': ' + data.maturity[key] + ' (' + pct + '%)"></div>';
                 }
             }
             html += '</div>';
             html += '<div class="gov-maturity-legend">';
             for (var key2 in data.maturity) {
                 if (data.maturity.hasOwnProperty(key2)) {
-                    html += '<span class="gov-legend-item"><span class="gov-legend-dot" style="background:' + (colors[key2] || '#666') + ';"></span>' + (labels[key2] || key2) + ' (' + data.maturity[key2] + ')</span>';
+                    html += '<span class="gov-legend-item"><span class="gov-legend-dot" style="background:' + (maturityColors[key2] || '#666') + ';"></span>' + (maturityLabels[key2] || key2) + ' (' + data.maturity[key2] + ')</span>';
                 }
             }
             html += '</div>';
@@ -1023,9 +1449,6 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
             .gov-dashboard::-webkit-scrollbar{width:4px}
             .gov-dashboard::-webkit-scrollbar-track{background:#1a1a2e}
             .gov-dashboard::-webkit-scrollbar-thumb{background:#3a3a5a;border-radius:2px}
-            .gov-policy-item{background:#1a1a35;border:1px solid #2a2a4a;border-radius:4px;padding:8px 12px;margin-bottom:6px}
-            .gov-policy-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-            .gov-policy-id{font-size:0.7em;color:#475569;background:#0d0d1a;padding:1px 6px;border-radius:3px}
         `;
     }
 };
@@ -1042,5 +1465,5 @@ window.LawAIApp._openGovernanceDashboard = function() {
     window.LawAIApp.UnifiedGovernanceDashboard.open();
 };
 
-console.log('🏛️ [UnifiedGovernance] Full dashboard loaded (9 tabs)');
+console.log('🏛️ [UnifiedGovernance] Full dashboard loaded (with popups)');
 console.log('   📋 Open with: LawAIApp._openGovernanceDashboard()');
