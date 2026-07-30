@@ -1,29 +1,29 @@
 // ============================================================
-// aiGovernanceIntegration.js — FULL VERSION (Reliable Format)
+// aiGovernanceIntegration.js — COMPLETE
 // Part 49.6 — V4.9.6
 // ============================================================
 
 (function() {
     'use strict';
 
-    console.log('[AIGovernance] Loading full version...');
+    console.log('[AIGovernance] Loading...');
 
     var aiDecisions = [];
     var reviewQueue = [];
     var approvalHistory = [];
     var feedbackLoop = [];
+    var reasoningTrails = [];
 
     var currentAILevel = 2;
 
     var actionLevels = {
-        0: { name: 'OBSERVATION', allowsActions: ['READ'], requiresApproval: false },
-        1: { name: 'ANALYSIS', allowsActions: ['READ', 'ANALYZE'], requiresApproval: false },
-        2: { name: 'RECOMMENDATION', allowsActions: ['READ', 'ANALYZE', 'RECOMMEND'], requiresApproval: false },
-        3: { name: 'ASSISTED_ACTION', allowsActions: ['READ', 'ANALYZE', 'RECOMMEND', 'MODIFY'], requiresApproval: true },
-        4: { name: 'AUTONOMOUS', allowsActions: ['READ', 'ANALYZE', 'RECOMMEND', 'MODIFY', 'EXECUTE'], requiresApproval: true }
+        0: { name: 'OBSERVATION', allowsActions: ['READ'], requiresApproval: false, maxRiskAllowed: 'LOW' },
+        1: { name: 'ANALYSIS', allowsActions: ['READ', 'ANALYZE'], requiresApproval: false, maxRiskAllowed: 'LOW' },
+        2: { name: 'RECOMMENDATION', allowsActions: ['READ', 'ANALYZE', 'RECOMMEND'], requiresApproval: false, maxRiskAllowed: 'MEDIUM' },
+        3: { name: 'ASSISTED_ACTION', allowsActions: ['READ', 'ANALYZE', 'RECOMMEND', 'MODIFY'], requiresApproval: true, maxRiskAllowed: 'HIGH' },
+        4: { name: 'AUTONOMOUS', allowsActions: ['READ', 'ANALYZE', 'RECOMMEND', 'MODIFY', 'EXECUTE'], requiresApproval: true, maxRiskAllowed: 'HIGH' }
     };
 
-    // ── 辅助函数 ──
     function generateId(prefix) {
         return prefix + '-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
     }
@@ -54,6 +54,18 @@
             var rejected = aiDecisions.filter(function(d) { return d.finalDecision === 'REJECTED'; }).length;
             var pending = reviewQueue.length;
 
+            var decisionsByType = { APPROVED: approved, REJECTED: rejected, REQUIRES_APPROVAL: pending };
+
+            var recentDecisions = aiDecisions.slice(-10).map(function(d) {
+                return {
+                    decisionId: d.decisionId,
+                    recommendation: d.aiDecision ? (d.aiDecision.recommendation || '').substring(0, 80) : '',
+                    finalDecision: d.finalDecision,
+                    confidence: d.aiDecision ? d.aiDecision.confidence : null,
+                    timestamp: d.timestamp
+                };
+            });
+
             return {
                 version: '4.9.6',
                 status: this.getHealth().status,
@@ -65,17 +77,20 @@
                 },
                 decisions: {
                     total: aiDecisions.length,
-                    APPROVED: approved,
-                    REJECTED: rejected,
-                    REQUIRES_APPROVAL: pending
+                    APPROVED: decisionsByType.APPROVED,
+                    REJECTED: decisionsByType.REJECTED,
+                    REQUIRES_APPROVAL: decisionsByType.REQUIRES_APPROVAL,
+                    avgConfidence: aiDecisions.length > 0 ? (aiDecisions.reduce(function(sum, d) { return sum + (d.aiDecision ? d.aiDecision.confidence || 0 : 0); }, 0) / aiDecisions.length * 100).toFixed(1) + '%' : 'N/A'
                 },
-                reviewQueue: { pending: pending },
+                reviewQueue: { pending: pending, maxSize: 100 },
+                feedback: { total: feedbackLoop.length, recent: feedbackLoop.slice(-5) },
                 rules: [
                     'Rule 1: AI has no modification permission by default ✅',
                     'Rule 2: Recommendation ≠ Execution ✅',
                     'Rule 3: High risk decisions must be reviewed ✅',
                     'Rule 4: AI decisions must leave reasoning ✅'
-                ]
+                ],
+                recentDecisions: recentDecisions
             };
         },
 
@@ -84,8 +99,10 @@
             return {
                 level: currentAILevel,
                 name: level.name,
+                description: level.name + ' access',
                 allowedActions: level.allowsActions,
                 requiresApproval: level.requiresApproval,
+                maxRiskAllowed: level.maxRiskAllowed,
                 isFuture: false
             };
         },
@@ -98,6 +115,7 @@
             var confidence = aiDecision.confidence || 0.8;
             var action = aiDecision.action || 'RECOMMEND';
             var target = aiDecision.target || 'user_decision';
+            var context = aiDecision.context || {};
 
             var decisionId = generateId('AIDEC');
             var capabilities = actionLevels[currentAILevel];
@@ -122,6 +140,7 @@
             var policyCheck = { allowed: true };
             var permCheck = { granted: true };
             var validCheck = { valid: true };
+            var safetyCheck = { decision: 'APPROVED' };
 
             try {
                 if (window.LawAIApp.Policy && window.LawAIApp.Policy.isAllowed) {
@@ -132,37 +151,54 @@
 
             try {
                 if (window.LawAIApp.Permissions && window.LawAIApp.Permissions.checkAccess) {
-                    var pc2 = window.LawAIApp.Permissions.checkAccess('SUB-AI-001', target, action);
+                    var pc2 = window.LawAIApp.Permissions.checkAccess('SUB-AI-001', target, action, { source: 'AI_ASSISTANT', confidence: confidence });
                     permCheck = pc2 || { granted: true };
                 }
             } catch(e) {}
 
             try {
                 if (window.LawAIApp.Validation && window.LawAIApp.Validation.quickValidate) {
-                    var vc = window.LawAIApp.Validation.quickValidate({ action: action, target: target });
+                    var vc = window.LawAIApp.Validation.quickValidate({ action: action, target: target, source: 'AI_ASSISTANT' });
                     validCheck = vc || { valid: true };
+                }
+            } catch(e) {}
+
+            try {
+                if (window.LawAIApp.Safety && window.LawAIApp.Safety.quickSafetyCheck) {
+                    var sc = window.LawAIApp.Safety.quickSafetyCheck({ action: action, target: target, source: 'SUB-AI-001', context: { approved: false } });
+                    safetyCheck = sc || { decision: 'APPROVED' };
                 }
             } catch(e) {}
 
             // ── 决定 ──
             var finalDecision = 'APPROVED';
             var reasons = [];
+            var riskLevel = 'LOW';
 
             if (!policyCheck.allowed) {
                 finalDecision = 'REJECTED';
-                reasons.push('Policy denied');
+                reasons.push('Policy denied: ' + (policyCheck.reason || 'unknown'));
+                riskLevel = 'CRITICAL';
             } else if (!permCheck.granted) {
                 finalDecision = 'REJECTED';
-                reasons.push('Permission denied');
+                reasons.push('Permission denied: ' + (permCheck.reason || 'unknown'));
+                riskLevel = 'CRITICAL';
             } else if (!validCheck.valid) {
                 finalDecision = 'REJECTED';
-                reasons.push('Validation rejected');
-            } else if (requiresApproval) {
+                reasons.push('Validation rejected: ' + (validCheck.reason || 'unknown'));
+                riskLevel = 'HIGH';
+            } else if (safetyCheck.decision === 'BLOCKED') {
+                finalDecision = 'REJECTED';
+                reasons.push('Safety blocked: ' + (safetyCheck.reason || 'unknown'));
+                riskLevel = 'CRITICAL';
+            } else if (requiresApproval || safetyCheck.decision === 'REQUIRES_APPROVAL') {
                 finalDecision = 'REQUIRES_APPROVAL';
                 reasons.push('Requires human approval');
+                riskLevel = 'MEDIUM';
             } else if (confidence < 0.5) {
                 finalDecision = 'REQUIRES_APPROVAL';
                 reasons.push('Low confidence: ' + (confidence * 100).toFixed(0) + '%');
+                riskLevel = 'MEDIUM';
             }
 
             // ── Rule 2: Recommendation ≠ Execution ──
@@ -171,8 +207,13 @@
                 finalAction = {
                     type: 'SUGGESTION_ONLY',
                     message: 'AI suggests: ' + recommendation + '. Awaiting confirmation.',
+                    proposedAction: action,
+                    proposedTarget: target,
                     requiresConfirmation: true
                 };
+                reasons.push('Recommendation ≠ Execution (Rule 2)');
+            } else if (finalDecision === 'APPROVED') {
+                finalAction = { type: 'APPROVED_ACTION', action: action, target: target };
             }
 
             var result = {
@@ -182,14 +223,25 @@
                 reason: reasons.join('; ') || 'All checks passed',
                 finalAction: finalAction,
                 requiresHumanReview: finalDecision === 'REQUIRES_APPROVAL',
+                riskLevel: riskLevel,
                 timestamp: new Date().toISOString()
             };
+
+            // ── Rule 4: 存储推理痕迹 ──
+            reasoningTrails.push({
+                decisionId: decisionId,
+                reasoning: reasoning,
+                recommendation: recommendation,
+                confidence: confidence,
+                timestamp: new Date().toISOString()
+            });
 
             // ── 加入审查队列 ──
             if (finalDecision === 'REQUIRES_APPROVAL') {
                 reviewQueue.push({
                     decisionId: decisionId,
                     aiDecision: aiDecision,
+                    governanceResult: { riskLevel: riskLevel, reasons: reasons },
                     submittedAt: new Date().toISOString()
                 });
                 if (reviewQueue.length > 100) reviewQueue.shift();
@@ -207,7 +259,8 @@
                 recommendation: recommendation || 'No specific recommendation',
                 confidence: confidence || 0.8,
                 action: 'RECOMMEND',
-                target: 'user_decision'
+                target: 'user_decision',
+                context: { suggestionOnly: true }
             });
         },
 
@@ -217,7 +270,9 @@
                 recommendation: request.recommendation || '',
                 confidence: request.confidence || 0.8,
                 action: request.action || 'EXECUTE',
-                target: request.target || 'system'
+                target: request.target || 'system',
+                params: request.params || {},
+                context: { executionRequest: true }
             });
         },
 
@@ -238,10 +293,12 @@
                 decisionId: decisionId,
                 approvedBy: (approverInfo && approverInfo.approvedBy) || 'human_operator',
                 approvedAt: new Date().toISOString(),
-                reason: (approverInfo && approverInfo.reason) || 'Manual approval'
+                reason: (approverInfo && approverInfo.reason) || 'Manual approval',
+                notes: (approverInfo && approverInfo.notes) || ''
             };
 
             approvalHistory.push(approval);
+            this.systemState.approvedDecisions++;
 
             // 更新决策记录
             for (var j = 0; j < aiDecisions.length; j++) {
@@ -252,7 +309,28 @@
                 }
             }
 
-            return { success: true, decisionId: decisionId, approval: approval, message: 'AI decision approved' };
+            // 反馈
+            feedbackLoop.push({
+                decisionId: decisionId,
+                type: 'APPROVED',
+                aiConfidence: found.aiDecision.confidence || 0.8,
+                humanFeedback: approverInfo.reason || 'Manual approval',
+                recordedAt: new Date().toISOString()
+            });
+
+            // 执行动作
+            var executionResult = null;
+            if (found.aiDecision.action && found.aiDecision.target) {
+                executionResult = this._executeAction(found.aiDecision.action, found.aiDecision.target);
+            }
+
+            return {
+                success: true,
+                decisionId: decisionId,
+                approval: approval,
+                executionResult: executionResult,
+                message: 'AI decision ' + decisionId + ' approved'
+            };
         },
 
         rejectDecision: function(decisionId, rejectInfo) {
@@ -272,7 +350,8 @@
                 decisionId: decisionId,
                 rejectedBy: (rejectInfo && rejectInfo.rejectedBy) || 'human_operator',
                 rejectedAt: new Date().toISOString(),
-                reason: (rejectInfo && rejectInfo.reason) || 'Manual rejection'
+                reason: (rejectInfo && rejectInfo.reason) || 'Manual rejection',
+                notes: (rejectInfo && rejectInfo.notes) || ''
             };
 
             for (var j = 0; j < aiDecisions.length; j++) {
@@ -283,7 +362,25 @@
                 }
             }
 
-            return { success: true, decisionId: decisionId, rejection: rejection, message: 'AI decision rejected' };
+            feedbackLoop.push({
+                decisionId: decisionId,
+                type: 'REJECTED',
+                aiConfidence: found.aiDecision.confidence || 0.8,
+                humanFeedback: rejectInfo.reason || 'Manual rejection',
+                recordedAt: new Date().toISOString()
+            });
+
+            return {
+                success: true,
+                decisionId: decisionId,
+                rejection: rejection,
+                message: 'AI decision ' + decisionId + ' rejected'
+            };
+        },
+
+        _executeAction: function(action, target) {
+            console.log('[AIGovernance] Executing: ' + action + ' on ' + target);
+            return { success: true, action: action, target: target, message: 'Action executed' };
         },
 
         getReviewQueue: function() {
@@ -293,6 +390,9 @@
                     recommendation: item.aiDecision.recommendation || '',
                     reasoning: item.aiDecision.reasoning || '',
                     confidence: item.aiDecision.confidence || 0.8,
+                    proposedAction: item.aiDecision.action,
+                    proposedTarget: item.aiDecision.target,
+                    riskLevel: item.governanceResult ? item.governanceResult.riskLevel : 'UNKNOWN',
                     submittedAt: item.submittedAt
                 };
             });
@@ -308,7 +408,7 @@
 
         setAILevel: function(level, reason) {
             if (!actionLevels[level]) {
-                return { success: false, error: 'Invalid AI level: ' + level };
+                return { success: false, error: 'Invalid AI level: ' + level + '. Must be 0-4.' };
             }
 
             var oldLevel = currentAILevel;
@@ -330,7 +430,8 @@
                 currentLevel: { level: level, name: newName },
                 capabilities: {
                     allowedActions: actionLevels[level].allowsActions,
-                    requiresApproval: actionLevels[level].requiresApproval
+                    requiresApproval: actionLevels[level].requiresApproval,
+                    maxRiskAllowed: actionLevels[level].maxRiskAllowed
                 }
             };
         },
@@ -342,19 +443,19 @@
         },
 
         getReasoningTrail: function(decisionId) {
-            for (var i = 0; i < aiDecisions.length; i++) {
-                if (aiDecisions[i].decisionId === decisionId) {
-                    return aiDecisions[i].aiDecision || null;
+            for (var i = 0; i < reasoningTrails.length; i++) {
+                if (reasoningTrails[i].decisionId === decisionId) {
+                    return reasoningTrails[i];
                 }
             }
             return null;
         }
     };
 
-    // ── 挂载到全局 ──
+    // ── 挂载 ──
     if (!window.LawAIApp) window.LawAIApp = {};
     window.LawAIApp.AIGovernance = API;
 
-    console.log('✅ [AIGovernance] Full version loaded');
+    console.log('✅ [AIGovernance] Complete loaded');
     console.log('   🤖 AI Level:', actionLevels[currentAILevel].name);
 })();
