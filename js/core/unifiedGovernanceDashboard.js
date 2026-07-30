@@ -858,8 +858,9 @@
     }
 
     // ============================================================
-    // 5. 导出 & 向后兼容
-    // ============================================================
+// 5. 导出 & 向后兼容
+// ============================================================
+try {
     const instance = new UnifiedGovernanceDashboard();
     window.LawAIApp.UnifiedGovernanceDashboard = instance;
     
@@ -891,98 +892,93 @@
     }
 
     /**
- /**
- * 打开完整的 Governance Dashboard
- */
-window.LawAIApp._openGovernanceDashboard = function() {
-    // 检查 Unified Dashboard 是否存在
-    var dashboard = window.LawAIApp.UnifiedGovernanceDashboard;
-    if (!dashboard) {
-        alert('⚠️ Governance Dashboard not loaded yet. Please wait for modules to initialize.');
-        return;
-    }
+     * 打开完整的 Governance Dashboard
+     */
+    window.LawAIApp._openGovernanceDashboard = function() {
+        var dashboard = window.LawAIApp.UnifiedGovernanceDashboard;
+        if (!dashboard) {
+            alert('⚠️ Governance Dashboard not loaded yet. Please wait for modules to initialize.');
+            return;
+        }
+        
+        var existing = document.getElementById('governance-full-panel');
+        if (existing) {
+            existing.remove();
+            return;
+        }
+        
+        var panel = document.createElement('div');
+        panel.id = 'governance-full-panel';
+        panel.style.cssText = [
+            'position:fixed',
+            'top:20px',
+            'left:50%',
+            'transform:translateX(-50%)',
+            'z-index:10001',
+            'width:90%',
+            'max-width:900px',
+            'max-height:85vh',
+            'overflow-y:auto',
+            'background:#1a1a2e',
+            'border:1px solid rgba(255,255,255,0.1)',
+            'border-radius:14px',
+            'padding:20px',
+            'box-shadow:0 20px 60px rgba(0,0,0,0.8)',
+            'color:#e2e8f0',
+            'font-family:Inter,-apple-system,sans-serif'
+        ].join(';');
+        
+        var container = document.createElement('div');
+        container.id = 'governance-dashboard-container';
+        panel.appendChild(container);
+        
+        var closeBtn = document.createElement('button');
+        closeBtn.textContent = '✕ Close';
+        closeBtn.style.cssText = [
+            'position:sticky',
+            'top:0',
+            'float:right',
+            'z-index:2',
+            'padding:8px 16px',
+            'background:#ef4444',
+            'color:#fff',
+            'border:none',
+            'border-radius:6px',
+            'cursor:pointer',
+            'font-size:12px',
+            'margin-bottom:8px'
+        ].join(';');
+        closeBtn.onclick = function() { panel.remove(); };
+        panel.prepend(closeBtn);
+        
+        var overlay = document.createElement('div');
+        overlay.style.cssText = [
+            'position:fixed',
+            'top:0',
+            'left:0',
+            'width:100%',
+            'height:100%',
+            'background:rgba(0,0,0,0.5)',
+            'z-index:10000'
+        ].join(';');
+        overlay.onclick = function() { panel.remove(); overlay.remove(); };
+        document.body.appendChild(overlay);
+        
+        if (typeof dashboard._render === 'function') {
+            dashboard._render(container);
+        } else if (typeof dashboard.render === 'function') {
+            dashboard.render(container);
+        } else {
+            container.innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">⚠️ Dashboard render method not found</div>';
+        }
+        
+        document.body.appendChild(panel);
+        console.log('🏛️ Governance Dashboard opened');
+    };
     
-    // 移除旧的面板（如果存在）
-    var existing = document.getElementById('governance-full-panel');
-    if (existing) {
-        existing.remove();
-        return;
-    }
+    // ✅ 安全的 console.log
+    console.log('📊 Unified Governance Dashboard V5.0.0 ready');
     
-    // 创建完整面板容器
-    var panel = document.createElement('div');
-    panel.id = 'governance-full-panel';
-    panel.style.cssText = [
-        'position:fixed',
-        'top:20px',
-        'left:50%',
-        'transform:translateX(-50%)',
-        'z-index:10001',
-        'width:90%',
-        'max-width:900px',
-        'max-height:85vh',
-        'overflow-y:auto',
-        'background:#1a1a2e',
-        'border:1px solid rgba(255,255,255,0.1)',
-        'border-radius:14px',
-        'padding:20px',
-        'box-shadow:0 20px 60px rgba(0,0,0,0.8)',
-        'color:#e2e8f0',
-        'font-family:Inter,-apple-system,sans-serif'
-    ].join(';');
-    
-    // 创建内部容器
-    var container = document.createElement('div');
-    container.id = 'governance-dashboard-container';
-    panel.appendChild(container);
-    
-    // 添加关闭按钮
-    var closeBtn = document.createElement('button');
-    closeBtn.textContent = '✕ Close';
-    closeBtn.style.cssText = [
-        'position:sticky',
-        'top:0',
-        'float:right',
-        'z-index:2',
-        'padding:8px 16px',
-        'background:#ef4444',
-        'color:#fff',
-        'border:none',
-        'border-radius:6px',
-        'cursor:pointer',
-        'font-size:12px',
-        'margin-bottom:8px'
-    ].join(';');
-    closeBtn.onclick = function() { panel.remove(); };
-    panel.prepend(closeBtn);
-    
-    // 点击遮罩关闭
-    var overlay = document.createElement('div');
-    overlay.style.cssText = [
-        'position:fixed',
-        'top:0',
-        'left:0',
-        'width:100%',
-        'height:100%',
-        'background:rgba(0,0,0,0.5)',
-        'z-index:10000'
-    ].join(';');
-    overlay.onclick = function() { panel.remove(); overlay.remove(); };
-    document.body.appendChild(overlay);
-    
-    // 渲染 Dashboard
-    if (typeof dashboard._render === 'function') {
-        dashboard._render(container);
-    } else if (typeof dashboard.render === 'function') {
-        dashboard.render(container);
-    } else {
-        container.innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">⚠️ Dashboard render method not found</div>';
-    }
-    
-    document.body.appendChild(panel);
-    
-    console.log('🏛️ Governance Dashboard opened');
-};
-    
-    console.log('📊 Unified Governance Dashboard V5.0.0 ready (Engine V3.x + Runtime V4.9.7) | ' + instance.tabs.length + ' tabs');
-})();
+} catch(e) {
+    console.error('[UnifiedGovernance] Failed to initialize:', e);
+}
