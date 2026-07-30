@@ -605,9 +605,10 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
 
     _showValidationsPopup: function() {
         var data = this._getValidationData();
-        var validators = data.validators || [];
+        var validators = data.validatorsList || [];
+
         if (validators.length === 0) {
-            alert('No validators found.');
+            alert('⚠️ No validators found');
             return;
         }
 
@@ -629,7 +630,7 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
             'justify-content:center',
             'backdrop-filter:blur(4px)'
         ].join(';');
-
+    
         var popup = document.createElement('div');
         popup.style.cssText = [
             'background:#1a1a2e',
@@ -654,11 +655,14 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
 
         for (var i = 0; i < validators.length; i++) {
             var v = validators[i];
+            var statusColor = v.enabled !== false ? '#22c55e' : '#ef4444';
+            var statusText = v.enabled !== false ? '✅ Active' : '⛔ Disabled';
+
             html += '<div style="background:#16213e;border:1px solid #2a2a4a;border-radius:6px;padding:10px 12px;margin-bottom:8px;">';
             html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
             html += '<span style="font-weight:600;color:#e2e8f0;">' + (v.name || v.id) + '</span>';
             html += '<span style="font-size:10px;color:#475569;background:#0d0d1a;padding:1px 8px;border-radius:4px;">' + v.id + '</span>';
-            html += '<span style="font-size:10px;padding:1px 8px;border-radius:4px;background:' + (v.enabled ? '#22c55e20' : '#ef444420') + ';color:' + (v.enabled ? '#22c55e' : '#ef4444') + ';">' + (v.enabled ? '✅ Active' : '⛔ Disabled') + '</span>';
+            html += '<span style="font-size:10px;padding:1px 8px;border-radius:4px;background:' + statusColor + '20;color:' + statusColor + ';">' + statusText + '</span>';
             html += '</div>';
             if (v.type) {
                 html += '<div style="font-size:11px;color:#94a3b8;margin-top:4px;">Type: ' + v.type + ' | Rule: ' + (v.rule || 'N/A') + '</div>';
