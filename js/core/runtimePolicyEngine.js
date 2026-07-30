@@ -503,6 +503,10 @@ if (typeof window !== 'undefined') {
         getHealth: function() { return window.LawAIApp.RuntimePolicyEngine.getHealth(); },
         getDecisions: function(limit) { return window.LawAIApp.RuntimePolicyEngine.getDecisionHistory(limit); },
         getConflicts: function() { return window.LawAIApp.RuntimePolicyEngine.getConflicts(); },
-        getRequestTypeStats: function() { return window.LawAIApp.RuntimePolicyEngine.getRequestTypeStats(); }
+        getRequestTypeStats: function() { 
+            return window.LawAIApp.RuntimePolicyEngine.getRequestTypeStats(); 
+        }
     };
+
+    console.log('✅ Policy Engine registered');
 }
