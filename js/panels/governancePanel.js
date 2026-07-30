@@ -3,6 +3,8 @@
  * First migrated panel: displays Governance Layer summary
  */
 (function() {
+    'use strict';
+
     if (!window.LawAIApp.PanelRegistry) {
         console.warn('[GovernancePanel] PanelRegistry not ready, deferring...');
         return;
@@ -14,6 +16,10 @@
         icon: '🏛️',
         order: 49,
         
+        // ============================================================
+        // PANEL CONTRACT
+        // ============================================================
+
         render: function(container) {
             if (!container) return;
 
@@ -267,6 +273,8 @@
         // ============================================================
         
         _getDataFallback: function() {
+            console.log('[GovernancePanel] Using fallback data source');
+            
             var info = {
                 policyCount: 0,
                 permissionCount: 0,
