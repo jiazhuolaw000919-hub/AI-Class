@@ -146,6 +146,7 @@ var STAGES = {
         "debug/panels/governancePanel.js",
         "debug/panels/explorerPanel.js",
         "debug/details/panelDetailManager.js",
+        "debug/details/governanceDashboardLoader.js",
         
         // ── Components ──
         "components/panelCard.js",
