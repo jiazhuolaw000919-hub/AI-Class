@@ -1,6 +1,7 @@
 // ============================================================
 // runtimePolicyEngine.js
-// Part 49.2 — Runtime Policy Engine
+// Part 49.2 — Runtime Policy Engine (with 7 Default Policies)
+// Version: v4.9.2
 // ============================================================
 
 (function() {
@@ -13,18 +14,172 @@
         this._maxHistory = 100;
         this._initialized = false;
 
-        // 默认策略：允许所有操作
+        // ── 7 个默认策略 (包含你原来的 6 个 + default_allow) ──
         this._defaultPolicies = [
+            // 1. Critical Module Protection
+            {
+                id: 'POL-RT-001',
+                name: 'Critical Module Protection',
+                description: 'Prevent unloading of critical runtime modules',
+                enabled: true,
+                category: 'runtime',
+                action: 'deny',
+                priority: 1,
+                condition: function(request) {
+                    var criticalModules = ['BootManager', 'GovernanceFoundation', 'PolicyEngine', 'StateSyncEngine'];
+                    return request.action === 'unloadModule' && criticalModules.indexOf(request.moduleName) !== -1;
+                },
+                metadata: {
+                    defaultDecision: 'DENY',
+                    explanation: 'Critical modules cannot be unloaded during runtime',
+                    scope: ['module_management'],
+                    createdBy: 'system',
+                    createdAt: Date.now()
+                }
+            },
+            // 2. State Change Authorization
+            {
+                id: 'POL-RT-002',
+                name: 'State Change Authorization',
+                description: 'Runtime state changes must come from authorized sources',
+                enabled: true,
+                category: 'runtime',
+                action: 'review',
+                priority: 2,
+                condition: function(request) {
+                    var authorizedSources = ['BootManager', 'StateSyncEngine', 'SystemAPI'];
+                    return request.action === 'changeState' && authorizedSources.indexOf(request.source) === -1;
+                },
+                metadata: {
+                    defaultDecision: 'REVIEW',
+                    explanation: 'Unauthorized state changes require review',
+                    scope: ['state_management'],
+                    createdBy: 'system',
+                    createdAt: Date.now()
+                }
+            },
+            // 3. AI Confidence Requirement
+            {
+                id: 'POL-AI-001',
+                name: 'AI Confidence Requirement',
+                description: 'AI decisions with low confidence require review',
+                enabled: true,
+                category: 'ai',
+                action: 'review',
+                priority: 2,
+                condition: function(request) {
+                    return request.action && request.action.indexOf('ai_') === 0 && 
+                           request.confidence !== undefined && request.confidence < 0.7;
+                },
+                metadata: {
+                    defaultDecision: 'REVIEW',
+                    explanation: 'AI decisions below 70% confidence require human review',
+                    threshold: 0.7,
+                    scope: ['ai_decisions'],
+                    createdBy: 'system',
+                    createdAt: Date.now()
+                }
+            },
+            // 4. AI Self-Modification Prevention
+            {
+                id: 'POL-AI-002',
+                name: 'AI Self-Modification Prevention',
+                description: 'Prevent AI from modifying its own safety constraints',
+                enabled: true,
+                category: 'ai',
+                action: 'deny',
+                priority: 1,
+                condition: function(request) {
+                    var protectedParams = ['confidenceThreshold', 'safetyLevel', 'maxTokens'];
+                    return request.action === 'ai_modifyConfig' && 
+                           protectedParams.indexOf(request.parameter) !== -1 && 
+                           request.source === 'ai';
+                },
+                metadata: {
+                    defaultDecision: 'DENY',
+                    explanation: 'AI cannot modify its own safety parameters',
+                    scope: ['ai_safety'],
+                    createdBy: 'system',
+                    createdAt: Date.now()
+                }
+            },
+            // 5. Data Access Logging
+            {
+                id: 'POL-SEC-001',
+                name: 'Data Access Logging',
+                description: 'All sensitive data access must be logged',
+                enabled: true,
+                category: 'security',
+                action: 'deny',
+                priority: 2,
+                condition: function(request) {
+                    var sensitiveActions = ['readUserData', 'readSystemConfig', 'accessStorage'];
+                    return sensitiveActions.indexOf(request.action) !== -1 && !request.auditLogged;
+                },
+                metadata: {
+                    defaultDecision: 'DENY',
+                    explanation: 'Sensitive data access requires audit logging enabled',
+                    scope: ['data_access'],
+                    createdBy: 'system',
+                    createdAt: Date.now()
+                }
+            },
+            // 6. Resource Usage Control
+            {
+                id: 'POL-PERF-001',
+                name: 'Resource Usage Control',
+                description: 'Operations consuming significant resources require review',
+                enabled: true,
+                category: 'performance',
+                action: 'review',
+                priority: 3,
+                condition: function(request) {
+                    return request.estimatedCost && request.estimatedCost > 100;
+                },
+                metadata: {
+                    defaultDecision: 'REVIEW',
+                    explanation: 'Operations estimated to consume >100 units require review',
+                    threshold: 100,
+                    scope: ['performance'],
+                    createdBy: 'system',
+                    createdAt: Date.now()
+                }
+            },
+            // 7. Personal Data Protection
+            {
+                id: 'POL-DATA-001',
+                name: 'Personal Data Protection',
+                description: 'Access to personal data requires explicit authorization',
+                enabled: true,
+                category: 'data',
+                action: 'deny',
+                priority: 2,
+                condition: function(request) {
+                    var personalDataTypes = ['userProfile', 'learningHistory', 'assessmentResults'];
+                    return personalDataTypes.indexOf(request.dataType) !== -1 && !request.hasConsent;
+                },
+                metadata: {
+                    defaultDecision: 'DENY',
+                    explanation: 'Personal data access requires user consent',
+                    scope: ['personal_data'],
+                    createdBy: 'system',
+                    createdAt: Date.now()
+                }
+            },
+            // 8. Default Allow (fallback)
             {
                 id: 'default_allow',
                 name: 'Default Allow',
-                description: 'Allow all actions by default',
+                description: 'Allow all actions by default (fallback)',
                 enabled: true,
                 category: 'default',
                 action: 'allow',
+                priority: 99,
                 condition: null,
-                priority: 0,
                 metadata: {
+                    defaultDecision: 'ALLOW',
+                    explanation: 'Fallback policy: allow when no other policy applies',
+                    scope: ['*'],
                     createdBy: 'system',
                     createdAt: Date.now()
                 }
@@ -258,8 +413,39 @@
         return this;
     };
 
+    // ── 获取策略详情 (新增) ──
+    RuntimePolicyEngine.prototype.getPolicyDetails = function(id) {
+        var policy = this._policies[id];
+        if (!policy) return null;
+        return {
+            id: policy.id,
+            name: policy.name,
+            description: policy.description,
+            enabled: policy.enabled,
+            category: policy.category,
+            action: policy.action,
+            priority: policy.priority,
+            metadata: policy.metadata,
+            createdAt: policy.createdAt,
+            updatedAt: policy.updatedAt
+        };
+    };
+
+    // ── 按状态获取 ──
+    RuntimePolicyEngine.prototype.getPoliciesByStatus = function(enabled) {
+        var result = [];
+        for (var id in this._policies) {
+            if (this._policies.hasOwnProperty(id)) {
+                if (this._policies[id].enabled === enabled) {
+                    result.push(this._policies[id]);
+                }
+            }
+        }
+        return result;
+    };
+
     // ============================================================
-    // 导出
+    // 导出到全局
     // ============================================================
 
     if (typeof window !== 'undefined') {
@@ -273,6 +459,7 @@
             get: function(id) { return engine.getPolicy(id); },
             getAll: function() { return engine.getAllPolicies(); },
             getByCategory: function(cat) { return engine.getPoliciesByCategory(cat); },
+            getByStatus: function(enabled) { return engine.getPoliciesByStatus(enabled); },
             updateStatus: function(id, status) { return engine.updatePolicyStatus(id, status); },
             evaluate: function(policyId, request) { return engine.evaluatePolicy(policyId, request); },
             evaluateRequest: function(request) { return engine.evaluateRequest(request); },
@@ -281,7 +468,8 @@
             getHealth: function() { return engine.getHealth(); },
             getDecisions: function(limit) { return engine.getDecisionHistory(limit); },
             getConflicts: function() { return engine.getConflicts(); },
-            getRequestTypeStats: function() { return engine.getRequestTypeStats(); }
+            getRequestTypeStats: function() { return engine.getRequestTypeStats(); },
+            getPolicyDetails: function(id) { return engine.getPolicyDetails(id); }
         };
 
         console.log('✅ [RuntimePolicyEngine] Policy API registered');
