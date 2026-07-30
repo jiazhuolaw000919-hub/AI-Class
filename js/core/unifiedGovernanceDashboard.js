@@ -715,8 +715,16 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
             var statusText = newState ? 'enabled' : 'disabled';
             alert('✅ ' + changed + ' validators ' + statusText + ' successfully!');
         
-            // ── 刷新 Dashboard ──
-            this.refresh();
+            // ── 刷新 Dashboard (使用全局引用) ──
+            var dashboard = window.LawAIApp.UnifiedGovernanceDashboard;
+            if (dashboard && typeof dashboard.refresh === 'function') {
+                dashboard.refresh();
+            } else {
+                // 如果 refresh 不存在，重新渲染当前 Tab
+                if (dashboard && dashboard._renderContent) {
+                    dashboard._renderContent();
+                }
+            }
         } catch(e) {
             console.error('[UnifiedGovernance] _toggleAllValidators error:', e);
             alert('❌ Error toggling validators: ' + e.message);
