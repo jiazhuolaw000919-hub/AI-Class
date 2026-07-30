@@ -551,7 +551,7 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
         var data = this._getValidationData();
         var html = '';
 
-        // ── 注意：用 validatorsList，不是 validators ──
+        // ── 用 validatorsList ──
         var validatorsList = data.validatorsList || [];
         var enabledCount = 0;
         for (var i = 0; i < validatorsList.length; i++) {
@@ -564,7 +564,7 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
         html += '<h3 class="gov-section-title">✅ Validation System</h3>';
         html += this._renderStatusBadge(data.status);
         html += this._renderDetailGrid([
-            { label: 'Total Validators', value: data.validators },  // ← 这里是总数
+            { label: 'Total Validators', value: data.validators },
             { label: 'Validations Run', value: data.total },
             { label: 'Health Score', value: data.health + '%' }
         ]);
@@ -687,7 +687,14 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
                 return;
             }
 
-            var validators = validation.getAll ? validation.getAll() : [];
+            // ── 获取 Validator 列表 ──
+            var validators = [];
+            if (typeof validation.getAll === 'function') {
+                validators = validation.getAll() || [];
+            } else if (typeof validation.getAllValidators === 'function') {
+                validators = validation.getAllValidators() || [];
+            }
+
             if (validators.length === 0) {
                 alert('⚠️ No validators found');
                 return;
@@ -712,18 +719,12 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
 
             console.log('✅ ' + changed + ' validators ' + (newState ? 'enabled' : 'disabled'));
 
-            // ── 🔥 强制刷新 ──
+            // ── 🔥 强制刷新 UI ──
             var dashboard = window.LawAIApp.UnifiedGovernanceDashboard;
             if (dashboard && dashboard._container) {
-                // 1. 先清除缓存数据
-                if (dashboard._validationCache) {
-                    dashboard._validationCache = null;
-                }
-                // 2. 重新获取数据
-                var data = dashboard._getValidationData();
-                // 3. 重新渲染
                 var content = dashboard._container.querySelector('#gov-content');
                 if (content) {
+                    // 重新获取数据并渲染
                     var newHtml = dashboard._renderValidations();
                     content.innerHTML = newHtml;
                 }
@@ -1184,14 +1185,14 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
 
             // ── 获取 Validator 列表 ──
             var validatorList = [];
-            if (v.getAll) {
+            if (typeof v.getAll === 'function') {
                 validatorList = v.getAll() || [];
-            } else if (v.getAllValidators) {
+            } else if (typeof v.getAllValidators === 'function') {
                 validatorList = v.getAllValidators() || [];
             }
 
             // ── 获取健康状态 ──
-            var h = v.getHealth ? v.getHealth() : {};
+            var h = (typeof v.getHealth === 'function') ? v.getHealth() : {};
 
             return {
                 validators: validatorList.length,
