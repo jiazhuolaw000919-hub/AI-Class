@@ -1,18 +1,18 @@
 // ============================================================
-// runtimeValidationSystem.js — FULL VERSION (Reliable Format)
+// runtimeValidationSystem.js — COMPLETE
 // Part 49.4 — V4.9.4
 // ============================================================
 
 (function() {
     'use strict';
 
-    console.log('[ValidationSystem] Loading full version...');
+    console.log('[ValidationSystem] Loading...');
 
     var validators = [];
     var validationHistory = [];
     var dependencyGraph = {};
 
-    // ── 默认验证器 ──
+    // ── 完整默认验证器 ──
     function initDefaultValidators() {
         validators.push({
             id: 'VAL-STATE-001',
@@ -37,10 +37,12 @@
                 for (var i = 0; i < deps.length; i++) {
                     if (!window.LawAIApp[deps[i]]) missing.push(deps[i]);
                 }
+                var isCritical = missing.some(function(m) { return ['BootManager', 'StateSyncEngine', 'RuntimeKernel', 'EventBus'].indexOf(m) !== -1; });
                 return {
                     passed: missing.length === 0,
-                    risk: missing.length > 0 ? 'HIGH' : 'LOW',
-                    details: missing.length > 0 ? 'Missing dependencies: ' + missing.join(', ') : 'All dependencies satisfied'
+                    risk: missing.length > 0 ? (isCritical ? 'CRITICAL' : 'HIGH') : 'LOW',
+                    details: missing.length > 0 ? 'Missing dependencies: ' + missing.join(', ') : 'All dependencies satisfied',
+                    warnings: missing.length > 0 ? ['Missing ' + missing.length + ' dependencies'] : []
                 };
             }
         });
@@ -53,7 +55,7 @@
             check: function(ctx) {
                 var critical = ['BootManager', 'StateSyncEngine', 'RuntimeKernel', 'EventBus'];
                 if (ctx.target && critical.indexOf(ctx.target) !== -1) {
-                    return { passed: false, risk: 'HIGH', details: 'Target "' + ctx.target + '" is a critical module' };
+                    return { passed: false, risk: 'HIGH', details: 'Target "' + ctx.target + '" is a critical module', warnings: ['Critical module — proceed with caution'] };
                 }
                 return { passed: true, risk: 'LOW', details: 'Target is not critical' };
             }
@@ -72,7 +74,12 @@
                     }
                 } catch(e) {}
                 var passed = load < 80;
-                return { passed: passed, risk: load > 90 ? 'CRITICAL' : (load > 80 ? 'HIGH' : 'LOW'), details: 'System load: ' + load + '%' };
+                return {
+                    passed: passed,
+                    risk: load > 90 ? 'CRITICAL' : (load > 80 ? 'HIGH' : (load > 60 ? 'MEDIUM' : 'LOW')),
+                    details: 'System load: ' + load + '%',
+                    warnings: load > 80 ? ['High system load (' + load + '%)'] : []
+                };
             }
         });
 
@@ -93,8 +100,9 @@
                 return { passed: true, risk: 'LOW', details: 'No params to validate' };
             }
         });
+    }
 
-        // ── 依赖图 ──
+    function initDependencyGraph() {
         dependencyGraph.BootManager = ['RuntimeKernel', 'EventBus', 'StorageEngine'];
         dependencyGraph.StateSyncEngine = ['EventBus', 'StorageEngine'];
         dependencyGraph.RuntimePolicyEngine = ['RuntimeGovernanceFoundation'];
@@ -104,6 +112,7 @@
     }
 
     initDefaultValidators();
+    initDependencyGraph();
 
     // ── API ──
     var API = {
@@ -116,19 +125,30 @@
                 validators: validators.length,
                 totalValidations: total,
                 rejectRate: total > 0 ? (rejected / total * 100).toFixed(1) + '%' : '0%',
-                isOperational: true
+                isOperational: true,
+                version: '4.9.4'
             };
         },
 
         getAll: function() { return validators.slice(); },
-        getAllValidators: function() { return validators.slice(); },
 
         getReport: function() {
+            var byType = {};
+            for (var i = 0; i < validators.length; i++) {
+                var type = validators[i].type || 'unknown';
+                if (!byType[type]) byType[type] = 0;
+                byType[type]++;
+            }
             return {
                 version: '4.9.4',
                 status: 'HEALTHY',
-                validators: { total: validators.length, byType: { state: 1, dependency: 1, safety: 1, performance: 1, data: 1 } },
-                validations: { total: validationHistory.length },
+                validators: { total: validators.length, byType: byType },
+                validations: {
+                    total: validationHistory.length,
+                    byDecision: { ALLOW: 0, REVIEW: 0, REJECT: 0 },
+                    byRisk: { LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0 }
+                },
+                dependencyGraph: { modules: Object.keys(dependencyGraph).length },
                 riskLevels: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'],
                 rules: [
                     'Rule 1: Validation must be context-based ✅',
@@ -178,7 +198,8 @@
                         type: v.type,
                         passed: checkResult.passed !== false,
                         risk: checkResult.risk || 'LOW',
-                        details: checkResult.details || ''
+                        details: checkResult.details || '',
+                        warnings: checkResult.warnings || []
                     });
                     if (!checkResult.passed) hasError = true;
                     if (checkResult.risk === 'CRITICAL') overallRisk = 'CRITICAL';
@@ -191,7 +212,8 @@
                         type: v.type,
                         passed: false,
                         risk: 'MEDIUM',
-                        details: 'Validator error: ' + e.message
+                        details: 'Validator error: ' + e.message,
+                        errors: [e.message]
                     });
                     hasError = true;
                 }
@@ -210,6 +232,10 @@
             }
 
             result.risk.label = overallRisk;
+            result.recommendation = result.decision === 'ALLOW' ? 'All validation checks passed' : 
+                                     result.decision === 'REVIEW' ? 'Review required — Risk: ' + overallRisk : 
+                                     'Action blocked — Risk: ' + overallRisk;
+
             validationHistory.push(result);
             if (validationHistory.length > 500) validationHistory.shift();
 
@@ -222,7 +248,7 @@
                 valid: result.decision === 'ALLOW',
                 decision: result.decision,
                 risk: result.risk.label,
-                reason: result.decision === 'ALLOW' ? 'All checks passed' : result.decision === 'REVIEW' ? 'Review required' : 'Validation rejected',
+                reason: result.recommendation,
                 checksRun: result.checksSummary.total,
                 checksFailed: result.checksSummary.failed
             };
@@ -242,25 +268,53 @@
             var checks = [];
             for (var i = 0; i < deps.length; i++) {
                 var loaded = !!window.LawAIApp[deps[i]];
-                checks.push({ type: 'DEPENDENCY', name: module + ' → ' + deps[i], passed: loaded, risk: loaded ? 'LOW' : 'HIGH', details: loaded ? 'Loaded' : 'Not loaded' });
+                var isCritical = ['BootManager', 'StateSyncEngine', 'RuntimeKernel', 'EventBus'].indexOf(deps[i]) !== -1;
+                checks.push({
+                    type: 'DEPENDENCY',
+                    name: module + ' → ' + deps[i],
+                    passed: loaded,
+                    risk: loaded ? 'LOW' : (isCritical ? 'CRITICAL' : 'HIGH'),
+                    details: loaded ? 'Loaded' : 'Not loaded'
+                });
             }
-            return { moduleName: module, checks: checks, dependencies: deps, overallRisk: 'LOW', timestamp: new Date().toISOString() };
+            var affected = this._getAffectedModules(module);
+            return {
+                moduleName: module,
+                checks: checks,
+                dependencies: deps,
+                affectedModules: affected,
+                overallRisk: checks.some(function(c) { return !c.passed && c.risk === 'CRITICAL'; }) ? 'CRITICAL' : 'HIGH',
+                timestamp: new Date().toISOString()
+            };
         },
 
-        validatePerformance: function(request) {
-            return this.validate(request);
+        _getAffectedModules: function(module) {
+            var affected = [];
+            for (var key in dependencyGraph) {
+                if (dependencyGraph[key].indexOf(module) !== -1) {
+                    affected.push(key);
+                    var indirect = this._getAffectedModules(key);
+                    for (var i = 0; i < indirect.length; i++) {
+                        if (affected.indexOf(indirect[i]) === -1) affected.push(indirect[i]);
+                    }
+                }
+            }
+            return affected;
         },
 
-        validateData: function(dataContext) {
-            return this.validate({ params: dataContext });
-        },
-
-        validateSafety: function(request) {
-            return this.validate(request);
-        },
+        validatePerformance: function(request) { return this.validate(request); },
+        validateData: function(dataContext) { return this.validate({ params: dataContext }); },
+        validateSafety: function(request) { return this.validate(request); },
 
         registerValidator: function(def) {
-            var validator = { id: def.validatorId || 'VAL-' + Date.now(), name: def.name || 'Unnamed', type: def.type || 'general', priority: def.priority || 10, check: def.check || function() { return { passed: true }; } };
+            var validator = {
+                id: def.validatorId || 'VAL-' + Date.now(),
+                name: def.name || 'Unnamed',
+                type: def.type || 'general',
+                priority: def.priority || 10,
+                check: def.check || function() { return { passed: true }; },
+                metadata: def.metadata || {}
+            };
             validators.push(validator);
             return validator;
         },
@@ -270,7 +324,15 @@
         },
 
         getDependencyTree: function(module) {
-            return { module: module, dependsOn: dependencyGraph[module] || [], dependedBy: [] };
+            var direct = dependencyGraph[module] || [];
+            var reverse = this._getAffectedModules(module);
+            return {
+                module: module,
+                dependsOn: direct,
+                dependedBy: reverse,
+                isCritical: ['BootManager', 'StateSyncEngine', 'RuntimeKernel', 'EventBus'].indexOf(module) !== -1,
+                totalConnections: direct.length + reverse.length
+            };
         },
 
         getValidationHistory: function(limit) {
@@ -280,10 +342,10 @@
         }
     };
 
-    // ── 挂载到全局 ──
+    // ── 挂载 ──
     if (!window.LawAIApp) window.LawAIApp = {};
     window.LawAIApp.Validation = API;
 
-    console.log('✅ [ValidationSystem] Full version loaded');
+    console.log('✅ [ValidationSystem] Complete loaded');
     console.log('   📋 Validators:', validators.length);
 })();
