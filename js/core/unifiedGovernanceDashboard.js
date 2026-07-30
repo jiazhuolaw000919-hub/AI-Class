@@ -712,17 +712,31 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
                 }
             }
 
-            var statusText = newState ? 'enabled' : 'disabled';
-            alert('✅ ' + changed + ' validators ' + statusText + ' successfully!');
-        
-            // ── 刷新 Dashboard (使用全局引用) ──
+            console.log('✅ ' + changed + ' validators ' + (newState ? 'enabled' : 'disabled'));
+
+            // ── 🔥 强制刷新 UI：切到另一个 Tab 再切回来 ──
             var dashboard = window.LawAIApp.UnifiedGovernanceDashboard;
-            if (dashboard && typeof dashboard.refresh === 'function') {
-                dashboard.refresh();
-            } else {
-                // 如果 refresh 不存在，重新渲染当前 Tab
-                if (dashboard && dashboard._renderContent) {
-                    dashboard._renderContent();
+            if (dashboard && dashboard._container) {
+                var content = dashboard._container.querySelector('#gov-content');
+                if (content) {
+                    // 记住当前 Tab
+                    var currentTab = dashboard._currentTab || 'validations';
+                
+                    // 如果当前是 validations，先切到 overview 再切回来
+                    if (currentTab === 'validations') {
+                        dashboard._currentTab = 'overview';
+                        dashboard._renderContent();
+                    
+                        // 延迟切回 validations
+                        var self = dashboard;
+                        setTimeout(function() {
+                            self._currentTab = 'validations';
+                            self._renderContent();
+                        }, 50);
+                    } else {
+                        // 直接重新渲染
+                        dashboard._renderContent();
+                    }
                 }
             }
         } catch(e) {
