@@ -551,8 +551,8 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
         var data = this._getValidationData();
         var html = '';
 
-        // ── 计算当前启用状态 ──
-        var validatorsList = data.validators || [];
+        // ── 注意：用 validatorsList，不是 validators ──
+        var validatorsList = data.validatorsList || [];
         var enabledCount = 0;
         for (var i = 0; i < validatorsList.length; i++) {
             if (validatorsList[i].enabled !== false) enabledCount++;
@@ -564,36 +564,34 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
         html += '<h3 class="gov-section-title">✅ Validation System</h3>';
         html += this._renderStatusBadge(data.status);
         html += this._renderDetailGrid([
-            { label: 'Total Validators', value: data.validators },
+            { label: 'Total Validators', value: data.validators },  // ← 这里是总数
             { label: 'Validations Run', value: data.total },
             { label: 'Health Score', value: data.health + '%' }
         ]);
 
-        // ── 🔥 Toggle 开关 ──
+        // ── Toggle 开关 ──
         html += '<div style="margin-top:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:6px 10px;background:rgba(255,255,255,0.02);border-radius:6px;">';
         html += '<span style="font-size:11px;color:#94a3b8;">Validators:</span>';
         html += '<span style="font-size:11px;color:' + (enabledCount > 0 ? '#22c55e' : '#64748b') + ';">' + enabledCount + '/' + validatorsList.length + ' active</span>';
-    
-        // ── Toggle 按钮 ──
-        var toggleLabel = allEnabled ? '⏸ Disable All' : (anyEnabled ? '▶ Enable All' : '▶ Enable All');
+
+        var toggleLabel = allEnabled ? '⏸ Disable All' : '▶ Enable All';
         var toggleColor = allEnabled ? '#f59e0b' : '#22c55e';
         var toggleBg = allEnabled ? 'rgba(245,158,11,0.1)' : 'rgba(34,197,94,0.1)';
         var toggleBorder = allEnabled ? 'rgba(245,158,11,0.2)' : 'rgba(34,197,94,0.2)';
-    
+
         html += '<button onclick="window.LawAIApp.UnifiedGovernanceDashboard._toggleAllValidators()" ';
         html += 'style="padding:4px 14px;background:' + toggleBg + ';border:1px solid ' + toggleBorder + ';border-radius:6px;color:' + toggleColor + ';font-size:11px;cursor:pointer;transition:all 0.2s;">';
         html += toggleLabel + '</button>';
-    
-        // ── 状态指示灯 ──
+
         var dotColor = anyEnabled ? '#22c55e' : '#64748b';
         html += '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + dotColor + ';margin-left:4px;"></span>';
         html += '</div>';
 
-        if (data.validators && data.validators.length > 0) {
+        if (validatorsList.length > 0) {
             html += '<div style="margin-top:10px;text-align:center;">';
             html += '<button onclick="window.LawAIApp.UnifiedGovernanceDashboard._showValidationsPopup()" ';
             html += 'style="padding:8px 20px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);border-radius:8px;color:#8b5cf6;font-size:12px;cursor:pointer;">';
-            html += '✅ View All Validators (' + data.validators.length + ')</button>';
+            html += '✅ View All Validators (' + validatorsList.length + ')</button>';
             html += '</div>';
         }
 
@@ -714,19 +712,20 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
 
             console.log('✅ ' + changed + ' validators ' + (newState ? 'enabled' : 'disabled'));
 
-            // ── 🔥 强制刷新 UI ──
+            // ── 🔥 强制刷新 ──
             var dashboard = window.LawAIApp.UnifiedGovernanceDashboard;
             if (dashboard && dashboard._container) {
-                // 方案1: 直接重新渲染整个 Dashboard 内容
-                if (typeof dashboard._renderContent === 'function') {
-                    dashboard._renderContent();
-                } else {
-                    // 方案2: 重新渲染当前 Tab 的内容
-                    var content = dashboard._container.querySelector('#gov-content');
-                    if (content) {
-                        var newHtml = dashboard._renderValidations();
-                        content.innerHTML = newHtml;
-                    }
+                // 1. 先清除缓存数据
+                if (dashboard._validationCache) {
+                    dashboard._validationCache = null;
+                }
+                // 2. 重新获取数据
+                var data = dashboard._getValidationData();
+                // 3. 重新渲染
+                var content = dashboard._container.querySelector('#gov-content');
+                if (content) {
+                    var newHtml = dashboard._renderValidations();
+                    content.innerHTML = newHtml;
                 }
             }
         } catch(e) {
@@ -1179,27 +1178,31 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
     _getValidationData: function() {
         try {
             var v = window.LawAIApp.Validation;
-            if (!v || !v.getHealth) {
+            if (!v) {
                 return { validators: 0, total: 0, health: 0, status: 'unknown', validatorsList: [] };
             }
-            var h = v.getHealth ? v.getHealth() : {};
-            
+
+            // ── 获取 Validator 列表 ──
             var validatorList = [];
             if (v.getAll) {
                 validatorList = v.getAll() || [];
             } else if (v.getAllValidators) {
                 validatorList = v.getAllValidators() || [];
             }
-            
+
+            // ── 获取健康状态 ──
+            var h = v.getHealth ? v.getHealth() : {};
+
             return {
-                validators: h.validators || 0,
+                validators: validatorList.length,
                 total: h.totalValidations || 0,
                 health: h.healthScore || 0,
                 status: h.status || 'unknown',
-                validators: validatorList
+                validatorsList: validatorList
             };
         } catch(e) {
-            return { validators: 0, total: 0, health: 0, status: 'unknown', validators: [] };
+            console.warn('[UnifiedGovernance] _getValidationData error:', e);
+            return { validators: 0, total: 0, health: 0, status: 'unknown', validatorsList: [] };
         }
     },
 
