@@ -685,13 +685,14 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
 
     _toggleAllValidators: function() {
         try {
+            // ── 1. 获取 Validation 模块 ──
             var validation = window.LawAIApp.Validation;
             if (!validation) {
                 alert('⚠️ Validation system not available');
                 return;
             }
 
-            // ── 获取 Validator 列表 ──
+            // ── 2. 获取所有 Validators ──
             var validators = [];
             if (typeof validation.getAll === 'function') {
                 validators = validation.getAll() || [];
@@ -704,14 +705,14 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
                 return;
             }
 
-            // ── 计算当前状态 ──
+            // ── 3. 计算当前启用数量 ──
             var enabledCount = 0;
             for (var i = 0; i < validators.length; i++) {
                 if (validators[i].enabled !== false) enabledCount++;
             }
             var allEnabled = enabledCount === validators.length;
 
-            // ── Toggle ──
+            // ── 4. Toggle 状态 ──
             var newState = !allEnabled;
             var changed = 0;
             for (var j = 0; j < validators.length; j++) {
@@ -723,16 +724,66 @@ window.LawAIApp.UnifiedGovernanceDashboard = {
 
             console.log('✅ ' + changed + ' validators ' + (newState ? 'enabled' : 'disabled'));
 
-            // ── 🔥 强制刷新 UI ──
+            // ── 5. 🔥 直接更新 UI ──
             var dashboard = window.LawAIApp.UnifiedGovernanceDashboard;
-            if (dashboard && dashboard._container) {
+            if (dashboard) {
+                // 重新获取数据
+                var data = dashboard._getValidationData();
+                var html = '';
+
+                // ── 重新计算状态 ──
+                var list = data.validatorsList || [];
+                var activeCount = 0;
+                for (var k = 0; k < list.length; k++) {
+                    if (list[k].enabled !== false) activeCount++;
+                }
+                var allActive = activeCount === list.length && list.length > 0;
+                var anyActive = activeCount > 0;
+
+                // ── 重新生成 HTML ──
+                html += '<div class="gov-section">';
+                html += '<h3 class="gov-section-title">✅ Validation System</h3>';
+                html += dashboard._renderStatusBadge(data.status);
+                html += dashboard._renderDetailGrid([
+                    { label: 'Total Validators', value: data.validators },
+                    { label: 'Validations Run', value: data.total },
+                    { label: 'Health Score', value: data.health + '%' }
+                ]);
+
+                html += '<div style="margin-top:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:6px 10px;background:rgba(255,255,255,0.02);border-radius:6px;">';
+                html += '<span style="font-size:11px;color:#94a3b8;">Validators:</span>';
+                html += '<span style="font-size:11px;color:' + (activeCount > 0 ? '#22c55e' : '#64748b') + ';">' + activeCount + '/' + list.length + ' active</span>';
+
+                var toggleLabel = allActive ? '⏸ Disable All' : '▶ Enable All';
+                var toggleColor = allActive ? '#f59e0b' : '#22c55e';
+                var toggleBg = allActive ? 'rgba(245,158,11,0.1)' : 'rgba(34,197,94,0.1)';
+                var toggleBorder = allActive ? 'rgba(245,158,11,0.2)' : 'rgba(34,197,94,0.2)';
+
+                html += '<button onclick="window.LawAIApp.UnifiedGovernanceDashboard._toggleAllValidators()" ';
+                html += 'style="padding:4px 14px;background:' + toggleBg + ';border:1px solid ' + toggleBorder + ';border-radius:6px;color:' + toggleColor + ';font-size:11px;cursor:pointer;transition:all 0.2s;">';
+                html += toggleLabel + '</button>';
+
+                var dotColor = anyActive ? '#22c55e' : '#64748b';
+                html += '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + dotColor + ';margin-left:4px;"></span>';
+                html += '</div>';
+
+                if (list.length > 0) {
+                    html += '<div style="margin-top:10px;text-align:center;">';
+                    html += '<button onclick="window.LawAIApp.UnifiedGovernanceDashboard._showValidationsPopup()" ';
+                    html += 'style="padding:8px 20px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);border-radius:8px;color:#8b5cf6;font-size:12px;cursor:pointer;">';
+                    html += '✅ View All Validators (' + list.length + ')</button>';
+                    html += '</div>';
+                }
+
+                html += '</div>';
+
+                // ── 6. 替换内容 ──
                 var content = dashboard._container.querySelector('#gov-content');
                 if (content) {
-                    // 重新获取数据并渲染
-                    var newHtml = dashboard._renderValidations();
-                    content.innerHTML = newHtml;
+                    content.innerHTML = html;
                 }
             }
+
         } catch(e) {
             console.error('[UnifiedGovernance] _toggleAllValidators error:', e);
             alert('❌ Error toggling validators: ' + e.message);
