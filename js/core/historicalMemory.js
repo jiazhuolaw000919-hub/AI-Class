@@ -651,7 +651,7 @@
                 patterns: patterns,
                 config: this._config
             };
-        },
+        }
 
         // ============================================================
         // Listeners
