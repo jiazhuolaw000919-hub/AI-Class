@@ -207,8 +207,8 @@ LawAIApp.Debug.DevPanel = {
         }
     },
 
-        // ============================================================
-    // EXPLORER METHODS
+    // ============================================================
+    // EXPLORER METHODS — 修复版
     // ============================================================
 
     /**
@@ -231,7 +231,7 @@ LawAIApp.Debug.DevPanel = {
     },
 
     /**
-     * 构建 Explorer 内容
+     * 构建 Explorer 内容 — 使用模板字符串修复语法错误
      * @private
      */
     _buildExplorerContent: function(tree, stats) {
@@ -247,7 +247,7 @@ LawAIApp.Debug.DevPanel = {
         // Stats
         if (stats) {
             html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">';
-            html += '<div style="padding:8px;background:rgba(255,255,255,0.03);border-radius:6px;text-align:center;"><div style="font-size:20px;font-weight:700;color:#4a9eff;">' + stats.total + '</div><div style="font-size:9px;color:#475569;">Components</div></div>';
+            html += '<div style="padding:8px;background:rgba(255,255,255,0.03);border-radius:6px;text-align:center;"><div style="font-size:20px;font-weight:700;color:#4a9eff;">' + (stats.total || 0) + '</div><div style="font-size:9px;color:#475569;">Components</div></div>';
             html += '<div style="padding:8px;background:rgba(255,255,255,0.03);border-radius:6px;text-align:center;"><div style="font-size:20px;font-weight:700;color:#22c55e;">' + (stats.byStatus?.active || 0) + '</div><div style="font-size:9px;color:#475569;">Active</div></div>';
             html += '<div style="padding:8px;background:rgba(255,255,255,0.03);border-radius:6px;text-align:center;"><div style="font-size:20px;font-weight:700;color:#8b5cf6;">' + Object.keys(stats.byType || {}).length + '</div><div style="font-size:9px;color:#475569;">Types</div></div>';
             html += '</div>';
@@ -262,7 +262,7 @@ LawAIApp.Debug.DevPanel = {
         }
 
         // Type summary
-        if (stats) {
+        if (stats && stats.byType) {
             html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;padding:6px;background:rgba(255,255,255,0.02);border-radius:6px;font-size:8px;color:#475569;">';
             for (var type in stats.byType) {
                 if (stats.byType.hasOwnProperty(type)) {
