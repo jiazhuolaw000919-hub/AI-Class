@@ -130,14 +130,14 @@ var STAGES = {
         // ═══════════════════════════════════════ 🆕 PART 50
         // Part 50: Autonomous Runtime Layer
         // ═══════════════════════════════════════
-        "core/autonomousCore.js",
-        "core/autonomousLifecycle.js",
-        "core/autonomousDecisionEngine.js",
-        "core/autonomousRecommendationEngine.js",
-        "core/autonomousApprovalBridge.js",
-        "core/autonomousActionPlanner.js",
-        "core/autonomousDashboard.js",
-        "core/autonomousSimulation.js",
+        "autonomous/autonomousCore.js",
+        "autonomous/autonomousLifecycle.js",
+        "autonomous/autonomousDecisionEngine.js",
+        "autonomous/autonomousRecommendationEngine.js",
+        "autonomous/autonomousApprovalBridge.js",
+        "autonomous/autonomousActionPlanner.js",
+        "autonomous/autonomousDashboard.js",
+        "autonomous/autonomousSimulation.js",
         
         // ═══════════════════════════════════════
         // Part 49.8: DevPanel Core + Panels
