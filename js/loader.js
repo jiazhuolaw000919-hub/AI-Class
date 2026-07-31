@@ -126,6 +126,18 @@ var STAGES = {
         "core/runtimeSafetyCompliance.js",
         "core/aiGovernanceIntegration.js",
         "core/unifiedGovernanceDashboard.js",
+
+        // ═══════════════════════════════════════ 🆕 PART 50
+        // Part 50: Autonomous Runtime Layer
+        // ═══════════════════════════════════════
+        "core/autonomousCore.js",
+        "core/autonomousLifecycle.js",
+        "core/autonomousDecisionEngine.js",
+        "core/autonomousRecommendationEngine.js",
+        "core/autonomousApprovalBridge.js",
+        "core/autonomousActionPlanner.js",
+        "core/autonomousDashboard.js",
+        "core/autonomousSimulation.js",
         
         // ═══════════════════════════════════════
         // Part 49.8: DevPanel Core + Panels
