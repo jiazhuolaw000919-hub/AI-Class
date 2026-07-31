@@ -156,7 +156,7 @@
 
             console.log(`[DecisionIntelligence] Analysis complete: ${decision.id}`);
             return decision;
-        },
+        }
 
         // ============================================================
         // Pattern Recognition (Chapter 3)
