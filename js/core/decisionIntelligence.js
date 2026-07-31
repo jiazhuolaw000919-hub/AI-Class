@@ -644,19 +644,19 @@
 
         getContexts(limit = 10) {
             return this._contexts.slice(-limit).map(c => c.toJSON());
-        },
+        }
 
         getDecisions(limit = 10) {
             return this._decisions.slice(-limit);
-        },
+        }
 
         getInsights(limit = 10) {
             return this._insights.slice(-limit);
-        },
+        }
 
         getDecision(id) {
             return this._decisions.find(d => d.id === id) || null;
-        },
+        }
 
         getStats() {
             const total = this._decisions.length;
@@ -710,7 +710,7 @@
             }
             this._listeners[event].push(callback);
             return this;
-        },
+        }
 
         _emit(event, data) {
             if (this._listeners[event]) {
@@ -736,37 +736,37 @@
             if (window.LawAIApp && window.LawAIApp.Autonomous) {
                 console.log('[DecisionIntelligence] Connected to Autonomous Layer');
             }
-        },
+        }
 
         _connectToKnowledgeGraph() {
             if (window.LawAIApp && window.LawAIApp.KnowledgeGraph) {
                 console.log('[DecisionIntelligence] Connected to Knowledge Graph');
             }
-        },
+        }
 
         _connectToCognitiveEngine() {
             if (window.LawAIApp && window.LawAIApp.CognitiveEngine) {
                 console.log('[DecisionIntelligence] Connected to Cognitive Engine');
             }
-        },
+        }
 
         _connectToPerformanceFramework() {
             if (window.LawAIApp && window.LawAIApp.Performance) {
                 console.log('[DecisionIntelligence] Connected to Performance Framework');
             }
-        },
+        }
 
         _connectToRuntimeHistory() {
             if (window.LawAIApp && window.LawAIApp.Runtime) {
                 console.log('[DecisionIntelligence] Connected to Runtime History');
             }
-        },
+        }
 
         _connectToGovernance() {
             if (window.LawAIApp && window.LawAIApp.Governance) {
                 console.log('[DecisionIntelligence] Connected to Governance');
             }
-        },
+        }
 
         _registerWithExplorer() {
             if (window.LawAIApp && window.LawAIApp.Runtime && window.LawAIApp.Runtime.Explorer) {
