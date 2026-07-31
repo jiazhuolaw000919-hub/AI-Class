@@ -541,7 +541,7 @@
             }
 
             return relevant;
-        },
+        }
 
         _analyzePerformance(performance) {
             const issues = [];
@@ -594,7 +594,7 @@
                 // ignore
             }
             return null;
-        },
+        }
 
         _getHistory() {
             // Return recent decisions as history
@@ -603,7 +603,7 @@
                 outcome: d.status === 'ANALYZED' ? 'success' : 'unknown',
                 timestamp: d.timestamp
             }));
-        },
+        }
 
         _getKnowledge() {
             try {
@@ -614,7 +614,7 @@
                 // ignore
             }
             return null;
-        },
+        }
 
         _getPerformance() {
             try {
@@ -625,7 +625,7 @@
                 // ignore
             }
             return null;
-        },
+        }
 
         _getGovernance() {
             try {
