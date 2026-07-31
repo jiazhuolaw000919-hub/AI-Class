@@ -358,7 +358,7 @@
             if (context.performance) score += 15;
             if (context.history && context.history.length > 0) score += 15;
             return Math.min(score, 100);
-        },
+        }
 
         _evaluateConsistency(context) {
             // Check consistency between signal and state
@@ -377,7 +377,7 @@
             }
 
             return Math.min(score, 100);
-        },
+        }
 
         _evaluateHistoricalAccuracy(context) {
             const history = context.history || [];
