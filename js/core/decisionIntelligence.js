@@ -348,7 +348,7 @@
                               finalScore >= 60 ? 'Medium confidence - review recommended' :
                               'Low confidence - manual review required'
             };
-        },
+        }
 
         _evaluateCompleteness(context) {
             let score = 0;
