@@ -630,7 +630,7 @@
                 patterns: patternStats,
                 contexts: this._contexts.length
             };
-        },
+        }
 
         // ============================================================
         // Explorer Support (Chapter 9)
