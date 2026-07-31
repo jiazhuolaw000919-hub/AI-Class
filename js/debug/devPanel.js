@@ -69,6 +69,11 @@ LawAIApp.Debug.DevPanel = {
         if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.ExplorerPanel) {
             this.registerPanel('explorer', LawAIApp.Debug.Panels.ExplorerPanel, 'explorer-panel-placeholder', 325);
         }
+        
+        // ── 🆕 Part 50.7: AutonomousPanel ──
+        if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.AutonomousPanel) {
+            this.registerPanel('autonomous', LawAIApp.Debug.Panels.AutonomousPanel, 'autonomous-panel-placeholder', 350);
+        }
     },
 
     // ============================================================
@@ -408,6 +413,7 @@ LawAIApp.Debug.DevPanel = {
             'knowledge': '🧠 Knowledge Graph',
             'cognitive': '🧠 Cognitive Engine',
             'governance': '🏛️ Governance Layer'
+            'autonomous': '🤖 Autonomous Runtime'
         };
     
     var label = labels[id] || id;
@@ -573,6 +579,8 @@ LawAIApp.Debug.DevPanel = {
             <div id="cognitive-panel-placeholder"></div>
             <div id="governance-panel-placeholder"></div>
             <div id="explorer-panel-placeholder"></div>
+            <div id="explorer-panel-placeholder"></div>
+            <div id="autonomous-panel-placeholder"></div>
 
         <!-- ========================================================== -->
         <!-- LEGACY PANEL PLACEHOLDERS -->
