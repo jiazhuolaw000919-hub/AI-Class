@@ -172,7 +172,17 @@ var STAGES = {
         "runtime/runtimeRegistry.js",
         "runtime/runtimeInspector.js",
         "runtime/runtimeSearch.js",
-        "runtime/runtimeSnapshot.js"
+        "runtime/runtimeSnapshot.js",
+
+        // ═══════════════════════════════════════
+        // Part 51: Adaptive Decision Loop 🆕
+        // ═══════════════════════════════════════
+        "core/decisionIntelligence.js",
+        "core/historicalMemory.js",
+        "core/reasoningEngine.js",
+        "core/decisionConfidence.js",
+        "core/decisionExplanation.js",
+        "core/adaptiveDecisionLoop.js"
     ],
     critical: [
         "storageEngine.js",
