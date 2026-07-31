@@ -214,7 +214,7 @@
             }
 
             return patterns;
-        },
+        }
 
         // ============================================================
         // Reasoning Engine (Chapter 2-3)
@@ -305,7 +305,7 @@
             reasoning.overallConfidence = Math.round(totalConfidence * 100);
 
             return reasoning;
-        },
+        }
 
         // ============================================================
         // Confidence Evaluation (Chapter 3)
@@ -385,7 +385,7 @@
 
             const correct = history.filter(h => h.outcome === 'success').length;
             return Math.round((correct / history.length) * 100);
-        },
+        }
 
         // ============================================================
         // Explanation Generation (Chapter 3)
@@ -425,7 +425,7 @@
                 confidenceLevel: confidence.level,
                 recommendationDirection: direction
             };
-        },
+        }
 
         // ============================================================
         // Recommendations (Chapter 3)
@@ -476,7 +476,7 @@
 
             // Limit recommendations
             return recommendations.slice(0, this._config.maxRecommendations);
-        },
+        }
 
         // ============================================================
         // Insights Extraction
@@ -520,7 +520,7 @@
             }
 
             return insights;
-        },
+        }
 
         // ============================================================
         // Knowledge Integration (Chapter 2)
@@ -555,7 +555,7 @@
                 issues.push(`Slow response: ${performance.responseTime}ms`);
             }
             return issues;
-        },
+        }
 
         // ============================================================
         // Context Building (Chapter 2)
@@ -579,7 +579,7 @@
                     source: 'DecisionIntelligence'
                 }
             });
-        },
+        }
 
         // ============================================================
         // Data Accessors
@@ -636,7 +636,7 @@
                 // ignore
             }
             return null;
-        },
+        }
 
         // ============================================================
         // Query Methods
@@ -680,7 +680,7 @@
                 insights: this._insights.length,
                 contexts: this._contexts.length
             };
-        },
+        }
 
         // ============================================================
         // Explorer Support
@@ -698,7 +698,7 @@
                 insights: this._insights.slice(-5),
                 config: this._config
             };
-        },
+        }
 
         // ============================================================
         // Listeners
@@ -726,7 +726,7 @@
             if (window.LawAIApp && window.LawAIApp.Events) {
                 window.LawAIApp.Events.emit(`decisionintelligence.${event}`, data);
             }
-        },
+        }
 
         // ============================================================
         // Integrations (Chapter 4)
