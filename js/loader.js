@@ -182,7 +182,18 @@ var STAGES = {
         "core/reasoningEngine.js",
         "core/decisionConfidence.js",
         "core/decisionExplanation.js",
-        "core/adaptiveDecisionLoop.js"
+        "core/adaptiveDecisionLoop.js",
+
+        // ═══════════════════════════════════════
+        // Part 52.6: Optimization Feedback 🆕
+        // ═══════════════════════════════════════
+        "core/runtimeOptimization.js",
+        "core/optimizationIntelligence.js",
+        "core/performanceAnalyzer.js",
+        "core/resourceOptimization.js",
+        "core/architectureAdvisor.js",
+        "core/optimizationRecommendation.js",
+        "core/optimizationFeedback.js"
     ],
     critical: [
         "storageEngine.js",
