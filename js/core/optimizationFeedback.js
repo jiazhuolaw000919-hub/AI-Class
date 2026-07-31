@@ -36,7 +36,7 @@
     // ============================================================
     // Feedback Model (Chapter 4)
     // ============================================================
-    class OptimizationFeedback {
+    class FeedbackRecord {
         constructor(config) {
             this.feedbackId = config.feedbackId || this._generateId();
             this.timestamp = Date.now();
@@ -160,7 +160,7 @@
             const learningSignal = this._determineLearningSignal(result, difference);
 
             // Create feedback
-            const feedback = new OptimizationFeedback({
+            const feedback = new FeedbackRecord({
                 recommendationId: recommendationId,
                 expectedImpact: expectedImpact,
                 actualImpact: actualImpact,
