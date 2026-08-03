@@ -204,7 +204,18 @@ var STAGES = {
         "core/riskForecasting.js",
         "core/failurePrediction.js",
         "core/predictiveRecommendation.js",
-        "core/predictiveFeedback.js"
+        "core/predictiveFeedback.js",
+
+        // ═══════════════════════════════════════
+        // Part 54.6: Evolution Feedback 🆕
+        // ═══════════════════════════════════════
+        "core/runtimeEvolution.js",
+        "core/evolutionIntelligence.js",
+        "core/runtimeAdaptation.js",
+        "core/capabilityGrowth.js",
+        "core/moduleEvolution.js",
+        "core/evolutionGovernance.js",
+        "core/evolutionFeedback.js"
     ],
     critical: [
         "storageEngine.js",
