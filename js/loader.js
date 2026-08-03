@@ -193,7 +193,18 @@ var STAGES = {
         "core/resourceOptimization.js",
         "core/architectureAdvisor.js",
         "core/optimizationRecommendation.js",
-        "core/optimizationFeedback.js"
+        "core/optimizationFeedback.js",
+
+        // ═══════════════════════════════════════
+        // Part 53.6: Predictive Feedback 🆕
+        // ═══════════════════════════════════════
+        "core/predictiveRuntime.js",
+        "core/predictiveIntelligence.js",
+        "core/trendPrediction.js",
+        "core/riskForecasting.js",
+        "core/failurePrediction.js",
+        "core/predictiveRecommendation.js",
+        "core/predictiveFeedback.js"
     ],
     critical: [
         "storageEngine.js",
