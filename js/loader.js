@@ -163,6 +163,7 @@ var STAGES = {
         "debug/panels/predictivePanel.js",
         "debug/panels/evolutionPanel.js",
         "debug/panels/orchestrationPanel.js",
+        "debug/panels/productionPanel.js",
         
         // ── Components ──
         "components/panelCard.js",
@@ -229,7 +230,17 @@ var STAGES = {
         "core/multiAgentWorkflow.js",
         "core/intelligencePriority.js",
         "core/orchestrationGovernance.js",
-        "core/orchestrationFeedback.js"
+        "core/orchestrationFeedback.js",
+
+        // Part 56.6: Runtime OS Completion 🆕
+        // ═══════════════════════════════════════
+        "core/runtimeOS.js",
+        "core/runtimeOSIntegration.js",
+        "core/unifiedRuntimeArchitecture.js",
+        "core/intelligenceFederation.js",
+        "core/finalGovernanceValidation.js",
+        "core/productionReadiness.js",
+        "core/runtimeOSCompletion.js"
     ],
     critical: [
         "storageEngine.js",
