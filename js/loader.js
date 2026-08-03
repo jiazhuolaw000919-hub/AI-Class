@@ -160,6 +160,8 @@ var STAGES = {
         "debug/details/panelDetailManager.js",
         "debug/details/governanceDashboardLoader.js",
         "debug/panels/autonomousPanel.js",
+        "debug/panels/predictivePanel.js",
+        "debug/panels/evolutionPanel.js",
         
         // ── Components ──
         "components/panelCard.js",
