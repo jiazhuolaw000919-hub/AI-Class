@@ -37,7 +37,7 @@
     // ============================================================
     // Feedback Model (Chapter 5)
     // ============================================================
-    class OrchestrationFeedback {
+    class OrchestrationFeedbackRecord {
         constructor(config) {
             this.feedbackId = config.feedbackId || this._generateId();
             this.timestamp = Date.now();
@@ -178,7 +178,7 @@
             const issues = this._identifyIssues(performance, expectedResult, actualResult);
 
             // Create feedback
-            const feedback = new OrchestrationFeedback({
+            const feedback = new OrchestrationFeedbackRecord({
                 workflowId: workflowId,
                 agents: agents || [],
                 expectedResult: expectedResult || null,
