@@ -187,7 +187,7 @@
         // Recommendation View (FIXED)
         // ============================================================
 
-        _getRecommendationData: function() {
+        _getRecommendationData() {
             var recommendations = [];
 
             try {
@@ -223,14 +223,12 @@
                         // ignore
                     }
                 }
-
+    
                 // Method 3: getRecommendations with filter (fallback)
                 if (typeof engine.getRecommendations === 'function') {
                     try {
-                        // Try to get pending recommendations
                         var filtered = engine.getRecommendations({ status: 'PENDING' });
                         if (filtered) {
-                            // Merge without duplicates
                             filtered.forEach(function(item) {
                                 var exists = recommendations.some(function(r) {
                                     return r.recommendationId === item.recommendationId;
@@ -263,7 +261,6 @@
 
             return recommendations;
         },
-
         // ============================================================
         // Approval View
         // ============================================================
