@@ -84,6 +84,11 @@ LawAIApp.Debug.DevPanel = {
             if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.EvolutionPanel) {
                 this.registerPanel('evolution', LawAIApp.Debug.Panels.EvolutionPanel, 'evolution-panel-placeholder', 400);
         }
+
+        // ── Part 55: Orchestration Panel ──
+            if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.OrchestrationPanel) {
+                this.registerPanel('orchestration', LawAIApp.Debug.Panels.OrchestrationPanel, 'orchestration-panel-placeholder', 425);
+        }
     },
 
     // ============================================================
@@ -244,7 +249,8 @@ LawAIApp.Debug.DevPanel = {
             'explorer': '🔍 Runtime Explorer',
             'autonomous': '🤖 Autonomous Runtime',
             'predictive': '🔮 Predictive Runtime',
-            'evolution': '🧬 Runtime Evolution'
+            'evolution': '🧬 Runtime Evolution',
+            'orchestration': '🎼 AI Orchestration'
         };
         
         var label = labels[id] || id;
@@ -411,8 +417,10 @@ LawAIApp.Debug.DevPanel = {
             <div id="autonomous-panel-placeholder"></div>
             <div id="autonomous-panel-placeholder"></div>
             <div id="predictive-panel-placeholder"></div>
-           <div id="predictive-panel-placeholder"></div>
+            <div id="predictive-panel-placeholder"></div>
             <div id="evolution-panel-placeholder"></div>
+            <div id="evolution-panel-placeholder"></div>
+            <div id="orchestration-panel-placeholder"></div>
 
             <!-- ========================================================== -->
             <!-- LEGACY PANEL PLACEHOLDERS -->
