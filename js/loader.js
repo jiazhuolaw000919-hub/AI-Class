@@ -162,6 +162,7 @@ var STAGES = {
         "debug/panels/autonomousPanel.js",
         "debug/panels/predictivePanel.js",
         "debug/panels/evolutionPanel.js",
+        "debug/panels/orchestrationPanel.js",
         
         // ── Components ──
         "components/panelCard.js",
@@ -217,7 +218,18 @@ var STAGES = {
         "core/capabilityGrowth.js",
         "core/moduleEvolution.js",
         "core/evolutionGovernance.js",
-        "core/evolutionFeedback.js"
+        "core/evolutionFeedback.js",
+
+        // ═══════════════════════════════════════
+        // Part 55: AI Orchestration Layer 🆕
+        // ═══════════════════════════════════════
+        "core/aiOrchestration.js",
+        "core/orchestrationIntelligence.js",
+        "core/intelligenceCoordination.js",
+        "core/multiAgentWorkflow.js",
+        "core/intelligencePriority.js",
+        "core/orchestrationGovernance.js",
+        "core/orchestrationFeedback.js"
     ],
     critical: [
         "storageEngine.js",
