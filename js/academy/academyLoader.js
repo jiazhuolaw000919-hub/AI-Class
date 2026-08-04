@@ -179,54 +179,44 @@
       console.log('[AcademyLoader] ✅ Manifest loaded (v' + this._manifest.version + ')');
     }
 
-    async _loadModulesFromManifest() {
-      console.log('[AcademyLoader] 📦 Loading modules from Manifest...');
-
-      const modules = this._manifest.modules || [];
-      
-      if (modules.length === 0) {
-        console.warn('[AcademyLoader] No modules defined in manifest');
-        this._state.modulesLoaded = true;
-        return;
-      }
-
-      for (let i = 0; i < modules.length; i++) {
-        const module = modules[i];
-        try {
-          const loaded = await this._loadSingleModule(module);
-          if (loaded) {
-            this._loadedModules.push(module.id);
-            console.log('[AcademyLoader] ✅ [' + (i + 1) + '/' + modules.length + '] ' + module.id + ' loaded');
-          } else {
-            this._failedModules.push(module.id);
-            console.warn('[AcademyLoader] ⚠️ [' + (i + 1) + '/' + modules.length + '] ' + module.id + ' failed');
-          }
-        } catch (error) {
-          this._failedModules.push(module.id);
-          console.warn('[AcademyLoader] ⚠️ [' + (i + 1) + '/' + modules.length + '] ' + module.id + ' error:', error);
-        }
-      }
-
-      this._state.modulesLoaded = true;
-      console.log('[AcademyLoader] ✅ Module loading complete:', this._loadedModules.length + ' loaded, ' + this._failedModules.length + ' failed');
-      this._broadcast('ACADEMY_MODULES_READY', {
-        loaded: this._loadedModules,
-        failed: this._failedModules
-      });
-    }
-
+        // ============================================================
+    // 🔥 独立方法 — Academy Module Loader
     // ============================================================
-    // 🔥 独立方法 — 不在任何方法内部
-    // ============================================================
-    _loadSingleModule: function(module) {
+    async _loadSingleModule(module) {
       return new Promise((resolve) => {
         const check = this._checkModuleExists(module.id);
+
         if (check.exists) {
           console.log('[AcademyLoader] ⏭️ Module already exists:', module.id);
           resolve(true);
           return;
         }
 
+        const script = document.createElement('script');
+        script.src = module.path;
+        script.async = false;
+
+        let resolved = false;
+
+        const finish = (success) => {
+          if (resolved) return;
+          resolved = true;
+          resolve(success);
+        };
+
+        script.onload = () => {
+          console.log('[AcademyLoader] ✅ Loaded:', module.id);
+          finish(true);
+        };
+
+        script.onerror = () => {
+          console.warn('[AcademyLoader] ❌ Failed loading:', module.id, module.path);
+          finish(false);
+        };
+
+        document.head.appendChild(script);
+      });
+    }
         const script = document.createElement('script');
         script.src = module.path;
         script.async = false;
