@@ -95,7 +95,10 @@
             ];
         }
 
-        initialize: function() {
+        /**
+         * 初始化 Program Registry
+         */
+        initialize() {
             if (this.initialized) {
                 console.log('[ProgramRegistry] Already initialized');
                 return this;
@@ -103,9 +106,9 @@
 
             console.log('[ProgramRegistry] 📚 Initializing...');
 
-            this.DEFAULT_PROGRAMS.forEach(function(program) {
+            this.DEFAULT_PROGRAMS.forEach((program) => {
                 this.register(program);
-            }.bind(this));
+            });
 
             this.initialized = true;
 
@@ -116,9 +119,12 @@
 
             console.log('[ProgramRegistry] ✅ Initialized with', this._programs.size, 'programs');
             return this;
-        },
+        }
 
-        register: function(programData) {
+        /**
+         * 注册 Program
+         */
+        register(programData) {
             if (!programData.id) {
                 console.warn('[ProgramRegistry] Program: id is required');
                 return null;
@@ -139,10 +145,10 @@
                 return programData.id;
             }
 
-            // 🔥 修复：更新 School 的 programs 数组
-            var schoolRegistry = window.LawAIApp?.SchoolRegistry;
+            // 🔥 修复：关联到 School 并更新 programs 数组
+            const schoolRegistry = window.LawAIApp?.SchoolRegistry;
             if (schoolRegistry) {
-                var school = schoolRegistry.getSchool(programData.schoolId);
+                const school = schoolRegistry.getSchool(programData.schoolId);
                 if (school) {
                     if (!school.programs) school.programs = [];
                     if (!school.programs.includes(programData.id)) {
@@ -154,7 +160,7 @@
                 }
             }
 
-            var program = {
+            const program = {
                 ...programData,
                 status: programData.status || 'active',
                 modules: programData.modules || [],
@@ -171,36 +177,47 @@
 
             console.log('[ProgramRegistry] ✅ Registered:', program.name);
             return program.id;
-        },
+        }
 
-        getProgram: function(id) {
+        /**
+         * 获取 Program
+         */
+        getProgram(id) {
             return this._programs.get(id) || null;
-        },
+        }
 
-        getAllPrograms: function() {
+        /**
+         * 获取所有 Programs
+         */
+        getAllPrograms() {
             return Array.from(this._programs.values());
-        },
+        }
 
-        getProgramsBySchool: function(schoolId) {
-            return this.getAllPrograms().filter(function(p) {
-                return p.schoolId === schoolId;
-            });
-        },
+        /**
+         * 按 School 获取 Programs
+         */
+        getProgramsBySchool(schoolId) {
+            return this.getAllPrograms().filter((p) => p.schoolId === schoolId);
+        }
 
-        getActivePrograms: function() {
-            return this.getAllPrograms().filter(function(p) {
-                return p.status === 'active';
-            });
-        },
+        /**
+         * 获取活跃 Programs
+         */
+        getActivePrograms() {
+            return this.getAllPrograms().filter((p) => p.status === 'active');
+        }
 
-        updateProgram: function(id, updates) {
-            var program = this._programs.get(id);
+        /**
+         * 更新 Program
+         */
+        updateProgram(id, updates) {
+            const program = this._programs.get(id);
             if (!program) {
                 console.warn('[ProgramRegistry] Program not found:', id);
                 return null;
             }
 
-            var updated = {
+            const updated = {
                 ...program,
                 ...updates,
                 updatedAt: new Date().toISOString()
@@ -208,27 +225,37 @@
 
             this._programs.set(id, updated);
             return updated;
-        },
+        }
 
-        getStats: function() {
-            var programs = this.getAllPrograms();
+        /**
+         * 获取统计
+         */
+        getStats() {
+            const programs = this.getAllPrograms();
             return {
                 totalPrograms: programs.length,
-                activePrograms: this.getActivePrograms().length
+                activePrograms: this.getActivePrograms().length,
+                bySchool: {}
             };
-        },
+        }
 
-        getStatus: function() {
+        /**
+         * 获取状态
+         */
+        getStatus() {
             return {
                 initialized: this.initialized,
                 version: this.version,
                 programCount: this._programs.size
             };
-        },
+        }
 
-        _emit: function(eventName, data) {
+        /**
+         * 私有事件发射
+         */
+        _emit(eventName, data) {
             try {
-                var event = new CustomEvent(eventName, { detail: data || {} });
+                const event = new CustomEvent(eventName, { detail: data || {} });
                 document.dispatchEvent(event);
                 window.dispatchEvent(event);
 
@@ -249,18 +276,20 @@
         window.LawAIApp = {};
     }
 
-    var programRegistry = new ProgramRegistry();
+    const programRegistry = new ProgramRegistry();
     window.LawAIApp.ProgramRegistry = programRegistry;
 
+    // 自动初始化 (等待 SchoolRegistry)
     function autoInit() {
-        var schoolReg = window.LawAIApp?.SchoolRegistry;
+        const schoolReg = window.LawAIApp?.SchoolRegistry;
         if (schoolReg && schoolReg.initialized) {
             programRegistry.initialize();
         } else {
-            document.addEventListener('SCHOOL_REGISTRY_READY', function() {
+            document.addEventListener('SCHOOL_REGISTRY_READY', () => {
                 programRegistry.initialize();
             });
-            setTimeout(function() {
+            // 后备
+            setTimeout(() => {
                 if (!programRegistry.initialized) {
                     programRegistry.initialize();
                 }
@@ -271,7 +300,7 @@
     if (document.readyState === 'complete') {
         setTimeout(autoInit, 200);
     } else {
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', () => {
             setTimeout(autoInit, 200);
         });
     }
