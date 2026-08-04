@@ -32,19 +32,19 @@
       // ==========================================================
       {
         id: 'schoolRegistry',
-        path: 'js/academy/schoolRegistry.js',
+        path: '/js/academy/schoolRegistry.js',
         description: 'School Registry',
         required: true
       },
       {
         id: 'programRegistry',
-        path: 'js/academy/programRegistry.js',
+        path: '/js/academy/programRegistry.js',
         description: 'Program Registry',
         required: true
       },
       {
         id: 'courseRegistry',
-        path: 'js/academy/courseRegistry.js',
+        path: '/js/academy/courseRegistry.js',
         description: 'Course Registry',
         required: true
       },
@@ -54,13 +54,13 @@
       // ==========================================================
       {
         id: 'curriculumRegistry',
-        path: 'js/academy/curriculumRegistry.js',
+        path: '/js/academy/curriculumRegistry.js',
         description: 'Curriculum Registry (Connector)',
         required: true
       },
       {
         id: 'curriculumSeed',
-        path: 'js/academy/curriculumSeed.js',
+        path: '/js/academy/curriculumSeed.js',
         description: 'Curriculum Seed Data',
         required: true
       },
