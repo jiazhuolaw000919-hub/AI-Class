@@ -1,5 +1,5 @@
-// plannerCalendar.js
-LawAIApp.PlannerCalendar = {
+// calendarPlanner.js
+LawAIApp.calendarPlanner = {
   // 获取未来 N 天的简要计划（基于复习和进度预测）
   getUpcomingSummary(days = 7) {
     const upcomingReviews = LawAIApp.MemoryScheduler ? LawAIApp.MemoryScheduler.getUpcomingReviews(days) : [];
