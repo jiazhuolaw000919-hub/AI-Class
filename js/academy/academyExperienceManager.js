@@ -1,5 +1,5 @@
 // js/academy/academyExperienceManager.js
-// Part 57.7 — Academy Navigation & View Refresh Fix
+// Part 57.8 — Program Explorer Experience Layer
 // Law AI Academy Developer Bible
 
 (function() {
@@ -11,7 +11,7 @@
     }
 
     var AcademyExperienceManager = {
-        version: '6.1.1',
+        version: '6.1.2',
         initialized: false,
         mounted: false,
         status: 'pending',
@@ -89,7 +89,6 @@
 
             var data = this._getRenderData();
 
-            // 使用 AcademyView 渲染
             if (window.LawAIApp?.AcademyView && typeof window.LawAIApp.AcademyView.render === 'function') {
                 window.LawAIApp.AcademyView.render(data);
             } else {
@@ -106,13 +105,9 @@
             return this;
         },
 
-        /**
-         * 🔥 Part 57.7: 导航到 School
-         */
         navigateToSchool: function(schoolId) {
             console.log('[AcademyExperienceManager] 📍 Navigating to school:', schoolId);
 
-            // 验证 School 存在
             var schoolRegistry = window.LawAIApp?.SchoolRegistry;
             if (!schoolRegistry) {
                 console.warn('[AcademyExperienceManager] SchoolRegistry not available');
@@ -125,7 +120,6 @@
                 return this;
             }
 
-            // 更新状态
             this._state.currentSchoolId = schoolId;
             this._state.currentProgramId = null;
             this._state.currentCourseId = null;
@@ -133,10 +127,7 @@
 
             console.log('[AcademyExperienceManager] ✅ State updated:', this._state);
 
-            // 刷新 UI
             this.render();
-
-            // 广播事件
             this._emit('ACADEMY_VIEW_CHANGED', {
                 viewMode: 'school',
                 currentSchoolId: schoolId
@@ -146,7 +137,7 @@
         },
 
         /**
-         * 🔥 Part 57.7: 导航到 Program
+         * 🔥 Part 57.8: 导航到 Program
          */
         navigateToProgram: function(programId) {
             console.log('[AcademyExperienceManager] 📍 Navigating to program:', programId);
@@ -164,25 +155,57 @@
                 return this;
             }
 
-            // 更新状态
+            // 更新状态 — 保留 currentSchoolId
             this._state.currentProgramId = programId;
             this._state.currentCourseId = null;
             this._state.viewMode = 'program';
+
+            // 如果 schoolId 丢失，从 program 中获取
+            if (!this._state.currentSchoolId && program.schoolId) {
+                this._state.currentSchoolId = program.schoolId;
+            }
 
             console.log('[AcademyExperienceManager] ✅ State updated:', this._state);
 
             this.render();
             this._emit('ACADEMY_VIEW_CHANGED', {
                 viewMode: 'program',
-                currentProgramId: programId
+                currentProgramId: programId,
+                currentSchoolId: this._state.currentSchoolId
             });
 
             return this;
         },
 
-        /**
-         * 🔥 Part 57.7: 返回 Dashboard
-         */
+        navigateToCourse: function(courseId) {
+            console.log('[AcademyExperienceManager] 📍 Navigating to course:', courseId);
+
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            if (!courseRegistry) {
+                console.warn('[AcademyExperienceManager] CourseRegistry not available');
+                return this;
+            }
+
+            var course = courseRegistry.getCourse(courseId);
+            if (!course) {
+                console.warn('[AcademyExperienceManager] Course not found:', courseId);
+                return this;
+            }
+
+            this._state.currentCourseId = courseId;
+            this._state.viewMode = 'course';
+
+            console.log('[AcademyExperienceManager] ✅ State updated:', this._state);
+
+            this.render();
+            this._emit('ACADEMY_VIEW_CHANGED', {
+                viewMode: 'course',
+                currentCourseId: courseId
+            });
+
+            return this;
+        },
+
         goHome: function() {
             console.log('[AcademyExperienceManager] 🏠 Going home...');
 
@@ -337,6 +360,10 @@
 
             if (viewMode === 'school') {
                 this._renderSchoolViewFallback(container, data.currentSchoolId);
+            } else if (viewMode === 'program') {
+                this._renderProgramViewFallback(container, data.currentProgramId);
+            } else if (viewMode === 'course') {
+                this._renderCourseViewFallback(container, data.currentCourseId);
             } else {
                 this._renderDashboardFallback(container, data);
             }
@@ -347,7 +374,6 @@
 
             var html = '';
 
-            // 返回栏
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <a href="/" style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); text-decoration: none; font-family: inherit;">
@@ -397,9 +423,6 @@
             container.innerHTML = html;
         },
 
-        /**
-         * 🔥 Part 57.7: School View Fallback
-         */
         _renderSchoolViewFallback: function(container, schoolId) {
             var schoolRegistry = window.LawAIApp?.SchoolRegistry;
             var programRegistry = window.LawAIApp?.ProgramRegistry;
@@ -422,7 +445,6 @@
 
             var html = '';
 
-            // 返回栏
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <button onclick="LawAIApp.AcademyExperienceManager?.goHome?.()" 
@@ -433,7 +455,6 @@
                 </div>
             `;
 
-            // School Header
             html += `
                 <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
@@ -445,7 +466,6 @@
                     </div>
             `;
 
-            // Programs
             if (programs && programs.length > 0) {
                 html += `<h2 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px 0;">📚 Programs (${programs.length})</h2>`;
                 html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">`;
@@ -485,6 +505,148 @@
             }
 
             html += `</div>`;
+            container.innerHTML = html;
+        },
+
+        /**
+         * 🔥 Part 57.8: Program View Fallback
+         */
+        _renderProgramViewFallback: function(container, programId) {
+            var programRegistry = window.LawAIApp?.ProgramRegistry;
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
+
+            var program = programRegistry ? programRegistry.getProgram(programId) : null;
+            var courses = courseRegistry ? courseRegistry.getCoursesByProgram(programId) : [];
+
+            if (!program) {
+                container.innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: #94a3b8;">
+                        <p>Program not found</p>
+                        <button onclick="LawAIApp.AcademyExperienceManager?.goHome?.()" 
+                                style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
+                            ← Back to Academy
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            var levelLabel = program.level || 'beginner';
+            var levelColor = levelLabel === 'beginner' ? '#10b981' : levelLabel === 'intermediate' ? '#f59e0b' : '#ef4444';
+            var levelEmoji = levelLabel === 'beginner' ? '🟢' : levelLabel === 'intermediate' ? '🟡' : '🔴';
+            var statusLabel = program.status || 'active';
+            var statusColor = statusLabel === 'active' ? '#10b981' : statusLabel === 'draft' ? '#f59e0b' : '#64748b';
+
+            var html = '';
+
+            // 返回栏 — Back to School
+            html += `
+                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+                    <button onclick="LawAIApp.AcademyExperienceManager?.navigateToSchool?.('${program.schoolId}')" 
+                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
+                        <span style="font-size:16px;">←</span> Back to School
+                    </button>
+                    <span style="color: #64748b; font-size: 13px; margin-left: auto;">🏛️ Academy</span>
+                </div>
+            `;
+
+            // Program Header
+            html += `
+                <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
+                        <span style="font-size: 48px;">📚</span>
+                        <div>
+                            <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 4px 0;">${program.name}</h1>
+                            <p style="color: #94a3b8; font-size: 14px; margin: 0;">${program.description || ''}</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
+                        <span style="color: ${levelColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${levelEmoji} ${levelLabel.charAt(0).toUpperCase() + levelLabel.slice(1)}</span>
+                        <span style="color: ${statusColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)}</span>
+                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${program.modules?.length || 0} modules</span>
+                    </div>
+            `;
+
+            // Courses
+            if (courses && courses.length > 0) {
+                html += `<h2 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px 0;">📖 Courses (${courses.length})</h2>`;
+                html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">`;
+
+                courses.forEach(function(course) {
+                    var courseStatus = course.status || 'active';
+                    var courseStatusColor = courseStatus === 'active' ? '#10b981' : courseStatus === 'draft' ? '#f59e0b' : '#64748b';
+
+                    html += `
+                        <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
+                             onclick="LawAIApp.AcademyExperienceManager?.navigateToCourse?.('${course.id}')"
+                             onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
+                             onmouseout="this.style.background='rgba(255,255,255,0.04)'">
+                            <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
+                                <div>
+                                    <h3 style="font-size: 15px; font-weight: 600; margin: 0 0 4px 0;">${course.title}</h3>
+                                    <p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px 0;">${course.description || ''}</p>
+                                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                        <span style="color: ${courseStatusColor}; font-size: 11px; background: rgba(255,255,255,0.06); padding: 2px 10px; border-radius: 12px;">${courseStatus}</span>
+                                        <span style="color: #64748b; font-size: 11px;">${course.modules?.length || 0} modules</span>
+                                    </div>
+                                </div>
+                                <span style="color: #4a9eff; font-size: 16px;">→</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+            } else {
+                html += `
+                    <div style="text-align: center; padding: 40px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; margin-top: 16px;">
+                        <p>📝 No courses available for this program yet.</p>
+                        <p style="font-size: 13px;">Content is being prepared</p>
+                    </div>
+                `;
+            }
+
+            html += `</div>`;
+            container.innerHTML = html;
+        },
+
+        _renderCourseViewFallback: function(container, courseId) {
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            var course = courseRegistry ? courseRegistry.getCourse(courseId) : null;
+
+            if (!course) {
+                container.innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: #94a3b8;">
+                        <p>Course not found</p>
+                        <button onclick="LawAIApp.AcademyExperienceManager?.goHome?.()" 
+                                style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
+                            ← Back to Academy
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            var html = '';
+
+            html += `
+                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+                    <button onclick="LawAIApp.AcademyExperienceManager?.navigateToProgram?.('${course.programId}')" 
+                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
+                        <span style="font-size:16px;">←</span> Back to Program
+                    </button>
+                    <span style="color: #64748b; font-size: 13px; margin-left: auto;">🏛️ Academy</span>
+                </div>
+                <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
+                    <h1 style="font-size: 24px; font-weight: 700; margin: 0 0 4px 0;">📖 ${course.title}</h1>
+                    <p style="color: #94a3b8; font-size: 14px; margin: 0 0 24px 0;">${course.description || ''}</p>
+                    <div style="text-align: center; padding: 60px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px;">
+                        <p>📝 Course content is being prepared</p>
+                        <p style="font-size: 13px;">Check back soon for lessons</p>
+                    </div>
+                </div>
+            `;
+
             container.innerHTML = html;
         },
 
@@ -554,7 +716,7 @@
 
     window.LawAIApp.AcademyExperienceManager = AcademyExperienceManager;
 
-    console.log('[AcademyExperienceManager] Module loaded (v6.1.1)');
+    console.log('[AcademyExperienceManager] Module loaded (v6.1.2)');
 
     // 自动初始化
     function autoInit() {
