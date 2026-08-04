@@ -47,14 +47,8 @@
     </style>
 </head>
 <body>
-    <!-- ========================================================== -->
-    <!-- 🔥 Academy 容器 — 只有这一个容器！                         -->
-    <!-- ========================================================== -->
     <div id="academy-root"></div>
 
-    <!-- ========================================================== -->
-    <!-- 底部导航                                                  -->
-    <!-- ========================================================== -->
     <nav class="bottom-nav">
         <a href="/" class="nav-item" data-tab="home">
             <span>🏠</span><span>Home</span>
@@ -74,7 +68,7 @@
     </nav>
 
     <!-- ========================================================== -->
-    <!-- 脚本加载 — 最小化，由 Experience 层接管                    -->
+    <!-- 🔥 1. Runtime 核心                                         -->
     <!-- ========================================================== -->
     <script src="/js/storageEngine.js"></script>
     <script src="/js/eventBus.js"></script>
@@ -82,14 +76,26 @@
     <script src="/js/progressEngine.js"></script>
     <script src="/js/router.js"></script>
     <script src="/js/loader.js"></script>
+
+    <!-- ========================================================== -->
+    <!-- 🔥 2. Academy 所有文件 (按顺序加载)                        -->
+    <!-- ========================================================== -->
+    <script src="/js/academy/schoolRegistry.js"></script>
+    <script src="/js/academy/programRegistry.js"></script>
+    <script src="/js/academy/courseRegistry.js"></script>
+    <script src="/js/academy/curriculumRegistry.js"></script>
+    <script src="/js/academy/curriculumSeed.js"></script>
+    <script src="/js/academy/academyView.js"></script>
+    <script src="/js/academy/academyExperienceManager.js"></script>
     <script src="/js/academy/academyManifest.js"></script>
     <script src="/js/academy/academyLoader.js"></script>
-    <script src="/js/academy/academyExperienceManager.js"></script>
-    <script src="/js/academy/academyView.js"></script>
 
+    <!-- ========================================================== -->
+    <!-- 🔥 3. 启动 Academy                                         -->
+    <!-- ========================================================== -->
     <script>
         (function() {
-            console.log('📄 Academy page loaded (v6.1.0)');
+            console.log('📄 Academy page loaded');
 
             // 底部导航
             document.querySelectorAll('.nav-item').forEach(function(item) {
@@ -117,9 +123,102 @@
                 });
             });
 
-            // AcademyExperienceManager 会自动初始化
-            // 不需要额外逻辑 — 容器存在即可
-            console.log('✅ Academy page ready — ExperienceManager will auto-init');
+            // ============================================================
+            // 🔥 4. 手动初始化 Academy (不依赖 AcademyLoader)
+            // ============================================================
+            function initAcademy() {
+                console.log('🔥 Initializing Academy directly...');
+
+                try {
+                    // 1. SchoolRegistry
+                    if (window.LawAIApp?.SchoolRegistry) {
+                        if (!window.LawAIApp.SchoolRegistry.initialized) {
+                            window.LawAIApp.SchoolRegistry.initialize();
+                        }
+                        console.log('✅ SchoolRegistry ready');
+                    } else {
+                        console.warn('⚠️ SchoolRegistry not found');
+                    }
+
+                    // 2. ProgramRegistry
+                    if (window.LawAIApp?.ProgramRegistry) {
+                        if (!window.LawAIApp.ProgramRegistry.initialized) {
+                            window.LawAIApp.ProgramRegistry.initialize();
+                        }
+                        console.log('✅ ProgramRegistry ready');
+                    } else {
+                        console.warn('⚠️ ProgramRegistry not found');
+                    }
+
+                    // 3. CourseRegistry
+                    if (window.LawAIApp?.CourseRegistry) {
+                        if (!window.LawAIApp.CourseRegistry.initialized) {
+                            window.LawAIApp.CourseRegistry.initialize();
+                        }
+                        console.log('✅ CourseRegistry ready');
+                    } else {
+                        console.warn('⚠️ CourseRegistry not found');
+                    }
+
+                    // 4. CurriculumSeed
+                    if (window.LawAIApp?.CurriculumSeed) {
+                        if (!window.LawAIApp.CurriculumSeed.loaded) {
+                            window.LawAIApp.CurriculumSeed.load();
+                        }
+                        console.log('✅ CurriculumSeed ready');
+                    } else {
+                        console.warn('⚠️ CurriculumSeed not found');
+                    }
+
+                    // 5. AcademyExperienceManager
+                    if (window.LawAIApp?.AcademyExperienceManager) {
+                        if (!window.LawAIApp.AcademyExperienceManager.initialized) {
+                            window.LawAIApp.AcademyExperienceManager.init();
+                        }
+                        window.LawAIApp.AcademyExperienceManager.render();
+                        console.log('✅ Academy rendered!');
+                    } else {
+                        console.warn('⚠️ AcademyExperienceManager not found');
+                        // 创建 fallback 内容
+                        var root = document.getElementById('academy-root');
+                        if (root) {
+                            root.innerHTML = `
+                                <div style="padding: 40px; text-align: center; color: #e2e8f0;">
+                                    <h1>🏛️ Law AI Academy</h1>
+                                    <p style="color: #94a3b8;">Loading Academy...</p>
+                                    <div style="margin-top: 20px; color: #64748b; font-size: 13px;">
+                                        <span>⏳ Please wait</span>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+
+                    console.log('✅ Academy initialization complete');
+
+                } catch (error) {
+                    console.error('❌ Academy init error:', error);
+                }
+            }
+
+            // ============================================================
+            // 🔥 5. 等待 DOM 就绪后启动
+            // ============================================================
+            if (document.readyState === 'complete') {
+                setTimeout(initAcademy, 300);
+            } else {
+                document.addEventListener('DOMContentLoaded', function() {
+                    setTimeout(initAcademy, 300);
+                });
+            }
+
+            // 后备：如果 2 秒后还没初始化，再试一次
+            setTimeout(function() {
+                if (!window.LawAIApp?.AcademyExperienceManager?.initialized) {
+                    console.log('🔄 Retry Academy init...');
+                    initAcademy();
+                }
+            }, 2000);
 
         })();
     </script>
