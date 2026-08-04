@@ -269,13 +269,10 @@
 
         _renderFallback: function(container, data) {
             var schools = data.schools || [];
-            var progress = data.progress || null;
 
             var html = '';
 
-        // ============================================================
-        // 1. 返回栏 (Back Bar)
-        // ============================================================
+            // 返回栏
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; margin: 12px 16px 20px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <button onclick="window.history.back()" style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
@@ -289,18 +286,13 @@
                 </div>
             `;
 
-            // ============================================================
-            // 2. Academy 标题
-            // ============================================================
+            // 主要内容
             html += `
                 <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
                     <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 4px;">🏛️ Law AI Academy</h1>
                     <p style="color: #94a3b8; font-size: 14px; margin-bottom: 24px;">Explore your learning path</p>
             `;
 
-            // ============================================================
-            // 3. 学校列表 (只显示 Academy 学校，不显示 Dashboard 进度)
-            // ============================================================
             if (schools && schools.length > 0) {
                 html += `<h2 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">🎓 Schools</h2>`;
                 html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">`;
@@ -321,9 +313,6 @@
 
                 html += `</div>`;
             } else {
-                // ============================================================
-                // 4. 空状态
-                // ============================================================
                 html += `
                     <div style="text-align: center; padding: 60px 20px; background: rgba(255,255,255,0.03); border-radius: 16px; border: 1px dashed rgba(255,255,255,0.08);">
                         <div style="font-size: 48px; margin-bottom: 16px;">🚀</div>
@@ -335,10 +324,10 @@
 
             html += `</div>`;
             container.innerHTML = html;
-        }
+        },
 
         // ============================================================
-        // 6. PRIVATE — Events
+        // 6. PRIVATE — Events (✅ 修复版)
         // ============================================================
 
         _bindEvents: function() {
