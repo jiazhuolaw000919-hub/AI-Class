@@ -1,5 +1,5 @@
 // js/academy/academyExperienceManager.js
-// Part 57.9 — Course Explorer Experience Layer
+// Part 58.1 — Course Learning Entry Layer
 // Law AI Academy Developer Bible
 
 (function() {
@@ -11,7 +11,7 @@
     }
 
     var AcademyExperienceManager = {
-        version: '6.1.3',
+        version: '6.2.1',
         initialized: false,
         mounted: false,
         status: 'pending',
@@ -20,7 +20,7 @@
             currentSchoolId: null,
             currentProgramId: null,
             currentCourseId: null,
-            viewMode: 'dashboard' // dashboard | school | program | course
+            viewMode: 'dashboard' // dashboard | school | program | course | course-learning
         },
 
         // ============================================================
@@ -171,13 +171,9 @@
             return this;
         },
 
-        /**
-         * 🔥 Part 57.9: 导航到 Course
-         */
         navigateToCourse: function(courseId) {
             console.log('[AcademyExperienceManager] 📍 Navigating to course:', courseId);
 
-            // 验证 Course 存在
             var courseRegistry = window.LawAIApp?.CourseRegistry;
             if (!courseRegistry) {
                 console.warn('[AcademyExperienceManager] CourseRegistry not available');
@@ -190,11 +186,9 @@
                 return this;
             }
 
-            // 更新状态 — 保留 currentSchoolId 和 currentProgramId
             this._state.currentCourseId = courseId;
             this._state.viewMode = 'course';
 
-            // 如果 programId 丢失，从 course 中获取
             if (!this._state.currentProgramId && course.programId) {
                 this._state.currentProgramId = course.programId;
             }
@@ -209,6 +203,52 @@
                 currentSchoolId: this._state.currentSchoolId
             });
 
+            return this;
+        },
+
+        /**
+         * 🔥 Part 58.1: 开始学习 Course
+         */
+        startCourse: function(courseId) {
+            console.log('[AcademyExperienceManager] 🚀 Starting course:', courseId);
+
+            // 验证 Course 存在
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            if (!courseRegistry) {
+                console.warn('[AcademyExperienceManager] CourseRegistry not available');
+                return this;
+            }
+
+            var course = courseRegistry.getCourse(courseId);
+            if (!course) {
+                console.warn('[AcademyExperienceManager] Course not found:', courseId);
+                return this;
+            }
+
+            // 更新状态
+            this._state.currentCourseId = courseId;
+            this._state.viewMode = 'course-learning';
+
+            // 初始化学习状态
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            if (adapter && typeof adapter.initializeCourse === 'function') {
+                adapter.initializeCourse(courseId);
+                console.log('[AcademyExperienceManager] ✅ Learning journey initialized');
+            }
+
+            // 广播事件
+            this._emit('COURSE_STARTED', {
+                courseId: courseId,
+                title: course.title
+            });
+
+            this.render();
+            this._emit('ACADEMY_VIEW_CHANGED', {
+                viewMode: 'course-learning',
+                currentCourseId: courseId
+            });
+
+            console.log('[AcademyExperienceManager] ✅ Course started:', courseId);
             return this;
         },
 
@@ -231,14 +271,14 @@
         continueLearning: function() {
             console.log('[AcademyExperienceManager] 📖 Continuing learning...');
 
-            var progress = this._getProgress();
-            if (progress && progress.currentLessonId) {
-                this._emit('ACADEMY_CONTINUE', {
-                    lessonId: progress.currentLessonId,
-                    moduleId: progress.currentModuleId,
-                    courseId: progress.currentCourseId
-                });
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var continueData = adapter ? adapter.getContinueLearning() : null;
+
+            if (continueData && continueData.courseId) {
+                // 如果有继续学习的课程
+                this.startCourse(continueData.courseId);
             } else {
+                // 没有进度，跳转到第一个 School
                 var schools = this._getSchools();
                 if (schools && schools.length > 0) {
                     this.navigateToSchool(schools[0].id);
@@ -331,14 +371,14 @@
         },
 
         _getProgress: function() {
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            if (adapter && typeof adapter.getState === 'function') {
+                return adapter.getState();
+            }
+
             var stateManager = window.LawAIApp?.LearningStateManager;
             if (stateManager && typeof stateManager.getState === 'function') {
                 return stateManager.getState();
-            }
-
-            var progressEngine = window.LawAIApp?.ProgressEngine;
-            if (progressEngine && typeof progressEngine.getProgress === 'function') {
-                return progressEngine.getProgress();
             }
 
             return null;
@@ -370,6 +410,8 @@
                 this._renderProgramViewFallback(container, data.currentProgramId);
             } else if (viewMode === 'course') {
                 this._renderCourseViewFallback(container, data.currentCourseId);
+            } else if (viewMode === 'course-learning') {
+                this._renderCourseLearningViewFallback(container, data.currentCourseId);
             } else {
                 this._renderDashboardFallback(container, data);
             }
@@ -377,6 +419,8 @@
 
         _renderDashboardFallback: function(container, data) {
             var schools = data.schools || [];
+
+            var continueData = this._getContinueLearning();
 
             var html = '';
 
@@ -395,8 +439,13 @@
                     <p style="color: #94a3b8; font-size: 14px; margin: 0 0 24px 0;">Explore your learning path</p>
             `;
 
+            // Continue Learning Section
+            if (continueData) {
+                html += this._renderContinueLearningFallback(continueData);
+            }
+
             if (schools && schools.length > 0) {
-                html += `<h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">🎓 Schools</h2>`;
+                html += `<h2 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px 0;">🎓 Schools</h2>`;
                 html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">`;
 
                 schools.forEach(function(school) {
@@ -427,6 +476,45 @@
 
             html += `</div>`;
             container.innerHTML = html;
+        },
+
+        /**
+         * 🔥 Part 58.1: Continue Learning Fallback
+         */
+        _renderContinueLearningFallback: function(continueData) {
+            var progress = continueData.progress || 0;
+            var isCompleted = continueData.isCompleted || false;
+
+            return `
+                <div style="background: linear-gradient(135deg, rgba(74,158,255,0.08) 0%, rgba(74,158,255,0.02) 100%); 
+                            border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; 
+                            border: 1px solid rgba(74,158,255,0.12);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 24px;">${isCompleted ? '🎉' : '📖'}</span>
+                            <div>
+                                <div style="font-size: 13px; color: #94a3b8;">${isCompleted ? 'Completed Course' : 'Continue Learning'}</div>
+                                <div style="font-size: 15px; font-weight: 500;">${continueData.title || 'Your Journey'}</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                            <div style="text-align: right;">
+                                <div style="font-size: 13px; color: #94a3b8;">${isCompleted ? '✅ Done' : progress + '% complete'}</div>
+                            </div>
+                            <button onclick="LawAIApp.AcademyExperienceManager?.startCourse?.('${continueData.courseId}')" 
+                                    style="padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit;"
+                                    onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
+                                ${isCompleted ? 'Review →' : 'Continue →'}
+                            </button>
+                        </div>
+                    </div>
+                    ${!isCompleted ? `
+                        <div style="margin-top: 10px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 4px; overflow: hidden;">
+                            <div style="background: #4a9eff; height: 100%; width: ${Math.min(100, progress)}%; transition: width 0.3s;"></div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
         },
 
         _renderSchoolViewFallback: function(container, schoolId) {
@@ -610,9 +698,6 @@
             container.innerHTML = html;
         },
 
-        /**
-         * 🔥 Part 57.9: Course View Fallback
-         */
         _renderCourseViewFallback: function(container, courseId) {
             var courseRegistry = window.LawAIApp?.CourseRegistry;
             var course = courseRegistry ? courseRegistry.getCourse(courseId) : null;
@@ -636,142 +721,12 @@
             var statusLabel = course.status || 'active';
             var statusColor = statusLabel === 'active' ? '#10b981' : statusLabel === 'draft' ? '#f59e0b' : '#64748b';
 
+            // 获取课程学习状态
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var courseState = adapter ? adapter.getCourseState(courseId) : null;
+            var progress = courseState ? courseState.progress : 0;
+
             var html = '';
 
-            // 返回栏 — Back to Program
             html += `
-                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="LawAIApp.AcademyExperienceManager?.navigateToProgram?.('${course.programId}')" 
-                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
-                        <span style="font-size:16px;">←</span> Back to Program
-                    </button>
-                    <span style="color: #64748b; font-size: 13px; margin-left: auto;">🏛️ Academy</span>
-                </div>
-            `;
-
-            // Course Header
-            html += `
-                <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
-                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
-                        <span style="font-size: 48px;">📖</span>
-                        <div>
-                            <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 4px 0;">${course.title}</h1>
-                            <p style="color: #94a3b8; font-size: 14px; margin: 0;">${course.description || ''}</p>
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
-                        <span style="color: ${difficultyColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${difficultyEmoji} ${difficultyLabel.charAt(0).toUpperCase() + difficultyLabel.slice(1)}</span>
-                        <span style="color: ${statusColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)}</span>
-                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${course.modules?.length || 0} modules</span>
-                        ${course.estimatedHours ? `<span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">⏱️ ${course.estimatedHours}h</span>` : ''}
-                    </div>
-            `;
-
-            // Modules Section (Placeholder)
-            html += `
-                <div style="margin-top: 32px;">
-                    <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📋 Modules</h2>
-                    <div style="text-align: center; padding: 60px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08);">
-                        <div style="font-size: 36px; margin-bottom: 12px;">📝</div>
-                        <p style="font-size: 16px; margin: 0;">Course modules are being prepared</p>
-                        <p style="font-size: 13px; margin: 4px 0 0;">Check back soon for lessons</p>
-                    </div>
-                </div>
-            `;
-
-            html += `</div>`;
-            container.innerHTML = html;
-        },
-
-        // ============================================================
-        // 6. PRIVATE — Events
-        // ============================================================
-
-        _bindEvents: function() {
-            console.log('[AcademyExperienceManager] Binding events...');
-
-            var self = this;
-
-            document.addEventListener('ACADEMY_READY', function() {
-                console.log('[AcademyExperienceManager] 📡 ACADEMY_READY received');
-                if (!self.initialized) {
-                    self.init();
-                } else {
-                    self.refresh();
-                }
-            });
-
-            document.addEventListener('SCHOOL_REGISTERED', function() {
-                self.refresh();
-            });
-
-            document.addEventListener('PROGRAM_REGISTERED', function() {
-                self.refresh();
-            });
-
-            document.addEventListener('COURSE_REGISTERED', function() {
-                self.refresh();
-            });
-
-            document.addEventListener('LEARNING_STATE_UPDATED', function() {
-                self.refresh();
-            });
-
-            console.log('[AcademyExperienceManager] ✅ Events bound');
-        },
-
-        // ============================================================
-        // 7. PRIVATE — Event Helpers
-        // ============================================================
-
-        _emit: function(eventName, data) {
-            try {
-                var event = new CustomEvent(eventName, { detail: data || {} });
-                document.dispatchEvent(event);
-                window.dispatchEvent(event);
-
-                if (window.LawAIApp?.EventBus && typeof window.LawAIApp.EventBus.emit === 'function') {
-                    window.LawAIApp.EventBus.emit(eventName, data);
-                }
-            } catch (err) {
-                // 忽略
-            }
-        }
-    };
-
-    // ============================================================
-    // Export
-    // ============================================================
-
-    if (!window.LawAIApp) {
-        window.LawAIApp = {};
-    }
-
-    window.LawAIApp.AcademyExperienceManager = AcademyExperienceManager;
-
-    console.log('[AcademyExperienceManager] Module loaded (v6.1.3)');
-
-    // 自动初始化
-    function autoInit() {
-        if (document.getElementById('academy-root')) {
-            AcademyExperienceManager.init();
-        } else {
-            var observer = new MutationObserver(function() {
-                if (document.getElementById('academy-root')) {
-                    observer.disconnect();
-                    AcademyExperienceManager.init();
-                }
-            });
-            observer.observe(document.body, { childList: true, subtree: true });
-        }
-    }
-
-    if (document.readyState === 'complete') {
-        setTimeout(autoInit, 200);
-    } else {
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(autoInit, 200);
-        });
-    }
-
-})();
+                <div style="display: flex; align-items: center; gap: 10px; padding
