@@ -1,5 +1,5 @@
-// plannerTimeline.js
-LawAIApp.PlannerTimeline = {
+// calendarTimeline.js
+LawAIApp.calendarTimeline = {
   // 根据时间块长度生成计划时间线
   generateTimeline(timeBlockMinutes = 30) {
     const rankedTasks = LawAIApp.PlannerPriority.getRankedTasks();
