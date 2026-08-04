@@ -1,25 +1,21 @@
 // js/academy/programRegistry.js
-// Part 57.5 — Program Registry
+// Part 57.5 Recovery Patch — Program Registry (ES6 Class)
 // Law AI Academy Developer Bible
-//
-// PURPOSE: Manage Programs inside Schools
-// CONSUMES: SchoolRegistry, AcademyRegistry
 
 (function() {
     'use strict';
 
-    if (window.LawAIApp?.ProgramRegistry) {
+    if (window.LawAIApp && window.LawAIApp.ProgramRegistry) {
         console.log('[ProgramRegistry] Already exists, skipping...');
         return;
     }
 
     class ProgramRegistry {
         constructor() {
-            this.version = '1.0.0';
             this._programs = new Map();
-            this._initialized = false;
+            this.initialized = false;
+            this.version = '2.0.0';
 
-            // 默认 Programs (Placeholders)
             this.DEFAULT_PROGRAMS = [
                 // AI School Programs
                 {
@@ -77,15 +73,6 @@
                     status: 'active',
                     modules: []
                 },
-                {
-                    id: 'program-business-productivity',
-                    schoolId: 'school-business',
-                    name: 'Productivity & Management',
-                    description: 'Optimize workflows and manage teams',
-                    level: 'intermediate',
-                    status: 'active',
-                    modules: []
-                },
                 // Technology School Programs
                 {
                     id: 'program-tech-development',
@@ -104,39 +91,26 @@
                     level: 'intermediate',
                     status: 'active',
                     modules: []
-                },
-                {
-                    id: 'program-tech-mobile',
-                    schoolId: 'school-technology',
-                    name: 'Mobile Development',
-                    description: 'Build mobile applications for iOS and Android',
-                    level: 'beginner',
-                    status: 'active',
-                    modules: []
                 }
             ];
         }
-
-        // ============================================================
-        // 1. PUBLIC API
-        // ============================================================
 
         /**
          * 初始化 Program Registry
          */
         initialize() {
-            if (this._initialized) {
+            if (this.initialized) {
                 console.log('[ProgramRegistry] Already initialized');
                 return this;
             }
 
             console.log('[ProgramRegistry] 📚 Initializing...');
 
-            this.DEFAULT_PROGRAMS.forEach(function(program) {
+            this.DEFAULT_PROGRAMS.forEach((program) => {
                 this.register(program);
-            }.bind(this));
+            });
 
-            this._initialized = true;
+            this.initialized = true;
 
             this._emit('PROGRAM_REGISTRY_READY', {
                 programs: this.getAllPrograms(),
@@ -150,10 +124,19 @@
         /**
          * 注册 Program
          */
-        register: function(programData) {
-            var validation = this.validate(programData);
-            if (!validation.valid) {
-                console.warn('[ProgramRegistry] Validation failed:', validation.errors);
+        register(programData) {
+            if (!programData.id) {
+                console.warn('[ProgramRegistry] Program: id is required');
+                return null;
+            }
+
+            if (!programData.name) {
+                console.warn('[ProgramRegistry] Program: name is required');
+                return null;
+            }
+
+            if (!programData.schoolId) {
+                console.warn('[ProgramRegistry] Program: schoolId is required');
                 return null;
             }
 
@@ -162,13 +145,11 @@
                 return programData.id;
             }
 
-            // 验证 School 存在
-            var schoolRegistry = window.LawAIApp?.SchoolRegistry;
+            // 关联到 School
+            const schoolRegistry = window.LawAIApp?.SchoolRegistry;
             if (schoolRegistry) {
-                var school = schoolRegistry.getSchool(programData.schoolId);
-                if (!school) {
-                    console.warn('[ProgramRegistry] School not found:', programData.schoolId);
-                } else {
+                const school = schoolRegistry.getSchool(programData.schoolId);
+                if (school) {
                     if (!school.programs) school.programs = [];
                     if (!school.programs.includes(programData.id)) {
                         school.programs.push(programData.id);
@@ -176,16 +157,16 @@
                 }
             }
 
-            var program = {
+            const program = {
                 ...programData,
-                createdAt: programData.createdAt || new Date().toISOString(),
                 status: programData.status || 'active',
-                modules: programData.modules || []
+                modules: programData.modules || [],
+                createdAt: new Date().toISOString()
             };
 
             this._programs.set(programData.id, program);
 
-            this._emit('PROGRAM_REGISTERED', {
+            this._emit('PROGRAM_LOADED', {
                 programId: program.id,
                 name: program.name,
                 schoolId: program.schoolId
@@ -198,17 +179,8 @@
         /**
          * 获取 Program
          */
-        getProgram: function(programId) {
-            return this._programs.get(programId) || null;
-        },
-
-        /**
-         * 获取学校的所有 Programs
-         */
-        getProgramsBySchool: function(schoolId) {
-            return this.getAllPrograms().filter(function(p) {
-                return p.schoolId === schoolId;
-            });
+        getProgram(id) {
+            return this._programs.get(id) || null;
         }
 
         /**
@@ -216,70 +188,71 @@
          */
         getAllPrograms() {
             return Array.from(this._programs.values());
-        },
+        }
+
+        /**
+         * 按 School 获取 Programs
+         */
+        getProgramsBySchool(schoolId) {
+            return this.getAllPrograms().filter((p) => p.schoolId === schoolId);
+        }
 
         /**
          * 获取活跃 Programs
          */
-        getActivePrograms: function() {
-            return this.getAllPrograms().filter(function(p) {
-                return p.status === 'active';
-            });
+        getActivePrograms() {
+            return this.getAllPrograms().filter((p) => p.status === 'active');
         }
 
         /**
-         * 验证 Program 数据
+         * 更新 Program
          */
-        validate: function(data) {
-            var errors = [];
-
-            if (!data.id) errors.push('id is required');
-            if (!data.name) errors.push('name is required');
-            if (!data.schoolId) errors.push('schoolId is required');
-            if (data.level && !['beginner', 'intermediate', 'advanced'].includes(data.level)) {
-                errors.push('level must be: beginner, intermediate, advanced');
+        updateProgram(id, updates) {
+            const program = this._programs.get(id);
+            if (!program) {
+                console.warn('[ProgramRegistry] Program not found:', id);
+                return null;
             }
 
-            return {
-                valid: errors.length === 0,
-                errors: errors
+            const updated = {
+                ...program,
+                ...updates,
+                updatedAt: new Date().toISOString()
             };
+
+            this._programs.set(id, updated);
+            return updated;
         }
 
         /**
          * 获取统计
          */
-        getStats: function() {
-            var programs = this.getAllPrograms();
+        getStats() {
+            const programs = this.getAllPrograms();
             return {
                 totalPrograms: programs.length,
                 activePrograms: this.getActivePrograms().length,
-                byLevel: {
-                    beginner: programs.filter(function(p) { return p.level === 'beginner'; }).length,
-                    intermediate: programs.filter(function(p) { return p.level === 'intermediate'; }).length,
-                    advanced: programs.filter(function(p) { return p.level === 'advanced'; }).length
-                }
+                bySchool: {}
             };
         }
 
         /**
          * 获取状态
          */
-        getStatus: function() {
+        getStatus() {
             return {
-                initialized: this._initialized,
+                initialized: this.initialized,
                 version: this.version,
                 programCount: this._programs.size
             };
         }
 
-        // ============================================================
-        // 2. PRIVATE — Event Helpers
-        // ============================================================
-
-        _emit: function(eventName, data) {
+        /**
+         * 私有事件发射
+         */
+        _emit(eventName, data) {
             try {
-                var event = new CustomEvent(eventName, { detail: data || {} });
+                const event = new CustomEvent(eventName, { detail: data || {} });
                 document.dispatchEvent(event);
                 window.dispatchEvent(event);
 
@@ -296,48 +269,39 @@
     // Export
     // ============================================================
 
-    var programRegistry = new ProgramRegistry();
-
     if (!window.LawAIApp) {
         window.LawAIApp = {};
     }
 
-    window.LawAIApp.ProgramRegistry = new ProgramRegistry();
-
-    console.log('[ProgramRegistry] Module loaded (Part 57.5)');
+    const programRegistry = new ProgramRegistry();
+    window.LawAIApp.ProgramRegistry = programRegistry;
 
     // 自动初始化 (等待 SchoolRegistry)
     function autoInit() {
-        var schoolReg = window.LawAIApp?.SchoolRegistry;
-        if (schoolReg && schoolReg._initialized) {
+        const schoolReg = window.LawAIApp?.SchoolRegistry;
+        if (schoolReg && schoolReg.initialized) {
             programRegistry.initialize();
         } else {
-            console.log('[ProgramRegistry] Waiting for SchoolRegistry...');
-            document.addEventListener('SCHOOL_REGISTRY_READY', function() {
+            document.addEventListener('SCHOOL_REGISTRY_READY', () => {
                 programRegistry.initialize();
             });
-            // 后备轮询
-            var attempts = 0;
-            var interval = setInterval(function() {
-                attempts++;
-                if (window.LawAIApp?.SchoolRegistry?._initialized) {
-                    clearInterval(interval);
-                    programRegistry.initialize();
-                } else if (attempts > 20) {
-                    clearInterval(interval);
-                    console.warn('[ProgramRegistry] SchoolRegistry timeout, initializing anyway...');
+            // 后备
+            setTimeout(() => {
+                if (!programRegistry.initialized) {
                     programRegistry.initialize();
                 }
-            }, 200);
+            }, 1000);
         }
     }
 
     if (document.readyState === 'complete') {
         setTimeout(autoInit, 200);
     } else {
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', () => {
             setTimeout(autoInit, 200);
         });
     }
+
+    console.log('[ProgramRegistry] Module loaded (Part 57.5 Recovery)');
 
 })();
