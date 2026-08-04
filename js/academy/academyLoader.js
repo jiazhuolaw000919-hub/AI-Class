@@ -290,7 +290,7 @@
         loaded: this._loadedModules,
         failed: this._failedModules
       });
-    },
+    }
 
     /**
      * 加载单个模块
@@ -349,7 +349,7 @@
 
         document.head.appendChild(script);
       }.bind(this));
-    },
+    }
 
     /**
      * 检查模块是否存在
@@ -375,7 +375,7 @@
       return {
         exists: !!(window.LawAIApp && window.LawAIApp[propName])
       };
-    },
+    }
 
     /**
      * Step 4: 初始化 Registry (保留原有)
@@ -407,7 +407,7 @@
         loaded: this._loadedModules,
         failed: this._failedModules
       });
-    },
+    }
 
     /**
      * Step 5: 连接 Engines (保留原有)
@@ -440,7 +440,7 @@
       this._state.enginesConnected = true;
       
       this._broadcast('ENGINES_CONNECTED', { connected });
-    },
+    }
 
     /**
      * Step 6: 初始化 Experience (新增!)
@@ -494,7 +494,7 @@
         console.error('[AcademyLoader] ❌ Experience init failed:', error);
         this._state.experienceReady = false;
       }
-    },
+    }
 
     /**
      * Step 7: 验证就绪
@@ -536,7 +536,7 @@
       
       this._state.ready = true;
       console.log('[AcademyLoader] ✅ Academy ready');
-    },
+    }
 
     // ============================================================
     // Helpers
@@ -573,7 +573,7 @@
       } catch (e) {}
       
       console.log(`[AcademyLoader] 📡 Event: ${event}`, data);
-    },
+    }
 
     // ============================================================
     // Health & Recovery
