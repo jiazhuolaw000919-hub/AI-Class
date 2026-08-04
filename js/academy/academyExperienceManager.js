@@ -390,32 +390,34 @@
     // ============================================================
 
     _bindEvents: function() {
-      document.addEventListener('ACADEMY_READY', function() {
-        console.log('[AcademyExperienceManager] 📡 ACADEMY_READY received');
-        if (!this.initialized) {
-          this.init();
-        } else {
-          this.refresh();
-        }
-      }.bind(this));
+        console.log('[AcademyExperienceManager] Binding events...');
 
-      document.addEventListener('SCHOOL_REGISTERED', function() {
-        this.refresh();
-      }.bind(this));
+        document.addEventListener('ACADEMY_READY', function() {
+            console.log('[AcademyExperienceManager] 📡 ACADEMY_READY received');
+            if (!this.initialized) {
+                this.init();
+            } else {
+                this.refresh();
+            }
+        }.bind(this));
 
-      document.addEventListener('PROGRAM_REGISTERED', function() {
-        this.refresh();
-      }.bind(this));
+        document.addEventListener('SCHOOL_REGISTERED', function() {
+            this.refresh();
+        }.bind(this));
 
-      document.addEventListener('COURSE_REGISTERED', function() {
-        this.refresh();
-      }.bind(this));
+        document.addEventListener('PROGRAM_REGISTERED', function() {
+            this.refresh();
+        }.bind(this));
 
-      document.addEventListener('LEARNING_STATE_UPDATED', function() {
-        this.refresh();
-      }.bind(this));
+        document.addEventListener('COURSE_REGISTERED', function() {
+            this.refresh();
+        }.bind(this));
 
-      console.log('[AcademyExperienceManager] Events bound');
+        document.addEventListener('LEARNING_STATE_UPDATED', function() {
+            this.refresh();
+        }.bind(this));
+
+        console.log('[AcademyExperienceManager] ✅ Events bound');
     },
 
     // ============================================================
