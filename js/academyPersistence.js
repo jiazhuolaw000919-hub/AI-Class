@@ -1,5 +1,5 @@
-// academyStorage.js
-LawAIApp.AcademyStorage = {
+// academyPersistence.js
+LawAIApp.academyPersistence = {
   // 初始化/获取完整 academy 列表（从 storage 或默认数据）
   _getAll() {
     let list = LawAIApp.StorageEngine.get('academy_list');
