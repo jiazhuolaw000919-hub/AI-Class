@@ -250,8 +250,9 @@ var STAGES = {
         "app.js"
     ],
     ux: [
-        "progressEngine.js",
+        "experienceComposer.js",
         "experienceEngine.js",
+        "progressEngine.js",
         "recommendationEngine.js",
         "debug/devPanel.js",
         "debug/devPanelAIAssistant.js",
