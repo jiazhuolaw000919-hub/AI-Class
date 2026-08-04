@@ -1,527 +1,441 @@
 // js/academy/academyLoader.js
-// Part 57.4-57.6 — Academy Loader (升级)
+// Part 57.4-57.6 REBUILD — AcademyLoader Architecture Reset
 // Law AI Academy Developer Bible
+//
+// PURPOSE: Academy Runtime Loading Layer
+// RESPONSIBILITY: Load modules, initialize runtime, broadcast events
+// BOUNDARY: NO UI, NO course management, NO school creation
 
 (function() {
   'use strict';
 
-  if (window.LawAIApp && window.LawAIApp.AcademyLoader && window.LawAIApp.AcademyLoader._upgraded) {
-    console.log('[AcademyLoader] Already upgraded, skipping...');
+  // ============================================================
+  // 防止重复加载
+  // ============================================================
+  if (window.LawAIApp && window.LawAIApp.AcademyLoader) {
+    console.warn('[AcademyLoader] Already exists, skipping...');
     return;
   }
 
+  // ============================================================
+  // ES6 Class — AcademyLoader
+  // ============================================================
   class AcademyLoader {
     constructor() {
       this.version = '2.0.0';
-      this._upgraded = true;
-      this.status = 'idle';
+      this.status = 'idle'; // idle | loading | ready | failed
       this.health = 'pending';
-      
+
+      this.modules = [];
+      this.failedModules = [];
+      this.loadedModules = [];
+
+      this.started = false;
+      this.startTime = null;
+      this.endTime = null;
+      this.startPromise = null;
+
+      // Manifest 缓存
       this._manifest = null;
-      this._loadedModules = [];
-      this._failedModules = [];
-      this._startTime = null;
-      this._endTime = null;
-      
-      this._state = {
-        runtimeAvailable: false,
-        manifestLoaded: false,
-        modulesLoaded: false,
-        experienceReady: false,
-        ready: false
+
+      // 模块存在性检查映射
+      this._moduleChecks = {
+        academyExperienceManager: function() {
+          return !!(window.LawAIApp && window.LawAIApp.AcademyExperienceManager);
+        },
+        academyView: function() {
+          return !!(window.LawAIApp && window.LawAIApp.AcademyView);
+        },
+        schoolRegistry: function() {
+          return !!(window.LawAIApp && window.LawAIApp.SchoolRegistry);
+        },
+        programRegistry: function() {
+          return !!(window.LawAIApp && window.LawAIApp.ProgramRegistry);
+        },
+        courseRegistry: function() {
+          return !!(window.LawAIApp && window.LawAIApp.CourseRegistry);
+        },
+        curriculumRegistry: function() {
+          return !!(window.LawAIApp && window.LawAIApp.CurriculumRegistry);
+        },
+        curriculumSeed: function() {
+          return !!(window.LawAIApp && window.LawAIApp.CurriculumSeed);
+        }
       };
-      
-      this._started = false;
-      this._startPromise = null;
     }
 
     // ============================================================
-    // Public API
+    // 1. PUBLIC API
     // ============================================================
 
-    start() {
+    /**
+     * 启动 Academy Loader
+     * @returns {Promise<Object>} { status, modules, failed }
+     */
+    async start() {
+      // 如果已经 ready，直接返回
       if (this.status === 'ready') {
         console.log('[AcademyLoader] Already ready');
-        return Promise.resolve(this.getStatus());
-      }
-      
-      if (this._started && this._startPromise) {
-        console.log('[AcademyLoader] Already starting, returning existing promise');
-        return this._startPromise;
-      }
-      
-      this._started = true;
-      this._startPromise = this._doStart();
-      return this._startPromise;
-    }
-
-    async _doStart() {
-      this._startTime = Date.now();
-      this.status = 'loading';
-      this.health = 'pending';
-      
-      console.log('[AcademyLoader] 🚀 Starting Academy Loader v' + this.version);
-
-      try {
-        await this._checkRuntime();
-        await this._loadManifest();
-        await this._loadModulesFromManifest();
-        await this._initializeRegistry();
-        await this._connectEngines();
-        await this._initializeExperience();
-        await this._validateReady();
-        
-        this.status = 'ready';
-        this.health = 'healthy';
-        this._endTime = Date.now();
-        
-        this._broadcast('ACADEMY_READY', {
-          status: this.status,
-          duration: this._endTime - this._startTime,
-          loaded: this._loadedModules,
-          failed: this._failedModules
-        });
-        
-        console.log('[AcademyLoader] ✅ Academy ready in', this._endTime - this._startTime, 'ms');
         return this.getStatus();
-        
-      } catch (error) {
-        this.status = 'failed';
-        this.health = 'unhealthy';
-        console.error('[AcademyLoader] ❌ Startup failed:', error);
-        this._broadcast('ACADEMY_FAILED', { error: error.message });
-        throw error;
       }
+
+      // 如果正在启动，返回同一个 Promise
+      if (this.started && this.startPromise) {
+        console.log('[AcademyLoader] Already starting, returning existing promise');
+        return this.startPromise;
+      }
+
+      this.started = true;
+      this.startPromise = this._doStart();
+      return this.startPromise;
     }
 
+    /**
+     * 获取当前状态
+     * @returns {Object}
+     */
     getStatus() {
       return {
+        version: this.version,
         status: this.status,
         health: this.health,
-        version: this.version,
-        runtimeAvailable: this._state.runtimeAvailable,
-        manifestLoaded: this._state.manifestLoaded,
-        modulesLoaded: this._state.modulesLoaded,
-        experienceReady: this._state.experienceReady,
-        ready: this._state.ready,
-        loadedModules: this._loadedModules,
-        failedModules: this._failedModules,
-        startTime: this._startTime,
-        endTime: this._endTime,
-        duration: this._endTime ? this._endTime - this._startTime : null,
-        started: this._started
+        loadedModules: this.loadedModules,
+        failedModules: this.failedModules,
+        started: this.started,
+        startTime: this.startTime,
+        endTime: this.endTime,
+        duration: this.endTime ? this.endTime - this.startTime : null
       };
     }
 
+    /**
+     * 重启 Academy Loader
+     * @returns {Promise<Object>}
+     */
     async restart() {
-      console.log('[AcademyLoader] 🔄 Restarting Academy...');
-      this.status = 'restarting';
-      this._started = false;
-      this._startPromise = null;
-      this._loadedModules = [];
-      this._failedModules = [];
-      this._state = {
-        runtimeAvailable: false,
-        manifestLoaded: false,
-        modulesLoaded: false,
-        experienceReady: false,
-        ready: false
-      };
+      console.log('[AcademyLoader] 🔄 Restarting...');
+
+      this.status = 'idle';
+      this.health = 'pending';
+      this.started = false;
+      this.startPromise = null;
+      this.modules = [];
+      this.failedModules = [];
+      this.loadedModules = [];
+      this.startTime = null;
+      this.endTime = null;
+      this._manifest = null;
+
       return this.start();
     }
 
     // ============================================================
-    // Private Steps
+    // 2. PRIVATE — 启动逻辑
     // ============================================================
 
-    async _checkRuntime() {
-      console.log('[AcademyLoader] Checking Runtime...');
-      const runtimeAvailable = !!(window.LawAIApp && window.LawAIApp.RuntimeOS);
-      if (!runtimeAvailable) {
-        console.warn('[AcademyLoader] Runtime OS not available, waiting...');
-        await this._waitForRuntime();
+    /**
+     * 实际启动逻辑 (内部)
+     * @private
+     */
+    async _doStart() {
+      this.startTime = Date.now();
+      this.status = 'loading';
+      this.health = 'pending';
+
+      console.log('[AcademyLoader] 🚀 Starting Academy Loader v' + this.version);
+
+      try {
+        // Step 1: 加载 Manifest
+        await this._loadManifest();
+
+        // Step 2: 加载模块
+        await this._loadModules();
+
+        // Step 3: 触发 ACADEMY_READY
+        this.status = 'ready';
+        this.health = 'healthy';
+        this.endTime = Date.now();
+
+        this._broadcast('ACADEMY_READY', {
+          status: this.status,
+          version: this.version,
+          loaded: this.loadedModules,
+          failed: this.failedModules,
+          duration: this.endTime - this.startTime
+        });
+
+        console.log('[AcademyLoader] ✅ Academy ready in', this.endTime - this.startTime, 'ms');
+        console.log('[AcademyLoader] 📦 Loaded:', this.loadedModules.length, 'modules');
+
+        return this.getStatus();
+
+      } catch (error) {
+        this.status = 'failed';
+        this.health = 'unhealthy';
+
+        console.error('[AcademyLoader] ❌ Startup failed:', error);
+
+        this._broadcast('ACADEMY_FAILED', {
+          error: error.message,
+          loaded: this.loadedModules,
+          failed: this.failedModules
+        });
+
+        throw error;
       }
-      this._state.runtimeAvailable = true;
-      console.log('[AcademyLoader] ✅ Runtime available');
-      this._broadcast('RUNTIME_CHECKED', { available: true });
     }
 
-    _waitForRuntime() {
-      return new Promise((resolve) => {
-        let attempts = 0;
-        const maxAttempts = 50;
-        const checkInterval = setInterval(() => {
-          attempts++;
-          if (window.LawAIApp && window.LawAIApp.RuntimeOS) {
-            clearInterval(checkInterval);
-            resolve();
-          } else if (attempts >= maxAttempts) {
-            clearInterval(checkInterval);
-            console.warn('[AcademyLoader] Runtime wait timeout, continuing...');
-            resolve();
-          }
-        }, 100);
-      });
-    }
+    // ============================================================
+    // 3. PRIVATE — Manifest
+    // ============================================================
 
+    /**
+     * 加载 Manifest
+     * @private
+     */
     async _loadManifest() {
-      console.log('[AcademyLoader] Loading Manifest...');
+      console.log('[AcademyLoader] 📋 Loading Manifest...');
+
       const manifest = window.LawAIApp?.AcademyManifest;
+
       if (!manifest) {
-        console.warn('[AcademyLoader] Manifest not found, using defaults');
-        this._manifest = this._getDefaultManifest();
-        if (!window.LawAIApp) window.LawAIApp = {};
-        window.LawAIApp.AcademyManifest = this._manifest;
-      } else {
-        this._manifest = manifest;
+        console.warn('[AcademyLoader] Manifest not found, using empty modules');
+        this._manifest = { modules: [] };
+        return;
       }
-      this._state.manifestLoaded = true;
-      console.log('[AcademyLoader] ✅ Manifest loaded (v' + this._manifest.version + ')');
+
+      this._manifest = manifest;
+      console.log('[AcademyLoader] ✅ Manifest loaded (v' + manifest.version + ')');
+      console.log('[AcademyLoader] 📦 Modules defined:', manifest.modules?.length || 0);
     }
 
-        // ============================================================
-    // 🔥 独立方法 — Academy Module Loader
     // ============================================================
-    async _loadSingleModule(module) {
-      return new Promise((resolve) => {
-        const check = this._checkModuleExists(module.id);
+    // 4. PRIVATE — Module Loading
+    // ============================================================
 
-        if (check.exists) {
-          console.log('[AcademyLoader] ⏭️ Module already exists:', module.id);
-          resolve(true);
-          return;
+    /**
+     * 加载所有模块
+     * @private
+     */
+    async _loadModules() {
+      const modules = this._manifest?.modules || [];
+
+      if (modules.length === 0) {
+        console.warn('[AcademyLoader] No modules to load');
+        return;
+      }
+
+      console.log('[AcademyLoader] 📦 Loading', modules.length, 'modules...');
+
+      // 按顺序加载
+      for (let i = 0; i < modules.length; i++) {
+        const module = modules[i];
+        const result = await this._loadSingleModule(module);
+
+        if (result.success) {
+          this.loadedModules.push(module.id);
+          console.log('[AcademyLoader] ✅ [' + (i + 1) + '/' + modules.length + '] ' + module.id + ' loaded');
+        } else {
+          this.failedModules.push(module.id);
+          console.warn('[AcademyLoader] ⚠️ [' + (i + 1) + '/' + modules.length + '] ' + module.id + ' failed: ' + result.error);
         }
+      }
 
-        const script = document.createElement('script');
-        script.src = module.path;
-        script.async = false;
-
-        let resolved = false;
-
-        const finish = (success) => {
-          if (resolved) return;
-          resolved = true;
-          resolve(success);
-        };
-
-        script.onload = () => {
-          console.log('[AcademyLoader] ✅ Loaded:', module.id);
-          finish(true);
-        };
-
-        script.onerror = () => {
-          console.warn('[AcademyLoader] ❌ Failed loading:', module.id, module.path);
-          finish(false);
-        };
-
-        document.head.appendChild(script);
+      // 广播模块加载完成
+      this._broadcast('ACADEMY_MODULES_READY', {
+        loaded: this.loadedModules,
+        failed: this.failedModules,
+        total: modules.length
       });
+
+      console.log('[AcademyLoader] 📦 Module loading complete:', this.loadedModules.length + ' loaded, ' + this.failedModules.length + ' failed');
     }
+
+    // ============================================================
+    // 5. PRIVATE — Single Module Loader
+    // ============================================================
+
+    /**
+     * 加载单个模块
+     * @param {Object} module — { id, path, required? }
+     * @returns {Promise<{success: boolean, error?: string}>}
+     */
+    async _loadSingleModule(module) {
+      // 检查是否已存在
+      const exists = this._checkModuleExists(module.id);
+      if (exists) {
+        console.log('[AcademyLoader] ⏭️ Module already exists:', module.id);
+        return { success: true };
+      }
+
+      // 检查路径是否有效
+      if (!module.path) {
+        return { success: false, error: 'No path specified' };
+      }
+
+      // 动态加载脚本
+      return new Promise((resolve) => {
         const script = document.createElement('script');
         script.src = module.path;
         script.async = false;
 
         let resolved = false;
 
-        script.onload = function() {
-          if (resolved) return;
-          resolved = true;
-          const checkAfter = this._checkModuleExists(module.id);
-          if (checkAfter.exists) {
-            resolve(true);
-          } else {
-            console.warn('[AcademyLoader] ⚠️ Module loaded but not registered:', module.id);
-            resolve(false);
-          }
-        }.bind(this);
-
-        script.onerror = function() {
-          if (resolved) return;
-          resolved = true;
-          console.warn('[AcademyLoader] ❌ Failed to load:', module.path);
-          resolve(false);
-        }.bind(this);
-
-        const timeout = setTimeout(function() {
+        // 超时保护
+        const timeout = setTimeout(() => {
           if (resolved) return;
           resolved = true;
           console.warn('[AcademyLoader] ⏰ Timeout loading:', module.path);
-          resolve(false);
-        }, 8000);
+          resolve({ success: false, error: 'Timeout' });
+        }, 10000);
 
-        const originalOnload = script.onload;
-        script.onload = function() {
+        script.onload = () => {
+          if (resolved) return;
+          resolved = true;
           clearTimeout(timeout);
-          originalOnload.call(this);
-        }.bind(this);
+
+          // 检查加载后是否存在
+          const existsAfter = this._checkModuleExists(module.id);
+          if (existsAfter) {
+            resolve({ success: true });
+          } else {
+            console.warn('[AcademyLoader] ⚠️ Module loaded but not registered:', module.id);
+            resolve({ success: false, error: 'Not registered after load' });
+          }
+        };
+
+        script.onerror = () => {
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(timeout);
+          console.warn('[AcademyLoader] ❌ Failed to load:', module.path);
+          resolve({ success: false, error: 'Load error' });
+        };
 
         document.head.appendChild(script);
-      }.bind(this));
+      });
     }
 
-    _checkModuleExists: function(moduleId) {
-      const mapping = {
-        'schoolRegistry': function() { return !!window.LawAIApp?.SchoolRegistry; },
-        'programRegistry': function() { return !!window.LawAIApp?.ProgramRegistry; },
-        'courseRegistry': function() { return !!window.LawAIApp?.CourseRegistry; },
-        'curriculumRegistry': function() { return !!window.LawAIApp?.CurriculumRegistry; },
-        'curriculumSeed': function() { return !!window.LawAIApp?.CurriculumSeed; },
-        'academyView': function() { return !!window.LawAIApp?.AcademyView; },
-        'academyExperienceManager': function() { return !!window.LawAIApp?.AcademyExperienceManager; }
-      };
+    // ============================================================
+    // 6. PRIVATE — Module Existence Check
+    // ============================================================
 
-      const check = mapping[moduleId];
-      if (check) {
-        return { exists: check() };
+    /**
+     * 检查模块是否已加载
+     * @param {string} moduleId
+     * @returns {boolean}
+     */
+    _checkModuleExists(moduleId) {
+      // 检查是否已在加载列表中
+      if (this.loadedModules.includes(moduleId)) {
+        return true;
       }
 
+      // 检查全局对象
+      const check = this._moduleChecks[moduleId];
+      if (check && typeof check === 'function') {
+        return check();
+      }
+
+      // 通用检查: LawAIApp[ModuleName]
       const propName = moduleId.charAt(0).toUpperCase() + moduleId.slice(1);
-      return {
-        exists: !!(window.LawAIApp && window.LawAIApp[propName])
-      };
-    }
-
-    async _initializeRegistry() {
-      console.log('[AcademyLoader] Initializing Registry...');
-      
-      const academyRegistry = window.LawAIApp?.AcademyRegistry;
-      if (academyRegistry) {
-        if (!academyRegistry.initialized) {
-          academyRegistry.initialize();
-        }
-        console.log('[AcademyLoader] ✅ AcademyRegistry initialized');
-      } else {
-        console.warn('[AcademyLoader] AcademyRegistry not available');
-      }
-      
-      const schoolRegistry = window.LawAIApp?.SchoolRegistry;
-      if (schoolRegistry) {
-        if (!schoolRegistry.initialized) {
-          schoolRegistry.initialize();
-        }
-        console.log('[AcademyLoader] ✅ SchoolRegistry initialized');
-      } else {
-        console.warn('[AcademyLoader] SchoolRegistry not available');
-      }
-      
-      this._broadcast('REGISTRY_INITIALIZED', {
-        loaded: this._loadedModules,
-        failed: this._failedModules
-      });
-    }
-
-    async _connectEngines() {
-      console.log('[AcademyLoader] Connecting Engines...');
-      
-      const connected = [];
-      const engineChecks = [
-        { name: 'Academy', check: () => window.LawAIApp?.Academy },
-        { name: 'SchoolEngine', check: () => window.LawAIApp?.SchoolEngine },
-        { name: 'CurriculumFactory', check: () => window.LawAIApp?.CurriculumFactory },
-        { name: 'LessonEngine', check: () => window.LawAIApp?.LessonEngine },
-        { name: 'LearningJourney', check: () => window.LawAIApp?.LearningJourney },
-        { name: 'ProgressEngine', check: () => window.LawAIApp?.ProgressEngine }
-      ];
-      
-      engineChecks.forEach(({ name, check }) => {
-        const exists = !!check();
-        if (exists) {
-          connected.push(name);
-          console.log('[AcademyLoader] ✅ ' + name + ' connected');
-        } else {
-          console.log('[AcademyLoader] ⚠️ ' + name + ' not found (optional)');
-        }
-      });
-      
-      this._loadedModules = [...this._loadedModules, ...connected];
-      this._state.enginesConnected = true;
-      this._broadcast('ENGINES_CONNECTED', { connected });
-    }
-
-    async _initializeExperience() {
-      console.log('[AcademyLoader] 🎬 Initializing Academy Experience...');
-
-      const manager = window.LawAIApp?.AcademyExperienceManager;
-
-      if (!manager) {
-        console.warn('[AcademyLoader] AcademyExperienceManager not found');
-        this._state.experienceReady = false;
-        return;
+      if (window.LawAIApp && window.LawAIApp[propName]) {
+        return true;
       }
 
-      if (manager.initialized) {
-        console.log('[AcademyLoader] ✅ AcademyExperienceManager already initialized');
-        this._state.experienceReady = true;
-        this._broadcast('ACADEMY_EXPERIENCE_READY', { status: 'ready' });
-        return;
-      }
-
-      try {
-        manager.init();
-        
-        let attempts = 0;
-        const maxAttempts = 20;
-        
-        await new Promise((resolve) => {
-          const checkMount = function() {
-            attempts++;
-            if (manager.mounted) {
-              console.log('[AcademyLoader] ✅ AcademyExperienceManager mounted');
-              this._state.experienceReady = true;
-              this._broadcast('ACADEMY_EXPERIENCE_READY', { status: 'ready' });
-              resolve();
-            } else if (attempts < maxAttempts) {
-              setTimeout(checkMount, 300);
-            } else {
-              console.warn('[AcademyLoader] ⚠️ AcademyExperienceManager mount timeout');
-              this._state.experienceReady = true;
-              resolve();
-            }
-          }.bind(this);
-          
-          setTimeout(checkMount, 500);
-        }.bind(this));
-
-      } catch (error) {
-        console.error('[AcademyLoader] ❌ Experience init failed:', error);
-        this._state.experienceReady = false;
-      }
-    }
-
-    async _validateReady() {
-      console.log('[AcademyLoader] Validating readiness...');
-      
-      const academy = window.LawAIApp?.Academy;
-      if (academy) {
-        if (typeof academy.status !== 'undefined') {
-          if (academy.status === 'ready') {
-            console.log('[AcademyLoader] ✅ Academy.status = ready');
-          } else {
-            console.log('[AcademyLoader] ⚠️ Academy.status =', academy.status);
-            try {
-              academy.status = 'ready';
-            } catch (e) {}
-          }
-        } else {
-          try {
-            Object.defineProperty(academy, 'status', {
-              value: 'ready',
-              writable: false,
-              enumerable: true
-            });
-          } catch (e) {}
-        }
-      }
-      
-      const registry = window.LawAIApp?.AcademyRegistry;
-      if (registry && registry.isReady && registry.isReady()) {
-        console.log('[AcademyLoader] ✅ AcademyRegistry ready');
-      }
-      
-      const schoolReg = window.LawAIApp?.SchoolRegistry;
-      if (schoolReg && schoolReg.initialized) {
-        console.log('[AcademyLoader] ✅ SchoolRegistry ready');
-      }
-      
-      this._state.ready = true;
-      console.log('[AcademyLoader] ✅ Academy ready');
+      return false;
     }
 
     // ============================================================
-    // Helpers
+    // 7. PRIVATE — Event Helpers
     // ============================================================
 
-    _getDefaultManifest: function() {
-      return {
-        version: '1.0.0',
-        modules: [
-          { id: 'schoolRegistry', path: 'js/academy/schoolRegistry.js', required: true },
-          { id: 'programRegistry', path: 'js/academy/programRegistry.js', required: true },
-          { id: 'courseRegistry', path: 'js/academy/courseRegistry.js', required: true },
-          { id: 'curriculumRegistry', path: 'js/academy/curriculumRegistry.js', required: true },
-          { id: 'curriculumSeed', path: 'js/academy/curriculumSeed.js', required: true },
-          { id: 'academyView', path: 'js/academy/academyView.js', required: true },
-          { id: 'academyExperienceManager', path: 'js/academy/academyExperienceManager.js', required: true }
-        ]
-      };
-    }
-
-    _broadcast: function(event, data) {
+    /**
+     * 广播事件
+     * @param {string} event
+     * @param {Object} data
+     */
+    _broadcast(event, data) {
       const eventName = 'academy:' + event.toLowerCase();
-      
-      if (window.LawAIApp && window.LawAIApp.EventBus) {
-        try {
-          window.LawAIApp.EventBus.emit(eventName, data);
-        } catch (e) {}
-      }
-      
+
       try {
-        const customEvent = new CustomEvent(eventName, { detail: data });
+        // CustomEvent
+        const customEvent = new CustomEvent(eventName, { detail: data || {} });
         document.dispatchEvent(customEvent);
         window.dispatchEvent(customEvent);
-      } catch (e) {}
-      
-      console.log('[AcademyLoader] 📡 Event: ' + event, data);
+      } catch (e) {
+        // 忽略
+      }
+
+      try {
+        // EventBus
+        if (window.LawAIApp && window.LawAIApp.EventBus) {
+          if (typeof window.LawAIApp.EventBus.emit === 'function') {
+            window.LawAIApp.EventBus.emit(eventName, data);
+          }
+        }
+      } catch (e) {
+        // 忽略
+      }
+
+      console.log('[AcademyLoader] 📡 Event:', event, data);
     }
 
-    healthCheck: function() {
+    // ============================================================
+    // 8. PRIVATE — Health Check
+    // ============================================================
+
+    /**
+     * 健康检查
+     * @returns {Object}
+     */
+    healthCheck() {
       return {
         status: this.status,
         health: this.health,
         version: this.version,
-        state: this._state,
-        loadedModules: this._loadedModules.length,
-        failedModules: this._failedModules.length
+        loadedModules: this.loadedModules,
+        failedModules: this.failedModules
       };
     }
 
+    /**
+     * 恢复 Academy
+     * @returns {Promise<Object>}
+     */
     async recover() {
       console.log('[AcademyLoader] 🔧 Attempting recovery...');
-      
+
       if (this.status === 'ready') {
         console.log('[AcademyLoader] Already ready, no recovery needed');
         return this.getStatus();
       }
-      
-      try {
-        const registry = window.LawAIApp?.AcademyRegistry;
-        if (registry && !registry.initialized) {
-          registry.initialize();
-        }
-      } catch (e) {
-        console.error('[AcademyLoader] Recovery failed:', e);
-      }
-      
-      await this._validateReady();
-      
-      if (this._state.ready) {
-        this.status = 'ready';
-        this.health = 'healthy';
-        console.log('[AcademyLoader] ✅ Recovery successful');
-      } else {
-        console.log('[AcademyLoader] ❌ Recovery failed');
-      }
-      
-      return this.getStatus();
+
+      // 重置状态
+      this.status = 'idle';
+      this.health = 'pending';
+      this.started = false;
+      this.startPromise = null;
+
+      return this.start();
     }
   }
 
   // ============================================================
-  // Export
+  // Export — 挂载到全局
   // ============================================================
-
-  var academyLoader = new AcademyLoader();
 
   if (!window.LawAIApp) {
     window.LawAIApp = {};
   }
 
+  const academyLoader = new AcademyLoader();
   window.LawAIApp.AcademyLoader = academyLoader;
 
+  // 确保 Academy.status 存在
   if (!window.LawAIApp.Academy) {
     window.LawAIApp.Academy = {};
   }
-  
   if (typeof window.LawAIApp.Academy.status === 'undefined') {
     Object.defineProperty(window.LawAIApp.Academy, 'status', {
       value: 'pending',
@@ -534,7 +448,7 @@
   console.log('[AcademyLoader] ✅ Module loaded (v' + academyLoader.version + ')');
 
   // ============================================================
-  // Auto-start
+  // Auto-start — 延迟启动
   // ============================================================
 
   function autoStartAcademy() {
@@ -542,19 +456,19 @@
       console.log('[AcademyLoader] Auto-start skipped: already', academyLoader.status);
       return;
     }
-    
+
     console.log('[AcademyLoader] 🔥 Auto-starting...');
     academyLoader.start().catch(function(e) {
       console.warn('[AcademyLoader] Auto-start failed:', e);
     });
   }
 
-  var scheduleFn = window.requestIdleCallback || function(cb) { setTimeout(cb, 300); };
-  
+  const scheduleFn = window.requestIdleCallback || function(cb) { setTimeout(cb, 300); };
+
   scheduleFn(function() {
     autoStartAcademy();
   });
-  
+
   document.addEventListener('RUNTIME_READY', function() {
     console.log('[AcademyLoader] 📡 RUNTIME_READY received, auto-starting...');
     autoStartAcademy();
