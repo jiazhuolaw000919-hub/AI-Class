@@ -4,18 +4,45 @@
    ================================================================ */
 
 /* ==========================================================
-   全局重置 — 消除顶部空白
+   🔥 强制消除顶部空白
    ========================================================== */
 
+/* 消除 #academy-root 的顶部间距 */
 #academy-root {
     padding-top: 0 !important;
     margin-top: 0 !important;
-    min-height: 100vh;
 }
 
-.academy-root > *:first-child {
+/* 消除 #academy-root 第一个子元素的顶部间距 */
+#academy-root > *:first-child {
     margin-top: 0 !important;
     padding-top: 0 !important;
+}
+
+/* 消除 body 的顶部间距 */
+body {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+/* 消除 app 容器的顶部间距 */
+#app {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+/* 如果返回栏是第一个元素，消除它的顶部间距 */
+.academy-back-bar,
+.academy-banner,
+.academy-container {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* 确保页面根容器没有额外空间 */
+html, body {
+    margin: 0;
+    padding: 0;
 }
 
 /* ==========================================================
