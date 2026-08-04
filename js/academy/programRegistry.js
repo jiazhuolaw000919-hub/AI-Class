@@ -139,9 +139,7 @@
                 return programData.id;
             }
 
-            // ============================================================
             // 🔥 修复：更新 School 的 programs 数组
-            // ============================================================
             var schoolRegistry = window.LawAIApp?.SchoolRegistry;
             if (schoolRegistry) {
                 var school = schoolRegistry.getSchool(programData.schoolId);
