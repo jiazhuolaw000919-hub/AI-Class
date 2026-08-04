@@ -1,5 +1,5 @@
-// plannerEngine.js
-LawAIApp.PlannerEngine = {
+// calendarEngineAdapter.js
+LawAIApp.calendarEngineAdapter = {
   generatePlan(timeBlockMinutes = 30) {
     const timeline = LawAIApp.PlannerTimeline.generateTimeline(timeBlockMinutes);
     LawAIApp.StorageEngine.set('dailyPlan', timeline);
