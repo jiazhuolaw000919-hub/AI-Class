@@ -1,15 +1,17 @@
 // js/academy/schoolRegistry.js
-// Part 57.3 — School Registry
+// Part 57.5 — School Registry (Upgrade)
 // Law AI Academy Developer Bible
 //
-// PURPOSE: Manage Academy Schools.
-//          Initial 8 Schools as defined in Part 57.2.
+// PURPOSE: Manage Academy Schools with university-style structure
+//          Initial 3 Schools as defined in Part 57.5 Chapter 5
+//          REUSES: existing SchoolRegistry, extends if needed
 
 (function() {
   'use strict';
 
-  if (window.LawAIApp && window.LawAIApp.SchoolRegistry) {
-    console.warn('[SchoolRegistry] Already exists, skipping...');
+  // 如果已经存在并且已经升级，跳过
+  if (window.LawAIApp && window.LawAIApp.SchoolRegistry && window.LawAIApp.SchoolRegistry._upgraded) {
+    console.log('[SchoolRegistry] Already upgraded, skipping...');
     return;
   }
 
@@ -17,98 +19,52 @@
    * SchoolRegistry
    * 
    * 管理 Academy 的 Schools：
-   * - 8 个初始 Schools
+   * - 3 个初始 Schools (Part 57.5)
    * - School CRUD
    * - School 状态管理
    * - 与 AcademyRegistry 集成
    */
   class SchoolRegistry {
     constructor() {
-      this.version = '1.0.0';
+      this.version = '2.0.0';
+      this._upgraded = true;
       this.initialized = false;
       this._schools = new Map();
       
-      // 默认 8 个 Schools
+      // Part 57.5 Chapter 5 — 3 个 Schools
       this.DEFAULT_SCHOOLS = [
         {
           id: 'school-ai',
           name: 'School of Artificial Intelligence',
-          description: 'Master AI technologies, from foundations to advanced applications',
+          shortName: 'AI School',
+          description: 'AI literacy, tools, automation, agents, and AI systems',
           icon: '🤖',
-          coverImage: '/images/schools/ai.jpg',
-          difficulty: 'beginner',
+          color: '#4a9eff',
           status: 'active',
-          programs: []
-        },
-        {
-          id: 'school-tech',
-          name: 'School of Technology',
-          description: 'Build the future with cutting-edge tech skills',
-          icon: '⚡',
-          coverImage: '/images/schools/tech.jpg',
-          difficulty: 'beginner',
-          status: 'active',
-          programs: []
-        },
-        {
-          id: 'school-automation',
-          name: 'School of Automation',
-          description: 'Automate workflows and build intelligent systems',
-          icon: '🔧',
-          coverImage: '/images/schools/automation.jpg',
-          difficulty: 'intermediate',
-          status: 'active',
-          programs: []
-        },
-        {
-          id: 'school-data',
-          name: 'School of Data & Analytics',
-          description: 'Turn data into decisions with analytics and insights',
-          icon: '📊',
-          coverImage: '/images/schools/data.jpg',
-          difficulty: 'beginner',
-          status: 'active',
-          programs: []
+          programs: [],
+          createdAt: new Date().toISOString()
         },
         {
           id: 'school-business',
           name: 'School of Business',
-          description: 'Lead with business strategy and innovation',
+          shortName: 'Business School',
+          description: 'Business strategy, entrepreneurship, management, finance, and productivity',
           icon: '💼',
-          coverImage: '/images/schools/business.jpg',
-          difficulty: 'intermediate',
+          color: '#10b981',
           status: 'active',
-          programs: []
+          programs: [],
+          createdAt: new Date().toISOString()
         },
         {
-          id: 'school-creative',
-          name: 'School of Creative Media',
-          description: 'Create compelling content with media and design',
-          icon: '🎨',
-          coverImage: '/images/schools/creative.jpg',
-          difficulty: 'beginner',
+          id: 'school-technology',
+          name: 'School of Technology',
+          shortName: 'Tech School',
+          description: 'Software development, mobile development, game development, and system design',
+          icon: '⚡',
+          color: '#f59e0b',
           status: 'active',
-          programs: []
-        },
-        {
-          id: 'school-growth',
-          name: 'School of Personal Growth',
-          description: 'Develop yourself and grow your potential',
-          icon: '🌱',
-          coverImage: '/images/schools/growth.jpg',
-          difficulty: 'beginner',
-          status: 'active',
-          programs: []
-        },
-        {
-          id: 'school-ai-engineering',
-          name: 'School of AI Engineering',
-          description: 'Build production-ready AI systems at scale',
-          icon: '🏗️',
-          coverImage: '/images/schools/ai-engineering.jpg',
-          difficulty: 'advanced',
-          status: 'active',
-          programs: []
+          programs: [],
+          createdAt: new Date().toISOString()
         }
       ];
     }
@@ -119,15 +75,15 @@
 
     /**
      * 初始化 School Registry
-     * 注册默认 8 个 Schools
+     * 注册默认 3 个 Schools (Part 57.5)
      */
     initialize() {
       if (this.initialized) {
-        console.warn('[SchoolRegistry] Already initialized');
+        console.log('[SchoolRegistry] Already initialized');
         return this;
       }
 
-      console.log('[SchoolRegistry] Initializing...');
+      console.log('[SchoolRegistry] 🏛️ Initializing...');
 
       try {
         // 注册默认 Schools
@@ -140,6 +96,12 @@
         
         // 同步到 AcademyRegistry
         this._syncToAcademyRegistry();
+
+        // 广播事件
+        this._emit('SCHOOL_REGISTRY_READY', {
+          schools: this.getAll(),
+          count: this._schools.size
+        });
 
       } catch (error) {
         console.error('[SchoolRegistry] Initialization failed:', error);
@@ -158,11 +120,11 @@
      * @returns {string} schoolId
      */
     register(schoolData) {
-      if (!schoolData.id) {
-        throw new Error('[SchoolRegistry] School: id is required');
-      }
-      if (!schoolData.name) {
-        throw new Error('[SchoolRegistry] School: name is required');
+      // 验证
+      const validation = this.validate(schoolData);
+      if (!validation.valid) {
+        console.warn('[SchoolRegistry] Validation failed:', validation.errors);
+        return null;
       }
 
       if (this._schools.has(schoolData.id)) {
@@ -173,39 +135,90 @@
       const school = {
         ...schoolData,
         registeredAt: new Date().toISOString(),
+        createdAt: schoolData.createdAt || new Date().toISOString(),
         status: schoolData.status || 'active',
         programs: schoolData.programs || []
       };
 
       this._schools.set(schoolData.id, school);
-      console.log('[SchoolRegistry] School registered:', school.name);
+      
+      this._emit('SCHOOL_REGISTERED', {
+        schoolId: school.id,
+        name: school.name
+      });
 
+      console.log('[SchoolRegistry] ✅ Registered:', school.name);
       return school.id;
     }
 
     /**
-     * 获取 School
+     * 获取 School (别名: get)
      * @param {string} schoolId
      * @returns {Object|null}
      */
-    get(schoolId) {
+    getSchool(schoolId) {
       return this._schools.get(schoolId) || null;
     }
 
     /**
-     * 获取所有 Schools
+     * 获取 School (别名)
+     * @param {string} schoolId
+     * @returns {Object|null}
+     */
+    get(schoolId) {
+      return this.getSchool(schoolId);
+    }
+
+    /**
+     * 获取所有 Schools (别名: getAll)
+     * @returns {Array}
+     */
+    getAllSchools() {
+      return Array.from(this._schools.values());
+    }
+
+    /**
+     * 获取所有 Schools (别名)
      * @returns {Array}
      */
     getAll() {
-      return Array.from(this._schools.values());
+      return this.getAllSchools();
     }
 
     /**
      * 获取活跃 Schools
      * @returns {Array}
      */
+    getActiveSchools() {
+      return this.getAllSchools().filter(s => s.status === 'active');
+    }
+
+    /**
+     * 获取活跃 Schools (别名)
+     * @returns {Array}
+     */
     getActive() {
-      return this.getAll().filter(s => s.status === 'active');
+      return this.getActiveSchools();
+    }
+
+    /**
+     * 验证学校数据
+     * @param {Object} data
+     * @returns {Object} { valid, errors }
+     */
+    validate(data) {
+      const errors = [];
+
+      if (!data.id) errors.push('id is required');
+      if (!data.name) errors.push('name is required');
+      if (data.status && !['active', 'inactive', 'archived'].includes(data.status)) {
+        errors.push('status must be: active, inactive, archived');
+      }
+
+      return {
+        valid: errors.length === 0,
+        errors: errors
+      };
     }
 
     /**
@@ -378,6 +391,7 @@
         totalSchools: this._schools.size,
         activeSchools: this.getActive().length,
         defaultSchools: this.DEFAULT_SCHOOLS.length,
+        upgraded: this._upgraded,
         timestamp: new Date().toISOString()
       };
     }
@@ -387,15 +401,30 @@
      * @returns {Object}
      */
     getStats() {
+      const schools = this.getAll();
       return {
-        totalSchools: this._schools.size,
+        totalSchools: schools.length,
         activeSchools: this.getActive().length,
-        inactiveSchools: this.getAll().filter(s => s.status === 'inactive').length,
-        schoolsByDifficulty: {
-          beginner: this.filterByDifficulty('beginner').length,
-          intermediate: this.filterByDifficulty('intermediate').length,
-          advanced: this.filterByDifficulty('advanced').length
-        }
+        inactiveSchools: schools.filter(s => s.status === 'inactive').length,
+        schools: schools.map(s => ({
+          id: s.id,
+          name: s.name,
+          programCount: s.programs?.length || 0,
+          status: s.status
+        }))
+      };
+    }
+
+    /**
+     * 获取状态
+     * @returns {Object}
+     */
+    getStatus() {
+      return {
+        initialized: this.initialized,
+        version: this.version,
+        upgraded: this._upgraded,
+        schoolCount: this._schools.size
       };
     }
 
@@ -407,6 +436,24 @@
       this.initialized = false;
       console.log('[SchoolRegistry] Reset');
       return this;
+    }
+
+    // ============================================
+    // Private — Event Helpers
+    // ============================================
+
+    _emit(eventName, data) {
+      try {
+        const event = new CustomEvent(eventName, { detail: data || {} });
+        document.dispatchEvent(event);
+        window.dispatchEvent(event);
+
+        if (window.LawAIApp?.EventBus && typeof window.LawAIApp.EventBus.emit === 'function') {
+          window.LawAIApp.EventBus.emit(eventName, data);
+        }
+      } catch (err) {
+        // 忽略
+      }
     }
   }
 
@@ -420,8 +467,60 @@
     window.LawAIApp = {};
   }
 
-  window.LawAIApp.SchoolRegistry = schoolRegistry;
+  // 如果已存在，合并升级而不是覆盖
+  if (window.LawAIApp.SchoolRegistry) {
+    console.log('[SchoolRegistry] Merging with existing...');
+    const existing = window.LawAIApp.SchoolRegistry;
+    
+    // 复制新方法
+    Object.keys(schoolRegistry).forEach(function(key) {
+      if (typeof schoolRegistry[key] === 'function' && !existing[key]) {
+        existing[key] = schoolRegistry[key].bind(schoolRegistry);
+      }
+    });
+    
+    // 标记升级
+    existing._upgraded = true;
+    existing.version = '2.0.0';
+    
+    // 添加默认学校（如果不存在）
+    schoolRegistry.DEFAULT_SCHOOLS.forEach(function(s) {
+      if (!existing._schools || !existing._schools.has(s.id)) {
+        if (!existing._schools) existing._schools = new Map();
+        existing._schools.set(s.id, { ...s });
+      }
+    });
+    
+    // 确保 initialized
+    if (!existing.initialized) {
+      existing.initialized = true;
+    }
+    
+    console.log('[SchoolRegistry] ✅ Merged with existing');
+  } else {
+    window.LawAIApp.SchoolRegistry = schoolRegistry;
+    console.log('[SchoolRegistry] ✅ New instance created');
+  }
 
-  console.log('[SchoolRegistry] Module loaded (Part 57.3)');
+  console.log('[SchoolRegistry] Module loaded (Part 57.5)');
+
+  // ============================================
+  // Auto-Initialize
+  // ============================================
+
+  function autoInit() {
+    const reg = window.LawAIApp.SchoolRegistry;
+    if (!reg.initialized) {
+      reg.initialize();
+    }
+  }
+
+  if (document.readyState === 'complete') {
+    setTimeout(autoInit, 100);
+  } else {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(autoInit, 100);
+    });
+  }
 
 })();
