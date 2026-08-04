@@ -252,6 +252,48 @@
             return this;
         },
 
+                /**
+         * 🔥 Part 58.3: 选择 Module
+         */
+        selectModule: function(moduleId) {
+            console.log('[AcademyExperienceManager] 📍 Selecting module:', moduleId);
+
+            // 验证 Module 存在
+            var academyRegistry = window.LawAIApp?.AcademyRegistry;
+            if (!academyRegistry) {
+                console.warn('[AcademyExperienceManager] AcademyRegistry not available');
+                return this;
+            }
+
+            var module = academyRegistry.getModule(moduleId);
+            if (!module) {
+                console.warn('[AcademyExperienceManager] Module not found:', moduleId);
+                return this;
+            }
+
+            // 更新状态
+            this._state.currentModuleId = moduleId;
+            this._state.viewMode = 'module';
+
+            // 通知 LearningJourneyAdapter
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            if (adapter && typeof adapter.selectModule === 'function') {
+                adapter.selectModule(moduleId, this._state.currentCourseId);
+            }
+
+            this.render();
+            this._emit('ACADEMY_VIEW_CHANGED', {
+                viewMode: 'module',
+                currentModuleId: moduleId,
+                currentCourseId: this._state.currentCourseId,
+                currentProgramId: this._state.currentProgramId,
+                currentSchoolId: this._state.currentSchoolId
+            });
+
+            console.log('[AcademyExperienceManager] ✅ Module selected:', moduleId);
+            return this;
+        },
+
         goHome: function() {
             console.log('[AcademyExperienceManager] 🏠 Going home...');
 
