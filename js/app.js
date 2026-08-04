@@ -483,6 +483,8 @@ window.App = {
             this._fallbackTimer = null;
         }.bind(this), 3000);
 
+    },
+
         // ============================================================
         // 🔥 NEW METHOD: Load Academy Experience (Part 57.3)
         // ============================================================
@@ -500,9 +502,7 @@ window.App = {
                 this._startAcademy();
                 return;
             }
-
             console.log('[App] 🏛️ Loading Academy Experience Layer...');
-
             // 动态加载 academyLoader.js
             var script = document.createElement('script');
             script.src = 'js/academy/academyLoader.js';
@@ -518,7 +518,6 @@ window.App = {
                     this._loadAcademyExperience();
                 }.bind(this), 2000);
             }.bind(this);
-
             document.head.appendChild(script);
         },
 
@@ -531,17 +530,13 @@ window.App = {
                 console.warn('[App] AcademyLoader not available');
                 return;
             }
-
-            // 检查是否已经启动
             var status = loader.getStatus ? loader.getStatus() : {};
             if (status.status === 'ready' || status.status === 'starting') {
                 console.log('[App] Academy already started, status:', status.status);
                 return;
             }
-
             console.log('[App] 🏛️ Starting Academy...');
-    
-            try {
+                try {
                 var result = loader.start();
                 if (result && typeof result.then === 'function') {
                     result.then(function() {
@@ -558,7 +553,7 @@ window.App = {
             } catch (err) {
                 console.warn('[App] ⚠️ Academy start error:', err);
             }
-    },
+    }
 
     // ============================================================
     // 10. Events
