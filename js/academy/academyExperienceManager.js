@@ -268,12 +268,68 @@
     // 5. PRIVATE — Fallback Render
     // ============================================================
 
-    _renderFallback: function(container, data) {
+   _renderFallback: function(container, data) {
       var schools = data.schools || [];
       var progress = data.progress || null;
 
       var html = `
-        <div style="padding: 32px 24px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
+        <!-- ========================================================== -->
+        <!-- 返回栏 (Back Bar)                                          -->
+        <!-- ========================================================== -->
+        <div style="
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 16px;
+          margin: 12px 16px 20px;
+          background: rgba(255,255,255,0.03);
+          border-radius: 12px;
+          border: 1px solid rgba(255,255,255,0.06);
+          flex-wrap: wrap;
+        ">
+          <button onclick="window.history.back()" style="
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: rgba(74,158,255,0.1);
+            color: #4a9eff;
+            border: 1px solid rgba(74,158,255,0.15);
+            font-family: inherit;
+          " onmouseover="this.style.background='rgba(74,158,255,0.2)'" onmouseout="this.style.background='rgba(74,158,255,0.1)'">
+            <span style="font-size:16px;">←</span> Back
+          </button>
+          <span style="color: #475569; font-size: 14px;">|</span>
+          <a href="/" style="
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: rgba(255,255,255,0.04);
+            color: #94a3b8;
+            border: 1px solid rgba(255,255,255,0.06);
+            text-decoration: none;
+            font-family: inherit;
+          " onmouseover="this.style.background='rgba(255,255,255,0.08)'; this.style.color='#e2e8f0'" onmouseout="this.style.background='rgba(255,255,255,0.04)'; this.style.color='#94a3b8'">
+            <span style="font-size:14px;">🏠</span> Dashboard
+          </a>
+          <span style="color: #64748b; font-size: 13px; margin-left: auto;">🏛️ Academy</span>
+        </div>
+
+        <!-- ========================================================== -->
+        <!-- 主要内容                                                  -->
+        <!-- ========================================================== -->
+        <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
           <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 4px;">🏛️ Law AI Academy</h1>
           <p style="color: #94a3b8; font-size: 14px; margin-bottom: 24px;">Your AI learning journey starts here</p>
       `;
@@ -288,7 +344,7 @@
                 <div style="color: #64748b; font-size: 13px;">${progress.overallProgress || 0}% complete</div>
               </div>
               <button onclick="LawAIApp.AcademyExperienceManager?.continueLearning?.()" 
-                      style="padding: 10px 24px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer;">
+                      style="padding: 10px 24px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; font-family: inherit;">
                 Continue →
               </button>
             </div>
@@ -299,7 +355,7 @@
       if (schools && schools.length > 0) {
         html += `<h2 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">🎓 Schools</h2>`;
         html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">`;
-
+  
         schools.forEach(function(school) {
           html += `
             <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
@@ -327,7 +383,7 @@
 
       html += `</div>`;
       container.innerHTML = html;
-    },
+    }
 
     // ============================================================
     // 6. PRIVATE — Events
