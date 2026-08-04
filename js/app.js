@@ -28,7 +28,8 @@ window.App = {
         maxRetries: 3,
         errors: [],
         bootTimeline: [],
-        version: "5.1.2"
+        version: "5.1.2",
+        academyLoaded: false
     },
 
     get initialized() { return this._state.initialized; },
@@ -440,6 +441,11 @@ window.App = {
             }
             this._hideLoadingState();
             this._emit('APP_RENDERED', { version: this.version, mounted: true });
+            // ============================================================
+            // 🔥 NEW: Load Academy Experience Layer (Part 57.3)
+            // ============================================================
+            this._loadAcademyExperience();
+            // ============================================================
         }.bind(this);
 
         window.addEventListener('COMPOSER_MOUNTED', this._composerHandler);
@@ -448,6 +454,7 @@ window.App = {
             console.log("✅ SystemComposer already initialized, marking as mounted");
             this._state.mounted = true;
             this.markHealthy();
+            this._loadAcademyExperience();
         }
     },
 
@@ -475,6 +482,82 @@ window.App = {
             }
             this._fallbackTimer = null;
         }.bind(this), 3000);
+
+        // ============================================================
+        // 🔥 NEW METHOD: Load Academy Experience (Part 57.3)
+        // ============================================================
+        _loadAcademyExperience: function() {
+            // 防止重复加载
+            if (this._state.academyLoaded) {
+                console.log('[App] Academy already loaded, skipping');
+                return;
+            }
+
+            // 检查 AcademyLoader 是否已经存在（可能被其他方式加载）
+            if (window.LawAIApp?.AcademyLoader) {
+                console.log('[App] AcademyLoader already exists, starting...');
+                this._state.academyLoaded = true;
+                this._startAcademy();
+                return;
+            }
+
+            console.log('[App] 🏛️ Loading Academy Experience Layer...');
+
+            // 动态加载 academyLoader.js
+            var script = document.createElement('script');
+            script.src = 'js/academy/academyLoader.js';
+            script.async = false;
+            script.onload = function() {
+                console.log('[App] ✅ AcademyLoader loaded');
+                this._state.academyLoaded = true;
+                this._startAcademy();
+            }.bind(this);
+            script.onerror = function() {
+                console.warn('[App] ⚠️ AcademyLoader load failed, retrying in 2s...');
+                setTimeout(function() {
+                    this._loadAcademyExperience();
+                }.bind(this), 2000);
+            }.bind(this);
+
+            document.head.appendChild(script);
+        },
+
+        // ============================================================
+        // 🔥 NEW METHOD: Start Academy
+        // ============================================================
+        _startAcademy: function() {
+            var loader = window.LawAIApp?.AcademyLoader;
+            if (!loader) {
+                console.warn('[App] AcademyLoader not available');
+                return;
+            }
+
+            // 检查是否已经启动
+            var status = loader.getStatus ? loader.getStatus() : {};
+            if (status.status === 'ready' || status.status === 'starting') {
+                console.log('[App] Academy already started, status:', status.status);
+                return;
+            }
+
+            console.log('[App] 🏛️ Starting Academy...');
+    
+            try {
+                var result = loader.start();
+                if (result && typeof result.then === 'function') {
+                    result.then(function() {
+                        console.log('[App] ✅ Academy started successfully');
+                        this._emit('ACADEMY_READY', { status: 'ready' });
+                    }.bind(this)).catch(function(err) {
+                        console.warn('[App] ⚠️ Academy start failed:', err);
+                        this._emit('ACADEMY_ERROR', { error: err.message });
+                    }.bind(this));
+                } else {
+                    console.log('[App] ✅ Academy started (sync)');
+                    this._emit('ACADEMY_READY', { status: 'ready' });
+                }
+            } catch (err) {
+                console.warn('[App] ⚠️ Academy start error:', err);
+            }
     },
 
     // ============================================================
