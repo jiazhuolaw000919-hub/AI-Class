@@ -37,7 +37,7 @@
 
             console.log('[AcademyView] Rendering viewMode:', viewMode);
 
-            switch (viewMode) {
+                        switch (viewMode) {
                 case 'school':
                     this._renderSchoolView(container, data.currentSchoolId);
                     break;
@@ -49,6 +49,9 @@
                     break;
                 case 'course-learning':
                     this._renderCourseLearningView(container, data.currentCourseId);
+                    break;
+                case 'module':
+                    this._renderModuleView(container, data.currentModuleId);
                     break;
                 default:
                     this._renderDashboard(container, data);
@@ -563,6 +566,110 @@
                     </div>
                 `;
             }
+
+            html += `</div>`;
+            container.innerHTML = html;
+        },
+
+                /**
+         * 🔥 Part 58.3: Module View
+         */
+        _renderModuleView: function(container, moduleId) {
+            var academyRegistry = window.LawAIApp?.AcademyRegistry;
+            var module = academyRegistry ? academyRegistry.getModule(moduleId) : null;
+
+            if (!module) {
+                container.innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: #94a3b8;">
+                        <p>Module not found</p>
+                        <button onclick="LawAIApp.AcademyExperienceManager?.goHome?.()" 
+                                style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
+                            ← Back to Academy
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            // 获取学习状态
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var state = adapter ? adapter.getState() : null;
+            var moduleProgress = state && state.moduleProgress ? state.moduleProgress[moduleId] || 0 : 0;
+            var isCompleted = state && state.completedModules ? state.completedModules.indexOf(moduleId) !== -1 : false;
+
+            // 获取 Lessons 数量
+            var lessonCount = module.lessons ? module.lessons.length : 0;
+            var completedLessons = 0;
+            if (state && state.completedLessons && module.lessons) {
+                completedLessons = module.lessons.filter(function(lesson) {
+                    return state.completedLessons.indexOf(lesson.id) !== -1;
+                }).length;
+            }
+
+            // 获取 CourseId (从 module 或 state)
+            var courseId = module.courseId || module.programId || state?.currentCourseId || '';
+
+            var html = '';
+
+            // 返回栏 — Back to Course
+            html += `
+                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+                    <button onclick="LawAIApp.AcademyExperienceManager?.navigateToCourse?.('${courseId}')" 
+                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
+                        <span style="font-size:16px;">←</span> Back to Course
+                    </button>
+                    <span style="color: #64748b; font-size: 13px; margin-left: auto;">📋 Module</span>
+                </div>
+            `;
+
+            // Module 头部
+            var statusIcon = isCompleted ? '✅' : '📄';
+            var statusColor = isCompleted ? '#10b981' : '#4a9eff';
+            var statusText = isCompleted ? 'Completed' : 'In Progress';
+
+            html += `
+                <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
+                        <span style="font-size: 40px;">${statusIcon}</span>
+                        <div>
+                            <h1 style="font-size: 24px; font-weight: 700; margin: 0 0 4px 0;">${module.name}</h1>
+                            ${module.description ? `<p style="color: #94a3b8; font-size: 14px; margin: 0;">${module.description}</p>` : ''}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
+                        <span style="color: ${statusColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${statusIcon} ${statusText}</span>
+                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 ${lessonCount} lessons</span>
+                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📊 ${moduleProgress}% complete</span>
+                    </div>
+            `;
+
+            // 进度条
+            if (lessonCount > 0) {
+                var progressPercent = Math.round((completedLessons / lessonCount) * 100);
+                html += `
+                    <div style="margin-top: 16px; background: rgba(74,158,255,0.06); border-radius: 8px; padding: 12px 16px; border: 1px solid rgba(74,158,255,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                            <span style="color: #94a3b8; font-size: 13px;">📊 Lesson Progress</span>
+                            <span style="color: #4a9eff; font-weight: 600;">${completedLessons} / ${lessonCount} (${progressPercent}%)</span>
+                        </div>
+                        <div style="margin-top: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 4px; overflow: hidden;">
+                            <div style="background: linear-gradient(90deg, #4a9eff, #10b981); height: 100%; width: ${Math.min(100, progressPercent)}%; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Lessons Section (Placeholder)
+            html += `
+                <div style="margin-top: 24px;">
+                    <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📖 Lessons</h2>
+                    <div style="text-align: center; padding: 60px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08);">
+                        <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
+                        <p style="font-size: 16px; margin: 0; font-weight: 500;">Lessons are being prepared</p>
+                        <p style="font-size: 14px; margin: 4px 0 0; color: #94a3b8;">Lesson content coming soon</p>
+                    </div>
+                </div>
+            `;
 
             html += `</div>`;
             container.innerHTML = html;
