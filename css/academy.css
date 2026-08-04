@@ -1,10 +1,12 @@
 /* ================================================================
-   academy.css – Academy 设计语言
-   修复：移除顶部空白，紧凑布局
+   academy.css – Academy 设计语言 (限定在 #academy-root 内)
+   修复：不影响 Dashboard
    ================================================================ */
 
+/* 🔥 所有样式只作用于 #academy-root 内部 */
+
 /* ==========================================================
-   全局重置 — 消除顶部空白
+   全局重置 — 消除顶部空白 (仅 Academy)
    ========================================================== */
 
 #academy-root {
@@ -13,26 +15,26 @@
     min-height: 100vh;
 }
 
-.academy-root > *:first-child {
+#academy-root > *:first-child {
     margin-top: 0 !important;
     padding-top: 0 !important;
 }
 
 /* ==========================================================
-   Banner — 紧凑，无多余空白
+   Banner — 仅 Academy
    ========================================================== */
 
-.academy-banner {
+#academy-root .academy-banner {
     background: var(--gradient-hero, linear-gradient(135deg, #1a2a4a 0%, #0b1220 100%));
     border-radius: var(--radius-xl, 16px);
     padding: var(--space-xl, 20px) var(--space-2xl, 28px);
     margin-bottom: var(--space-lg, 16px);
+    margin-top: 0 !important;
     position: relative;
     overflow: hidden;
-    margin-top: 0 !important;
 }
 
-.academy-banner-icon {
+#academy-root .academy-banner-icon {
     position: absolute;
     right: -20px;
     bottom: -40px;
@@ -42,23 +44,23 @@
     z-index: 0;
 }
 
-.academy-banner-content {
+#academy-root .academy-banner-content {
     position: relative;
     z-index: 1;
 }
 
-.academy-banner-header {
+#academy-root .academy-banner-header {
     display: flex;
     align-items: center;
     gap: var(--space-md, 12px);
     flex-wrap: wrap;
 }
 
-.academy-banner-header-icon {
+#academy-root .academy-banner-header-icon {
     font-size: var(--font-size-3xl, 32px);
 }
 
-.academy-banner-header-title {
+#academy-root .academy-banner-header-title {
     font-size: var(--font-size-2xl, 24px);
     font-weight: var(--font-weight-bold, 700);
     letter-spacing: -0.3px;
@@ -66,21 +68,21 @@
     color: var(--color-text-inverse, #ffffff);
 }
 
-.academy-banner-header-sub {
+#academy-root .academy-banner-header-sub {
     font-size: var(--font-size-sm, 14px);
     opacity: 0.7;
     margin: 0;
     max-width: 480px;
 }
 
-.academy-banner-meta {
+#academy-root .academy-banner-meta {
     margin-left: auto;
     display: flex;
     gap: var(--space-xs, 8px);
     flex-wrap: wrap;
 }
 
-.academy-banner-meta-item {
+#academy-root .academy-banner-meta-item {
     font-size: var(--font-size-2xs, 11px);
     background: rgba(255, 255, 255, 0.08);
     padding: var(--space-3xs, 4px) var(--space-md, 12px);
@@ -88,7 +90,7 @@
     color: var(--color-text-inverse, #ffffff);
 }
 
-.academy-banner-progress {
+#academy-root .academy-banner-progress {
     display: flex;
     align-items: center;
     gap: var(--space-xl, 20px);
@@ -98,12 +100,12 @@
     border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.academy-banner-progress-bar {
+#academy-root .academy-banner-progress-bar {
     flex: 1;
     min-width: 120px;
 }
 
-.academy-banner-progress-label {
+#academy-root .academy-banner-progress-label {
     display: flex;
     justify-content: space-between;
     font-size: var(--font-size-xs, 12px);
@@ -111,7 +113,7 @@
     margin-bottom: var(--space-3xs, 4px);
 }
 
-.academy-banner-stats {
+#academy-root .academy-banner-stats {
     display: flex;
     gap: var(--space-md, 12px);
     flex-wrap: wrap;
@@ -119,17 +121,17 @@
     opacity: 0.8;
 }
 
-.academy-banner-stat {
+#academy-root .academy-banner-stat {
     display: inline-flex;
     align-items: center;
     gap: var(--space-3xs, 4px);
 }
 
 /* ==========================================================
-   返回栏 — 紧凑，无顶部空白
+   返回栏 — 仅 Academy
    ========================================================== */
 
-.academy-back-bar {
+#academy-root .academy-back-bar {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -141,15 +143,11 @@
     flex-wrap: wrap;
 }
 
-.academy-back-bar:first-child {
-    margin-top: 0 !important;
-}
-
 /* ==========================================================
-   课程网格
+   课程网格 — 仅 Academy
    ========================================================== */
 
-.academy-grid {
+#academy-root .academy-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-md, 16px);
@@ -157,29 +155,29 @@
     margin-bottom: var(--space-xl, 20px);
 }
 
-.academy-grid-header {
+#academy-root .academy-grid-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--space-md, 16px);
 }
 
-.academy-grid-title {
+#academy-root .academy-grid-title {
     font-size: var(--font-size-md, 16px);
     font-weight: var(--font-weight-semibold, 600);
     color: var(--color-text-primary, #e2e8f0);
 }
 
-.academy-grid-count {
+#academy-root .academy-grid-count {
     font-size: var(--font-size-xs, 12px);
     color: var(--color-text-tertiary, #64748b);
 }
 
 /* ==========================================================
-   课程卡片
+   课程卡片 — 仅 Academy
    ========================================================== */
 
-.academy-card {
+#academy-root .academy-card {
     background: var(--color-bg-card, rgba(255,255,255,0.04));
     border-radius: var(--radius-md, 12px);
     padding: var(--space-lg, 18px) var(--space-xl, 20px);
@@ -190,21 +188,21 @@
     overflow: hidden;
 }
 
-.academy-card:hover {
+#academy-root .academy-card:hover {
     transform: translateY(-2px);
     border-color: var(--color-border-hover, rgba(74,158,255,0.3));
 }
 
-.academy-card-locked {
+#academy-root .academy-card-locked {
     opacity: 0.5;
     cursor: default;
 }
 
-.academy-card-locked:hover {
+#academy-root .academy-card-locked:hover {
     transform: none;
 }
 
-.academy-card-lock {
+#academy-root .academy-card-lock {
     position: absolute;
     top: var(--space-md, 12px);
     right: var(--space-md, 12px);
@@ -212,23 +210,23 @@
     opacity: 0.4;
 }
 
-.academy-card-icon {
+#academy-root .academy-card-icon {
     font-size: var(--font-size-xl, 24px);
     margin-right: var(--space-sm, 8px);
 }
 
-.academy-card-title {
+#academy-root .academy-card-title {
     font-size: var(--font-size-sm, 14px);
     font-weight: var(--font-weight-semibold, 600);
     color: var(--color-text-primary, #e2e8f0);
 }
 
-.academy-card-sub {
+#academy-root .academy-card-sub {
     font-size: var(--font-size-xs, 12px);
     color: var(--color-text-tertiary, #64748b);
 }
 
-.academy-card-meta {
+#academy-root .academy-card-meta {
     display: flex;
     gap: var(--space-sm, 8px);
     font-size: var(--font-size-2xs, 11px);
@@ -237,24 +235,24 @@
     margin: var(--space-xs, 8px) 0;
 }
 
-.academy-card-meta-difficulty {
+#academy-root .academy-card-meta-difficulty {
     font-weight: var(--font-weight-medium, 500);
 }
 
-.academy-card-progress {
+#academy-root .academy-card-progress {
     height: 2px;
     background: var(--color-border-default, rgba(255,255,255,0.08));
     border-radius: var(--radius-full, 999px);
     overflow: hidden;
 }
 
-.academy-card-progress-fill {
+#academy-root .academy-card-progress-fill {
     height: 100%;
     border-radius: var(--radius-full, 999px);
     transition: width var(--duration-slower, 0.6s) var(--ease-smooth, ease);
 }
 
-.academy-card-progress-label {
+#academy-root .academy-card-progress-label {
     display: flex;
     justify-content: space-between;
     font-size: var(--font-size-2xs, 11px);
@@ -263,10 +261,10 @@
 }
 
 /* ==========================================================
-   延迟加载区
+   延迟加载区 — 仅 Academy
    ========================================================== */
 
-.academy-deferred {
+#academy-root .academy-deferred {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-lg, 20px);
@@ -275,35 +273,35 @@
     transition: var(--transition-normal, all 0.3s ease);
 }
 
-.academy-deferred.loaded {
+#academy-root .academy-deferred.loaded {
     opacity: 1;
 }
 
-.academy-deferred-card {
+#academy-root .academy-deferred-card {
     background: var(--color-bg-card, rgba(255,255,255,0.04));
     border-radius: var(--radius-md, 12px);
     padding: var(--space-lg, 18px) var(--space-xl, 20px);
     border: 1px solid var(--color-border-light, rgba(255,255,255,0.06));
 }
 
-.academy-deferred-header {
+#academy-root .academy-deferred-header {
     display: flex;
     align-items: center;
     gap: var(--space-xs, 8px);
     margin-bottom: var(--space-sm, 8px);
 }
 
-.academy-deferred-title {
+#academy-root .academy-deferred-title {
     font-size: var(--font-size-sm, 14px);
     color: var(--color-text-secondary, #94a3b8);
     font-weight: var(--font-weight-regular, 400);
 }
 
 /* ==========================================================
-   推荐项
+   推荐项 — 仅 Academy
    ========================================================== */
 
-.academy-recommendation {
+#academy-root .academy-recommendation {
     display: flex;
     align-items: center;
     gap: var(--space-sm, 8px);
@@ -311,26 +309,26 @@
     border-bottom: 1px solid var(--color-border-light, rgba(255,255,255,0.06));
 }
 
-.academy-recommendation:last-child {
+#academy-root .academy-recommendation:last-child {
     border-bottom: none;
 }
 
-.academy-recommendation-icon {
+#academy-root .academy-recommendation-icon {
     font-size: var(--font-size-sm, 14px);
 }
 
-.academy-recommendation-info {
+#academy-root .academy-recommendation-info {
     flex: 1;
     min-width: 0;
 }
 
-.academy-recommendation-title {
+#academy-root .academy-recommendation-title {
     font-size: var(--font-size-sm, 14px);
     font-weight: var(--font-weight-medium, 500);
     color: var(--color-text-primary, #e2e8f0);
 }
 
-.academy-recommendation-desc {
+#academy-root .academy-recommendation-desc {
     font-size: var(--font-size-xs, 12px);
     color: var(--color-text-tertiary, #64748b);
     white-space: nowrap;
@@ -338,7 +336,7 @@
     text-overflow: ellipsis;
 }
 
-.academy-recommendation-link {
+#academy-root .academy-recommendation-link {
     padding: var(--space-3xs, 4px) var(--space-md, 12px);
     background: rgba(74, 158, 255, 0.08);
     border-radius: var(--radius-full, 999px);
@@ -349,15 +347,15 @@
     flex-shrink: 0;
 }
 
-.academy-recommendation-link:hover {
+#academy-root .academy-recommendation-link:hover {
     background: rgba(74, 158, 255, 0.15);
 }
 
 /* ==========================================================
-   学校标签
+   学校标签 — 仅 Academy
    ========================================================== */
 
-.academy-school {
+#academy-root .academy-school {
     display: inline-flex;
     align-items: center;
     gap: var(--space-3xs, 4px);
@@ -369,39 +367,40 @@
     font-size: var(--font-size-xs, 12px);
 }
 
-.academy-school-active {
+#academy-root .academy-school-active {
     background: rgba(74, 158, 255, 0.06);
     border-color: rgba(74, 158, 255, 0.08);
 }
 
-.academy-school-active:hover {
+#academy-root .academy-school-active:hover {
     background: rgba(74, 158, 255, 0.12);
 }
 
-.academy-school-inactive {
+#academy-root .academy-school-inactive {
     background: var(--color-bg-elevated, rgba(255,255,255,0.02));
 }
 
-.academy-school-inactive:hover {
+#academy-root .academy-school-inactive:hover {
     background: var(--color-bg-elevated-hover, rgba(255,255,255,0.04));
 }
 
-.academy-school-status {
+#academy-root .academy-school-status {
     font-size: var(--font-size-3xs, 10px);
 }
 
-.academy-school-status-active {
+#academy-root .academy-school-status-active {
     color: var(--color-success, #10b981);
 }
-.academy-school-status-soon {
+
+#academy-root .academy-school-status-soon {
     color: var(--color-text-tertiary, #64748b);
 }
 
 /* ==========================================================
-   Academy 标题区 — 无多余空白
+   Academy 标题区 — 仅 Academy
    ========================================================== */
 
-.academy-title {
+#academy-root .academy-title {
     font-size: var(--font-size-2xl, 28px);
     font-weight: var(--font-weight-bold, 700);
     color: var(--color-text-primary, #e2e8f0);
@@ -409,7 +408,7 @@
     padding: 0 !important;
 }
 
-.academy-subtitle {
+#academy-root .academy-subtitle {
     font-size: var(--font-size-sm, 14px);
     color: var(--color-text-tertiary, #94a3b8);
     margin: 0 0 var(--space-lg, 16px) 0 !important;
@@ -417,10 +416,10 @@
 }
 
 /* ==========================================================
-   Academy 容器 — 无顶部空白
+   Academy 容器 — 仅 Academy
    ========================================================== */
 
-.academy-container {
+#academy-root .academy-container {
     padding: 0 16px 32px;
     color: #e2e8f0;
     font-family: 'Inter', -apple-system, sans-serif;
@@ -428,16 +427,16 @@
     margin: 0 auto;
 }
 
-.academy-container > *:first-child {
+#academy-root .academy-container > *:first-child {
     margin-top: 0 !important;
     padding-top: 0 !important;
 }
 
 /* ==========================================================
-   空状态 — 居中，无顶部空白
+   空状态 — 仅 Academy
    ========================================================== */
 
-.academy-empty {
+#academy-root .academy-empty {
     text-align: center;
     padding: 60px 20px;
     background: rgba(255,255,255,0.03);
@@ -445,76 +444,50 @@
     border: 1px dashed rgba(255,255,255,0.08);
 }
 
-.academy-empty-icon {
+#academy-root .academy-empty-icon {
     font-size: 48px;
     margin-bottom: 16px;
 }
 
-.academy-empty-title {
+#academy-root .academy-empty-title {
     font-size: 22px;
     font-weight: 600;
     margin: 0 0 8px 0;
 }
 
-.academy-empty-desc {
+#academy-root .academy-empty-desc {
     color: #94a3b8;
     font-size: 15px;
     margin: 0;
 }
 
 /* ==========================================================
-   响应式
+   响应式 — 仅 Academy
    ========================================================== */
 
 @media (max-width: 600px) {
-    .academy-grid {
+    #academy-root .academy-grid {
         grid-template-columns: 1fr;
     }
-    .academy-deferred {
+    #academy-root .academy-deferred {
         grid-template-columns: 1fr;
     }
-    .academy-banner {
+    #academy-root .academy-banner {
         padding: var(--space-xl, 20px) var(--space-lg, 16px);
     }
-    .academy-banner-header {
+    #academy-root .academy-banner-header {
         flex-direction: column;
         align-items: flex-start;
     }
-    .academy-banner-meta {
+    #academy-root .academy-banner-meta {
         margin-left: 0;
     }
-    .academy-back-bar {
+    #academy-root .academy-back-bar {
         padding: 8px 12px;
         gap: 6px;
         margin: 0 0 12px 0 !important;
     }
-    .academy-title {
+    #academy-root .academy-title {
         font-size: 22px;
     }
-}
-
-/* ==========================================================
-   🚀 消除顶部空白
-   ========================================================== */
-
-html, body, #app, #academy-root {
-    margin: 0 !important;
-    padding: 0 !important;
-    padding-top: 0 !important;
-    margin-top: 0 !important;
-}
-
-#academy-root > *:first-child {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-}
-
-body {
-    padding-top: 0 !important;
-    margin-top: 0 !important;
-}
-
-.academy-back-bar,
-.academy-banner {
-    margin-top: 0 !important;
 }
