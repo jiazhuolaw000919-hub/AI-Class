@@ -1,9 +1,6 @@
 // js/academy/academyExperienceManager.js
-// Part 57.4-57.6 — Academy Experience Manager (升级)
+// Part 57.4-57.6 — Academy Experience Manager (修复版)
 // Law AI Academy Developer Bible
-//
-// PURPOSE: Bridge new Academy architecture with existing systems
-// INTEGRATES: AcademyAIView, SchoolRegistry, ProgramRegistry, CourseRegistry
 
 (function() {
   'use strict';
@@ -13,37 +10,23 @@
     return;
   }
 
-  class AcademyExperienceManager {
-    constructor() {
-      this.version = '6.1.0';
-      this.initialized = false;
-      this.mounted = false;
-      this.status = 'pending';
+  var AcademyExperienceManager = {
+    version: '6.1.0',
+    initialized: false,
+    mounted: false,
+    status: 'pending',
 
-      this._state = {
-        currentSchoolId: null,
-        currentProgramId: null,
-        currentCourseId: null,
-        viewMode: 'dashboard'
-      };
-
-      this._components = {
-        view: null,
-        schoolExplorer: null,
-        programExplorer: null,
-        courseExplorer: null,
-        continueLearning: null,
-        progressView: null
-      };
-    }
+    _state: {
+      currentSchoolId: null,
+      currentProgramId: null,
+      currentCourseId: null,
+      viewMode: 'dashboard'
+    },
 
     // ============================================================
     // 1. PUBLIC API
     // ============================================================
 
-    /**
-     * 初始化 Academy Experience
-     */
     init: function() {
       if (this.initialized) {
         console.log('[AcademyExperienceManager] Already initialized');
@@ -53,20 +36,8 @@
       console.log('[AcademyExperienceManager] 🚀 Initializing...');
 
       try {
-        // 1. 检查 Academy 是否就绪
-        if (!this._isAcademyReady()) {
-          console.warn('[AcademyExperienceManager] Academy not ready, waiting...');
-          this._waitForAcademy();
-          return this;
-        }
-
-        // 2. 初始化所有层
         this._initLayers();
-
-        // 3. 绑定事件
         this._bindEvents();
-
-        // 4. 挂载 UI
         this.mount();
 
         this.initialized = true;
@@ -87,9 +58,6 @@
       return this;
     },
 
-    /**
-     * 挂载 Academy UI
-     */
     mount: function() {
       if (this.mounted) {
         console.log('[AcademyExperienceManager] Already mounted');
@@ -98,24 +66,18 @@
 
       console.log('[AcademyExperienceManager] 📍 Mounting...');
 
-      // 确保容器存在
       var container = document.getElementById('academy-root');
       if (!container) {
         container = this._createContainer();
       }
 
-      // 渲染
       this.render();
-
       this.mounted = true;
-      console.log('[AcademyExperienceManager] ✅ Mounted');
 
+      console.log('[AcademyExperienceManager] ✅ Mounted');
       return this;
     },
 
-    /**
-     * 渲染 Academy
-     */
     render: function() {
       console.log('[AcademyExperienceManager] 🎨 Rendering...');
 
@@ -125,10 +87,8 @@
         return this;
       }
 
-      // 获取数据
       var data = this._getRenderData();
 
-      // 使用 AcademyView 渲染
       if (window.LawAIApp?.AcademyView) {
         window.LawAIApp.AcademyView.render(data);
       } else {
@@ -138,9 +98,6 @@
       return this;
     },
 
-    /**
-     * 刷新 Academy
-     */
     refresh: function() {
       console.log('[AcademyExperienceManager] 🔄 Refreshing...');
       this.render();
@@ -148,9 +105,6 @@
       return this;
     },
 
-    /**
-     * 导航到 School
-     */
     navigateToSchool: function(schoolId) {
       console.log('[AcademyExperienceManager] 📍 Navigating to school:', schoolId);
       this._state.currentSchoolId = schoolId;
@@ -159,9 +113,6 @@
       return this;
     },
 
-    /**
-     * 导航到 Program
-     */
     navigateToProgram: function(programId) {
       console.log('[AcademyExperienceManager] 📍 Navigating to program:', programId);
       this._state.currentProgramId = programId;
@@ -170,9 +121,6 @@
       return this;
     },
 
-    /**
-     * 导航到 Course
-     */
     navigateToCourse: function(courseId) {
       console.log('[AcademyExperienceManager] 📍 Navigating to course:', courseId);
       this._state.currentCourseId = courseId;
@@ -181,9 +129,6 @@
       return this;
     },
 
-    /**
-     * 继续学习
-     */
     continueLearning: function() {
       console.log('[AcademyExperienceManager] 📖 Continuing learning...');
 
@@ -204,19 +149,13 @@
       return this;
     },
 
-    /**
-     * 获取状态
-     */
     getStatus: function() {
       return {
         version: this.version,
         initialized: this.initialized,
         mounted: this.mounted,
         status: this.status,
-        state: this._state,
-        components: Object.keys(this._components).filter(function(k) {
-          return this._components[k] !== null;
-        }.bind(this))
+        state: this._state
       };
     },
 
@@ -227,31 +166,26 @@
     _initLayers: function() {
       console.log('[AcademyExperienceManager] Initializing layers...');
 
-      // School Layer
       var schoolRegistry = window.LawAIApp?.SchoolRegistry;
       if (schoolRegistry && !schoolRegistry.initialized) {
         schoolRegistry.initialize();
       }
 
-      // Program Layer
       var programRegistry = window.LawAIApp?.ProgramRegistry;
       if (programRegistry && !programRegistry._initialized) {
         programRegistry.initialize();
       }
 
-      // Course Layer
       var courseRegistry = window.LawAIApp?.CourseRegistry;
       if (courseRegistry && !courseRegistry._initialized) {
         courseRegistry.initialize();
       }
 
-      // Curriculum Registry
       var curriculumRegistry = window.LawAIApp?.CurriculumRegistry;
       if (curriculumRegistry && typeof curriculumRegistry.init === 'function') {
         curriculumRegistry.init();
       }
 
-      // Academy View
       var academyView = window.LawAIApp?.AcademyView;
       if (academyView && typeof academyView.init === 'function') {
         academyView.init();
@@ -265,16 +199,11 @@
     // ============================================================
 
     _getRenderData: function() {
-      var schools = this._getSchools();
-      var programs = this._getPrograms();
-      var courses = this._getCourses();
-      var progress = this._getProgress();
-
       return {
-        schools: schools,
-        programs: programs,
-        courses: courses,
-        progress: progress,
+        schools: this._getSchools(),
+        programs: this._getPrograms(),
+        courses: this._getCourses(),
+        progress: this._getProgress(),
         currentSchoolId: this._state.currentSchoolId,
         currentProgramId: this._state.currentProgramId,
         currentCourseId: this._state.currentCourseId,
@@ -323,40 +252,7 @@
     },
 
     // ============================================================
-    // 4. PRIVATE — Academy Readiness
-    // ============================================================
-
-    _isAcademyReady: function() {
-      var loader = window.LawAIApp?.AcademyLoader;
-      if (!loader) return false;
-
-      var status = loader.getStatus ? loader.getStatus() : {};
-      return status.status === 'ready' || status.ready === true;
-    },
-
-    _waitForAcademy: function() {
-      console.log('[AcademyExperienceManager] ⏳ Waiting for Academy...');
-
-      var self = this;
-      var attempts = 0;
-      var maxAttempts = 30;
-
-      var checkInterval = setInterval(function() {
-        attempts++;
-        if (self._isAcademyReady()) {
-          clearInterval(checkInterval);
-          console.log('[AcademyExperienceManager] ✅ Academy ready, initializing...');
-          self.init();
-        } else if (attempts >= maxAttempts) {
-          clearInterval(checkInterval);
-          console.warn('[AcademyExperienceManager] ⚠️ Academy timeout, initializing anyway...');
-          self.init();
-        }
-      }, 200);
-    },
-
-    // ============================================================
-    // 5. PRIVATE — Container
+    // 4. PRIVATE — Container
     // ============================================================
 
     _createContainer: function() {
@@ -369,7 +265,7 @@
     },
 
     // ============================================================
-    // 6. PRIVATE — Fallback Render
+    // 5. PRIVATE — Fallback Render
     // ============================================================
 
     _renderFallback: function(container, data) {
@@ -434,7 +330,7 @@
     },
 
     // ============================================================
-    // 7. PRIVATE — Events
+    // 6. PRIVATE — Events
     // ============================================================
 
     _bindEvents: function() {
@@ -467,7 +363,7 @@
     },
 
     // ============================================================
-    // 8. PRIVATE — Event Helpers
+    // 7. PRIVATE — Event Helpers
     // ============================================================
 
     _emit: function(eventName, data) {
@@ -483,31 +379,29 @@
         // 忽略
       }
     }
-  }
+  };
 
   // ============================================================
   // Export
   // ============================================================
 
-  var manager = new AcademyExperienceManager();
-
   if (!window.LawAIApp) {
     window.LawAIApp = {};
   }
 
-  window.LawAIApp.AcademyExperienceManager = manager;
+  window.LawAIApp.AcademyExperienceManager = AcademyExperienceManager;
 
   console.log('[AcademyExperienceManager] Module loaded (v6.1.0)');
 
   // 自动初始化
   function autoInit() {
     if (document.getElementById('academy-root')) {
-      manager.init();
+      AcademyExperienceManager.init();
     } else {
       var observer = new MutationObserver(function() {
         if (document.getElementById('academy-root')) {
           observer.disconnect();
-          manager.init();
+          AcademyExperienceManager.init();
         }
       });
       observer.observe(document.body, { childList: true, subtree: true });
