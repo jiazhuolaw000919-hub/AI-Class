@@ -536,7 +536,7 @@ window.App = {
                 return;
             }
             console.log('[App] 🏛️ Starting Academy...');
-                try {
+            try {
                 var result = loader.start();
                 if (result && typeof result.then === 'function') {
                     result.then(function() {
