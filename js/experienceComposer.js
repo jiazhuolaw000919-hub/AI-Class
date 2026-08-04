@@ -1,14 +1,7 @@
 // ================================================================
 // ExperienceComposer — Experience Layer Core
 // LAYER: Experience Layer
-// VERSION: 2.1.0 (Academy Integration Patch)
-// 
-// RESPONSIBILITY:
-//   - Feature registration & orchestration
-//   - AcademyLoader integration
-//   - Runtime lifecycle compatibility
-//   - AcademyManifest loading support
-//   - Academy lifecycle events
+// VERSION: 2.1.0
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -21,16 +14,13 @@ LawAIApp.ExperienceComposer = {
     _started: false,
     _features: {},
     _academyLoaded: false,
-    _academyStatus: 'pending', // pending | initializing | ready | failed
-    _viewState: {}, // 替代 DOM 检测的状态管理
+    _academyStatus: 'pending',
+    _viewState: {},
 
     // ============================================================
-    // 1. PUBLIC API — Bootstrap
+    // 1. PUBLIC API
     // ============================================================
 
-    /**
-     * start() — Experience Layer 启动入口
-     */
     start: function() {
         if (this._started) {
             console.log('[ExperienceComposer] Already started');
@@ -50,14 +40,9 @@ LawAIApp.ExperienceComposer = {
         });
 
         console.log('[ExperienceComposer] ✅ Experience Layer started');
-        console.log('[ExperienceComposer] 📦 Registered features:', Object.keys(this._features));
-
         return this.getStatus();
     },
 
-    /**
-     * getStatus() — 获取 Experience 层状态
-     */
     getStatus: function() {
         return {
             initialized: this._initialized,
@@ -70,56 +55,37 @@ LawAIApp.ExperienceComposer = {
         };
     },
 
-    /**
-     * registerFeature() — 注册 Feature
-     */
     registerFeature: function(name, feature) {
         if (!name || !feature) {
             console.warn('[ExperienceComposer] Invalid feature registration');
             return false;
         }
-
         if (this._features[name]) {
             console.warn('[ExperienceComposer] Feature already registered:', name);
             return false;
         }
-
         this._features[name] = {
             ...feature,
             registeredAt: Date.now(),
             status: 'registered'
         };
-
         console.log('[ExperienceComposer] 📦 Feature registered:', name);
         this._emit('FEATURE_REGISTERED', { name, feature: this._features[name] });
-
         return true;
     },
 
-    /**
-     * getFeature() — 获取已注册的 Feature
-     */
     getFeature: function(name) {
         return this._features[name] || null;
     },
 
-    /**
-     * getFeatures() — 获取所有 Features
-     */
     getFeatures: function() {
         return { ...this._features };
     },
 
-    /**
-     * getViewState() — 获取 View 状态（替代 DOM 检测）
-     */
     getViewState: function() {
         return { ...this._viewState };
     },
 
-    /**
-     * setViewState() — 设置 View 状态
-     */
     setViewState: function(key, value) {
         this._viewState[key] = value;
         this._emit('VIEW_STATE_UPDATED', { key, value });
@@ -146,8 +112,7 @@ LawAIApp.ExperienceComposer = {
             this._loadAcademy();
         }.bind(this));
 
-        // 🔥 Academy 生命周期事件监听
-        bus.on('ACADEMY_INITIALIZING', function(data) {
+        bus.on('ACADEMY_INITIALIZING', function() {
             console.log('[ExperienceComposer] 📡 ACADEMY_INITIALIZING');
             this._academyStatus = 'initializing';
             this.setViewState('academy', 'initializing');
@@ -158,10 +123,7 @@ LawAIApp.ExperienceComposer = {
             this._academyLoaded = true;
             this._academyStatus = 'ready';
             this.setViewState('academy', 'ready');
-            
-            // 🔥 验证 Registry 可用性
             this._verifyRegistries();
-
             this._emit('EXPERIENCE_READY', {
                 academy: data,
                 features: Object.keys(this._features)
@@ -227,40 +189,32 @@ LawAIApp.ExperienceComposer = {
     },
 
     // ============================================================
-    // 5. PRIVATE — Academy Integration (核心补丁)
+    // 5. PRIVATE — Academy Integration
     // ============================================================
 
     _loadAcademy: function() {
-        // 防止重复加载
         if (this._academyLoaded) {
             console.log('[ExperienceComposer] Academy already loaded');
             return;
         }
-
-        // 防止重复加载中
         if (this._academyStatus === 'initializing') {
             console.log('[ExperienceComposer] Academy already initializing');
             return;
         }
 
-        // 🔥 发送 ACADEMY_INITIALIZING 事件
         this._academyStatus = 'initializing';
         this.setViewState('academy', 'initializing');
-        this._emit('ACADEMY_INITIALIZING', { 
-            timestamp: Date.now(),
-            loader: 'academyLoader.js'
-        });
+        this._emit('ACADEMY_INITIALIZING', { timestamp: Date.now() });
 
-        // 检查 AcademyLoader 是否已经存在
+        // 加载 AcademyManifest
+        this._loadAcademyManifest();
+
         if (window.LawAIApp?.AcademyLoader) {
             console.log('[ExperienceComposer] AcademyLoader already exists');
             this._academyLoaded = true;
             this._startAcademy();
             return;
         }
-
-        // 🔥 先加载 AcademyManifest（确保存在）
-        this._loadAcademyManifest();
 
         console.log('[ExperienceComposer] 🏛️ Loading AcademyLoader...');
 
@@ -275,9 +229,9 @@ LawAIApp.ExperienceComposer = {
         }.bind(this);
 
         script.onerror = function() {
-            console.warn('[ExperienceComposer] ⚠️ AcademyLoader load failed, retrying in 2s...');
+            console.warn('[ExperienceComposer] ⚠️ AcademyLoader load failed, retrying...');
             this._academyStatus = 'failed';
-            this._emit('ACADEMY_FAILED', { error: 'Loader load failed', retrying: true });
+            this._emit('ACADEMY_FAILED', { error: 'Loader load failed' });
             setTimeout(function() {
                 this._academyStatus = 'pending';
                 this._loadAcademy();
@@ -287,11 +241,7 @@ LawAIApp.ExperienceComposer = {
         document.head.appendChild(script);
     },
 
-    /**
-     * 🔥 NEW: 加载 AcademyManifest
-     */
     _loadAcademyManifest: function() {
-        // 检查是否已经存在
         if (window.LawAIApp?.AcademyManifest) {
             console.log('[ExperienceComposer] ✅ AcademyManifest already exists');
             return;
@@ -305,15 +255,11 @@ LawAIApp.ExperienceComposer = {
 
         script.onload = function() {
             console.log('[ExperienceComposer] ✅ AcademyManifest loaded');
-            if (window.LawAIApp?.AcademyManifest) {
-                console.log('[ExperienceComposer] 📋 Manifest version:', window.LawAIApp.AcademyManifest.version);
-            }
-        }.bind(this);
+        };
 
         script.onerror = function() {
             console.warn('[ExperienceComposer] ⚠️ AcademyManifest load failed (non-critical)');
-            // Manifest 不是必须的，Loader 有默认值
-        }.bind(this);
+        };
 
         document.head.appendChild(script);
     },
@@ -363,9 +309,6 @@ LawAIApp.ExperienceComposer = {
         }
     },
 
-    /**
-     * 🔥 NEW: 验证 Academy Registry 可用性
-     */
     _verifyRegistries: function() {
         console.log('[ExperienceComposer] 🔍 Verifying Academy Registries...');
 
@@ -378,8 +321,6 @@ LawAIApp.ExperienceComposer = {
 
         if (allAvailable) {
             console.log('[ExperienceComposer] ✅ All registries available');
-            
-            // 获取统计信息
             try {
                 var stats = window.LawAIApp.AcademyRegistry?.getStats?.();
                 if (stats) {
@@ -392,8 +333,8 @@ LawAIApp.ExperienceComposer = {
             console.warn('[ExperienceComposer] ⚠️ Some registries missing:', checks);
         }
 
-        this._emit('REGISTRY_VERIFIED', { 
-            checks: checks, 
+        this._emit('REGISTRY_VERIFIED', {
+            checks: checks,
             allAvailable: allAvailable,
             timestamp: Date.now()
         });
@@ -409,7 +350,6 @@ LawAIApp.ExperienceComposer = {
         try {
             var event = new CustomEvent(eventName, { detail: data || {} });
             window.dispatchEvent(event);
-
             if (LawAIApp.EventBus && typeof LawAIApp.EventBus.emit === 'function') {
                 LawAIApp.EventBus.emit(eventName, data);
             }
@@ -419,16 +359,14 @@ LawAIApp.ExperienceComposer = {
     },
 
     // ============================================================
-    // 7. LEGACY — renderExperience (保持原有功能)
+    // 7. LEGACY — renderExperience
     // ============================================================
 
     renderExperience: function(data) {
         var root = document.getElementById('app');
         if (!root) return;
 
-        // 🔥 使用 ViewState 替代 DOM 检测
         if (this._viewState.academy === 'ready' || this._viewState.academy === 'initializing') {
-            // Academy 正在渲染，不覆盖
             console.log('[ExperienceComposer] Academy active, skipping render');
             return;
         }
@@ -442,20 +380,19 @@ LawAIApp.ExperienceComposer = {
     },
 
     // ============================================================
-    // 8. LEGACY — init (保持兼容)
+    // 8. LEGACY — init
     // ============================================================
 
     init: function() {
         console.log('🎬 ExperienceComposer init (legacy)');
         return this.start();
     }
-};
+
+};  // ← 🔥 关键：这里需要 `};` 结束对象
 
 // ============================================================
-// AUTO-INIT (延迟，等待 app.js 调用)
+// AUTO-INIT
 // ============================================================
+console.log('🎬 ExperienceComposer V2.1 loaded');
 
-console.log('🎬 ExperienceComposer V2.1 loaded (Academy Integration Patch)');
-
-// 如果 app.js 调用了 ExperienceComposer.init()，它会触发 start()
-// 不自动启动，避免过早加载
+// 不自动启动，等待 app.js 调用
