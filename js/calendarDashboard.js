@@ -1,12 +1,12 @@
 // ===========================================
-// plannerDashboard.js
+// calendarDashboard.js
 // 智能学习规划器 - 个性化每日学习计划（Phase 54 升级版）
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
 LawAIApp.Views = LawAIApp.Views || {};
 
-LawAIApp.Views.PlannerDashboard = {
+LawAIApp.Views.calendarDashboard = {
     _safeGet: function(key, defaultValue) {
         try {
             if (LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.get === 'function') {
@@ -91,7 +91,7 @@ LawAIApp.Views.PlannerDashboard = {
                                     <span style="font-size:13px;">${task.title || 'Task'}</span>
                                     <small style="color:#94a3b8;display:block;font-size:11px;">${task.description || ''} · ${task.estimatedMinutes || 10} min</small>
                                 </div>
-                                <button onclick="LawAIApp.Views.PlannerDashboard._completeTask('${task.id || ''}')" style="
+                                <button onclick="LawAIApp.Views.calendarDashboard._completeTask('${task.id || ''}')" style="
                                     padding:4px 12px;
                                     background:rgba(34,197,94,0.1);
                                     border:1px solid rgba(34,197,94,0.15);
@@ -136,8 +136,8 @@ LawAIApp.Views.PlannerDashboard = {
         if (select) {
             select.addEventListener('change', function(e) {
                 var minutes = parseInt(e.target.value);
-                LawAIApp.Views.PlannerDashboard._generatePlan(minutes);
-                LawAIApp.Views.PlannerDashboard.render();
+                LawAIApp.Views.calendarDashboard._generatePlan(minutes);
+                LawAIApp.Views.calendarDashboard.render();
             });
         }
     },
@@ -234,4 +234,4 @@ LawAIApp.Views.PlannerDashboard = {
     }
 };
 
-console.log('📅 PlannerDashboard V2.0 ready');
+console.log('📅 calendarDashboard V2.0 ready');
