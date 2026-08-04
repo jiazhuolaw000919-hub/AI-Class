@@ -53,7 +53,7 @@
       this._started = true;
       this._startPromise = this._doStart();
       return this._startPromise;
-    },
+    }
 
     async _doStart() {
       this._startTime = Date.now();
@@ -92,7 +92,7 @@
         this._broadcast('ACADEMY_FAILED', { error: error.message });
         throw error;
       }
-    },
+    }
 
     getStatus() {
       return {
@@ -111,7 +111,7 @@
         duration: this._endTime ? this._endTime - this._startTime : null,
         started: this._started
       };
-    },
+    }
 
     async restart() {
       console.log('[AcademyLoader] 🔄 Restarting Academy...');
@@ -128,7 +128,7 @@
         ready: false
       };
       return this.start();
-    },
+    }
 
     // ============================================================
     // Private Steps
@@ -144,7 +144,7 @@
       this._state.runtimeAvailable = true;
       console.log('[AcademyLoader] ✅ Runtime available');
       this._broadcast('RUNTIME_CHECKED', { available: true });
-    },
+    }
 
     _waitForRuntime() {
       return new Promise((resolve) => {
@@ -162,7 +162,7 @@
           }
         }, 100);
       });
-    },
+    }
 
     async _loadManifest() {
       console.log('[AcademyLoader] Loading Manifest...');
@@ -177,7 +177,7 @@
       }
       this._state.manifestLoaded = true;
       console.log('[AcademyLoader] ✅ Manifest loaded (v' + this._manifest.version + ')');
-    },
+    }
 
     async _loadModulesFromManifest() {
       console.log('[AcademyLoader] 📦 Loading modules from Manifest...');
@@ -213,7 +213,7 @@
         loaded: this._loadedModules,
         failed: this._failedModules
       });
-    },
+    }
 
     // ============================================================
     // 🔥 独立方法 — 不在任何方法内部
@@ -267,7 +267,7 @@
 
         document.head.appendChild(script);
       }.bind(this));
-    },
+    }
 
     _checkModuleExists: function(moduleId) {
       const mapping = {
@@ -289,7 +289,7 @@
       return {
         exists: !!(window.LawAIApp && window.LawAIApp[propName])
       };
-    },
+    }
 
     async _initializeRegistry() {
       console.log('[AcademyLoader] Initializing Registry...');
@@ -318,7 +318,7 @@
         loaded: this._loadedModules,
         failed: this._failedModules
       });
-    },
+    }
 
     async _connectEngines() {
       console.log('[AcademyLoader] Connecting Engines...');
@@ -346,7 +346,7 @@
       this._loadedModules = [...this._loadedModules, ...connected];
       this._state.enginesConnected = true;
       this._broadcast('ENGINES_CONNECTED', { connected });
-    },
+    }
 
     async _initializeExperience() {
       console.log('[AcademyLoader] 🎬 Initializing Academy Experience...');
@@ -396,7 +396,7 @@
         console.error('[AcademyLoader] ❌ Experience init failed:', error);
         this._state.experienceReady = false;
       }
-    },
+    }
 
     async _validateReady() {
       console.log('[AcademyLoader] Validating readiness...');
@@ -435,7 +435,7 @@
       
       this._state.ready = true;
       console.log('[AcademyLoader] ✅ Academy ready');
-    },
+    }
 
     // ============================================================
     // Helpers
@@ -454,7 +454,7 @@
           { id: 'academyExperienceManager', path: 'js/academy/academyExperienceManager.js', required: true }
         ]
       };
-    },
+    }
 
     _broadcast: function(event, data) {
       const eventName = 'academy:' + event.toLowerCase();
@@ -472,7 +472,7 @@
       } catch (e) {}
       
       console.log('[AcademyLoader] 📡 Event: ' + event, data);
-    },
+    }
 
     healthCheck: function() {
       return {
@@ -483,7 +483,7 @@
         loadedModules: this._loadedModules.length,
         failedModules: this._failedModules.length
       };
-    },
+    }
 
     async recover() {
       console.log('[AcademyLoader] 🔧 Attempting recovery...');
