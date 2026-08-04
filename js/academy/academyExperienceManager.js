@@ -264,7 +264,7 @@
         },
 
         // ============================================================
-        // 5. PRIVATE — Fallback Render
+        // 5. PRIVATE — Fallback Render (✅ 返回按钮修复)
         // ============================================================
 
         _renderFallback: function(container, data) {
@@ -272,12 +272,12 @@
 
             var html = '';
 
-            // 返回栏
+            // 返回栏 — Back 按钮改为直接跳转 Dashboard
             html += `
-                <div style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; margin: 12px 16px 20px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="window.history.back()" style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
+                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+                    <a href="/" style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); text-decoration: none; font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back
-                    </button>
+                    </a>
                     <span style="color: #475569; font-size: 14px;">|</span>
                     <a href="/" style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.04); color: #94a3b8; border: 1px solid rgba(255,255,255,0.06); text-decoration: none; font-family: inherit;">
                         <span style="font-size:14px;">🏠</span> Dashboard
@@ -289,12 +289,12 @@
             // 主要内容
             html += `
                 <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
-                    <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 4px;">🏛️ Law AI Academy</h1>
-                    <p style="color: #94a3b8; font-size: 14px; margin-bottom: 24px;">Explore your learning path</p>
+                    <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 4px 0;">🏛️ Law AI Academy</h1>
+                    <p style="color: #94a3b8; font-size: 14px; margin: 0 0 24px 0;">Explore your learning path</p>
             `;
 
             if (schools && schools.length > 0) {
-                html += `<h2 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">🎓 Schools</h2>`;
+                html += `<h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">🎓 Schools</h2>`;
                 html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">`;
 
                 schools.forEach(function(school) {
@@ -304,8 +304,8 @@
                              onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.04)'">
                             <div style="font-size: 32px; margin-bottom: 6px;">${school.icon || '🏛️'}</div>
-                            <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 4px;">${school.name}</h3>
-                            <p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px;">${school.description || ''}</p>
+                            <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 4px 0;">${school.name}</h3>
+                            <p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px 0;">${school.description || ''}</p>
                             <span style="color: #4a9eff; font-size: 13px;">${school.programs?.length || 0} programs</span>
                         </div>
                     `;
@@ -316,7 +316,7 @@
                 html += `
                     <div style="text-align: center; padding: 60px 20px; background: rgba(255,255,255,0.03); border-radius: 16px; border: 1px dashed rgba(255,255,255,0.08);">
                         <div style="font-size: 48px; margin-bottom: 16px;">🚀</div>
-                        <h2 style="font-size: 22px; font-weight: 600; margin: 0 0 8px;">Welcome to Law AI Academy</h2>
+                        <h2 style="font-size: 22px; font-weight: 600; margin: 0 0 8px 0;">Welcome to Law AI Academy</h2>
                         <p style="color: #94a3b8; font-size: 15px; margin: 0;">Schools and programs will appear here soon</p>
                     </div>
                 `;
@@ -327,7 +327,7 @@
         },
 
         // ============================================================
-        // 6. PRIVATE — Events (✅ 修复版)
+        // 6. PRIVATE — Events
         // ============================================================
 
         _bindEvents: function() {
