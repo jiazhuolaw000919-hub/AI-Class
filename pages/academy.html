@@ -141,7 +141,7 @@
     <script src="/js/app.js"></script>
     <!-- 🔥 新增：RecommendationEngine（Academy 推荐路径依赖） -->
     <script src="/js/recommendationEngine.js"></script>
-    <script src="/js/academyAIView.js"></script>
+    <script src="/js/academyIntelligenceView.js"></script>
     <script src="/js/router.js"></script>
 
     <script>
@@ -206,23 +206,23 @@
                 app.appendChild(backBar);
 
                 // 渲染 Academy 内容
-                if (window.LawAIApp?.Views?.AcademyAIView && 
-                    typeof window.LawAIApp.Views.AcademyAIView.render === 'function') {
+                if (window.LawAIApp?.Views?.academyIntelligenceView && 
+                    typeof window.LawAIApp.Views.academyIntelligenceView.render === 'function') {
                     var contentContainer = document.createElement('div');
                     contentContainer.id = 'academy-content';
                     app.appendChild(contentContainer);
-                    window.LawAIApp.Views.AcademyAIView.render(contentContainer);
-                    console.log('✅ Academy rendered via Views.AcademyAIView');
+                    window.LawAIApp.Views.academyIntelligenceView.render(contentContainer);
+                    console.log('✅ Academy rendered via Views.academyIntelligenceView');
                     return;
                 }
 
-                if (window.LawAIApp?.AcademyAIView && 
-                    typeof window.LawAIApp.AcademyAIView.render === 'function') {
+                if (window.LawAIApp?.academyIntelligenceView && 
+                    typeof window.LawAIApp.academyIntelligenceView.render === 'function') {
                     var contentContainer = document.createElement('div');
                     contentContainer.id = 'academy-content';
                     app.appendChild(contentContainer);
-                    window.LawAIApp.AcademyAIView.render(contentContainer);
-                    console.log('✅ Academy rendered via AcademyAIView');
+                    window.LawAIApp.academyIntelligenceView.render(contentContainer);
+                    console.log('✅ Academy rendered via academyIntelligenceView');
                     return;
                 }
 
@@ -239,7 +239,7 @@
                         </p>
                     </div>
                 `;
-                console.warn('⚠️ AcademyAIView not ready, retrying...');
+                console.warn('⚠️ academyIntelligenceView not ready, retrying...');
                 setTimeout(renderAcademy, 500);
             }
 
@@ -249,7 +249,7 @@
             function waitForReady() {
                 if (document.readyState === 'complete' || document.readyState === 'interactive') {
                     setupNav();
-                    if (window.LawAIApp?.Views?.AcademyAIView || window.LawAIApp?.AcademyAIView) {
+                    if (window.LawAIApp?.Views?.academyIntelligenceView || window.LawAIApp?.academyIntelligenceView) {
                         renderAcademy();
                     } else {
                         document.addEventListener('SYSTEM_READY', function() {
