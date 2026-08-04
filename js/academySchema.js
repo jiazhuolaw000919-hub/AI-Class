@@ -1,5 +1,5 @@
-// academyModel.js
-LawAIApp.AcademyModel = {
+// academySchema.js
+LawAIApp.academySchema = {
   // 必须字段及默认值
   schema: {
     id: { required: true, type: 'string', example: 'academy_ai' },
