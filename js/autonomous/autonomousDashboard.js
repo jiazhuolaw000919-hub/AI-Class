@@ -2,7 +2,7 @@
 // autonomousDashboard.js
 // Part 50.7 — Autonomous Runtime Dashboard (FIXED)
 // Version: v5.0.7
-// FIX: RecommendationEngine.getPendingRecommendations → getRecommendations
+// FIX: All class method syntax errors resolved
 // ============================================================
 
 (function() {
@@ -108,7 +108,7 @@
                     var status = window.LawAIApp.Autonomous.getStatus();
                     if (status) {
                         data.state = status.state || 'IDLE';
-                        data.session = status.currentTask?.taskId || null;
+                        data.session = status.currentTask ? status.currentTask.taskId : null;
                         data.activeTasks = status.currentTask ? 1 : 0;
                         data.uptime = status.uptime || null;
                     }
@@ -143,7 +143,7 @@
                 try {
                     var activeTasks = window.LawAIApp.LifecycleManager.getActiveTasks();
                     if (activeTasks) {
-                        tasks.push.apply(tasks, activeTasks);
+                        tasks = tasks.concat(activeTasks);
                     }
                 } catch (e) {
                     // ignore
@@ -173,7 +173,7 @@
 
                     var history = window.LawAIApp.DecisionEngine.getDecisionHistory(10);
                     if (history) {
-                        decisions.push.apply(decisions, history);
+                        decisions = decisions.concat(history);
                     }
                 } catch (e) {
                     // ignore
@@ -184,7 +184,7 @@
         }
 
         // ============================================================
-        // Recommendation View (FIXED)
+        // Recommendation View (FIXED — class method syntax)
         // ============================================================
 
         _getRecommendationData() {
@@ -196,59 +196,59 @@
                     return recommendations;
                 }
 
-                // Try multiple method names
-                var active = null;
-                var pending = null;
-
-                // Method 1: getActiveRecommendations
+                // Try getActiveRecommendations
                 if (typeof engine.getActiveRecommendations === 'function') {
                     try {
-                        active = engine.getActiveRecommendations();
+                        var active = engine.getActiveRecommendations();
                         if (active) {
-                            recommendations.push.apply(recommendations, active);
+                            recommendations = recommendations.concat(active);
                         }
                     } catch (e) {
                         // ignore
                     }
                 }
 
-                // Method 2: getPendingRecommendations (old name)
+                // Try getPendingRecommendations
                 if (typeof engine.getPendingRecommendations === 'function') {
                     try {
-                        pending = engine.getPendingRecommendations();
+                        var pending = engine.getPendingRecommendations();
                         if (pending) {
-                            recommendations.push.apply(recommendations, pending);
+                            recommendations = recommendations.concat(pending);
                         }
                     } catch (e) {
                         // ignore
                     }
                 }
-    
-                // Method 3: getRecommendations with filter (fallback)
+
+                // Try getRecommendations with filter
                 if (typeof engine.getRecommendations === 'function') {
                     try {
                         var filtered = engine.getRecommendations({ status: 'PENDING' });
                         if (filtered) {
-                            filtered.forEach(function(item) {
-                                var exists = recommendations.some(function(r) {
-                                    return r.recommendationId === item.recommendationId;
-                                });
-                                if (!exists) {
-                                    recommendations.push(item);
+                            for (var i = 0; i < filtered.length; i++) {
+                                var exists = false;
+                                for (var j = 0; j < recommendations.length; j++) {
+                                    if (recommendations[j].recommendationId === filtered[i].recommendationId) {
+                                        exists = true;
+                                        break;
+                                    }
                                 }
-                            });
+                                if (!exists) {
+                                    recommendations.push(filtered[i]);
+                                }
+                            }
                         }
                     } catch (e) {
                         // ignore
                     }
                 }
 
-                // Method 4: getRecommendations with no filter (last resort)
+                // Last resort: get all recommendations
                 if (recommendations.length === 0 && typeof engine.getRecommendations === 'function') {
                     try {
                         var all = engine.getRecommendations({ limit: 10 });
                         if (all) {
-                            recommendations.push.apply(recommendations, all);
+                            recommendations = recommendations.concat(all);
                         }
                     } catch (e) {
                         // ignore
@@ -261,12 +261,12 @@
 
             return recommendations;
         }
-        
+
         // ============================================================
-        // Approval View
+        // Approval View (FIXED — class method syntax)
         // ============================================================
 
-        _getApprovalData: function() {
+        _getApprovalData() {
             var approvals = {
                 pending: [],
                 approved: [],
@@ -283,11 +283,16 @@
 
                     var completed = window.LawAIApp.ApprovalBridge.getCompletedRequests(10);
                     if (completed) {
-                        completed.forEach(function(req) {
-                            if (req.result === 'APPROVED') approvals.approved.push(req);
-                            else if (req.result === 'REJECTED') approvals.rejected.push(req);
-                            else if (req.result === 'EXPIRED') approvals.expired.push(req);
-                        });
+                        for (var i = 0; i < completed.length; i++) {
+                            var req = completed[i];
+                            if (req.result === 'APPROVED') {
+                                approvals.approved.push(req);
+                            } else if (req.result === 'REJECTED') {
+                                approvals.rejected.push(req);
+                            } else if (req.result === 'EXPIRED') {
+                                approvals.expired.push(req);
+                            }
+                        }
                     }
                 } catch (e) {
                     // ignore
@@ -301,7 +306,7 @@
         // Execution Plan View
         // ============================================================
 
-        _getPlanData: function() {
+        _getPlanData() {
             var plans = [];
 
             if (window.LawAIApp && window.LawAIApp.ActionPlanner) {
@@ -313,7 +318,7 @@
 
                     var recent = window.LawAIApp.ActionPlanner.getPlans({ limit: 5 });
                     if (recent) {
-                        plans.push.apply(plans, recent);
+                        plans = plans.concat(recent);
                     }
                 } catch (e) {
                     // ignore
@@ -324,10 +329,10 @@
         }
 
         // ============================================================
-        // Statistics
+        // Statistics (FIXED — class method syntax)
         // ============================================================
 
-        _getStatsData: function() {
+        _getStatsData() {
             var stats = {
                 totalTasks: 0,
                 totalDecisions: 0,
@@ -380,13 +385,13 @@
         // Refresh
         // ============================================================
 
-        refresh: function() {
+        refresh() {
             this._refreshData();
             this._emit('dashboardRefreshed', this.getDashboardData());
             return this;
-        },
+        }
 
-        _refreshData: function() {
+        _refreshData() {
             this._data = {
                 status: this._getStatusData(),
                 tasks: this._getTaskData(),
@@ -397,61 +402,64 @@
                 stats: this._getStatsData(),
                 timestamp: Date.now()
             };
-        },
+        }
 
-        _startAutoRefresh: function() {
+        _startAutoRefresh() {
             if (this._refreshInterval) {
                 clearInterval(this._refreshInterval);
             }
 
+            var self = this;
             this._refreshInterval = setInterval(function() {
-                this._refreshData();
-                this._emit('dashboardUpdated', this._data);
-            }.bind(this), this._config.refreshInterval);
+                self._refreshData();
+                self._emit('dashboardUpdated', self._data);
+            }, this._config.refreshInterval);
 
             console.log('[AutonomousDashboard] Auto-refresh started');
-        },
+        }
 
-        _stopAutoRefresh: function() {
+        _stopAutoRefresh() {
             if (this._refreshInterval) {
                 clearInterval(this._refreshInterval);
                 this._refreshInterval = null;
+                console.log('[AutonomousDashboard] Auto-refresh stopped');
             }
-        },
+        }
 
         // ============================================================
         // Listeners
         // ============================================================
 
-        on: function(event, callback) {
+        on(event, callback) {
             if (!this._listeners[event]) {
                 this._listeners[event] = [];
             }
             this._listeners[event].push(callback);
             return this;
-        },
+        }
 
-        _emit: function(event, data) {
+        _emit(event, data) {
             if (this._listeners[event]) {
-                this._listeners[event].forEach(function(cb) {
+                var listeners = this._listeners[event];
+                for (var i = 0; i < listeners.length; i++) {
                     try {
-                        cb(data);
+                        listeners[i](data);
                     } catch (e) {
                         console.error('[AutonomousDashboard] Listener error:', e);
                     }
-                });
+                }
             }
 
             if (window.LawAIApp && window.LawAIApp.Events) {
                 window.LawAIApp.Events.emit('autonomous.' + event, data);
             }
-        },
+        }
 
         // ============================================================
         // Explorer Support
         // ============================================================
 
-        getExplorerData: function() {
+        getExplorerData() {
             var dashboardData = this.getDashboardData();
 
             return {
@@ -462,65 +470,65 @@
                     taskCount: dashboardData.tasks.length,
                     decisionCount: dashboardData.decisions.length,
                     recommendationCount: dashboardData.recommendations.length,
-                    pendingApprovals: dashboardData.approvals && dashboardData.approvals.pending ? dashboardData.approvals.pending.length : 0,
+                    pendingApprovals: dashboardData.approvals ? dashboardData.approvals.pending ? dashboardData.approvals.pending.length : 0 : 0,
                     planCount: dashboardData.plans.length,
                     stats: dashboardData.stats,
                     timestamp: dashboardData.timestamp
                 },
                 config: this._config
             };
-        },
+        }
 
         // ============================================================
         // Integrations
         // ============================================================
 
-        _connectToAutonomousCore: function() {
+        _connectToAutonomousCore() {
             if (window.LawAIApp && window.LawAIApp.Autonomous) {
                 window.LawAIApp.Autonomous.on('taskStarted', this.refresh.bind(this));
                 window.LawAIApp.Autonomous.on('taskCompleted', this.refresh.bind(this));
                 window.LawAIApp.Autonomous.on('stateChanged', this.refresh.bind(this));
                 console.log('[AutonomousDashboard] Connected to Autonomous Core');
             }
-        },
+        }
 
-        _connectToLifecycleManager: function() {
+        _connectToLifecycleManager() {
             if (window.LawAIApp && window.LawAIApp.LifecycleManager) {
                 window.LawAIApp.LifecycleManager.on('taskCreated', this.refresh.bind(this));
                 window.LawAIApp.LifecycleManager.on('taskCompleted', this.refresh.bind(this));
                 window.LawAIApp.LifecycleManager.on('taskStateChanged', this.refresh.bind(this));
                 console.log('[AutonomousDashboard] Connected to Lifecycle Manager');
             }
-        },
+        }
 
-        _connectToDecisionEngine: function() {
+        _connectToDecisionEngine() {
             if (window.LawAIApp && window.LawAIApp.DecisionEngine) {
                 window.LawAIApp.DecisionEngine.on('decisionMade', this.refresh.bind(this));
                 window.LawAIApp.DecisionEngine.on('decisionApproved', this.refresh.bind(this));
                 window.LawAIApp.DecisionEngine.on('decisionCompleted', this.refresh.bind(this));
                 console.log('[AutonomousDashboard] Connected to Decision Engine');
             }
-        },
+        }
 
-        _connectToRecommendationEngine: function() {
+        _connectToRecommendationEngine() {
             if (window.LawAIApp && window.LawAIApp.RecommendationEngine) {
                 window.LawAIApp.RecommendationEngine.on('recommendationCreated', this.refresh.bind(this));
                 window.LawAIApp.RecommendationEngine.on('recommendationApproved', this.refresh.bind(this));
                 window.LawAIApp.RecommendationEngine.on('recommendationRejected', this.refresh.bind(this));
                 console.log('[AutonomousDashboard] Connected to Recommendation Engine');
             }
-        },
+        }
 
-        _connectToApprovalBridge: function() {
+        _connectToApprovalBridge() {
             if (window.LawAIApp && window.LawAIApp.ApprovalBridge) {
                 window.LawAIApp.ApprovalBridge.on('requestSubmitted', this.refresh.bind(this));
                 window.LawAIApp.ApprovalBridge.on('requestApproved', this.refresh.bind(this));
                 window.LawAIApp.ApprovalBridge.on('requestRejected', this.refresh.bind(this));
                 console.log('[AutonomousDashboard] Connected to Approval Bridge');
             }
-        },
+        }
 
-        _connectToActionPlanner: function() {
+        _connectToActionPlanner() {
             if (window.LawAIApp && window.LawAIApp.ActionPlanner) {
                 window.LawAIApp.ActionPlanner.on('planCreated', this.refresh.bind(this));
                 window.LawAIApp.ActionPlanner.on('planStarted', this.refresh.bind(this));
@@ -528,9 +536,9 @@
                 window.LawAIApp.ActionPlanner.on('stepCompleted', this.refresh.bind(this));
                 console.log('[AutonomousDashboard] Connected to Action Planner');
             }
-        },
+        }
 
-        _registerWithExplorer: function() {
+        _registerWithExplorer() {
             if (window.LawAIApp && window.LawAIApp.Runtime && window.LawAIApp.Runtime.Explorer) {
                 try {
                     window.LawAIApp.Runtime.Explorer.register({
@@ -545,17 +553,183 @@
                     console.warn('[AutonomousDashboard] Could not register with Explorer:', e);
                 }
             }
-        },
+        }
 
         // ============================================================
         // Destroy
         // ============================================================
 
-        destroy: function() {
+        destroy() {
             this._stopAutoRefresh();
             this._initialized = false;
             console.log('[AutonomousDashboard] Destroyed');
         }
+    }
+
+    // ============================================================
+    // DevPanel Integration
+    // ============================================================
+
+    function createDashboardPanel() {
+        var dashboard = window.LawAIApp.AutonomousDashboard;
+
+        if (!dashboard) {
+            console.warn('[Dashboard] Cannot create panel: Dashboard not initialized');
+            return null;
+        }
+
+        var attempts = 0;
+        var maxAttempts = 20;
+
+        function tryRegister() {
+            attempts++;
+
+            if (window.LawAIApp && window.LawAIApp.DevPanel) {
+                var panel = {
+                    id: 'autonomous-dashboard',
+                    title: '🤖 Autonomous Runtime',
+                    icon: '⚡',
+                    priority: 50,
+                    render: function(container) {
+                        renderDashboardContent(container);
+                    },
+                    refresh: function() {
+                        if (window.LawAIApp && window.LawAIApp.AutonomousDashboard) {
+                            window.LawAIApp.AutonomousDashboard.refresh();
+                        }
+                    }
+                };
+
+                try {
+                    window.LawAIApp.DevPanel.registerPanel(panel);
+                    console.log('[AutonomousDashboard] DevPanel integration successful');
+                } catch (e) {
+                    console.warn('[AutonomousDashboard] Could not register with DevPanel:', e);
+                }
+            } else if (attempts < maxAttempts) {
+                setTimeout(tryRegister, 500);
+            } else {
+                console.warn('[AutonomousDashboard] DevPanel not available after max attempts');
+            }
+        }
+
+        tryRegister();
+    }
+
+    // ============================================================
+    // Dashboard Renderer
+    // ============================================================
+
+    function renderDashboardContent(container) {
+        var data = window.LawAIApp.AutonomousDashboard.getDashboardData();
+
+        var html = '';
+        html += '<div class="autonomous-dashboard" style="padding: 16px; font-family: monospace; color: #e0e0e0;">';
+
+        // Status
+        html += '<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">';
+        html += '<div style="background: #1a1a2e; padding: 12px; border-radius: 8px; border: 1px solid #2a2a4e;">';
+        html += '<div style="font-size: 11px; color: #888;">State</div>';
+        html += '<div style="font-size: 18px; font-weight: bold; color: ' + (data.status.state === 'IDLE' ? '#4ade80' : '#facc15') + '">' + (data.status.state || 'IDLE') + '</div>';
+        html += '</div>';
+        html += '<div style="background: #1a1a2e; padding: 12px; border-radius: 8px; border: 1px solid #2a2a4e;">';
+        html += '<div style="font-size: 11px; color: #888;">Active Tasks</div>';
+        html += '<div style="font-size: 18px; font-weight: bold; color: #60a5fa;">' + (data.status.activeTasks || 0) + '</div>';
+        html += '</div>';
+        html += '<div style="background: #1a1a2e; padding: 12px; border-radius: 8px; border: 1px solid #2a2a4e;">';
+        html += '<div style="font-size: 11px; color: #888;">Decisions</div>';
+        html += '<div style="font-size: 18px; font-weight: bold; color: #a78bfa;">' + (data.decisions ? data.decisions.length : 0) + '</div>';
+        html += '</div>';
+        html += '<div style="background: #1a1a2e; padding: 12px; border-radius: 8px; border: 1px solid #2a2a4e;">';
+        html += '<div style="font-size: 11px; color: #888;">Pending Approvals</div>';
+        html += '<div style="font-size: 18px; font-weight: bold; color: #f472b6;">' + (data.approvals && data.approvals.pending ? data.approvals.pending.length : 0) + '</div>';
+        html += '</div>';
+        html += '</div>';
+
+        // Sections
+        html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">';
+
+        // Tasks
+        html += '<div style="background: #1a1a2e; border-radius: 8px; padding: 12px; border: 1px solid #2a2a4e;">';
+        html += '<div style="font-size: 12px; font-weight: bold; color: #60a5fa; margin-bottom: 8px;">📋 Active Tasks</div>';
+        if (data.tasks && data.tasks.length > 0) {
+            var sliced = data.tasks.slice(0, 3);
+            for (var i = 0; i < sliced.length; i++) {
+                var t = sliced[i];
+                html += '<div style="font-size: 12px; padding: 4px 0; border-bottom: 1px solid #2a2a4e;">';
+                html += '<span style="color: #4ade80;">●</span> ';
+                html += (t.trigger || 'unknown') + ' ';
+                html += '<span style="color: #888; font-size: 10px;">' + (t.state || 'pending') + '</span>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div style="font-size: 12px; color: #666;">No active tasks</div>';
+        }
+        html += '</div>';
+
+        // Recommendations
+        html += '<div style="background: #1a1a2e; border-radius: 8px; padding: 12px; border: 1px solid #2a2a4e;">';
+        html += '<div style="font-size: 12px; font-weight: bold; color: #a78bfa; margin-bottom: 8px;">💡 Recommendations</div>';
+        if (data.recommendations && data.recommendations.length > 0) {
+            var sliced = data.recommendations.slice(0, 3);
+            for (var i = 0; i < sliced.length; i++) {
+                var r = sliced[i];
+                var color = r.status === 'APPROVED' ? '#4ade80' : r.status === 'REJECTED' ? '#f87171' : '#facc15';
+                html += '<div style="font-size: 12px; padding: 4px 0; border-bottom: 1px solid #2a2a4e;">';
+                html += '<span style="color: ' + color + ';">●</span> ';
+                html += (r.title || 'Recommendation') + ' ';
+                html += '<span style="color: #888; font-size: 10px;">' + (r.status || 'PENDING') + '</span>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div style="font-size: 12px; color: #666;">No recommendations</div>';
+        }
+        html += '</div>';
+
+        // Execution Plans
+        html += '<div style="background: #1a1a2e; border-radius: 8px; padding: 12px; border: 1px solid #2a2a4e;">';
+        html += '<div style="font-size: 12px; font-weight: bold; color: #f472b6; margin-bottom: 8px;">📊 Execution Plans</div>';
+        if (data.plans && data.plans.length > 0) {
+            var sliced = data.plans.slice(0, 3);
+            for (var i = 0; i < sliced.length; i++) {
+                var p = sliced[i];
+                var color = p.status === 'COMPLETED' ? '#4ade80' : p.status === 'FAILED' ? '#f87171' : '#60a5fa';
+                html += '<div style="font-size: 12px; padding: 4px 0; border-bottom: 1px solid #2a2a4e;">';
+                html += '<span style="color: ' + color + ';">●</span> ';
+                html += (p.planId || 'Plan') + ' ';
+                html += '<span style="color: #888; font-size: 10px;">' + (p.progress || 0) + '%</span>';
+                html += '</div>';
+            }
+        } else {
+            html += '<div style="font-size: 12px; color: #666;">No active plans</div>';
+        }
+        html += '</div>';
+
+        // Stats
+        html += '<div style="background: #1a1a2e; border-radius: 8px; padding: 12px; border: 1px solid #2a2a4e;">';
+        html += '<div style="font-size: 12px; font-weight: bold; color: #34d399; margin-bottom: 8px;">📈 Statistics</div>';
+        html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">';
+        html += '<div style="font-size: 11px; color: #888;">Approval Rate</div>';
+        html += '<div style="font-size: 14px; font-weight: bold; color: #4ade80; text-align: right;">' + (data.stats ? data.stats.approvalRate || 0 : 0) + '%</div>';
+        html += '<div style="font-size: 11px; color: #888;">Success Rate</div>';
+        html += '<div style="font-size: 14px; font-weight: bold; color: #60a5fa; text-align: right;">' + (data.stats ? data.stats.executionSuccessRate || 0 : 0) + '%</div>';
+        html += '<div style="font-size: 11px; color: #888;">Total Tasks</div>';
+        html += '<div style="font-size: 14px; font-weight: bold; color: #a78bfa; text-align: right;">' + (data.stats ? data.stats.totalTasks || 0 : 0) + '</div>';
+        html += '<div style="font-size: 11px; color: #888;">Total Decisions</div>';
+        html += '<div style="font-size: 14px; font-weight: bold; color: #f472b6; text-align: right;">' + (data.stats ? data.stats.totalDecisions || 0 : 0) + '</div>';
+        html += '</div>';
+        html += '</div>';
+
+        html += '</div>';
+
+        // Footer
+        html += '<div style="margin-top: 12px; font-size: 10px; color: #444; text-align: right; border-top: 1px solid #1a1a2e; padding-top: 8px;">';
+        html += '⚡ Read-Only | Updated: ' + new Date(data.timestamp).toLocaleTimeString();
+        html += '</div>';
+
+        html += '</div>';
+
+        container.innerHTML = html;
     }
 
     // ============================================================
@@ -591,12 +765,11 @@
         }
     };
 
-    // 自动注册
     if (window.LawAIApp && window.LawAIApp.DevPanel) {
         window.LawAIApp.AutonomousDashboard.registerPanel();
     }
 
     console.log('[AutonomousDashboard] Part 50.7 loaded ✅');
-    console.log('[AutonomousDashboard] FIXED: RecommendationEngine API compatibility');
+    console.log('[AutonomousDashboard] FIXED: All syntax errors resolved');
 
 })();
