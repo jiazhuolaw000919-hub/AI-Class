@@ -1,5 +1,5 @@
-// academyAIData.js
-LawAIApp.AcademyAIData = {
+// academyIntelligenceData.js
+LawAIApp.academyIntelligenceData = {
   academy: {
     id: 'academy_ai_foundation',
     name: 'AI Foundation Academy',
