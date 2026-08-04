@@ -643,21 +643,38 @@
                     </div>
             `;
 
-            // 进度条
-            if (lessonCount > 0) {
-                var progressPercent = Math.round((completedLessons / lessonCount) * 100);
-                html += `
-                    <div style="margin-top: 16px; background: rgba(74,158,255,0.06); border-radius: 8px; padding: 12px 16px; border: 1px solid rgba(74,158,255,0.1);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                            <span style="color: #94a3b8; font-size: 13px;">📊 Lesson Progress</span>
-                            <span style="color: #4a9eff; font-weight: 600;">${completedLessons} / ${lessonCount} (${progressPercent}%)</span>
-                        </div>
-                        <div style="margin-top: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 4px; overflow: hidden;">
-                            <div style="background: linear-gradient(90deg, #4a9eff, #10b981); height: 100%; width: ${Math.min(100, progressPercent)}%; transition: width 0.3s;"></div>
-                        </div>
-                    </div>
-                `;
+                        // 进度条 (使用 adapter 的进度数据)
+            var progressData = adapter ? adapter.getModuleProgress(moduleId) : { progress: 0, completed: false };
+            var displayProgress = progressData.progress || 0;
+            var isCompleted = progressData.completed || false;
+
+            // 计算 Lessons 进度
+            var lessonCount = module.lessons ? module.lessons.length : 0;
+            var completedLessons = 0;
+            if (state && state.completedLessons && module.lessons) {
+                completedLessons = module.lessons.filter(function(lesson) {
+                    return state.completedLessons.indexOf(lesson.id) !== -1;
+                }).length;
             }
+
+            // 进度条
+            html += `
+                <div style="margin-top: 16px; background: rgba(74,158,255,0.06); border-radius: 8px; padding: 12px 16px; border: 1px solid rgba(74,158,255,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                        <span style="color: #94a3b8; font-size: 13px;">📊 Module Progress</span>
+                        <span style="color: #4a9eff; font-weight: 600;">${displayProgress}%</span>
+                    </div>
+                    <div style="margin-top: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 4px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, #4a9eff, ${isCompleted ? '#10b981' : '#4a9eff'}); height: 100%; width: ${Math.min(100, displayProgress)}%; transition: width 0.5s;"></div>
+                    </div>
+                    ${lessonCount > 0 ? `
+                        <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 12px; color: #64748b;">
+                            <span>📖 ${completedLessons} / ${lessonCount} lessons completed</span>
+                            ${isCompleted ? '<span style="color: #10b981;">✅ Completed</span>' : ''}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
 
             // Lessons Section (Placeholder)
             html += `
