@@ -1,5 +1,5 @@
-// academyData.js
-LawAIApp.AcademyData = {
+// academyRegistryData.js
+LawAIApp.academyRegistryData = {
   // 原始数据（符合 Phase 6 规范 + 向后兼容别名）
   academies: [
     // ========== Phase 41 新增：AI Foundation Academy ==========
