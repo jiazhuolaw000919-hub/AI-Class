@@ -553,6 +553,7 @@ window.App = {
             } catch (err) {
                 console.warn('[App] ⚠️ Academy start error:', err);
             }
+        },
 
     // ============================================================
     // 10. Events
@@ -565,7 +566,7 @@ window.App = {
                 window.LawAIApp.EventBus.emit(eventName, data);
             }
         } catch (err) {}
-    };
+    }
 
 };
 
