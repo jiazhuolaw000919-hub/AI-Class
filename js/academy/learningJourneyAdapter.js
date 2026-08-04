@@ -218,6 +218,128 @@
             return this.getState();
         },
 
+                /**
+         * 🔥 Part 58.4: 获取 Module 进度
+         * @param {string} moduleId
+         * @returns {Object} { progress: number, completed: boolean }
+         */
+        getModuleProgress: function(moduleId) {
+            var state = this._journeyState;
+            var progress = state.moduleProgress && state.moduleProgress[moduleId] ? state.moduleProgress[moduleId] : 0;
+            var completed = state.completedModules && state.completedModules.indexOf(moduleId) !== -1;
+
+            return {
+                progress: completed ? 100 : progress,
+                completed: completed
+            };
+        },
+
+        /**
+         * 🔥 Part 58.4: 更新 Module 进度
+         * @param {string} moduleId
+         * @param {number} progress — 0-100
+         * @returns {Object} 更新后的状态
+         */
+        updateModuleProgress: function(moduleId, progress) {
+            console.log('[LearningJourneyAdapter] 📊 Updating module progress:', moduleId, progress);
+
+            var state = this._journeyState;
+            var clampedProgress = Math.min(100, Math.max(0, progress));
+
+            // 初始化 moduleProgress
+            if (!state.moduleProgress) {
+                state.moduleProgress = {};
+            }
+
+            // 更新进度
+            state.moduleProgress[moduleId] = clampedProgress;
+            state.lastActivity = new Date().toISOString();
+
+            // 检查是否完成
+            var wasCompleted = state.completedModules && state.completedModules.indexOf(moduleId) !== -1;
+            var isNowCompleted = clampedProgress >= 100;
+
+            if (isNowCompleted && !wasCompleted) {
+                if (!state.completedModules) {
+                    state.completedModules = [];
+                }
+                state.completedModules.push(moduleId);
+                console.log('[LearningJourneyAdapter] 🎉 Module completed:', moduleId);
+
+                // 发射 MODULE_COMPLETED 事件
+                this._emit('MODULE_COMPLETED', {
+                    moduleId: moduleId,
+                    courseId: state.currentCourseId,
+                    timestamp: Date.now()
+                });
+            }
+
+            // 重新计算整体进度
+            this._recalculateOverallProgress();
+
+            // 保存状态
+            this._saveState();
+            this._syncToLearningStateManager();
+
+            // 广播事件
+            this._emit('LEARNING_PROGRESS_UPDATED', {
+                moduleId: moduleId,
+                progress: clampedProgress,
+                completed: isNowCompleted,
+                state: this._journeyState
+            });
+
+            this._emit('ACADEMY_LEARNING_UPDATED', {
+                moduleId: moduleId,
+                progress: clampedProgress,
+                action: 'module_progress_updated',
+                state: this._journeyState
+            });
+
+            return {
+                progress: clampedProgress,
+                completed: isNowCompleted
+            };
+        },
+
+        /**
+         * 🔥 Part 58.4: 获取 Module 详情 (含进度)
+         * @param {string} moduleId
+         * @returns {Object|null}
+         */
+        getModuleDetail: function(moduleId) {
+            var academyRegistry = window.LawAIApp?.AcademyRegistry;
+            var module = academyRegistry ? academyRegistry.getModule(moduleId) : null;
+
+            if (!module) {
+                return null;
+            }
+
+            var progressData = this.getModuleProgress(moduleId);
+
+            // 获取 Lessons
+            var lessons = [];
+            if (academyRegistry && typeof academyRegistry.getLessonsByModule === 'function') {
+                lessons = academyRegistry.getLessonsByModule(moduleId);
+            }
+
+            var completedLessons = 0;
+            if (this._journeyState.completedLessons && lessons.length > 0) {
+                completedLessons = lessons.filter(function(lesson) {
+                    return this._journeyState.completedLessons.indexOf(lesson.id) !== -1;
+                }.bind(this)).length;
+            }
+
+            return {
+                ...module,
+                lessons: lessons,
+                progress: progressData.progress,
+                completed: progressData.completed,
+                totalLessons: lessons.length,
+                completedLessons: completedLessons
+            };
+        },
+
         initializeCourse: function(courseId, programId) {
             console.log('[LearningJourneyAdapter] 📖 Initializing course:', courseId);
 
