@@ -145,7 +145,7 @@
 
             console.log('[ProgramRegistry] ✅ Initialized with', this._programs.size, 'programs');
             return this;
-        },
+        }
 
         /**
          * 注册 Program
@@ -193,7 +193,7 @@
 
             console.log('[ProgramRegistry] ✅ Registered:', program.name);
             return program.id;
-        },
+        }
 
         /**
          * 获取 Program
@@ -209,7 +209,7 @@
             return this.getAllPrograms().filter(function(p) {
                 return p.schoolId === schoolId;
             });
-        },
+        }
 
         /**
          * 获取所有 Programs
@@ -225,7 +225,7 @@
             return this.getAllPrograms().filter(function(p) {
                 return p.status === 'active';
             });
-        },
+        }
 
         /**
          * 验证 Program 数据
@@ -244,7 +244,7 @@
                 valid: errors.length === 0,
                 errors: errors
             };
-        },
+        }
 
         /**
          * 获取统计
@@ -260,7 +260,7 @@
                     advanced: programs.filter(function(p) { return p.level === 'advanced'; }).length
                 }
             };
-        },
+        }
 
         /**
          * 获取状态
@@ -271,7 +271,7 @@
                 version: this.version,
                 programCount: this._programs.size
             };
-        },
+        }
 
         // ============================================================
         // 2. PRIVATE — Event Helpers
