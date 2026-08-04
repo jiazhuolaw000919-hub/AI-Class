@@ -1,10 +1,9 @@
 // js/academy/academyManifest.js
-// Part 57.3 — Academy Manifest
+// Part 57.4-57.6 — Academy Manifest (升级)
 // Law AI Academy Developer Bible
-// 
-// PURPOSE: Define Academy dependencies and module mapping.
-//          This file is a DECLARATION, not execution.
-//          DO NOT execute logic here.
+//
+// PURPOSE: Define Academy module loading order for Season 3
+// LOADING ORDER: Registry → Curriculum → Experience
 
 (function() {
   'use strict';
@@ -12,22 +11,93 @@
   /**
    * AcademyManifest
    * 
-   * 定义 Academy Experience Layer 的：
-   * - 核心依赖
-   * - 现有 Engine 映射
-   * - 模块版本
-   * - 加载顺序
+   * 定义 Academy 模块加载顺序
    * 
-   * 原则：不执行逻辑，仅声明
+   * 加载顺序 MUST BE:
+   * 1. Registry Layer (schoolRegistry, programRegistry, courseRegistry)
+   * 2. Curriculum Layer (curriculumRegistry, curriculumSeed)
+   * 3. Experience Layer (academyView, academyExperienceManager)
    */
   const ACADEMY_MANIFEST = {
-    version: '1.0.0',
+    version: '2.0.0',
     name: 'Academy Experience Layer',
-    description: 'Law AI Academy — Academic Structure & Learning System',
+    description: 'Law AI Academy — Season 3 Architecture',
 
-    // ============================================
-    // Core Dependencies
-    // ============================================
+    // ============================================================
+    // 模块加载顺序 (按顺序加载)
+    // ============================================================
+    modules: [
+      // ==========================================================
+      // 1. Registry Layer
+      // ==========================================================
+      {
+        id: 'schoolRegistry',
+        path: 'js/academy/schoolRegistry.js',
+        description: 'School Registry',
+        required: true
+      },
+      {
+        id: 'programRegistry',
+        path: 'js/academy/programRegistry.js',
+        description: 'Program Registry',
+        required: true
+      },
+      {
+        id: 'courseRegistry',
+        path: 'js/academy/courseRegistry.js',
+        description: 'Course Registry',
+        required: true
+      },
+
+      // ==========================================================
+      // 2. Curriculum Layer
+      // ==========================================================
+      {
+        id: 'curriculumRegistry',
+        path: 'js/academy/curriculumRegistry.js',
+        description: 'Curriculum Registry (Connector)',
+        required: true
+      },
+      {
+        id: 'curriculumSeed',
+        path: 'js/academy/curriculumSeed.js',
+        description: 'Curriculum Seed Data',
+        required: true
+      },
+
+      // ==========================================================
+      // 3. Experience Layer
+      // ==========================================================
+      {
+        id: 'academyView',
+        path: 'js/academy/academyView.js',
+        description: 'Academy View (Renderer)',
+        required: true
+      },
+      {
+        id: 'academyExperienceManager',
+        path: 'js/academy/academyExperienceManager.js',
+        description: 'Academy Experience Manager (Controller)',
+        required: true
+      }
+    ],
+
+    // ============================================================
+    // 依赖关系
+    // ============================================================
+    dependencies: {
+      schoolRegistry: [],
+      programRegistry: ['schoolRegistry'],
+      courseRegistry: ['programRegistry'],
+      curriculumRegistry: ['schoolRegistry', 'programRegistry', 'courseRegistry'],
+      curriculumSeed: ['curriculumRegistry'],
+      academyView: ['schoolRegistry', 'programRegistry', 'courseRegistry'],
+      academyExperienceManager: ['academyView', 'curriculumRegistry', 'curriculumSeed']
+    },
+
+    // ============================================================
+    // Core Dependencies (保留原有)
+    // ============================================================
     core: [
       {
         id: 'academy',
@@ -49,9 +119,9 @@
       }
     ],
 
-    // ============================================
-    // School Layer
-    // ============================================
+    // ============================================================
+    // School Layer (保留)
+    // ============================================================
     school: [
       {
         id: 'schoolEngine',
@@ -61,9 +131,9 @@
       }
     ],
 
-    // ============================================
-    // Curriculum Layer
-    // ============================================
+    // ============================================================
+    // Curriculum Layer (保留)
+    // ============================================================
     curriculum: [
       {
         id: 'curriculumFactory',
@@ -85,9 +155,9 @@
       }
     ],
 
-    // ============================================
-    // Learning Layer
-    // ============================================
+    // ============================================================
+    // Learning Layer (保留)
+    // ============================================================
     learning: [
       {
         id: 'learningJourney',
@@ -103,9 +173,9 @@
       }
     ],
 
-    // ============================================
-    // Lesson Layer
-    // ============================================
+    // ============================================================
+    // Lesson Layer (保留)
+    // ============================================================
     lesson: [
       {
         id: 'lessonEngine',
@@ -121,9 +191,9 @@
       }
     ],
 
-    // ============================================
+    // ============================================================
     // Course (Legacy) — DO NOT DELETE
-    // ============================================
+    // ============================================================
     course_legacy: [
       {
         id: 'course',
@@ -151,9 +221,9 @@
       }
     ],
 
-    // ============================================
-    // Progress & Certification
-    // ============================================
+    // ============================================================
+    // Progress & Certification (保留)
+    // ============================================================
     progress: [
       {
         id: 'progressEngine',
@@ -169,9 +239,9 @@
       }
     ],
 
-    // ============================================
-    // Engine Mapping (Existing → New)
-    // ============================================
+    // ============================================================
+    // Engine Mapping (保留)
+    // ============================================================
     engineMapping: {
       'academy.js': 'Academy Core',
       'schoolEngine.js': 'School Layer',
@@ -183,9 +253,9 @@
       'certificateEngine.js': 'Certification System'
     },
 
-    // ============================================
-    // Course → Program Migration Strategy
-    // ============================================
+    // ============================================================
+    // Course → Program Migration Strategy (保留)
+    // ============================================================
     courseMigration: {
       enabled: true,
       adapter: 'ProgramAdapter',
@@ -200,9 +270,9 @@
       }
     },
 
-    // ============================================
-    // Runtime Integration
-    // ============================================
+    // ============================================================
+    // Runtime Integration (保留)
+    // ============================================================
     runtimeIntegration: {
       stateSync: true,
       eventSystem: true,
@@ -210,9 +280,9 @@
       knowledgeGraph: true
     },
 
-    // ============================================
-    // Required Events
-    // ============================================
+    // ============================================================
+    // Required Events (保留)
+    // ============================================================
     events: [
       'ACADEMY_INITIALIZED',
       'SCHOOL_REGISTERED',
@@ -221,36 +291,50 @@
       'ACADEMY_READY'
     ],
 
-    // ============================================
-    // Health Checks
-    // ============================================
+    // ============================================================
+    // 健康检查 (升级)
+    // ============================================================
     healthChecks: [
-      'checkRuntimeAvailability',
-      'checkCoreEngines',
-      'checkSchoolEngine',
-      'checkCurriculumEngine',
-      'checkLearningEngine'
+      'LawAIApp.SchoolRegistry',
+      'LawAIApp.ProgramRegistry',
+      'LawAIApp.CourseRegistry',
+      'LawAIApp.CurriculumRegistry',
+      'LawAIApp.CurriculumSeed',
+      'LawAIApp.AcademyView',
+      'LawAIApp.AcademyExperienceManager'
     ]
   };
 
-  // ============================================
+  // ============================================================
   // Export
-  // ============================================
+  // ============================================================
 
   if (!window.LawAIApp) {
     window.LawAIApp = {};
   }
 
-  // 挂载 Manifest（只读声明）
-  Object.defineProperty(window.LawAIApp, 'AcademyManifest', {
-    value: ACADEMY_MANIFEST,
-    writable: false,
-    configurable: false,
-    enumerable: true
-  });
+  // 如果已存在，合并升级
+  if (window.LawAIApp.AcademyManifest) {
+    console.log('[AcademyManifest] Merging with existing...');
+    const existing = window.LawAIApp.AcademyManifest;
+    // 更新版本
+    existing.version = ACADEMY_MANIFEST.version;
+    // 添加 modules 列表
+    existing.modules = ACADEMY_MANIFEST.modules;
+    existing.dependencies = ACADEMY_MANIFEST.dependencies;
+    existing.healthChecks = ACADEMY_MANIFEST.healthChecks;
+    console.log('[AcademyManifest] ✅ Merged (v' + existing.version + ')');
+  } else {
+    // 挂载 Manifest（只读声明）
+    Object.defineProperty(window.LawAIApp, 'AcademyManifest', {
+      value: ACADEMY_MANIFEST,
+      writable: false,
+      configurable: false,
+      enumerable: true
+    });
+    console.log('[AcademyManifest] ✅ Created (v' + ACADEMY_MANIFEST.version + ')');
+  }
 
-  console.log('[AcademyManifest] Loaded (Part 57.3)');
-  console.log('[AcademyManifest] Version:', ACADEMY_MANIFEST.version);
-  console.log('[AcademyManifest] Engines:', Object.keys(ACADEMY_MANIFEST.engineMapping).length);
+  console.log('[AcademyManifest] Modules to load:', ACADEMY_MANIFEST.modules.length);
 
 })();
