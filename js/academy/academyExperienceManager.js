@@ -729,4 +729,249 @@
             var html = '';
 
             html += `
-                <div style="display: flex; align-items: center; gap: 10px; padding
+                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+                    <button onclick="LawAIApp.AcademyExperienceManager?.navigateToProgram?.('${course.programId}')" 
+                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
+                        <span style="font-size:16px;">←</span> Back to Program
+                    </button>
+                    <span style="color: #64748b; font-size: 13px; margin-left: auto;">🏛️ Academy</span>
+                </div>
+            `;
+
+            html += `
+                <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
+                        <span style="font-size: 48px;">📖</span>
+                        <div>
+                            <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 4px 0;">${course.title}</h1>
+                            <p style="color: #94a3b8; font-size: 14px; margin: 0;">${course.description || ''}</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
+                        <span style="color: ${difficultyColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${difficultyEmoji} ${difficultyLabel.charAt(0).toUpperCase() + difficultyLabel.slice(1)}</span>
+                        <span style="color: ${statusColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)}</span>
+                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${course.modules?.length || 0} modules</span>
+                        ${course.estimatedHours ? `<span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">⏱️ ${course.estimatedHours}h</span>` : ''}
+                    </div>
+            `;
+
+            // 学习面板
+            html += `
+                <div style="margin-top: 24px; background: rgba(74,158,255,0.04); border-radius: 12px; padding: 20px; border: 1px solid rgba(74,158,255,0.08);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <div style="font-size: 13px; color: #94a3b8;">📊 Your Progress</div>
+                            <div style="font-size: 24px; font-weight: 700; color: #4a9eff;">${progress}%</div>
+                            <div style="font-size: 12px; color: #64748b;">${courseState?.completedLessons?.length || 0} lessons completed</div>
+                        </div>
+                        <button onclick="LawAIApp.AcademyExperienceManager?.startCourse?.('${courseId}')" 
+                                style="padding: 12px 32px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 16px; cursor: pointer; transition: all 0.2s; font-family: inherit;"
+                                onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
+                            ${progress > 0 ? '📖 Continue Learning' : '🚀 Start Learning'}
+                        </button>
+                    </div>
+                    ${progress > 0 ? `
+                        <div style="margin-top: 12px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 6px; overflow: hidden;">
+                            <div style="background: linear-gradient(90deg, #4a9eff, #10b981); height: 100%; width: ${Math.min(100, progress)}%; transition: width 0.5s;"></div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            // Modules Section (Placeholder)
+            html += `
+                <div style="margin-top: 24px;">
+                    <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📋 Modules</h2>
+                    <div style="text-align: center; padding: 60px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08);">
+                        <div style="font-size: 36px; margin-bottom: 12px;">📝</div>
+                        <p style="font-size: 16px; margin: 0;">Course modules are being prepared</p>
+                        <p style="font-size: 13px; margin: 4px 0 0;">Check back soon for lessons</p>
+                    </div>
+                </div>
+            `;
+
+            html += `</div>`;
+            container.innerHTML = html;
+        },
+
+        /**
+         * 🔥 Part 58.1: Course Learning View
+         */
+        _renderCourseLearningViewFallback: function(container, courseId) {
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            var course = courseRegistry ? courseRegistry.getCourse(courseId) : null;
+
+            if (!course) {
+                container.innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: #94a3b8;">
+                        <p>Course not found</p>
+                        <button onclick="LawAIApp.AcademyExperienceManager?.goHome?.()" 
+                                style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
+                            ← Back to Academy
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            // 获取学习状态
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var state = adapter ? adapter.getState() : null;
+            var progress = state ? state.progress : 0;
+
+            var html = '';
+
+            // 返回栏
+            html += `
+                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+                    <button onclick="LawAIApp.AcademyExperienceManager?.navigateToCourse?.('${courseId}')" 
+                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
+                        <span style="font-size:16px;">←</span> Back to Course
+                    </button>
+                    <span style="color: #64748b; font-size: 13px; margin-left: auto;">📖 Learning Mode</span>
+                </div>
+            `;
+
+            // 学习内容
+            html += `
+                <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
+                        <span style="font-size: 40px;">📖</span>
+                        <div>
+                            <h1 style="font-size: 24px; font-weight: 700; margin: 0 0 4px 0;">${course.title}</h1>
+                            <p style="color: #94a3b8; font-size: 14px; margin: 0;">${course.description || ''}</p>
+                        </div>
+                    </div>
+
+                    <!-- Progress -->
+                    <div style="margin-top: 16px; background: rgba(74,158,255,0.06); border-radius: 8px; padding: 12px 16px; border: 1px solid rgba(74,158,255,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                            <span style="color: #94a3b8; font-size: 13px;">📊 Learning Progress</span>
+                            <span style="color: #4a9eff; font-weight: 600;">${progress}%</span>
+                        </div>
+                        <div style="margin-top: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 4px; overflow: hidden;">
+                            <div style="background: linear-gradient(90deg, #4a9eff, #10b981); height: 100%; width: ${Math.min(100, progress)}%; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Modules Placeholder -->
+                    <div style="margin-top: 24px;">
+                        <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📋 Course Modules</h2>
+                        <div style="text-align: center; padding: 60px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08);">
+                            <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
+                            <p style="font-size: 16px; margin: 0; font-weight: 500;">Learning modules are being prepared</p>
+                            <p style="font-size: 14px; margin: 4px 0 0; color: #94a3b8;">Module and lesson content coming soon</p>
+                            <p style="font-size: 13px; margin: 8px 0 0; color: #64748b;">Check back for updates</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        },
+
+        // ============================================================
+        // 6. PRIVATE — Helpers
+        // ============================================================
+
+        _getContinueLearning: function() {
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            if (adapter && typeof adapter.getContinueLearning === 'function') {
+                return adapter.getContinueLearning();
+            }
+            return null;
+        },
+
+        // ============================================================
+        // 7. PRIVATE — Events
+        // ============================================================
+
+        _bindEvents: function() {
+            console.log('[AcademyExperienceManager] Binding events...');
+
+            var self = this;
+
+            document.addEventListener('ACADEMY_READY', function() {
+                console.log('[AcademyExperienceManager] 📡 ACADEMY_READY received');
+                if (!self.initialized) {
+                    self.init();
+                } else {
+                    self.refresh();
+                }
+            });
+
+            document.addEventListener('SCHOOL_REGISTERED', function() {
+                self.refresh();
+            });
+
+            document.addEventListener('PROGRAM_REGISTERED', function() {
+                self.refresh();
+            });
+
+            document.addEventListener('COURSE_REGISTERED', function() {
+                self.refresh();
+            });
+
+            document.addEventListener('LEARNING_STATE_UPDATED', function() {
+                console.log('[AcademyExperienceManager] 📡 LEARNING_STATE_UPDATED received, refreshing...');
+                self.refresh();
+            });
+
+            console.log('[AcademyExperienceManager] ✅ Events bound');
+        },
+
+        // ============================================================
+        // 8. PRIVATE — Event Helpers
+        // ============================================================
+
+        _emit: function(eventName, data) {
+            try {
+                var event = new CustomEvent(eventName, { detail: data || {} });
+                document.dispatchEvent(event);
+                window.dispatchEvent(event);
+
+                if (window.LawAIApp?.EventBus && typeof window.LawAIApp.EventBus.emit === 'function') {
+                    window.LawAIApp.EventBus.emit(eventName, data);
+                }
+            } catch (err) {
+                // 忽略
+            }
+        }
+    };
+
+    // ============================================================
+    // Export
+    // ============================================================
+
+    if (!window.LawAIApp) {
+        window.LawAIApp = {};
+    }
+
+    window.LawAIApp.AcademyExperienceManager = AcademyExperienceManager;
+
+    console.log('[AcademyExperienceManager] Module loaded (v6.2.1)');
+
+    // 自动初始化
+    function autoInit() {
+        if (document.getElementById('academy-root')) {
+            AcademyExperienceManager.init();
+        } else {
+            var observer = new MutationObserver(function() {
+                if (document.getElementById('academy-root')) {
+                    observer.disconnect();
+                    AcademyExperienceManager.init();
+                }
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
+    }
+
+    if (document.readyState === 'complete') {
+        setTimeout(autoInit, 200);
+    } else {
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(autoInit, 200);
+        });
+    }
+
+})();
