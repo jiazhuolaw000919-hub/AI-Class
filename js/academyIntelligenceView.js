@@ -1,5 +1,5 @@
 // ===========================================
-// academyAIView.js
+// academyIntelligenceView.js
 // AI 基础学院 - Campus Edition (Phase 2) + Navigation (Phase 6)
 // "Academy is Campus. Not a webpage."
 // ===========================================
@@ -7,7 +7,7 @@
 window.LawAIApp = window.LawAIApp || {};
 LawAIApp.Views = LawAIApp.Views || {};
 
-LawAIApp.Views.AcademyAIView = {
+LawAIApp.Views.academyIntelligenceView = {
     _rendered: false,
     _deferredRendered: false,
 
@@ -15,7 +15,7 @@ LawAIApp.Views.AcademyAIView = {
         var app = container || document.getElementById('app') || document.getElementById('academy-content') || document.getElementById('law-runtime-root');
         
         if (!app) {
-            console.warn('⚠️ AcademyAIView: No container found');
+            console.warn('⚠️ academyIntelligenceView: No container found');
             return;
         }
 
@@ -26,7 +26,7 @@ LawAIApp.Views.AcademyAIView = {
         }
 
         this._rendered = true;
-        console.log('🏛️ AcademyAIView V6.1 rendering (Campus Edition + Navigation)...');
+        console.log('🏛️ academyIntelligenceView V6.1 rendering (Campus Edition + Navigation)...');
 
         var academy = this._getAcademyData();
         var progress = this._getProgressData();
@@ -561,4 +561,4 @@ LawAIApp.Views.AcademyAIView = {
     }
 };
 
-console.log('🏛️ AcademyAIView V6.1 ready (Campus Edition + Navigation)');
+console.log('🏛️ academyIntelligenceView V6.1 ready (Campus Edition + Navigation)');
