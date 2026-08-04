@@ -114,7 +114,7 @@
                     status: 'active',
                     modules: []
                 }
-            ];
+            ],
         }
 
         // ============================================================
@@ -124,7 +124,7 @@
         /**
          * 初始化 Program Registry
          */
-        initialize: function() {
+        initialize() {
             if (this._initialized) {
                 console.log('[ProgramRegistry] Already initialized');
                 return this;
@@ -214,7 +214,7 @@
         /**
          * 获取所有 Programs
          */
-        getAllPrograms: function() {
+        getAllPrograms() {
             return Array.from(this._programs.values());
         },
 
@@ -302,7 +302,7 @@
         window.LawAIApp = {};
     }
 
-    window.LawAIApp.ProgramRegistry = programRegistry;
+    window.LawAIApp.ProgramRegistry = new ProgramRegistry();
 
     console.log('[ProgramRegistry] Module loaded (Part 57.5)');
 
