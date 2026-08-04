@@ -1,5 +1,5 @@
 // js/academy/academyView.js
-// Part 57.8 — Program Explorer Experience Layer
+// Part 57.9 — Course Explorer Experience Layer
 // Law AI Academy Developer Bible
 
 (function() {
@@ -196,9 +196,6 @@
             container.innerHTML = html;
         },
 
-        /**
-         * 🔥 Part 57.8: Program View
-         */
         _renderProgramView: function(container, programId) {
             var programRegistry = window.LawAIApp?.ProgramRegistry;
             var courseRegistry = window.LawAIApp?.CourseRegistry;
@@ -227,7 +224,6 @@
 
             var html = '';
 
-            // 返回栏 — Back to School
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <button onclick="LawAIApp.AcademyExperienceManager?.navigateToSchool?.('${program.schoolId}')" 
@@ -238,7 +234,6 @@
                 </div>
             `;
 
-            // Program Header
             html += `
                 <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
@@ -255,7 +250,6 @@
                     </div>
             `;
 
-            // Courses
             if (courses && courses.length > 0) {
                 html += `<h2 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px 0;">📖 Courses (${courses.length})</h2>`;
                 html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">`;
@@ -299,7 +293,7 @@
         },
 
         /**
-         * 🔥 Part 57.8: Course View
+         * 🔥 Part 57.9: Course View
          */
         _renderCourseView: function(container, courseId) {
             var courseRegistry = window.LawAIApp?.CourseRegistry;
@@ -318,8 +312,15 @@
                 return;
             }
 
+            var difficultyLabel = course.difficulty || 'beginner';
+            var difficultyColor = difficultyLabel === 'beginner' ? '#10b981' : difficultyLabel === 'intermediate' ? '#f59e0b' : '#ef4444';
+            var difficultyEmoji = difficultyLabel === 'beginner' ? '🟢' : difficultyLabel === 'intermediate' ? '🟡' : '🔴';
+            var statusLabel = course.status || 'active';
+            var statusColor = statusLabel === 'active' ? '#10b981' : statusLabel === 'draft' ? '#f59e0b' : '#64748b';
+
             var html = '';
 
+            // 返回栏 — Back to Program
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <button onclick="LawAIApp.AcademyExperienceManager?.navigateToProgram?.('${course.programId}')" 
@@ -328,16 +329,39 @@
                     </button>
                     <span style="color: #64748b; font-size: 13px; margin-left: auto;">🏛️ Academy</span>
                 </div>
+            `;
+
+            // Course Header
+            html += `
                 <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
-                    <h1 style="font-size: 24px; font-weight: 700; margin: 0 0 4px 0;">📖 ${course.title}</h1>
-                    <p style="color: #94a3b8; font-size: 14px; margin: 0 0 24px 0;">${course.description || ''}</p>
-                    <div style="text-align: center; padding: 60px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px;">
-                        <p>📝 Course content is being prepared</p>
-                        <p style="font-size: 13px;">Check back soon for lessons</p>
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
+                        <span style="font-size: 48px;">📖</span>
+                        <div>
+                            <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 4px 0;">${course.title}</h1>
+                            <p style="color: #94a3b8; font-size: 14px; margin: 0;">${course.description || ''}</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
+                        <span style="color: ${difficultyColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${difficultyEmoji} ${difficultyLabel.charAt(0).toUpperCase() + difficultyLabel.slice(1)}</span>
+                        <span style="color: ${statusColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)}</span>
+                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${course.modules?.length || 0} modules</span>
+                        ${course.estimatedHours ? `<span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">⏱️ ${course.estimatedHours}h</span>` : ''}
+                    </div>
+            `;
+
+            // Modules Section (Placeholder)
+            html += `
+                <div style="margin-top: 32px;">
+                    <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📋 Modules</h2>
+                    <div style="text-align: center; padding: 60px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08);">
+                        <div style="font-size: 36px; margin-bottom: 12px;">📝</div>
+                        <p style="font-size: 16px; margin: 0;">Course modules are being prepared</p>
+                        <p style="font-size: 13px; margin: 4px 0 0;">Check back soon for lessons</p>
                     </div>
                 </div>
             `;
 
+            html += `</div>`;
             container.innerHTML = html;
         },
 
@@ -382,6 +406,6 @@
 
     window.LawAIApp.AcademyView = AcademyView;
 
-    console.log('[AcademyView] Module loaded (Part 57.8)');
+    console.log('[AcademyView] Module loaded (Part 57.9)');
 
 })();
