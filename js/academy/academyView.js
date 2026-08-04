@@ -1,5 +1,5 @@
 // js/academy/academyView.js
-// Part 57.9 — Course Explorer Experience Layer
+// Part 58.0 — Learning Journey Foundation Layer (升级版)
 // Law AI Academy Developer Bible
 
 (function() {
@@ -59,9 +59,11 @@
 
         _renderDashboard: function(container, data) {
             var schools = data.schools || [];
+            var continueData = this._getContinueLearning();
 
             var html = '';
 
+            // 返回栏
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <a href="/" style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); text-decoration: none; font-family: inherit;">
@@ -77,8 +79,13 @@
                     <p style="color: #94a3b8; font-size: 14px; margin: 0 0 24px 0;">Explore your learning path</p>
             `;
 
+            // 🔥 Part 58.0: Continue Learning Section
+            if (continueData) {
+                html += this._renderContinueLearning(continueData);
+            }
+
             if (schools && schools.length > 0) {
-                html += `<h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">🎓 Schools</h2>`;
+                html += `<h2 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px 0;">🎓 Schools</h2>`;
                 html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">`;
 
                 schools.forEach(function(school) {
@@ -109,6 +116,46 @@
 
             html += `</div>`;
             container.innerHTML = html;
+        },
+
+        /**
+         * 🔥 Part 58.0: Continue Learning 渲染
+         */
+        _renderContinueLearning: function(continueData) {
+            var progress = continueData.progress || 0;
+            var isCompleted = continueData.isCompleted || false;
+
+            return `
+                <div style="background: linear-gradient(135deg, rgba(74,158,255,0.08) 0%, rgba(74,158,255,0.02) 100%); 
+                            border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; 
+                            border: 1px solid rgba(74,158,255,0.12);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 24px;">${isCompleted ? '🎉' : '📖'}</span>
+                            <div>
+                                <div style="font-size: 13px; color: #94a3b8;">${isCompleted ? 'Completed Course' : 'Continue Learning'}</div>
+                                <div style="font-size: 15px; font-weight: 500;">${continueData.title || 'Your Journey'}</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                            <div style="text-align: right;">
+                                <div style="font-size: 13px; color: #94a3b8;">${isCompleted ? '✅ Done' : progress + '% complete'}</div>
+                                ${continueData.lastActivity ? `<div style="font-size: 11px; color: #64748b;">Last: ${new Date(continueData.lastActivity).toLocaleDateString()}</div>` : ''}
+                            </div>
+                            <button onclick="LawAIApp.AcademyExperienceManager?.navigateToCourse?.('${continueData.courseId}')" 
+                                    style="padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit;"
+                                    onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
+                                ${isCompleted ? 'Review →' : 'Continue →'}
+                            </button>
+                        </div>
+                    </div>
+                    ${!isCompleted ? `
+                        <div style="margin-top: 10px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 4px; overflow: hidden;">
+                            <div style="background: #4a9eff; height: 100%; width: ${Math.min(100, progress)}%; transition: width 0.3s;"></div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
         },
 
         _renderSchoolView: function(container, schoolId) {
@@ -292,9 +339,6 @@
             container.innerHTML = html;
         },
 
-        /**
-         * 🔥 Part 57.9: Course View
-         */
         _renderCourseView: function(container, courseId) {
             var courseRegistry = window.LawAIApp?.CourseRegistry;
             var course = courseRegistry ? courseRegistry.getCourse(courseId) : null;
@@ -312,6 +356,11 @@
                 return;
             }
 
+            // 🔥 Part 58.0: 获取课程学习状态
+            var journeyAdapter = window.LawAIApp?.LearningJourneyAdapter;
+            var courseState = journeyAdapter ? journeyAdapter.getCourseState(courseId) : null;
+            var progress = courseState ? courseState.progress : 0;
+
             var difficultyLabel = course.difficulty || 'beginner';
             var difficultyColor = difficultyLabel === 'beginner' ? '#10b981' : difficultyLabel === 'intermediate' ? '#f59e0b' : '#ef4444';
             var difficultyEmoji = difficultyLabel === 'beginner' ? '🟢' : difficultyLabel === 'intermediate' ? '🟡' : '🔴';
@@ -320,7 +369,6 @@
 
             var html = '';
 
-            // 返回栏 — Back to Program
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <button onclick="LawAIApp.AcademyExperienceManager?.navigateToProgram?.('${course.programId}')" 
@@ -331,7 +379,6 @@
                 </div>
             `;
 
-            // Course Header
             html += `
                 <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
@@ -349,9 +396,24 @@
                     </div>
             `;
 
+            // 🔥 Part 58.0: 进度显示
+            if (progress > 0) {
+                html += `
+                    <div style="margin-top: 16px; background: rgba(74,158,255,0.06); border-radius: 8px; padding: 12px 16px; border: 1px solid rgba(74,158,255,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                            <span style="color: #94a3b8; font-size: 13px;">📊 Progress</span>
+                            <span style="color: #4a9eff; font-weight: 600;">${progress}%</span>
+                        </div>
+                        <div style="margin-top: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 4px; overflow: hidden;">
+                            <div style="background: #4a9eff; height: 100%; width: ${Math.min(100, progress)}%; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+
             // Modules Section (Placeholder)
             html += `
-                <div style="margin-top: 32px;">
+                <div style="margin-top: 24px;">
                     <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📋 Modules</h2>
                     <div style="text-align: center; padding: 60px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08);">
                         <div style="font-size: 36px; margin-bottom: 12px;">📝</div>
@@ -366,11 +428,28 @@
         },
 
         // ============================================================
+        // PRIVATE — Helpers
+        // ============================================================
+
+        /**
+         * 🔥 Part 58.0: 获取 Continue Learning 数据
+         */
+        _getContinueLearning: function() {
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            if (adapter && typeof adapter.getContinueLearning === 'function') {
+                return adapter.getContinueLearning();
+            }
+            return null;
+        },
+
+        // ============================================================
         // PRIVATE — Events
         // ============================================================
 
         _bindEvents: function() {
             console.log('[AcademyView] Binding events...');
+
+            var self = this;
 
             document.addEventListener('ACADEMY_VIEW_CHANGED', function(e) {
                 var data = e.detail || {};
@@ -379,18 +458,28 @@
                 var manager = window.LawAIApp?.AcademyExperienceManager;
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
-                    this.render(renderData);
+                    self.render(renderData);
                 }
-            }.bind(this));
+            });
 
             document.addEventListener('ACADEMY_REFRESH', function() {
                 console.log('[AcademyView] 📡 ACADEMY_REFRESH received');
                 var manager = window.LawAIApp?.AcademyExperienceManager;
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
-                    this.render(renderData);
+                    self.render(renderData);
                 }
-            }.bind(this));
+            });
+
+            // 🔥 Part 58.0: 监听学习状态更新
+            document.addEventListener('ACADEMY_LEARNING_UPDATED', function() {
+                console.log('[AcademyView] 📡 ACADEMY_LEARNING_UPDATED received, refreshing...');
+                var manager = window.LawAIApp?.AcademyExperienceManager;
+                if (manager) {
+                    var renderData = manager._getRenderData ? manager._getRenderData() : {};
+                    self.render(renderData);
+                }
+            });
 
             console.log('[AcademyView] ✅ Events bound');
         }
@@ -406,6 +495,6 @@
 
     window.LawAIApp.AcademyView = AcademyView;
 
-    console.log('[AcademyView] Module loaded (Part 57.9)');
+    console.log('[AcademyView] Module loaded (Part 58.0)');
 
 })();
