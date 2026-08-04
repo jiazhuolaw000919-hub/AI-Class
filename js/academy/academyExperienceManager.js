@@ -264,7 +264,7 @@
         },
 
         // ============================================================
-        // 5. PRIVATE — Fallback Render (✅ 返回按钮修复)
+        // 5. PRIVATE — Fallback Render (✅ 修复版)
         // ============================================================
 
         _renderFallback: function(container, data) {
@@ -272,11 +272,11 @@
 
             var html = '';
 
-            // 返回栏 — Back 按钮返回上一页，无历史则去 Dashboard
+            // 返回栏 — Back 按钮返回上一页
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <button onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href = '/'; }" 
-                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit; border: none;">
+                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back
                     </button>
                     <span style="color: #475569; font-size: 14px;">|</span>
@@ -325,7 +325,7 @@
 
             html += `</div>`;
             container.innerHTML = html;
-        }
+        },
 
         // ============================================================
         // 6. PRIVATE — Events
