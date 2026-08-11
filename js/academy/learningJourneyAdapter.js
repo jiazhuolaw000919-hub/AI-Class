@@ -176,49 +176,6 @@
         },
 
         /**
-         * 🔥 Part 58.2: 更新 Module 进度
-         */
-        updateModuleProgress: function(moduleId, progress) {
-            console.log('[LearningJourneyAdapter] 📊 Updating module progress:', moduleId, progress);
-
-            var state = this._journeyState;
-            if (!state.moduleProgress) state.moduleProgress = {};
-
-            state.moduleProgress[moduleId] = Math.min(100, Math.max(0, progress));
-
-            // 如果进度达到 100%，标记为完成
-            if (progress >= 100) {
-                if (!state.completedModules) state.completedModules = [];
-                if (!state.completedModules.includes(moduleId)) {
-                    state.completedModules.push(moduleId);
-                    console.log('[LearningJourneyAdapter] 🎉 Module completed:', moduleId);
-                }
-            }
-
-            // 重新计算整体进度
-            this._recalculateOverallProgress();
-
-            this._saveState();
-            this._syncToLearningStateManager();
-
-            this._emit('LEARNING_STATE_UPDATED', {
-                moduleId: moduleId,
-                progress: progress,
-                action: 'module_progress_updated',
-                state: this._journeyState
-            });
-
-            this._emit('ACADEMY_LEARNING_UPDATED', {
-                moduleId: moduleId,
-                progress: progress,
-                action: 'module_progress_updated',
-                state: this._journeyState
-            });
-
-            return this.getState();
-        },
-
-                /**
          * 🔥 Part 58.4: 获取 Module 进度
          * @param {string} moduleId
          * @returns {Object} { progress: number, completed: boolean }
