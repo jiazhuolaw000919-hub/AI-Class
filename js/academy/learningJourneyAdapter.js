@@ -1,6 +1,10 @@
 // js/academy/learningJourneyAdapter.js
-// Part 58.2 — Learning Module Structure Connection Layer
+// Part 58.7 — Learning Motivation Connection Layer (Structural Repair)
 // Law AI Academy Developer Bible
+//
+// PURPOSE: Learning Journey state management, session tracking, motivation aggregation
+// OWNERSHIP: CONNECTION / STATE layer — DOES NOT render UI, DOES NOT navigate UI
+// ARCHITECTURE: AcademyView → AcademyExperienceManager → LearningJourneyAdapter → Registries
 
 (function() {
     'use strict';
@@ -11,26 +15,40 @@
     }
 
     var LearningJourneyAdapter = {
-        version: '1.0.0',
+
+        // ============================================================
+        // 1. STATE
+        // ============================================================
+
+        version: '1.1.0',
         initialized: false,
 
         _journeyState: {
             currentCourseId: null,
             currentModuleId: null,
             currentLessonId: null,
+
             completedLessons: [],
             completedModules: [],
             completedCourses: [],
+
             moduleProgress: {},
+
             progress: 0,
             lastActivity: null,
-            xp: 0
+
+            xp: 0,
+
+            currentSessionId: null,
+            sessionStatus: null,
+            sessionStartedAt: null,
+            sessionEndedAt: null
         },
 
         _userId: 'current-user',
 
         // ============================================================
-        // 1. PUBLIC API
+        // 2. PUBLIC API — Init
         // ============================================================
 
         init: function() {
@@ -47,8 +65,13 @@
             this.initialized = true;
 
             console.log('[LearningJourneyAdapter] ✅ Initialized');
+
             return this;
         },
+
+        // ============================================================
+        // 3. PUBLIC API — State
+        // ============================================================
 
         getState: function() {
             return { ...this._journeyState };
@@ -85,25 +108,23 @@
             };
         },
 
-        /**
-         * 🔥 Part 58.2: 获取 Course 的 Modules (含进度)
-         */
+        // ============================================================
+        // 4. PUBLIC API — Course / Module
+        // ============================================================
+
         getCourseModules: function(courseId) {
             console.log('[LearningJourneyAdapter] 📋 Getting modules for course:', courseId);
 
-            // 从 CurriculumRegistry 获取 Module 列表
             var curriculumRegistry = window.LawAIApp?.CurriculumRegistry;
             if (!curriculumRegistry) {
                 console.warn('[LearningJourneyAdapter] CurriculumRegistry not available');
                 return [];
             }
 
-            // 获取 Course 的 Module 列表 (通过 CurriculumRegistry)
             var modules = [];
             if (typeof curriculumRegistry.getCourseModules === 'function') {
                 modules = curriculumRegistry.getCourseModules(courseId);
             } else {
-                // Fallback: 从 CourseRegistry 获取 Course 结构
                 var courseRegistry = window.LawAIApp?.CourseRegistry;
                 if (courseRegistry && typeof courseRegistry.getCourseStructure === 'function') {
                     var course = courseRegistry.getCourseStructure(courseId);
@@ -113,7 +134,6 @@
                 }
             }
 
-            // 为每个 Module 添加进度信息
             var state = this._journeyState;
             var moduleProgress = state.moduleProgress || {};
 
@@ -132,13 +152,9 @@
             }.bind(this));
         },
 
-        /**
-         * 🔥 Part 58.2: 选择 Module
-         */
         selectModule: function(moduleId, courseId) {
             console.log('[LearningJourneyAdapter] 📍 Selecting module:', moduleId);
 
-            // 验证 Module 存在
             var academyRegistry = window.LawAIApp?.AcademyRegistry;
             if (academyRegistry && typeof academyRegistry.getModule === 'function') {
                 var module = academyRegistry.getModule(moduleId);
@@ -148,7 +164,6 @@
                 }
             }
 
-            // 更新状态
             this._journeyState.currentModuleId = moduleId;
             if (courseId) {
                 this._journeyState.currentCourseId = courseId;
@@ -175,11 +190,6 @@
             return this.getState();
         },
 
-        /**
-         * 🔥 Part 58.4: 获取 Module 进度
-         * @param {string} moduleId
-         * @returns {Object} { progress: number, completed: boolean }
-         */
         getModuleProgress: function(moduleId) {
             var state = this._journeyState;
             var progress = state.moduleProgress && state.moduleProgress[moduleId] ? state.moduleProgress[moduleId] : 0;
@@ -191,28 +201,19 @@
             };
         },
 
-        /**
-         * 🔥 Part 58.4: 更新 Module 进度
-         * @param {string} moduleId
-         * @param {number} progress — 0-100
-         * @returns {Object} 更新后的状态
-         */
         updateModuleProgress: function(moduleId, progress) {
             console.log('[LearningJourneyAdapter] 📊 Updating module progress:', moduleId, progress);
 
             var state = this._journeyState;
             var clampedProgress = Math.min(100, Math.max(0, progress));
 
-            // 初始化 moduleProgress
             if (!state.moduleProgress) {
                 state.moduleProgress = {};
             }
 
-            // 更新进度
             state.moduleProgress[moduleId] = clampedProgress;
             state.lastActivity = new Date().toISOString();
 
-            // 检查是否完成
             var wasCompleted = state.completedModules && state.completedModules.indexOf(moduleId) !== -1;
             var isNowCompleted = clampedProgress >= 100;
 
@@ -223,7 +224,6 @@
                 state.completedModules.push(moduleId);
                 console.log('[LearningJourneyAdapter] 🎉 Module completed:', moduleId);
 
-                // 发射 MODULE_COMPLETED 事件
                 this._emit('MODULE_COMPLETED', {
                     moduleId: moduleId,
                     courseId: state.currentCourseId,
@@ -231,14 +231,11 @@
                 });
             }
 
-            // 重新计算整体进度
             this._recalculateOverallProgress();
 
-            // 保存状态
             this._saveState();
             this._syncToLearningStateManager();
 
-            // 广播事件
             this._emit('LEARNING_PROGRESS_UPDATED', {
                 moduleId: moduleId,
                 progress: clampedProgress,
@@ -259,11 +256,6 @@
             };
         },
 
-        /**
-         * 🔥 Part 58.4: 获取 Module 详情 (含进度)
-         * @param {string} moduleId
-         * @returns {Object|null}
-         */
         getModuleDetail: function(moduleId) {
             var academyRegistry = window.LawAIApp?.AcademyRegistry;
             var module = academyRegistry ? academyRegistry.getModule(moduleId) : null;
@@ -274,7 +266,6 @@
 
             var progressData = this.getModuleProgress(moduleId);
 
-            // 获取 Lessons
             var lessons = [];
             if (academyRegistry && typeof academyRegistry.getLessonsByModule === 'function') {
                 lessons = academyRegistry.getLessonsByModule(moduleId);
@@ -297,9 +288,10 @@
             };
         },
 
-        /**
-         * 🔥 Part 58.5: 获取 Module 的所有 Lessons
-         */
+        // ============================================================
+        // 5. PUBLIC API — Lesson
+        // ============================================================
+
         getModuleLessons: function(moduleId) {
             console.log('[LearningJourneyAdapter] 📖 Getting lessons for module:', moduleId);
 
@@ -339,9 +331,6 @@
             });
         },
 
-        /**
-         * 🔥 Part 58.5: 获取单个 Lesson 详情
-         */
         getLessonDetail: function(lessonId) {
             console.log('[LearningJourneyAdapter] 📖 Getting lesson detail:', lessonId);
 
@@ -379,9 +368,6 @@
             };
         },
 
-        /**
-         * 🔥 Part 58.5: 选择 Lesson
-         */
         selectLesson: function(lessonId) {
             console.log('[LearningJourneyAdapter] 📍 Selecting lesson:', lessonId);
 
@@ -423,6 +409,10 @@
             return this.getState();
         },
 
+        // ============================================================
+        // 6. PUBLIC API — Course Initialization
+        // ============================================================
+
         initializeCourse: function(courseId, programId) {
             console.log('[LearningJourneyAdapter] 📖 Initializing course:', courseId);
 
@@ -457,6 +447,10 @@
             console.log('[LearningJourneyAdapter] ✅ Course initialized:', courseId);
             return this.getCourseState(courseId);
         },
+
+        // ============================================================
+        // 7. PUBLIC API — Progress
+        // ============================================================
 
         updateProgress: function(updates) {
             console.log('[LearningJourneyAdapter] 📊 Updating progress:', updates);
@@ -504,6 +498,10 @@
             return this.getState();
         },
 
+        // ============================================================
+        // 8. PUBLIC API — Continue Learning
+        // ============================================================
+
         getContinueLearning: function() {
             var state = this._journeyState;
 
@@ -535,6 +533,10 @@
             };
         },
 
+        // ============================================================
+        // 9. PUBLIC API — Reset & Status
+        // ============================================================
+
         reset: function() {
             console.log('[LearningJourneyAdapter] 🔄 Resetting state...');
 
@@ -548,7 +550,11 @@
                 moduleProgress: {},
                 progress: 0,
                 lastActivity: null,
-                xp: 0
+                xp: 0,
+                currentSessionId: null,
+                sessionStatus: null,
+                sessionStartedAt: null,
+                sessionEndedAt: null
             };
 
             this._saveState();
@@ -574,12 +580,270 @@
                 completedModules: (this._journeyState.completedModules || []).length,
                 completedCourses: this._journeyState.completedCourses.length,
                 continueLearning: continueData,
-                lastActivity: this._journeyState.lastActivity
+                lastActivity: this._journeyState.lastActivity,
+                hasActiveSession: this.hasActiveSession()
             };
         },
 
         // ============================================================
-        // 2. PRIVATE — Storage
+        // 10. PUBLIC API — Lesson Session
+        // ============================================================
+
+        startLessonSession: function(lessonId) {
+            console.log('[LearningJourneyAdapter] 🎯 Starting lesson session:', lessonId);
+
+            var lesson = this.getLessonDetail(lessonId);
+            if (!lesson) {
+                console.warn('[LearningJourneyAdapter] Lesson not found:', lessonId);
+                return null;
+            }
+
+            var academyRegistry = window.LawAIApp?.AcademyRegistry;
+            if (!academyRegistry) {
+                console.warn('[LearningJourneyAdapter] AcademyRegistry not available');
+                return null;
+            }
+
+            var module = academyRegistry.getModule(lesson.moduleId);
+            if (!module) {
+                console.warn('[LearningJourneyAdapter] Module not found for lesson:', lessonId);
+                return null;
+            }
+
+            var courseId = this._journeyState.currentCourseId || module.courseId || lesson.courseId;
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            if (courseRegistry && courseId) {
+                var course = courseRegistry.getCourse(courseId);
+                if (!course) {
+                    console.warn('[LearningJourneyAdapter] Course not found for lesson:', lessonId);
+                }
+            }
+
+            var sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+
+            var session = {
+                id: sessionId,
+                lessonId: lessonId,
+                moduleId: lesson.moduleId,
+                courseId: courseId || module.courseId || '',
+                status: 'active',
+                startedAt: new Date().toISOString()
+            };
+
+            this._journeyState.currentLessonId = lessonId;
+            this._journeyState.currentModuleId = lesson.moduleId;
+            if (courseId) {
+                this._journeyState.currentCourseId = courseId;
+            }
+            this._journeyState.currentSessionId = sessionId;
+            this._journeyState.sessionStatus = 'active';
+            this._journeyState.sessionStartedAt = session.startedAt;
+            this._journeyState.lastActivity = new Date().toISOString();
+
+            this._saveState();
+            this._syncToLearningStateManager();
+
+            this._emit('LEARNING_SESSION_STARTED', {
+                sessionId: sessionId,
+                lessonId: lessonId,
+                moduleId: lesson.moduleId,
+                courseId: courseId || module.courseId || '',
+                startedAt: session.startedAt
+            });
+
+            this._emit('ACADEMY_LEARNING_UPDATED', {
+                sessionId: sessionId,
+                lessonId: lessonId,
+                action: 'session_started',
+                state: this._journeyState
+            });
+
+            console.log('[LearningJourneyAdapter] ✅ Session started:', sessionId);
+            return session;
+        },
+
+        endLessonSession: function() {
+            console.log('[LearningJourneyAdapter] 🏁 Ending lesson session...');
+
+            var state = this._journeyState;
+
+            if (state.sessionStatus !== 'active' || !state.currentSessionId) {
+                console.warn('[LearningJourneyAdapter] No active session to end');
+                return null;
+            }
+
+            var sessionId = state.currentSessionId;
+            var lessonId = state.currentLessonId;
+            var moduleId = state.currentModuleId;
+            var courseId = state.currentCourseId;
+
+            state.sessionStatus = 'completed';
+            state.sessionEndedAt = new Date().toISOString();
+            state.lastActivity = new Date().toISOString();
+
+            this._saveState();
+            this._syncToLearningStateManager();
+
+            this._emit('LEARNING_SESSION_ENDED', {
+                sessionId: sessionId,
+                lessonId: lessonId,
+                moduleId: moduleId,
+                courseId: courseId,
+                endedAt: state.sessionEndedAt
+            });
+
+            this._emit('ACADEMY_LEARNING_UPDATED', {
+                sessionId: sessionId,
+                lessonId: lessonId,
+                action: 'session_ended',
+                state: this._journeyState
+            });
+
+            console.log('[LearningJourneyAdapter] ✅ Session ended:', sessionId);
+            return {
+                sessionId: sessionId,
+                status: state.sessionStatus,
+                endedAt: state.sessionEndedAt
+            };
+        },
+
+        getActiveSession: function() {
+            var state = this._journeyState;
+
+            if (state.sessionStatus !== 'active' || !state.currentSessionId) {
+                return null;
+            }
+
+            return {
+                sessionId: state.currentSessionId,
+                lessonId: state.currentLessonId,
+                moduleId: state.currentModuleId,
+                courseId: state.currentCourseId,
+                status: state.sessionStatus,
+                startedAt: state.sessionStartedAt
+            };
+        },
+
+        hasActiveSession: function() {
+            var state = this._journeyState;
+            return state.sessionStatus === 'active' && !!state.currentSessionId;
+        },
+
+        // ============================================================
+        // 11. PUBLIC API — Motivation
+        // ============================================================
+
+        getLearningMotivation: function() {
+            console.log('[LearningJourneyAdapter] 🎯 Getting learning motivation...');
+
+            var motivation = {
+                xp: 0,
+                level: 1,
+                streak: 0,
+                achievements: [],
+                achievementCount: 0,
+                nextLevelXp: 100,
+                xpProgress: 0
+            };
+
+            // XP / Experience Engine
+            try {
+                var xpEngine = window.LawAIApp?.ExperienceEngine || window.LawAIApp?.XpEngine;
+                if (xpEngine) {
+                    if (typeof xpEngine.getXP === 'function') {
+                        motivation.xp = xpEngine.getXP() || 0;
+                    }
+                    if (typeof xpEngine.getLevel === 'function') {
+                        motivation.level = xpEngine.getLevel() || 1;
+                    }
+                }
+            } catch (error) {
+                console.warn('[LearningJourneyAdapter] XP Engine unavailable:', error);
+            }
+
+            // Profile Engine
+            try {
+                var profileEngine = window.LawAIApp?.ProfileEngine;
+                if (profileEngine && typeof profileEngine.getProfile === 'function') {
+                    var profile = profileEngine.getProfile();
+                    if (profile) {
+                        if (profile.xp !== undefined) motivation.xp = profile.xp || 0;
+                        if (profile.level !== undefined) motivation.level = profile.level || 1;
+                        if (profile.streak !== undefined) motivation.streak = profile.streak || 0;
+                    }
+                }
+            } catch (error) {
+                console.warn('[LearningJourneyAdapter] ProfileEngine unavailable:', error);
+            }
+
+            // Achievement Engine
+            try {
+                var achievementEngine = window.LawAIApp?.AchievementEngine;
+                if (achievementEngine) {
+                    if (typeof achievementEngine.getAchievements === 'function') {
+                        motivation.achievements = achievementEngine.getAchievements() || [];
+                    } else if (typeof achievementEngine.getAll === 'function') {
+                        motivation.achievements = achievementEngine.getAll() || [];
+                    }
+                }
+                motivation.achievementCount = motivation.achievements.length;
+            } catch (error) {
+                console.warn('[LearningJourneyAdapter] AchievementEngine unavailable:', error);
+            }
+
+            // Progress Engine (Streak)
+            try {
+                var progressEngine = window.LawAIApp?.ProgressEngine;
+                if (progressEngine && typeof progressEngine.getStreak === 'function') {
+                    motivation.streak = progressEngine.getStreak() || 0;
+                }
+            } catch (error) {
+                console.warn('[LearningJourneyAdapter] ProgressEngine unavailable:', error);
+            }
+
+            motivation.nextLevelXp = this._calculateNextLevelXp(motivation.level);
+            var xpNeeded = motivation.nextLevelXp;
+            motivation.xpProgress = xpNeeded > 0 ? Math.min(100, Math.round((motivation.xp / xpNeeded) * 100)) : 0;
+
+            console.log('[LearningJourneyAdapter] ✅ Motivation data:', motivation);
+            return motivation;
+        },
+
+        _calculateNextLevelXp: function(level) {
+            var baseXp = 100;
+            return baseXp * (level || 1);
+        },
+
+        updateLearningMotivation: function(action, data) {
+            console.log('[LearningJourneyAdapter] 🔄 Updating learning motivation:', action);
+
+            data = data || {};
+
+            if (action === 'lesson_completed' || action === 'module_completed') {
+                var xpEngine = window.LawAIApp?.ExperienceEngine || window.LawAIApp?.XpEngine;
+                if (xpEngine && typeof xpEngine.addXP === 'function') {
+                    xpEngine.addXP(data.xpAmount || 10);
+                }
+            }
+
+            var motivation = this.getLearningMotivation();
+
+            this._emit('MOTIVATION_UPDATED', {
+                action: action,
+                data: data,
+                motivation: motivation
+            });
+
+            this._emit('ACADEMY_LEARNING_UPDATED', {
+                action: 'motivation_updated',
+                motivation: motivation
+            });
+
+            return motivation;
+        },
+
+        // ============================================================
+        // 12. PRIVATE — Storage
         // ============================================================
 
         _loadState: function() {
@@ -610,15 +874,13 @@
         },
 
         // ============================================================
-        // 3. PRIVATE — Helpers
+        // 13. PRIVATE — Helpers
         // ============================================================
 
         _getCompletedLessonCount: function(moduleId) {
             var state = this._journeyState;
             if (!state.completedLessons) return 0;
 
-            // 这里假设 lessons 的 ID 格式包含 moduleId
-            // 实际实现可能需要从 LessonRegistry 获取
             return state.completedLessons.filter(function(id) {
                 return id.startsWith(moduleId + '-') || id.includes(moduleId);
             }).length;
@@ -630,7 +892,6 @@
 
             if (!courseId) return;
 
-            // 获取 Course 的 Modules
             var modules = this.getCourseModules(courseId);
             if (!modules || modules.length === 0) return;
 
@@ -643,7 +904,7 @@
         },
 
         // ============================================================
-        // 4. PRIVATE — Events
+        // 14. PRIVATE — Events
         // ============================================================
 
         _bindEvents: function() {
@@ -708,7 +969,9 @@
                         lastActivity: this._journeyState.lastActivity
                     });
                 }
-            } catch (error) {}
+            } catch (error) {
+                // 忽略
+            }
         },
 
         _emit: function(eventName, data) {
@@ -720,575 +983,15 @@
                 if (window.LawAIApp?.EventBus && typeof window.LawAIApp.EventBus.emit === 'function') {
                     window.LawAIApp.EventBus.emit(eventName, data);
                 }
-            } catch (err) {}
+            } catch (err) {
+                // 忽略
+            }
         }
 
-        /**
-         * 🔥 Part 58.6: 开始学习 Lesson
-         */
-        startLesson: function(lessonId) {
-            console.log('[AcademyExperienceManager] 🚀 Starting lesson:', lessonId);
-
-            var adapter = window.LawAIApp?.LearningJourneyAdapter;
-            if (!adapter) {
-                console.warn('[AcademyExperienceManager] LearningJourneyAdapter not available');
-                return this;
-            }
-
-            // 验证 Lesson 存在
-            var lesson = adapter.getLessonDetail(lessonId);
-            if (!lesson) {
-                console.warn('[AcademyExperienceManager] Lesson not found:', lessonId);
-                return this;
-            }
-
-            // 启动 Session
-            var session = adapter.startLessonSession(lessonId);
-            if (!session) {
-                console.warn('[AcademyExperienceManager] Failed to start session');
-                return this;
-            }
-
-            // 更新状态
-            this._state.currentLessonId = lessonId;
-            this._state.currentModuleId = lesson.moduleId;
-            this._state.viewMode = 'lesson';
-            this._state.sessionStatus = 'active';
-            this._state.currentSessionId = session.id;
-
-            this.render();
-            this._emit('ACADEMY_VIEW_CHANGED', {
-                viewMode: 'lesson',
-                currentLessonId: lessonId,
-                currentModuleId: lesson.moduleId,
-                currentCourseId: this._state.currentCourseId,
-                sessionStatus: 'active',
-                currentSessionId: session.id
-
-        /**
-         * 🔥 Part 58.6: 开始 Lesson Session
-         * @param {string} lessonId
-         * @returns {Object|null} session 对象
-         */
-        startLessonSession: function(lessonId) {
-            console.log('[LearningJourneyAdapter] 🎯 Starting lesson session:', lessonId);
-
-            // 1. 验证 Lesson 存在
-            var lesson = this.getLessonDetail(lessonId);
-            if (!lesson) {
-                console.warn('[LearningJourneyAdapter] Lesson not found:', lessonId);
-                return null;
-            }
-
-            // 2. 验证 Module 存在
-            var academyRegistry = window.LawAIApp?.AcademyRegistry;
-            if (!academyRegistry) {
-                console.warn('[LearningJourneyAdapter] AcademyRegistry not available');
-                return null;
-            }
-
-            var module = academyRegistry.getModule(lesson.moduleId);
-            if (!module) {
-                console.warn('[LearningJourneyAdapter] Module not found for lesson:', lessonId);
-                return null;
-            }
-
-            // 3. 验证 Course 存在
-            var courseId = this._journeyState.currentCourseId || module.courseId || lesson.courseId;
-            var courseRegistry = window.LawAIApp?.CourseRegistry;
-            if (courseRegistry && courseId) {
-                var course = courseRegistry.getCourse(courseId);
-                if (!course) {
-                    console.warn('[LearningJourneyAdapter] Course not found for lesson:', lessonId);
-                }
-            }
-
-            // 4. 生成 Session ID
-            var sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
-
-            // 5. 创建 Session 对象
-            var session = {
-                id: sessionId,
-                lessonId: lessonId,
-                moduleId: lesson.moduleId,
-                courseId: courseId || module.courseId || '',
-                status: 'active',
-                startedAt: new Date().toISOString()
-            };
-
-            // 6. 更新 LearningJourney 状态
-            this._journeyState.currentLessonId = lessonId;
-            this._journeyState.currentModuleId = lesson.moduleId;
-            if (courseId) {
-                this._journeyState.currentCourseId = courseId;
-            }
-            this._journeyState.currentSessionId = sessionId;
-            this._journeyState.sessionStatus = 'active';
-            this._journeyState.sessionStartedAt = session.startedAt;
-            this._journeyState.lastActivity = new Date().toISOString();
-
-            // 7. 保存状态
-            this._saveState();
-            this._syncToLearningStateManager();
-
-            // 8. 广播事件
-            this._emit('LEARNING_SESSION_STARTED', {
-                sessionId: sessionId,
-                lessonId: lessonId,
-                moduleId: lesson.moduleId,
-                courseId: courseId || module.courseId || '',
-                startedAt: session.startedAt
-            });
-
-            this._emit('ACADEMY_LEARNING_UPDATED', {
-                sessionId: sessionId,
-                lessonId: lessonId,
-                action: 'session_started',
-                state: this._journeyState
-            });
-
-            console.log('[LearningJourneyAdapter] ✅ Session started:', sessionId);
-            return session;
-        },
-
-        /**
-         * 🔥 Part 58.6: 结束 Lesson Session
-         * @returns {Object|null} 结束后的状态
-         */
-        endLessonSession: function() {
-            console.log('[LearningJourneyAdapter] 🏁 Ending lesson session...');
-
-            var state = this._journeyState;
-
-            // 检查是否有活跃的 Session
-            if (state.sessionStatus !== 'active' || !state.currentSessionId) {
-                console.warn('[LearningJourneyAdapter] No active session to end');
-                return null;
-            }
-
-            var sessionId = state.currentSessionId;
-            var lessonId = state.currentLessonId;
-            var moduleId = state.currentModuleId;
-            var courseId = state.currentCourseId;
-
-            // 更新状态
-            state.sessionStatus = 'completed';
-            state.sessionEndedAt = new Date().toISOString();
-            state.lastActivity = new Date().toISOString();
-
-            this._saveState();
-            this._syncToLearningStateManager();
-
-            // 广播事件
-            this._emit('LEARNING_SESSION_ENDED', {
-                sessionId: sessionId,
-                lessonId: lessonId,
-                moduleId: moduleId,
-                courseId: courseId,
-                endedAt: state.sessionEndedAt
-            });
-
-            this._emit('ACADEMY_LEARNING_UPDATED', {
-                sessionId: sessionId,
-                lessonId: lessonId,
-                action: 'session_ended',
-                state: this._journeyState
-            });
-
-            console.log('[LearningJourneyAdapter] ✅ Session ended:', sessionId);
-            return {
-                sessionId: sessionId,
-                status: state.sessionStatus,
-                endedAt: state.sessionEndedAt
-            };
-        },
-
-        /**
-         * 🔥 Part 58.6: 获取当前 Session 状态
-         * @returns {Object|null}
-         */
-        getActiveSession: function() {
-            var state = this._journeyState;
-
-            if (state.sessionStatus !== 'active' || !state.currentSessionId) {
-                return null;
-            }
-
-            return {
-                sessionId: state.currentSessionId,
-                lessonId: state.currentLessonId,
-                moduleId: state.currentModuleId,
-                courseId: state.currentCourseId,
-                status: state.sessionStatus,
-                startedAt: state.sessionStartedAt
-            };
-
-                    /**
-         * 🔥 Part 58.6: 开始 Lesson Session
-         * @param {string} lessonId
-         * @returns {Object|null} session 对象
-         */
-        startLessonSession: function(lessonId) {
-            console.log('[LearningJourneyAdapter] 🎯 Starting lesson session:', lessonId);
-
-            // 1. 验证 Lesson 存在
-            var lesson = this.getLessonDetail(lessonId);
-            if (!lesson) {
-                console.warn('[LearningJourneyAdapter] Lesson not found:', lessonId);
-                return null;
-            }
-
-            // 2. 验证 Module 存在
-            var academyRegistry = window.LawAIApp?.AcademyRegistry;
-            if (!academyRegistry) {
-                console.warn('[LearningJourneyAdapter] AcademyRegistry not available');
-                return null;
-            }
-
-            var module = academyRegistry.getModule(lesson.moduleId);
-            if (!module) {
-                console.warn('[LearningJourneyAdapter] Module not found for lesson:', lessonId);
-                return null;
-            }
-
-            // 3. 验证 Course 存在
-            var courseId = this._journeyState.currentCourseId || module.courseId || lesson.courseId;
-            var courseRegistry = window.LawAIApp?.CourseRegistry;
-            if (courseRegistry && courseId) {
-                var course = courseRegistry.getCourse(courseId);
-                if (!course) {
-                    console.warn('[LearningJourneyAdapter] Course not found for lesson:', lessonId);
-                }
-            }
-
-            // 4. 生成 Session ID
-            var sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
-
-            // 5. 创建 Session 对象
-            var session = {
-                id: sessionId,
-                lessonId: lessonId,
-                moduleId: lesson.moduleId,
-                courseId: courseId || module.courseId || '',
-                status: 'active',
-                startedAt: new Date().toISOString()
-            };
-
-            // 6. 更新 LearningJourney 状态
-            this._journeyState.currentLessonId = lessonId;
-            this._journeyState.currentModuleId = lesson.moduleId;
-            if (courseId) {
-                this._journeyState.currentCourseId = courseId;
-            }
-            this._journeyState.currentSessionId = sessionId;
-            this._journeyState.sessionStatus = 'active';
-            this._journeyState.sessionStartedAt = session.startedAt;
-            this._journeyState.lastActivity = new Date().toISOString();
-
-            // 7. 保存状态
-            this._saveState();
-            this._syncToLearningStateManager();
-
-            // 8. 广播事件
-            this._emit('LEARNING_SESSION_STARTED', {
-                sessionId: sessionId,
-                lessonId: lessonId,
-                moduleId: lesson.moduleId,
-                courseId: courseId || module.courseId || '',
-                startedAt: session.startedAt
-            });
-
-            this._emit('ACADEMY_LEARNING_UPDATED', {
-                sessionId: sessionId,
-                lessonId: lessonId,
-                action: 'session_started',
-                state: this._journeyState
-            });
-
-            console.log('[LearningJourneyAdapter] ✅ Session started:', sessionId);
-            return session;
-        },
-
-        /**
-         * 🔥 Part 58.6: 结束 Lesson Session
-         * @returns {Object|null} 结束后的状态
-         */
-        endLessonSession: function() {
-            console.log('[LearningJourneyAdapter] 🏁 Ending lesson session...');
-
-            var state = this._journeyState;
-
-            // 检查是否有活跃的 Session
-            if (state.sessionStatus !== 'active' || !state.currentSessionId) {
-                console.warn('[LearningJourneyAdapter] No active session to end');
-                return null;
-            }
-
-            var sessionId = state.currentSessionId;
-            var lessonId = state.currentLessonId;
-            var moduleId = state.currentModuleId;
-            var courseId = state.currentCourseId;
-
-            // 更新状态
-            state.sessionStatus = 'completed';
-            state.sessionEndedAt = new Date().toISOString();
-            state.lastActivity = new Date().toISOString();
-
-            this._saveState();
-            this._syncToLearningStateManager();
-
-            // 广播事件
-            this._emit('LEARNING_SESSION_ENDED', {
-                sessionId: sessionId,
-                lessonId: lessonId,
-                moduleId: moduleId,
-                courseId: courseId,
-                endedAt: state.sessionEndedAt
-            });
-
-            this._emit('ACADEMY_LEARNING_UPDATED', {
-                sessionId: sessionId,
-                lessonId: lessonId,
-                action: 'session_ended',
-                state: this._journeyState
-            });
-
-            console.log('[LearningJourneyAdapter] ✅ Session ended:', sessionId);
-            return {
-                sessionId: sessionId,
-                status: state.sessionStatus,
-                endedAt: state.sessionEndedAt
-            };
-        },
-
-        /**
-         * 🔥 Part 58.6: 获取当前 Session 状态
-         * @returns {Object|null}
-         */
-        getActiveSession: function() {
-            var state = this._journeyState;
-
-            if (state.sessionStatus !== 'active' || !state.currentSessionId) {
-                return null;
-            }
-
-            return {
-                sessionId: state.currentSessionId,
-                lessonId: state.currentLessonId,
-                moduleId: state.currentModuleId,
-                courseId: state.currentCourseId,
-                status: state.sessionStatus,
-                startedAt: state.sessionStartedAt
-            };
-        },
-
-        /**
-         * 🔥 Part 58.6: 检查是否有活跃 Session
-         * @returns {boolean}
-         */
-        hasActiveSession: function() {
-            var state = this._journeyState;
-            return state.sessionStatus === 'active' && !!state.currentSessionId;
-           },
-
-                /**
-         * 🔥 Part 58.6: 获取当前 Session 状态
-         * @returns {Object|null}
-         */
-        getActiveSession: function() {
-            var state = this._journeyState;
-
-            if (state.sessionStatus !== 'active' || !state.currentSessionId) {
-                return null;
-            }
-
-            return {
-                sessionId: state.currentSessionId,
-                lessonId: state.currentLessonId,
-                moduleId: state.currentModuleId,
-                courseId: state.currentCourseId,
-                status: state.sessionStatus,
-                startedAt: state.sessionStartedAt
-            };
-        },
-
-        /**
-         * 🔥 Part 58.6: 检查是否有活跃 Session
-         * @returns {boolean}
-         */
-        hasActiveSession: function() {
-            var state = this._journeyState;
-            return state.sessionStatus === 'active' && !!state.currentSessionId;
-        }
-
-    };
-
-            /**
-         * 🔥 Part 58.7: 获取学习动机数据 (XP, Level, Streak, Achievements)
-         * @returns {Object} 标准化动机数据
-         */
-        getLearningMotivation: function() {
-            console.log('[LearningJourneyAdapter] 🎯 Getting learning motivation...');
-
-            var motivation = {
-                xp: 0,
-                level: 1,
-                streak: 0,
-                achievements: [],
-                achievementCount: 0,
-                nextLevelXp: 100,
-                xpProgress: 0
-            };
-
-            // ============================================================
-            // 1. 从 XP Engine 获取
-            // ============================================================
-            try {
-                var xpEngine = window.LawAIApp?.ExperienceEngine || window.LawAIApp?.XpEngine;
-                if (xpEngine) {
-                    if (typeof xpEngine.getXP === 'function') {
-                        motivation.xp = xpEngine.getXP() || 0;
-                    } else if (typeof xpEngine.getExperienceLevel === 'function') {
-                        motivation.xp = xpEngine.getExperienceLevel() || 0;
-                    } else if (typeof xpEngine.getState === 'function') {
-                        var state = xpEngine.getState();
-                        if (state && state.xp !== undefined) {
-                            motivation.xp = state.xp || 0;
-                        }
-                    }
-
-                    if (typeof xpEngine.getLevel === 'function') {
-                        motivation.level = xpEngine.getLevel() || 1;
-                    } else if (typeof xpEngine.getExperienceProgress === 'function') {
-                        var progress = xpEngine.getExperienceProgress();
-                        if (progress && progress.level !== undefined) {
-                            motivation.level = progress.level || 1;
-                        }
-                    }
-                }
-            } catch (error) {
-                console.warn('[LearningJourneyAdapter] XP Engine not available:', error);
-            }
-
-            // ============================================================
-            // 2. 从 ProfileEngine 获取
-            // ============================================================
-            try {
-                var profileEngine = window.LawAIApp?.ProfileEngine;
-                if (profileEngine) {
-                    if (typeof profileEngine.getProfile === 'function') {
-                        var profile = profileEngine.getProfile();
-                        if (profile) {
-                            if (profile.xp !== undefined) motivation.xp = profile.xp || 0;
-                            if (profile.level !== undefined) motivation.level = profile.level || 1;
-                            if (profile.streak !== undefined) motivation.streak = profile.streak || 0;
-                        }
-                    }
-                }
-            } catch (error) {
-                console.warn('[LearningJourneyAdapter] ProfileEngine not available:', error);
-            }
-
-            // ============================================================
-            // 3. 从 AchievementEngine 获取
-            // ============================================================
-            try {
-                var achievementEngine = window.LawAIApp?.AchievementEngine;
-                if (achievementEngine) {
-                    if (typeof achievementEngine.getAchievements === 'function') {
-                        motivation.achievements = achievementEngine.getAchievements() || [];
-                    } else if (typeof achievementEngine.getAll === 'function') {
-                        motivation.achievements = achievementEngine.getAll() || [];
-                    } else if (typeof achievementEngine.getState === 'function') {
-                        var state = achievementEngine.getState();
-                        if (state && state.achievements !== undefined) {
-                            motivation.achievements = state.achievements || [];
-                        }
-                    }
-                    motivation.achievementCount = motivation.achievements.length;
-                }
-            } catch (error) {
-                console.warn('[LearningJourneyAdapter] AchievementEngine not available:', error);
-            }
-
-            // ============================================================
-            // 4. 从 ProgressEngine 获取 Streak
-            // ============================================================
-            try {
-                var progressEngine = window.LawAIApp?.ProgressEngine;
-                if (progressEngine) {
-                    if (typeof progressEngine.getStreak === 'function') {
-                        motivation.streak = progressEngine.getStreak() || 0;
-                    } else if (typeof progressEngine.getProgress === 'function') {
-                        var progress = progressEngine.getProgress();
-                        if (progress && progress.streak !== undefined) {
-                            motivation.streak = progress.streak || 0;
-                        }
-                    }
-                }
-            } catch (error) {
-                console.warn('[LearningJourneyAdapter] ProgressEngine not available:', error);
-            }
-
-            // ============================================================
-            // 5. 计算下一级 XP 和进度
-            // ============================================================
-            motivation.nextLevelXp = this._calculateNextLevelXp(motivation.level);
-            var xpInLevel = motivation.xp;
-            var xpNeeded = motivation.nextLevelXp;
-            motivation.xpProgress = xpNeeded > 0 ? Math.min(100, Math.round((xpInLevel / xpNeeded) * 100)) : 0;
-
-            console.log('[LearningJourneyAdapter] ✅ Motivation data:', motivation);
-            return motivation;
-        },
-
-        /**
-         * 🔥 Part 58.7: 计算下一级所需的 XP
-         * @param {number} level
-         * @returns {number}
-         */
-        _calculateNextLevelXp: function(level) {
-            // 简单的 XP 曲线: 每级需要 100 * level XP
-            var baseXp = 100;
-            var multiplier = level || 1;
-            return baseXp * multiplier;
-        },
-
-        /**
-         * 🔥 Part 58.7: 更新学习动机 (当学习进度更新时调用)
-         * @param {string} action - 触发的动作 (lesson_completed, module_completed, etc.)
-         * @param {Object} data - 额外数据
-         */
-        updateLearningMotivation: function(action, data) {
-            console.log('[LearningJourneyAdapter] 🔄 Updating learning motivation:', action, data);
-
-            // 触发 XP 更新
-            if (action === 'lesson_completed' || action === 'module_completed') {
-                var xpEngine = window.LawAIApp?.ExperienceEngine || window.LawAIApp?.XpEngine;
-                if (xpEngine && typeof xpEngine.addXP === 'function') {
-                    var xpAmount = data?.xpAmount || 10;
-                    xpEngine.addXP(xpAmount);
-                    console.log('[LearningJourneyAdapter] ✅ Added XP:', xpAmount);
-                }
-            }
-
-            // 广播事件
-            this._emit('MOTIVATION_UPDATED', {
-                action: action,
-                data: data,
-                motivation: this.getLearningMotivation()
-            });
-
-            this._emit('ACADEMY_LEARNING_UPDATED', {
-                action: 'motivation_updated',
-                motivation: this.getLearningMotivation()
-            });
-
-            return this.getLearningMotivation();
-        },
+    };  // ← LearningJourneyAdapter 对象结束
 
     // ============================================================
-    // Export
+    // 15. EXPORT
     // ============================================================
 
     if (!window.LawAIApp) {
@@ -1297,7 +1000,11 @@
 
     window.LawAIApp.LearningJourneyAdapter = LearningJourneyAdapter;
 
-    console.log('[LearningJourneyAdapter] Module loaded (Part 58.6)');
+    console.log('[LearningJourneyAdapter] Module loaded (Part 58.7)');
+
+    // ============================================================
+    // 16. AUTO INIT
+    // ============================================================
 
     function autoInit() {
         if (!LearningJourneyAdapter.initialized) {
