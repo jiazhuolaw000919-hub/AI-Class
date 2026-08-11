@@ -1,5 +1,5 @@
 // js/academy/academyView.js
-// Part 58.2 — Learning Module Structure Connection Layer
+// Part 58.5 — Lesson Structure Foundation Layer (完整版)
 // Law AI Academy Developer Bible
 
 (function() {
@@ -574,7 +574,7 @@
             container.innerHTML = html;
         },
 
-                 /**
+        /**
          * 🔥 Part 58.3: Module View
          */
         _renderModuleView: function(container, moduleId) {
@@ -646,7 +646,7 @@
                     </div>
             `;
 
-            // 进度条 — 使用 adapter 的进度数据 (不再重复声明变量)
+            // 进度条 — 使用 adapter 的进度数据
             var progressData = adapter ? adapter.getModuleProgress(moduleId) : { progress: 0, completed: false };
             var displayProgress = progressData.progress || 0;
             var isCompleted = progressData.completed || false;
@@ -733,6 +733,75 @@
             container.innerHTML = html;
         },
 
+        /**
+         * 🔥 Part 58.5: Lesson View (Placeholder)
+         */
+        _renderLessonView: function(container, lessonId) {
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var lesson = adapter ? adapter.getLessonDetail(lessonId) : null;
+
+            if (!lesson) {
+                container.innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: #94a3b8;">
+                        <p>Lesson not found</p>
+                        <button onclick="LawAIApp.AcademyExperienceManager?.goHome?.()" 
+                                style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
+                            ← Back to Academy
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            var isCompleted = lesson.isCompleted || false;
+            var statusIcon = isCompleted ? '✅' : '📄';
+            var statusColor = isCompleted ? '#10b981' : '#4a9eff';
+            var statusText = isCompleted ? 'Completed' : 'Ready';
+
+            var html = '';
+
+            // 返回栏 — Back to Module
+            html += `
+                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+                    <button onclick="LawAIApp.AcademyExperienceManager?.navigateToModule?.('${lesson.moduleId}')" 
+                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
+                        <span style="font-size:16px;">←</span> Back to Module
+                    </button>
+                    <span style="color: #64748b; font-size: 13px; margin-left: auto;">📖 Lesson</span>
+                </div>
+            `;
+
+            // Lesson 内容
+            html += `
+                <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
+                        <span style="font-size: 40px;">${statusIcon}</span>
+                        <div>
+                            <h1 style="font-size: 24px; font-weight: 700; margin: 0 0 4px 0;">${lesson.name}</h1>
+                            ${lesson.description ? `<p style="color: #94a3b8; font-size: 14px; margin: 0;">${lesson.description}</p>` : ''}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
+                        <span style="color: ${statusColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${statusIcon} ${statusText}</span>
+                        ${lesson.duration ? `<span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">⏱️ ${lesson.duration} minutes</span>` : ''}
+                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 Module: ${lesson.moduleId}</span>
+                    </div>
+
+                    <!-- Lesson 内容占位 -->
+                    <div style="margin-top: 24px;">
+                        <div style="text-align: center; padding: 80px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08);">
+                            <div style="font-size: 56px; margin-bottom: 16px;">📝</div>
+                            <p style="font-size: 18px; margin: 0; font-weight: 500; color: #94a3b8;">Lesson Experience Coming Soon</p>
+                            <p style="font-size: 14px; margin: 8px 0 0; color: #64748b;">This lesson is being prepared</p>
+                            <p style="font-size: 13px; margin: 4px 0 0; color: #475569;">Interactive lesson content will appear here</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        },
+
         // ============================================================
         // PRIVATE — Helpers
         // ============================================================
@@ -797,6 +866,6 @@
 
     window.LawAIApp.AcademyView = AcademyView;
 
-    console.log('[AcademyView] Module loaded (Part 58.2)');
+    console.log('[AcademyView] Module loaded (Part 58.5)');
 
 })();
