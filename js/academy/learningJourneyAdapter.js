@@ -722,9 +722,8 @@
                 }
             } catch (err) {}
         }
-    };
 
-            /**
+        /**
          * 🔥 Part 58.6: 开始学习 Lesson
          */
         startLesson: function(lessonId) {
@@ -766,7 +765,7 @@
                 sessionStatus: 'active',
                 currentSessionId: session.id
 
-                    /**
+        /**
          * 🔥 Part 58.6: 开始 Lesson Session
          * @param {string} lessonId
          * @returns {Object|null} session 对象
