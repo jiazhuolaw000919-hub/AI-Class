@@ -92,10 +92,42 @@
             if (continueData) {
                 html += this._renderContinueLearning(continueData);
             }
-            container.innerHTML = html;
-    },
+                          
+            if (schools && schools.length > 0) {
+                html += `<h2 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px 0;">🎓 Schools</h2>`;
+                html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">`;
 
-             /**
+                schools.forEach(function(school) {
+                    var progCount = school.programs?.length || 0;
+                    html += `
+                        <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
+                             onclick="LawAIApp.AcademyExperienceManager?.navigateToSchool?.('${school.id}')"
+                             onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
+                             onmouseout="this.style.background='rgba(255,255,255,0.04)'">
+                            <div style="font-size: 32px; margin-bottom: 6px;">${school.icon || '🏛️'}</div>
+                            <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 4px 0;">${school.name}</h3>
+                            <p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px 0;">${school.description || ''}</p>
+                            <span style="color: #4a9eff; font-size: 13px;">${progCount} programs</span>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+            } else {
+                html += `
+                    <div style="text-align: center; padding: 60px 20px; background: rgba(255,255,255,0.03); border-radius: 16px; border: 1px dashed rgba(255,255,255,0.08);">
+                        <div style="font-size: 48px; margin-bottom: 16px;">🚀</div>
+                        <h2 style="font-size: 22px; font-weight: 600; margin: 0 0 8px 0;">Welcome to Law AI Academy</h2>
+                        <p style="color: #94a3b8; font-size: 15px; margin: 0;">Schools and programs will appear here soon</p>
+                    </div>
+                `;
+            }
+
+            html += `</div>`;
+            container.innerHTML = html;
+        },
+
+        /**
              * 🔥 Part 58.7: Motivation Summary
              */
             _renderMotivationSummary: function() {
@@ -155,40 +187,6 @@
 
                 return html;
             },
-        
-            if (schools && schools.length > 0) {
-                html += `<h2 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px 0;">🎓 Schools</h2>`;
-                html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">`;
-
-                schools.forEach(function(school) {
-                    var progCount = school.programs?.length || 0;
-                    html += `
-                        <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="LawAIApp.AcademyExperienceManager?.navigateToSchool?.('${school.id}')"
-                             onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
-                             onmouseout="this.style.background='rgba(255,255,255,0.04)'">
-                            <div style="font-size: 32px; margin-bottom: 6px;">${school.icon || '🏛️'}</div>
-                            <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 4px 0;">${school.name}</h3>
-                            <p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px 0;">${school.description || ''}</p>
-                            <span style="color: #4a9eff; font-size: 13px;">${progCount} programs</span>
-                        </div>
-                    `;
-                });
-
-                html += `</div>`;
-            } else {
-                html += `
-                    <div style="text-align: center; padding: 60px 20px; background: rgba(255,255,255,0.03); border-radius: 16px; border: 1px dashed rgba(255,255,255,0.08);">
-                        <div style="font-size: 48px; margin-bottom: 16px;">🚀</div>
-                        <h2 style="font-size: 22px; font-weight: 600; margin: 0 0 8px 0;">Welcome to Law AI Academy</h2>
-                        <p style="color: #94a3b8; font-size: 15px; margin: 0;">Schools and programs will appear here soon</p>
-                    </div>
-                `;
-            }
-
-            html += `</div>`;
-            container.innerHTML = html;
-        },
 
         _renderContinueLearning: function(continueData) {
             var progress = continueData.progress || 0;
