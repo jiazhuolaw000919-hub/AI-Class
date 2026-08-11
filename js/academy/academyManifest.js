@@ -80,7 +80,6 @@
         description: 'Academy Experience Manager (Controller)',
         required: true
       }
-    ],
 
     // ==========================================================
     // 🔥 4. Learning Journey Layer (新增)
