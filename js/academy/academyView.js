@@ -787,6 +787,9 @@
                         <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 Module: ${lesson.moduleId}</span>
                     </div>
 
+                    // 🔥 Part 58.6: Learning Session Panel (加在这里！)
+                    html += this._renderSessionPanel(lessonId);
+
                     <!-- Lesson 内容占位 -->
                     <div style="margin-top: 24px;">
                         <div style="text-align: center; padding: 80px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08);">
@@ -800,6 +803,57 @@
             `;
 
             container.innerHTML = html;
+        },
+
+                /**
+         * 🔥 Part 58.6: Session Panel
+         */
+        _renderSessionPanel: function(lessonId) {
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var session = adapter ? adapter.getActiveSession() : null;
+            var isActive = session && session.lessonId === lessonId && session.status === 'active';
+
+            var html = '';
+
+            html += `
+                <div style="margin-top: 24px; background: rgba(74,158,255,0.04); border-radius: 12px; padding: 20px; border: 1px solid ${isActive ? 'rgba(74,158,255,0.3)' : 'rgba(74,158,255,0.08)'};">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <div style="font-size: 13px; color: #94a3b8;">📖 Learning Session</div>
+                            <div style="font-size: 20px; font-weight: 700; color: ${isActive ? '#4a9eff' : '#e2e8f0'};">
+                                ${isActive ? '▶️ Learning in Progress' : 'Ready to Learn'}
+                            </div>
+                            ${isActive ? `<div style="font-size: 12px; color: #64748b;">Started: ${new Date(session.startedAt).toLocaleTimeString()}</div>` : ''}
+                        </div>
+                        ${isActive ? `
+                            <button onclick="LawAIApp.AcademyExperienceManager?.endLessonSession?.()" 
+                                    style="padding: 10px 24px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; color: #ef4444; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit;"
+                                    onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">
+                                ⏹️ End Session
+                            </button>
+                        ` : `
+                            <button onclick="LawAIApp.AcademyExperienceManager?.startLesson?.('${lessonId}')" 
+                                    style="padding: 12px 32px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 16px; cursor: pointer; transition: all 0.2s; font-family: inherit;"
+                                    onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
+                                🚀 Start Learning
+                            </button>
+                        `}
+                    </div>
+                    ${isActive ? `
+                        <div style="margin-top: 12px; background: rgba(74,158,255,0.06); border-radius: 4px; height: 4px; overflow: hidden;">
+                            <div style="background: linear-gradient(90deg, #4a9eff, #10b981); height: 100%; width: 100%; animation: pulse 2s ease-in-out infinite;"></div>
+                        </div>
+                        <style>
+                            @keyframes pulse {
+                                0%, 100% { opacity: 0.6; }
+                                50% { opacity: 1; }
+                            }
+                        </style>
+                    ` : ''}
+                </div>
+            `;
+
+            return html;
         },
 
         // ============================================================
