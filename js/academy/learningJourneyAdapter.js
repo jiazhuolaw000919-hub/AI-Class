@@ -1122,7 +1122,171 @@
             return state.sessionStatus === 'active' && !!state.currentSessionId;
         }
 
-    };  // ← LearningJourneyAdapter 对象结束
+    };
+
+            /**
+         * 🔥 Part 58.7: 获取学习动机数据 (XP, Level, Streak, Achievements)
+         * @returns {Object} 标准化动机数据
+         */
+        getLearningMotivation: function() {
+            console.log('[LearningJourneyAdapter] 🎯 Getting learning motivation...');
+
+            var motivation = {
+                xp: 0,
+                level: 1,
+                streak: 0,
+                achievements: [],
+                achievementCount: 0,
+                nextLevelXp: 100,
+                xpProgress: 0
+            };
+
+            // ============================================================
+            // 1. 从 XP Engine 获取
+            // ============================================================
+            try {
+                var xpEngine = window.LawAIApp?.ExperienceEngine || window.LawAIApp?.XpEngine;
+                if (xpEngine) {
+                    if (typeof xpEngine.getXP === 'function') {
+                        motivation.xp = xpEngine.getXP() || 0;
+                    } else if (typeof xpEngine.getExperienceLevel === 'function') {
+                        motivation.xp = xpEngine.getExperienceLevel() || 0;
+                    } else if (typeof xpEngine.getState === 'function') {
+                        var state = xpEngine.getState();
+                        if (state && state.xp !== undefined) {
+                            motivation.xp = state.xp || 0;
+                        }
+                    }
+
+                    if (typeof xpEngine.getLevel === 'function') {
+                        motivation.level = xpEngine.getLevel() || 1;
+                    } else if (typeof xpEngine.getExperienceProgress === 'function') {
+                        var progress = xpEngine.getExperienceProgress();
+                        if (progress && progress.level !== undefined) {
+                            motivation.level = progress.level || 1;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('[LearningJourneyAdapter] XP Engine not available:', error);
+            }
+
+            // ============================================================
+            // 2. 从 ProfileEngine 获取
+            // ============================================================
+            try {
+                var profileEngine = window.LawAIApp?.ProfileEngine;
+                if (profileEngine) {
+                    if (typeof profileEngine.getProfile === 'function') {
+                        var profile = profileEngine.getProfile();
+                        if (profile) {
+                            if (profile.xp !== undefined) motivation.xp = profile.xp || 0;
+                            if (profile.level !== undefined) motivation.level = profile.level || 1;
+                            if (profile.streak !== undefined) motivation.streak = profile.streak || 0;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('[LearningJourneyAdapter] ProfileEngine not available:', error);
+            }
+
+            // ============================================================
+            // 3. 从 AchievementEngine 获取
+            // ============================================================
+            try {
+                var achievementEngine = window.LawAIApp?.AchievementEngine;
+                if (achievementEngine) {
+                    if (typeof achievementEngine.getAchievements === 'function') {
+                        motivation.achievements = achievementEngine.getAchievements() || [];
+                    } else if (typeof achievementEngine.getAll === 'function') {
+                        motivation.achievements = achievementEngine.getAll() || [];
+                    } else if (typeof achievementEngine.getState === 'function') {
+                        var state = achievementEngine.getState();
+                        if (state && state.achievements !== undefined) {
+                            motivation.achievements = state.achievements || [];
+                        }
+                    }
+                    motivation.achievementCount = motivation.achievements.length;
+                }
+            } catch (error) {
+                console.warn('[LearningJourneyAdapter] AchievementEngine not available:', error);
+            }
+
+            // ============================================================
+            // 4. 从 ProgressEngine 获取 Streak
+            // ============================================================
+            try {
+                var progressEngine = window.LawAIApp?.ProgressEngine;
+                if (progressEngine) {
+                    if (typeof progressEngine.getStreak === 'function') {
+                        motivation.streak = progressEngine.getStreak() || 0;
+                    } else if (typeof progressEngine.getProgress === 'function') {
+                        var progress = progressEngine.getProgress();
+                        if (progress && progress.streak !== undefined) {
+                            motivation.streak = progress.streak || 0;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('[LearningJourneyAdapter] ProgressEngine not available:', error);
+            }
+
+            // ============================================================
+            // 5. 计算下一级 XP 和进度
+            // ============================================================
+            motivation.nextLevelXp = this._calculateNextLevelXp(motivation.level);
+            var xpInLevel = motivation.xp;
+            var xpNeeded = motivation.nextLevelXp;
+            motivation.xpProgress = xpNeeded > 0 ? Math.min(100, Math.round((xpInLevel / xpNeeded) * 100)) : 0;
+
+            console.log('[LearningJourneyAdapter] ✅ Motivation data:', motivation);
+            return motivation;
+        },
+
+        /**
+         * 🔥 Part 58.7: 计算下一级所需的 XP
+         * @param {number} level
+         * @returns {number}
+         */
+        _calculateNextLevelXp: function(level) {
+            // 简单的 XP 曲线: 每级需要 100 * level XP
+            var baseXp = 100;
+            var multiplier = level || 1;
+            return baseXp * multiplier;
+        },
+
+        /**
+         * 🔥 Part 58.7: 更新学习动机 (当学习进度更新时调用)
+         * @param {string} action - 触发的动作 (lesson_completed, module_completed, etc.)
+         * @param {Object} data - 额外数据
+         */
+        updateLearningMotivation: function(action, data) {
+            console.log('[LearningJourneyAdapter] 🔄 Updating learning motivation:', action, data);
+
+            // 触发 XP 更新
+            if (action === 'lesson_completed' || action === 'module_completed') {
+                var xpEngine = window.LawAIApp?.ExperienceEngine || window.LawAIApp?.XpEngine;
+                if (xpEngine && typeof xpEngine.addXP === 'function') {
+                    var xpAmount = data?.xpAmount || 10;
+                    xpEngine.addXP(xpAmount);
+                    console.log('[LearningJourneyAdapter] ✅ Added XP:', xpAmount);
+                }
+            }
+
+            // 广播事件
+            this._emit('MOTIVATION_UPDATED', {
+                action: action,
+                data: data,
+                motivation: this.getLearningMotivation()
+            });
+
+            this._emit('ACADEMY_LEARNING_UPDATED', {
+                action: 'motivation_updated',
+                motivation: this.getLearningMotivation()
+            });
+
+            return this.getLearningMotivation();
+        },
 
     // ============================================================
     // Export
