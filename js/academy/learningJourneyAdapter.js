@@ -340,6 +340,132 @@
             };
         },
 
+        /**
+         * 🔥 Part 58.5: 获取 Module 的所有 Lessons
+         */
+        getModuleLessons: function(moduleId) {
+            console.log('[LearningJourneyAdapter] 📖 Getting lessons for module:', moduleId);
+
+            var academyRegistry = window.LawAIApp?.AcademyRegistry;
+            if (!academyRegistry) {
+                console.warn('[LearningJourneyAdapter] AcademyRegistry not available');
+                return [];
+            }
+
+            var lessons = [];
+            if (typeof academyRegistry.getLessonsByModule === 'function') {
+                lessons = academyRegistry.getLessonsByModule(moduleId);
+            } else {
+                console.warn('[LearningJourneyAdapter] getLessonsByModule not available');
+                return [];
+            }
+
+            var state = this._journeyState;
+            var completedLessons = state.completedLessons || [];
+
+            return lessons.map(function(lesson, index) {
+                var isCompleted = completedLessons.indexOf(lesson.id) !== -1;
+                var isActive = state.currentLessonId === lesson.id;
+
+                return {
+                    id: lesson.id,
+                    moduleId: lesson.moduleId || moduleId,
+                    name: lesson.title || lesson.name || 'Untitled Lesson',
+                    description: lesson.description || '',
+                    order: lesson.order !== undefined ? lesson.order : index + 1,
+                    duration: lesson.duration || 0,
+                    status: lesson.status || 'draft',
+                    isCompleted: isCompleted,
+                    isActive: isActive,
+                    _raw: lesson
+                };
+            });
+        },
+
+        /**
+         * 🔥 Part 58.5: 获取单个 Lesson 详情
+         */
+        getLessonDetail: function(lessonId) {
+            console.log('[LearningJourneyAdapter] 📖 Getting lesson detail:', lessonId);
+
+            var academyRegistry = window.LawAIApp?.AcademyRegistry;
+            if (!academyRegistry) {
+                console.warn('[LearningJourneyAdapter] AcademyRegistry not available');
+                return null;
+            }
+
+            var lesson = null;
+            if (typeof academyRegistry.getLesson === 'function') {
+                lesson = academyRegistry.getLesson(lessonId);
+            }
+
+            if (!lesson) {
+                console.warn('[LearningJourneyAdapter] Lesson not found:', lessonId);
+                return null;
+            }
+
+            var state = this._journeyState;
+            var isCompleted = state.completedLessons && state.completedLessons.indexOf(lessonId) !== -1;
+            var isActive = state.currentLessonId === lessonId;
+
+            return {
+                id: lesson.id,
+                moduleId: lesson.moduleId || '',
+                name: lesson.title || lesson.name || 'Untitled Lesson',
+                description: lesson.description || '',
+                duration: lesson.duration || 0,
+                status: lesson.status || 'draft',
+                content: lesson.content || '',
+                isCompleted: isCompleted,
+                isActive: isActive,
+                _raw: lesson
+            };
+        },
+
+        /**
+         * 🔥 Part 58.5: 选择 Lesson
+         */
+        selectLesson: function(lessonId) {
+            console.log('[LearningJourneyAdapter] 📍 Selecting lesson:', lessonId);
+
+            var lesson = this.getLessonDetail(lessonId);
+            if (!lesson) {
+                console.warn('[LearningJourneyAdapter] Lesson not found:', lessonId);
+                return null;
+            }
+
+            this._journeyState.currentLessonId = lessonId;
+            if (lesson.moduleId) {
+                this._journeyState.currentModuleId = lesson.moduleId;
+            }
+            this._journeyState.lastActivity = new Date().toISOString();
+
+            this._saveState();
+            this._syncToLearningStateManager();
+
+            this._emit('LEARNING_STATE_UPDATED', {
+                lessonId: lessonId,
+                moduleId: lesson.moduleId,
+                action: 'lesson_selected',
+                state: this._journeyState
+            });
+
+            this._emit('ACADEMY_LESSON_SELECTED', {
+                lessonId: lessonId,
+                moduleId: lesson.moduleId,
+                courseId: this._journeyState.currentCourseId
+            });
+
+            this._emit('ACADEMY_LEARNING_UPDATED', {
+                lessonId: lessonId,
+                action: 'lesson_selected',
+                state: this._journeyState
+            });
+
+            console.log('[LearningJourneyAdapter] ✅ Lesson selected:', lessonId);
+            return this.getState();
+        },
+
         initializeCourse: function(courseId, programId) {
             console.log('[LearningJourneyAdapter] 📖 Initializing course:', courseId);
 
