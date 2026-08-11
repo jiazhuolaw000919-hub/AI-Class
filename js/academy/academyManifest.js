@@ -102,6 +102,7 @@
       curriculumSeed: ['curriculumRegistry'],
       academyView: ['schoolRegistry', 'programRegistry', 'courseRegistry'],
       academyExperienceManager: ['academyView', 'curriculumRegistry', 'curriculumSeed']
+      learningJourneyAdapter: ['curriculumRegistry', 'academyView', 'academyExperienceManager']
     },
 
     // ============================================================
