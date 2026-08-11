@@ -294,6 +294,79 @@
             return this;
         },
 
+        /**
+         * 🔥 Part 58.5: 选择 Lesson
+         */
+        selectLesson: function(lessonId) {
+            console.log('[AcademyExperienceManager] 📍 Selecting lesson:', lessonId);
+
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            if (!adapter) {
+                console.warn('[AcademyExperienceManager] LearningJourneyAdapter not available');
+                return this;
+            }
+
+            var lesson = adapter.getLessonDetail(lessonId);
+            if (!lesson) {
+                console.warn('[AcademyExperienceManager] Lesson not found:', lessonId);
+                return this;
+            }
+
+            this._state.currentLessonId = lessonId;
+            this._state.currentModuleId = lesson.moduleId;
+            this._state.viewMode = 'lesson';
+
+            adapter.selectLesson(lessonId);
+
+            this.render();
+            this._emit('ACADEMY_VIEW_CHANGED', {
+                viewMode: 'lesson',
+                currentLessonId: lessonId,
+                currentModuleId: lesson.moduleId,
+                currentCourseId: this._state.currentCourseId
+            });
+
+            console.log('[AcademyExperienceManager] ✅ Lesson selected:', lessonId);
+            return this;
+        },
+
+        /**
+         * 🔥 Part 58.5: 导航到 Module
+         */
+        navigateToModule: function(moduleId) {
+            console.log('[AcademyExperienceManager] 📍 Navigating to module:', moduleId);
+
+            var academyRegistry = window.LawAIApp?.AcademyRegistry;
+            if (!academyRegistry) {
+                console.warn('[AcademyExperienceManager] AcademyRegistry not available');
+                return this;
+            }
+
+            var module = academyRegistry.getModule(moduleId);
+            if (!module) {
+                console.warn('[AcademyExperienceManager] Module not found:', moduleId);
+                return this;
+            }
+
+            this._state.currentModuleId = moduleId;
+            this._state.currentLessonId = null;
+            this._state.viewMode = 'module';
+
+            if (!this._state.currentCourseId && module.courseId) {
+                this._state.currentCourseId = module.courseId;
+            }
+
+            this.render();
+            this._emit('ACADEMY_VIEW_CHANGED', {
+                viewMode: 'module',
+                currentModuleId: moduleId,
+                currentCourseId: this._state.currentCourseId
+            });
+
+            console.log('[AcademyExperienceManager] ✅ Navigated to module:', moduleId);
+            return this;
+        },
+
         goHome: function() {
             console.log('[AcademyExperienceManager] 🏠 Going home...');
 
