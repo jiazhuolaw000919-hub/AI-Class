@@ -724,6 +724,406 @@
         }
     };
 
+            /**
+         * 🔥 Part 58.6: 开始学习 Lesson
+         */
+        startLesson: function(lessonId) {
+            console.log('[AcademyExperienceManager] 🚀 Starting lesson:', lessonId);
+
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            if (!adapter) {
+                console.warn('[AcademyExperienceManager] LearningJourneyAdapter not available');
+                return this;
+            }
+
+            // 验证 Lesson 存在
+            var lesson = adapter.getLessonDetail(lessonId);
+            if (!lesson) {
+                console.warn('[AcademyExperienceManager] Lesson not found:', lessonId);
+                return this;
+            }
+
+            // 启动 Session
+            var session = adapter.startLessonSession(lessonId);
+            if (!session) {
+                console.warn('[AcademyExperienceManager] Failed to start session');
+                return this;
+            }
+
+            // 更新状态
+            this._state.currentLessonId = lessonId;
+            this._state.currentModuleId = lesson.moduleId;
+            this._state.viewMode = 'lesson';
+            this._state.sessionStatus = 'active';
+            this._state.currentSessionId = session.id;
+
+            this.render();
+            this._emit('ACADEMY_VIEW_CHANGED', {
+                viewMode: 'lesson',
+                currentLessonId: lessonId,
+                currentModuleId: lesson.moduleId,
+                currentCourseId: this._state.currentCourseId,
+                sessionStatus: 'active',
+                currentSessionId: session.id
+
+                    /**
+         * 🔥 Part 58.6: 开始 Lesson Session
+         * @param {string} lessonId
+         * @returns {Object|null} session 对象
+         */
+        startLessonSession: function(lessonId) {
+            console.log('[LearningJourneyAdapter] 🎯 Starting lesson session:', lessonId);
+
+            // 1. 验证 Lesson 存在
+            var lesson = this.getLessonDetail(lessonId);
+            if (!lesson) {
+                console.warn('[LearningJourneyAdapter] Lesson not found:', lessonId);
+                return null;
+            }
+
+            // 2. 验证 Module 存在
+            var academyRegistry = window.LawAIApp?.AcademyRegistry;
+            if (!academyRegistry) {
+                console.warn('[LearningJourneyAdapter] AcademyRegistry not available');
+                return null;
+            }
+
+            var module = academyRegistry.getModule(lesson.moduleId);
+            if (!module) {
+                console.warn('[LearningJourneyAdapter] Module not found for lesson:', lessonId);
+                return null;
+            }
+
+            // 3. 验证 Course 存在
+            var courseId = this._journeyState.currentCourseId || module.courseId || lesson.courseId;
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            if (courseRegistry && courseId) {
+                var course = courseRegistry.getCourse(courseId);
+                if (!course) {
+                    console.warn('[LearningJourneyAdapter] Course not found for lesson:', lessonId);
+                }
+            }
+
+            // 4. 生成 Session ID
+            var sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+
+            // 5. 创建 Session 对象
+            var session = {
+                id: sessionId,
+                lessonId: lessonId,
+                moduleId: lesson.moduleId,
+                courseId: courseId || module.courseId || '',
+                status: 'active',
+                startedAt: new Date().toISOString()
+            };
+
+            // 6. 更新 LearningJourney 状态
+            this._journeyState.currentLessonId = lessonId;
+            this._journeyState.currentModuleId = lesson.moduleId;
+            if (courseId) {
+                this._journeyState.currentCourseId = courseId;
+            }
+            this._journeyState.currentSessionId = sessionId;
+            this._journeyState.sessionStatus = 'active';
+            this._journeyState.sessionStartedAt = session.startedAt;
+            this._journeyState.lastActivity = new Date().toISOString();
+
+            // 7. 保存状态
+            this._saveState();
+            this._syncToLearningStateManager();
+
+            // 8. 广播事件
+            this._emit('LEARNING_SESSION_STARTED', {
+                sessionId: sessionId,
+                lessonId: lessonId,
+                moduleId: lesson.moduleId,
+                courseId: courseId || module.courseId || '',
+                startedAt: session.startedAt
+            });
+
+            this._emit('ACADEMY_LEARNING_UPDATED', {
+                sessionId: sessionId,
+                lessonId: lessonId,
+                action: 'session_started',
+                state: this._journeyState
+            });
+
+            console.log('[LearningJourneyAdapter] ✅ Session started:', sessionId);
+            return session;
+        },
+
+        /**
+         * 🔥 Part 58.6: 结束 Lesson Session
+         * @returns {Object|null} 结束后的状态
+         */
+        endLessonSession: function() {
+            console.log('[LearningJourneyAdapter] 🏁 Ending lesson session...');
+
+            var state = this._journeyState;
+
+            // 检查是否有活跃的 Session
+            if (state.sessionStatus !== 'active' || !state.currentSessionId) {
+                console.warn('[LearningJourneyAdapter] No active session to end');
+                return null;
+            }
+
+            var sessionId = state.currentSessionId;
+            var lessonId = state.currentLessonId;
+            var moduleId = state.currentModuleId;
+            var courseId = state.currentCourseId;
+
+            // 更新状态
+            state.sessionStatus = 'completed';
+            state.sessionEndedAt = new Date().toISOString();
+            state.lastActivity = new Date().toISOString();
+
+            this._saveState();
+            this._syncToLearningStateManager();
+
+            // 广播事件
+            this._emit('LEARNING_SESSION_ENDED', {
+                sessionId: sessionId,
+                lessonId: lessonId,
+                moduleId: moduleId,
+                courseId: courseId,
+                endedAt: state.sessionEndedAt
+            });
+
+            this._emit('ACADEMY_LEARNING_UPDATED', {
+                sessionId: sessionId,
+                lessonId: lessonId,
+                action: 'session_ended',
+                state: this._journeyState
+            });
+
+            console.log('[LearningJourneyAdapter] ✅ Session ended:', sessionId);
+            return {
+                sessionId: sessionId,
+                status: state.sessionStatus,
+                endedAt: state.sessionEndedAt
+            };
+        },
+
+        /**
+         * 🔥 Part 58.6: 获取当前 Session 状态
+         * @returns {Object|null}
+         */
+        getActiveSession: function() {
+            var state = this._journeyState;
+
+            if (state.sessionStatus !== 'active' || !state.currentSessionId) {
+                return null;
+            }
+
+            return {
+                sessionId: state.currentSessionId,
+                lessonId: state.currentLessonId,
+                moduleId: state.currentModuleId,
+                courseId: state.currentCourseId,
+                status: state.sessionStatus,
+                startedAt: state.sessionStartedAt
+            };
+
+                    /**
+         * 🔥 Part 58.6: 开始 Lesson Session
+         * @param {string} lessonId
+         * @returns {Object|null} session 对象
+         */
+        startLessonSession: function(lessonId) {
+            console.log('[LearningJourneyAdapter] 🎯 Starting lesson session:', lessonId);
+
+            // 1. 验证 Lesson 存在
+            var lesson = this.getLessonDetail(lessonId);
+            if (!lesson) {
+                console.warn('[LearningJourneyAdapter] Lesson not found:', lessonId);
+                return null;
+            }
+
+            // 2. 验证 Module 存在
+            var academyRegistry = window.LawAIApp?.AcademyRegistry;
+            if (!academyRegistry) {
+                console.warn('[LearningJourneyAdapter] AcademyRegistry not available');
+                return null;
+            }
+
+            var module = academyRegistry.getModule(lesson.moduleId);
+            if (!module) {
+                console.warn('[LearningJourneyAdapter] Module not found for lesson:', lessonId);
+                return null;
+            }
+
+            // 3. 验证 Course 存在
+            var courseId = this._journeyState.currentCourseId || module.courseId || lesson.courseId;
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            if (courseRegistry && courseId) {
+                var course = courseRegistry.getCourse(courseId);
+                if (!course) {
+                    console.warn('[LearningJourneyAdapter] Course not found for lesson:', lessonId);
+                }
+            }
+
+            // 4. 生成 Session ID
+            var sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+
+            // 5. 创建 Session 对象
+            var session = {
+                id: sessionId,
+                lessonId: lessonId,
+                moduleId: lesson.moduleId,
+                courseId: courseId || module.courseId || '',
+                status: 'active',
+                startedAt: new Date().toISOString()
+            };
+
+            // 6. 更新 LearningJourney 状态
+            this._journeyState.currentLessonId = lessonId;
+            this._journeyState.currentModuleId = lesson.moduleId;
+            if (courseId) {
+                this._journeyState.currentCourseId = courseId;
+            }
+            this._journeyState.currentSessionId = sessionId;
+            this._journeyState.sessionStatus = 'active';
+            this._journeyState.sessionStartedAt = session.startedAt;
+            this._journeyState.lastActivity = new Date().toISOString();
+
+            // 7. 保存状态
+            this._saveState();
+            this._syncToLearningStateManager();
+
+            // 8. 广播事件
+            this._emit('LEARNING_SESSION_STARTED', {
+                sessionId: sessionId,
+                lessonId: lessonId,
+                moduleId: lesson.moduleId,
+                courseId: courseId || module.courseId || '',
+                startedAt: session.startedAt
+            });
+
+            this._emit('ACADEMY_LEARNING_UPDATED', {
+                sessionId: sessionId,
+                lessonId: lessonId,
+                action: 'session_started',
+                state: this._journeyState
+            });
+
+            console.log('[LearningJourneyAdapter] ✅ Session started:', sessionId);
+            return session;
+        },
+
+        /**
+         * 🔥 Part 58.6: 结束 Lesson Session
+         * @returns {Object|null} 结束后的状态
+         */
+        endLessonSession: function() {
+            console.log('[LearningJourneyAdapter] 🏁 Ending lesson session...');
+
+            var state = this._journeyState;
+
+            // 检查是否有活跃的 Session
+            if (state.sessionStatus !== 'active' || !state.currentSessionId) {
+                console.warn('[LearningJourneyAdapter] No active session to end');
+                return null;
+            }
+
+            var sessionId = state.currentSessionId;
+            var lessonId = state.currentLessonId;
+            var moduleId = state.currentModuleId;
+            var courseId = state.currentCourseId;
+
+            // 更新状态
+            state.sessionStatus = 'completed';
+            state.sessionEndedAt = new Date().toISOString();
+            state.lastActivity = new Date().toISOString();
+
+            this._saveState();
+            this._syncToLearningStateManager();
+
+            // 广播事件
+            this._emit('LEARNING_SESSION_ENDED', {
+                sessionId: sessionId,
+                lessonId: lessonId,
+                moduleId: moduleId,
+                courseId: courseId,
+                endedAt: state.sessionEndedAt
+            });
+
+            this._emit('ACADEMY_LEARNING_UPDATED', {
+                sessionId: sessionId,
+                lessonId: lessonId,
+                action: 'session_ended',
+                state: this._journeyState
+            });
+
+            console.log('[LearningJourneyAdapter] ✅ Session ended:', sessionId);
+            return {
+                sessionId: sessionId,
+                status: state.sessionStatus,
+                endedAt: state.sessionEndedAt
+            };
+        },
+
+        /**
+         * 🔥 Part 58.6: 获取当前 Session 状态
+         * @returns {Object|null}
+         */
+        getActiveSession: function() {
+            var state = this._journeyState;
+
+            if (state.sessionStatus !== 'active' || !state.currentSessionId) {
+                return null;
+            }
+
+            return {
+                sessionId: state.currentSessionId,
+                lessonId: state.currentLessonId,
+                moduleId: state.currentModuleId,
+                courseId: state.currentCourseId,
+                status: state.sessionStatus,
+                startedAt: state.sessionStartedAt
+            };
+        },
+
+        /**
+         * 🔥 Part 58.6: 检查是否有活跃 Session
+         * @returns {boolean}
+         */
+        hasActiveSession: function() {
+            var state = this._journeyState;
+            return state.sessionStatus === 'active' && !!state.currentSessionId;
+           },
+
+                /**
+         * 🔥 Part 58.6: 获取当前 Session 状态
+         * @returns {Object|null}
+         */
+        getActiveSession: function() {
+            var state = this._journeyState;
+
+            if (state.sessionStatus !== 'active' || !state.currentSessionId) {
+                return null;
+            }
+
+            return {
+                sessionId: state.currentSessionId,
+                lessonId: state.currentLessonId,
+                moduleId: state.currentModuleId,
+                courseId: state.currentCourseId,
+                status: state.sessionStatus,
+                startedAt: state.sessionStartedAt
+            };
+        },
+
+        /**
+         * 🔥 Part 58.6: 检查是否有活跃 Session
+         * @returns {boolean}
+         */
+        hasActiveSession: function() {
+            var state = this._journeyState;
+            return state.sessionStatus === 'active' && !!state.currentSessionId;
+        }
+
+    };  // ← LearningJourneyAdapter 对象结束
+
     // ============================================================
     // Export
     // ============================================================
@@ -734,7 +1134,7 @@
 
     window.LawAIApp.LearningJourneyAdapter = LearningJourneyAdapter;
 
-    console.log('[LearningJourneyAdapter] Module loaded (Part 58.2)');
+    console.log('[LearningJourneyAdapter] Module loaded (Part 58.6)');
 
     function autoInit() {
         if (!LearningJourneyAdapter.initialized) {
