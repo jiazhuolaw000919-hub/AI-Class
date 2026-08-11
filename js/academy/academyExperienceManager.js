@@ -330,6 +330,53 @@
             return this;
         },
 
+                /**
+         * 🔥 Part 58.6: 开始学习 Lesson
+         */
+        startLesson: function(lessonId) {
+            console.log('[AcademyExperienceManager] 🚀 Starting lesson:', lessonId);
+
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            if (!adapter) {
+                console.warn('[AcademyExperienceManager] LearningJourneyAdapter not available');
+                return this;
+            }
+
+            // 验证 Lesson 存在
+            var lesson = adapter.getLessonDetail(lessonId);
+            if (!lesson) {
+                console.warn('[AcademyExperienceManager] Lesson not found:', lessonId);
+                return this;
+            }
+
+            // 启动 Session
+            var session = adapter.startLessonSession(lessonId);
+            if (!session) {
+                console.warn('[AcademyExperienceManager] Failed to start session');
+                return this;
+            }
+
+            // 更新状态
+            this._state.currentLessonId = lessonId;
+            this._state.currentModuleId = lesson.moduleId;
+            this._state.viewMode = 'lesson';
+            this._state.sessionStatus = 'active';
+            this._state.currentSessionId = session.id;
+
+            this.render();
+            this._emit('ACADEMY_VIEW_CHANGED', {
+                viewMode: 'lesson',
+                currentLessonId: lessonId,
+                currentModuleId: lesson.moduleId,
+                currentCourseId: this._state.currentCourseId,
+                sessionStatus: 'active',
+                currentSessionId: session.id
+            });
+
+            console.log('[AcademyExperienceManager] ✅ Lesson started:', lessonId);
+            return this;
+        },
+
         /**
          * 🔥 Part 58.5: 导航到 Module
          */
