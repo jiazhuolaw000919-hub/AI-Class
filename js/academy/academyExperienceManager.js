@@ -377,6 +377,39 @@
             return this;
         },
 
+                /**
+         * 🔥 Part 58.6: 结束学习 Session
+         */
+        endLessonSession: function() {
+            console.log('[AcademyExperienceManager] 🏁 Ending lesson session...');
+
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            if (!adapter) {
+                console.warn('[AcademyExperienceManager] LearningJourneyAdapter not available');
+                return this;
+            }
+
+            var result = adapter.endLessonSession();
+            if (!result) {
+                console.warn('[AcademyExperienceManager] No active session to end');
+                return this;
+            }
+
+            // 更新状态
+            this._state.sessionStatus = 'completed';
+            this._state.currentSessionId = null;
+
+            this.render();
+            this._emit('ACADEMY_VIEW_CHANGED', {
+                viewMode: 'lesson',
+                currentLessonId: this._state.currentLessonId,
+                sessionStatus: 'completed'
+            });
+
+            console.log('[AcademyExperienceManager] ✅ Session ended');
+            return this;
+        },
+
         /**
          * 🔥 Part 58.5: 导航到 Module
          */
