@@ -91,7 +91,9 @@
             // Continue Learning Section
             if (continueData) {
                 html += this._renderContinueLearning(continueData);
-            },
+            }
+            container.innerHTML = html;
+    },
 
              /**
              * 🔥 Part 58.7: Motivation Summary
