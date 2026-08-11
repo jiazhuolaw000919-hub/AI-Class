@@ -37,7 +37,7 @@
 
             console.log('[AcademyView] Rendering viewMode:', viewMode);
 
-                        switch (viewMode) {
+            switch (viewMode) {
                 case 'school':
                     this._renderSchoolView(container, data.currentSchoolId);
                     break;
@@ -52,6 +52,9 @@
                     break;
                 case 'module':
                     this._renderModuleView(container, data.currentModuleId);
+                    break;
+                case 'lesson':
+                    this._renderLessonView(container, data.currentLessonId);
                     break;
                 default:
                     this._renderDashboard(container, data);
@@ -676,19 +679,133 @@
                 </div>
             `;
 
-            // Lessons Section (Placeholder)
+                        // ============================================================
+            // 🔥 Part 58.5: Lesson 列表
+            // ============================================================
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var lessons = adapter ? adapter.getModuleLessons(moduleId) : [];
+
+            if (lessons && lessons.length > 0) {
+                html += `
+                    <div style="margin-top: 24px;">
+                        <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📖 Lessons (${lessons.length})</h2>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                `;
+
+                lessons.forEach(function(lesson, index) {
+                    var isCompleted = lesson.isCompleted || false;
+                    var isActive = lesson.isActive || false;
+                    var statusIcon = isCompleted ? '✅' : isActive ? '▶️' : '○';
+                    var statusColor = isCompleted ? '#10b981' : isActive ? '#4a9eff' : '#64748b';
+                    var statusText = isCompleted ? 'Completed' : isActive ? 'In Progress' : 'Not Started';
+                    var borderColor = isActive ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.06)';
+                    var bgColor = isActive ? 'rgba(74,158,255,0.06)' : 'rgba(255,255,255,0.02)';
+
+                    html += `
+                        <div style="background: ${bgColor}; border-radius: 10px; padding: 12px 16px; border: 1px solid ${borderColor}; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;"
+                             onclick="LawAIApp.AcademyExperienceManager?.selectLesson?.('${lesson.id}')"
+                             onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
+                             onmouseout="this.style.background='${bgColor}'">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span style="font-size: 16px; color: ${statusColor}; width: 24px; text-align: center;">${statusIcon}</span>
+                                <div>
+                                    <div style="font-weight: 500; font-size: 14px; color: ${isCompleted ? '#94a3b8' : '#e2e8f0'};">
+                                        ${String(index + 1).padStart(2, '0')}. ${lesson.name}
+                                    </div>
+                                    ${lesson.description ? `<div style="color: #64748b; font-size: 12px;">${lesson.description}</div>` : ''}
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    ${lesson.duration ? `<span style="color: #64748b; font-size: 12px;">⏱️ ${lesson.duration}min</span>` : ''}
+                                    <span style="color: ${statusColor}; font-size: 11px; background: rgba(255,255,255,0.06); padding: 2px 10px; border-radius: 12px;">${statusText}</span>
+                                </div>
+                                <span style="color: ${statusColor}; font-size: 14px;">→</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+            } else {
+                html += `
+                    <div style="margin-top: 24px;">
+                        <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📖 Lessons</h2>
+                        <div style="text-align: center; padding: 40px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08);">
+                            <div style="font-size: 32px; margin-bottom: 12px;">📝</div>
+                            <p style="font-size: 15px; margin: 0; font-weight: 500;">No lessons available for this module yet</p>
+                            <p style="font-size: 13px; margin: 4px 0 0; color: #94a3b8;">Lesson content coming soon</p>
+                        </div>
+                    </div>
+                `;
+
+            html += `</div>`;
+            container.innerHTML = html;
+        },
+
+        /**
+         * 🔥 Part 58.5: Lesson View (Placeholder)
+         */
+        _renderLessonView: function(container, lessonId) {
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var lesson = adapter ? adapter.getLessonDetail(lessonId) : null;
+
+            if (!lesson) {
+                container.innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: #94a3b8;">
+                        <p>Lesson not found</p>
+                        <button onclick="LawAIApp.AcademyExperienceManager?.goHome?.()" 
+                                style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
+                            ← Back to Academy
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            var isCompleted = lesson.isCompleted || false;
+            var statusIcon = isCompleted ? '✅' : '📄';
+            var statusColor = isCompleted ? '#10b981' : '#4a9eff';
+            var statusText = isCompleted ? 'Completed' : 'Ready';
+
+            var html = '';
+
             html += `
-                <div style="margin-top: 24px;">
-                    <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📖 Lessons</h2>
-                    <div style="text-align: center; padding: 60px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08);">
-                        <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
-                        <p style="font-size: 16px; margin: 0; font-weight: 500;">Lessons are being prepared</p>
-                        <p style="font-size: 14px; margin: 4px 0 0; color: #94a3b8;">Lesson content coming soon</p>
+                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+                    <button onclick="LawAIApp.AcademyExperienceManager?.navigateToModule?.('${lesson.moduleId}')" 
+                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
+                        <span style="font-size:16px;">←</span> Back to Module
+                    </button>
+                    <span style="color: #64748b; font-size: 13px; margin-left: auto;">📖 Lesson</span>
+                </div>
+            `;
+
+            html += `
+                <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
+                        <span style="font-size: 40px;">${statusIcon}</span>
+                        <div>
+                            <h1 style="font-size: 24px; font-weight: 700; margin: 0 0 4px 0;">${lesson.name}</h1>
+                            ${lesson.description ? `<p style="color: #94a3b8; font-size: 14px; margin: 0;">${lesson.description}</p>` : ''}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
+                        <span style="color: ${statusColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${statusIcon} ${statusText}</span>
+                        ${lesson.duration ? `<span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">⏱️ ${lesson.duration} minutes</span>` : ''}
+                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 Module: ${lesson.moduleId}</span>
+                    </div>
+
+                    <div style="margin-top: 24px;">
+                        <div style="text-align: center; padding: 80px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08);">
+                            <div style="font-size: 56px; margin-bottom: 16px;">📝</div>
+                            <p style="font-size: 18px; margin: 0; font-weight: 500; color: #94a3b8;">Lesson Experience Coming Soon</p>
+                            <p style="font-size: 14px; margin: 8px 0 0; color: #64748b;">This lesson is being prepared</p>
+                            <p style="font-size: 13px; margin: 4px 0 0; color: #475569;">Interactive lesson content will appear here</p>
+                        </div>
                     </div>
                 </div>
             `;
 
-            html += `</div>`;
             container.innerHTML = html;
         },
 
