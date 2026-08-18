@@ -26,7 +26,23 @@
             return this;
         },
 
-        render: function(data) {
+        /**
+         * 🔥 Part 59.6: 销毁 AcademyView (清理事件)
+         */
+        destroy: function() {
+            console.log('[AcademyView] Destroying...');
+            this._unbindEvents();
+            this.initialized = false;
+            console.log('[AcademyView] ✅ Destroyed');
+            return this;
+        },
+
+       render: function(data) {
+                if (!this.initialized) {
+                console.warn('[AcademyView] Not initialized, skipping render');
+                return;
+            }
+
             var container = document.getElementById('academy-root');
             if (!container) {
                 console.warn('[AcademyView] #academy-root not found');
@@ -552,7 +568,7 @@
             container.innerHTML = html;
         },
 
-                /**
+        /**
          * 🔥 Part 59.2: Course Experience (升级版)
          */
         _renderCourseView: function(container, courseId) {
@@ -1247,49 +1263,226 @@
 
             var self = this;
 
-            document.addEventListener('ACADEMY_VIEW_CHANGED', function(e) {
+            // 存储 handler 引用以便清理
+            this._eventHandlers = this._eventHandlers || {};
+
+            // ============================================================
+            // 1. 现有事件 (保留)
+            // ============================================================
+
+            // ACADEMY_VIEW_CHANGED
+            var viewChangedHandler = function(e) {
                 var data = e.detail || {};
                 console.log('[AcademyView] 📡 ACADEMY_VIEW_CHANGED received:', data);
-
                 var manager = window.LawAIApp?.AcademyExperienceManager;
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
                 }
-            });
+            };
+            document.addEventListener('ACADEMY_VIEW_CHANGED', viewChangedHandler);
+            this._eventHandlers.viewChanged = viewChangedHandler;
 
-            document.addEventListener('ACADEMY_REFRESH', function() {
+            // ACADEMY_REFRESH
+            var refreshHandler = function() {
                 console.log('[AcademyView] 📡 ACADEMY_REFRESH received');
                 var manager = window.LawAIApp?.AcademyExperienceManager;
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
                 }
-            });
+            };
+            document.addEventListener('ACADEMY_REFRESH', refreshHandler);
+            this._eventHandlers.academyRefresh = refreshHandler;
 
-            document.addEventListener('ACADEMY_LEARNING_UPDATED', function() {
-                console.log('[AcademyView] 📡 ACADEMY_LEARNING_UPDATED received, refreshing...');
+            // ACADEMY_LEARNING_UPDATED
+            var learningUpdatedHandler = function(e) {
+                console.log('[AcademyView] 📡 ACADEMY_LEARNING_UPDATED received');
                 var manager = window.LawAIApp?.AcademyExperienceManager;
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
                 }
-            });
+            };
+            document.addEventListener('ACADEMY_LEARNING_UPDATED', learningUpdatedHandler);
+            this._eventHandlers.learningUpdated = learningUpdatedHandler;
 
-            console.log('[AcademyView] ✅ Events bound');
+            // ============================================================
+            // 🔥 Part 59.6: 新增学习事件监听
+            // ============================================================
+
+            // LEARNING_STATE_UPDATED
+            var stateUpdatedHandler = function(e) {
+                var data = e.detail || {};
+                console.log('[AcademyView] 📡 LEARNING_STATE_UPDATED received:', data);
+
+                if (!self.initialized) {
+                    console.log('[AcademyView] ⏳ Not mounted, skipping refresh');
+                    return;
+                }
+
+                var manager = window.LawAIApp?.AcademyExperienceManager;
+                if (manager) {
+                    var renderData = manager._getRenderData ? manager._getRenderData() : {};
+                    self.render(renderData);
+                }
+            };
+            document.addEventListener('LEARNING_STATE_UPDATED', stateUpdatedHandler);
+            this._eventHandlers.stateUpdated = stateUpdatedHandler;
+
+            // LEARNING_PROGRESS_UPDATED
+            var progressUpdatedHandler = function(e) {
+                var data = e.detail || {};
+                console.log('[AcademyView] 📡 LEARNING_PROGRESS_UPDATED received:', data);
+
+                if (!self.initialized) {
+                    console.log('[AcademyView] ⏳ Not mounted, skipping refresh');
+                    return;
+                }
+
+                var manager = window.LawAIApp?.AcademyExperienceManager;
+                if (manager) {
+                    var renderData = manager._getRenderData ? manager._getRenderData() : {};
+                    self.render(renderData);
+                }
+            };
+            document.addEventListener('LEARNING_PROGRESS_UPDATED', progressUpdatedHandler);
+            this._eventHandlers.progressUpdated = progressUpdatedHandler;
+
+            // LEARNING_SESSION_STARTED
+            var sessionStartedHandler = function(e) {
+                var data = e.detail || {};
+                console.log('[AcademyView] 📡 LEARNING_SESSION_STARTED received:', data);
+
+                if (!self.initialized) {
+                    console.log('[AcademyView] ⏳ Not mounted, skipping refresh');
+                    return;
+                }
+
+                var manager = window.LawAIApp?.AcademyExperienceManager;
+                if (manager) {
+                    var renderData = manager._getRenderData ? manager._getRenderData() : {};
+                    self.render(renderData);
+                }
+            };
+            document.addEventListener('LEARNING_SESSION_STARTED', sessionStartedHandler);
+            this._eventHandlers.sessionStarted = sessionStartedHandler;
+
+            // LEARNING_SESSION_ENDED
+            var sessionEndedHandler = function(e) {
+                var data = e.detail || {};
+                console.log('[AcademyView] 📡 LEARNING_SESSION_ENDED received:', data);
+
+                if (!self.initialized) {
+                    console.log('[AcademyView] ⏳ Not mounted, skipping refresh');
+                    return;
+                }
+
+                var manager = window.LawAIApp?.AcademyExperienceManager;
+                if (manager) {
+                    var renderData = manager._getRenderData ? manager._getRenderData() : {};
+                    self.render(renderData);
+                }
+            };
+            document.addEventListener('LEARNING_SESSION_ENDED', sessionEndedHandler);
+            this._eventHandlers.sessionEnded = sessionEndedHandler;
+
+            // MODULE_COMPLETED
+            var moduleCompletedHandler = function(e) {
+                var data = e.detail || {};
+                console.log('[AcademyView] 📡 MODULE_COMPLETED received:', data);
+
+                if (!self.initialized) {
+                    console.log('[AcademyView] ⏳ Not mounted, skipping refresh');
+                    return;
+                }
+
+                var manager = window.LawAIApp?.AcademyExperienceManager;
+                if (manager) {
+                    var renderData = manager._getRenderData ? manager._getRenderData() : {};
+                    self.render(renderData);
+                }
+            };
+            document.addEventListener('MODULE_COMPLETED', moduleCompletedHandler);
+            this._eventHandlers.moduleCompleted = moduleCompletedHandler;
+
+            // MOTIVATION_UPDATED
+            var motivationUpdatedHandler = function(e) {
+                var data = e.detail || {};
+                console.log('[AcademyView] 📡 MOTIVATION_UPDATED received:', data);
+
+                if (!self.initialized) {
+                    console.log('[AcademyView] ⏳ Not mounted, skipping refresh');
+                    return;
+                }
+
+                var manager = window.LawAIApp?.AcademyExperienceManager;
+                if (manager) {
+                    var renderData = manager._getRenderData ? manager._getRenderData() : {};
+                    self.render(renderData);
+                }
+            };
+            document.addEventListener('MOTIVATION_UPDATED', motivationUpdatedHandler);
+            this._eventHandlers.motivationUpdated = motivationUpdatedHandler;
+
+            console.log('[AcademyView] ✅ Events bound (' + Object.keys(this._eventHandlers).length + ' handlers)');
+        },
+
+        /**
+         * 🔥 Part 59.6: 移除事件监听 (防止内存泄漏)
+         */
+        _unbindEvents: function() {
+            console.log('[AcademyView] Unbinding events...');
+
+            if (!this._eventHandlers) {
+                console.log('[AcademyView] No handlers to unbind');
+                return;
+            }
+
+            var handlers = this._eventHandlers;
+
+            for (var eventName in handlers) {
+                if (handlers.hasOwnProperty(eventName)) {
+                    var handler = handlers[eventName];
+                    var domEventName = this._getEventName(eventName);
+                    document.removeEventListener(domEventName, handler);
+                    window.removeEventListener(domEventName, handler);
+                    console.log('[AcademyView] Removed listener:', domEventName);
+                }
+            }
+
+            this._eventHandlers = {};
+            console.log('[AcademyView] ✅ Events unbound');
+        },
+
+        /**
+         * 🔥 Part 59.6: 映射内部事件名到 DOM 事件名
+         */
+        _getEventName: function(internalName) {
+            var mapping = {
+                'viewChanged': 'ACADEMY_VIEW_CHANGED',
+                'academyRefresh': 'ACADEMY_REFRESH',
+                'learningUpdated': 'ACADEMY_LEARNING_UPDATED',
+                'stateUpdated': 'LEARNING_STATE_UPDATED',
+                'progressUpdated': 'LEARNING_PROGRESS_UPDATED',
+                'sessionStarted': 'LEARNING_SESSION_STARTED',
+                'sessionEnded': 'LEARNING_SESSION_ENDED',
+                'moduleCompleted': 'MODULE_COMPLETED',
+                'motivationUpdated': 'MOTIVATION_UPDATED'
+            };
+            return mapping[internalName] || internalName;
+        },
+
+        // ============================================================
+        // Export
+        // ============================================================
+
+        if (!window.LawAIApp) {
+            window.LawAIApp = {};
         }
-    };
 
-    // ============================================================
-    // Export
-    // ============================================================
+        window.LawAIApp.AcademyView = AcademyView;
 
-    if (!window.LawAIApp) {
-        window.LawAIApp = {};
-    }
+        console.log('[AcademyView] Module loaded (Part 58.5)');
 
-    window.LawAIApp.AcademyView = AcademyView;
-
-    console.log('[AcademyView] Module loaded (Part 58.5)');
-
-})();
+    })();
