@@ -37,8 +37,9 @@
             return this;
         },
 
-       render: function(data) {
-                if (!this.initialized) {
+        render: function(data) {
+            // 🔥 Part 59.6: 检查是否已挂载
+            if (!this.initialized) {
                 console.warn('[AcademyView] Not initialized, skipping render');
                 return;
             }
@@ -49,9 +50,24 @@
                 return;
             }
 
+            // 🔥 Part 60.6: 使用 Render Router
             var viewMode = data.viewMode || 'dashboard';
-
             console.log('[AcademyView] Rendering viewMode:', viewMode);
+
+            // 更新状态
+            this._currentViewMode = viewMode;
+
+            // 通过 Router 渲染
+            this._renderCurrentView(container, data);
+        },
+
+        /**
+         * 🔥 Part 60.6: Render Router — 根据 viewMode 路由到对应渲染器
+         * @param {HTMLElement} container - 渲染容器
+         * @param {Object} data - 渲染数据
+         */
+        _renderCurrentView: function(container, data) {
+            var viewMode = data.viewMode || 'dashboard';
 
             switch (viewMode) {
                 case 'school':
