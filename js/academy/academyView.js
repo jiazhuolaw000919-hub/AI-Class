@@ -78,13 +78,43 @@
             }
         },
 
+        /**
+         * 🔥 Part 60.4: 准备 Dashboard 数据 (数据准备层)
+         */
+        _prepareDashboardData: function(data) {
+            var schools = data.schools || [];
+            var continueData = this._getContinueLearning();
+            var motivation = null;
+
+            // 获取 Motivation (如果可用)
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            if (adapter && typeof adapter.getLearningMotivation === 'function') {
+                try {
+                    motivation = adapter.getLearningMotivation();
+                } catch (error) {
+                    console.warn('[AcademyView] Motivation unavailable:', error);
+                }
+            }
+
+            return {
+                schools: schools,
+                continueData: continueData,
+                motivation: motivation,
+                hasContinueLearning: !!continueData,
+                hasSchools: schools && schools.length > 0
+            };
+        },
+
         // ============================================================
         // PRIVATE — Views
         // ============================================================
 
-                _renderDashboard: function(container, data) {
-            var schools = data.schools || [];
-            var continueData = this._getContinueLearning();
+        _renderDashboard: function(container, data) {
+            // 🔥 Part 60.4: 使用准备的数据
+            var viewData = this._prepareDashboardData(data);
+            var schools = viewData.schools;
+            var continueData = viewData.continueData;
+            var motivation = viewData.motivation;
 
             var html = '';
 
@@ -104,14 +134,19 @@
                     <p style="color: #94a3b8; font-size: 14px; margin: 0 0 24px 0;">Explore your learning path</p>
             `;
 
-            // 🔥 Part 60: Continue Learning + Guidance
+            // Continue Learning Section
             if (continueData) {
                 html += this._renderContinueLearning(continueData);
             } else {
                 html += this._renderGuidanceEmptyState();
             }
 
-            // 🔥 Part 60: 如果用户有活跃的课程/模块/课程，显示快速导航
+            // Motivation Section
+            if (motivation) {
+                html += this._renderMotivationSummary();
+            }
+
+            // 🔥 Part 60: 快速导航
             var guidance = this._getLearningGuidance();
             if (guidance && guidance.hasActiveState) {
                 html += this._renderQuickNavigation(guidance);
@@ -151,7 +186,7 @@
             container.innerHTML = html;
         },
 
-        /**
+            /**
              * 🔥 Part 58.7: Motivation Summary
              */
             _renderMotivationSummary: function() {
