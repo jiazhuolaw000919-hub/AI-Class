@@ -82,7 +82,7 @@
         // PRIVATE — Views
         // ============================================================
 
-        _renderDashboard: function(container, data) {
+                _renderDashboard: function(container, data) {
             var schools = data.schools || [];
             var continueData = this._getContinueLearning();
 
@@ -104,11 +104,19 @@
                     <p style="color: #94a3b8; font-size: 14px; margin: 0 0 24px 0;">Explore your learning path</p>
             `;
 
-            // Continue Learning Section
+            // 🔥 Part 60: Continue Learning + Guidance
             if (continueData) {
                 html += this._renderContinueLearning(continueData);
+            } else {
+                html += this._renderGuidanceEmptyState();
             }
-                          
+
+            // 🔥 Part 60: 如果用户有活跃的课程/模块/课程，显示快速导航
+            var guidance = this._getLearningGuidance();
+            if (guidance && guidance.hasActiveState) {
+                html += this._renderQuickNavigation(guidance);
+            }
+
             if (schools && schools.length > 0) {
                 html += `<h2 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px 0;">🎓 Schools</h2>`;
                 html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">`;
@@ -204,7 +212,7 @@
                 return html;
             },
 
-                /**
+        /**
          * 🔥 Part 59.5: Continue Learning / Resume Experience (升级版)
          */
         _renderContinueLearning: function(continueData) {
@@ -311,7 +319,121 @@
             return html;
         },
 
-                /**
+        /**
+         * 🔥 Part 60: Guidance 空状态
+         */
+        _renderGuidanceEmptyState: function() {
+            return `
+                <div style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; border: 1px solid rgba(255,255,255,0.06);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 24px;">🚀</span>
+                            <div>
+                                <div style="font-size: 13px; color: #94a3b8;">Ready to Learn</div>
+                                <div style="font-size: 15px; font-weight: 500; color: #e2e8f0;">Explore your first course</div>
+                            </div>
+                        </div>
+                        <div>
+                            <button onclick="LawAIApp.AcademyExperienceManager?.navigateToSchool?.('school-ai')" 
+                                    style="padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; font-family: inherit;"
+                                    onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
+                                Explore Schools →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        },
+
+        /**
+         * 🔥 Part 60: 获取学习引导信息
+         */
+        _getLearningGuidance: function() {
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            if (!adapter) {
+                return null;
+            }
+
+            var state = adapter.getState ? adapter.getState() : null;
+            if (!state) {
+                return null;
+            }
+
+            var hasActiveState = !!(state.currentCourseId || state.currentModuleId || state.currentLessonId);
+            var continueData = adapter.getContinueLearning ? adapter.getContinueLearning() : null;
+
+            return {
+                hasActiveState: hasActiveState,
+                currentCourseId: state.currentCourseId,
+                currentModuleId: state.currentModuleId,
+                currentLessonId: state.currentLessonId,
+                progress: state.progress || 0,
+                continueData: continueData
+            };
+        },
+
+        /**
+         * 🔥 Part 60: 快速导航 (显示当前学习位置)
+         */
+        _renderQuickNavigation: function(guidance) {
+            if (!guidance || !guidance.hasActiveState) {
+                return '';
+            }
+
+            var html = '';
+            var courseId = guidance.currentCourseId;
+            var moduleId = guidance.currentModuleId;
+            var lessonId = guidance.currentLessonId;
+
+            var courseName = 'Current Course';
+            var moduleName = 'Current Module';
+            var lessonName = 'Current Lesson';
+
+            // 获取名称
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            if (courseRegistry && courseId) {
+                var course = courseRegistry.getCourse(courseId);
+                if (course) {
+                    courseName = course.title || course.name || 'Current Course';
+                }
+            }
+
+            var academyRegistry = window.LawAIApp?.AcademyRegistry;
+            if (academyRegistry) {
+                if (moduleId) {
+                    var module = academyRegistry.getModule(moduleId);
+                    if (module) {
+                        moduleName = module.name || 'Current Module';
+                    }
+                }
+                if (lessonId) {
+                    var lesson = academyRegistry.getLesson(lessonId);
+                    if (lesson) {
+                        lessonName = lesson.title || lesson.name || 'Current Lesson';
+                    }
+                }
+            }
+
+            var progress = guidance.progress || 0;
+
+            html += `
+                <div style="margin: 0 0 20px 0; background: rgba(255,255,255,0.02); border-radius: 10px; padding: 14px 18px; border: 1px solid rgba(255,255,255,0.04);">
+                    <div style="font-size: 12px; color: #64748b; margin-bottom: 6px;">📍 Current Position</div>
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;">
+                        ${courseId ? `<span style="color: #94a3b8; font-size: 14px;">📘 ${courseName}</span>` : ''}
+                        ${courseId && moduleId ? `<span style="color: #475569; font-size: 12px;">›</span>` : ''}
+                        ${moduleId ? `<span style="color: #94a3b8; font-size: 14px;">📂 ${moduleName}</span>` : ''}
+                        ${moduleId && lessonId ? `<span style="color: #475569; font-size: 12px;">›</span>` : ''}
+                        ${lessonId ? `<span style="color: #4a9eff; font-size: 14px; font-weight: 500;">📖 ${lessonName}</span>` : ''}
+                        ${progress > 0 ? `<span style="color: #64748b; font-size: 12px; margin-left: 4px;">(${progress}%)</span>` : ''}
+                    </div>
+                </div>
+            `;
+
+            return html;
+        },
+
+        /**
          * 🔥 Part 59.5: 构建 Resume 面包屑
          */
         _buildResumeBreadcrumb: function(course, moduleInfo, lessonInfo) {
