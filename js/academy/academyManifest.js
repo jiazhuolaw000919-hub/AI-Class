@@ -100,7 +100,17 @@
                 path: '/js/academy/learningContext.js',
                 description: 'Learning Context (Aggregation Layer)',
                 required: true
-            }
+            },
+
+            // ==========================================================
+        // 6. Experience Intelligence Layer
+        // ==========================================================
+        {
+            id: 'experienceIntelligence',
+            path: '/js/academy/experienceIntelligence.js',
+            description: 'Experience Intelligence (Interpretation Layer)',
+            required: false  // 可选，不阻塞 Academy
+        }
         ],
 
         // ============================================================
