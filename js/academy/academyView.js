@@ -105,12 +105,59 @@
             };
         },
 
+        /**
+         * 🔥 Part 60.5: 渲染 School Cards (显示辅助)
+         * @param {Array} schools - School 列表
+         * @returns {string} HTML 字符串
+         */
+        _renderSchoolCards: function(schools) {
+            if (!schools || schools.length === 0) {
+                return '';
+            }
+
+            var html = '';
+            html += `<h2 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px 0;">🎓 Schools</h2>`;
+            html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">`;
+
+            schools.forEach(function(school) {
+                var progCount = school.programs?.length || 0;
+                html += `
+                    <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
+                         onclick="LawAIApp.AcademyExperienceManager?.navigateToSchool?.('${school.id}')"
+                         onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
+                         onmouseout="this.style.background='rgba(255,255,255,0.04)'">
+                        <div style="font-size: 32px; margin-bottom: 6px;">${school.icon || '🏛️'}</div>
+                        <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 4px 0;">${school.name}</h3>
+                        <p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px 0;">${school.description || ''}</p>
+                        <span style="color: #4a9eff; font-size: 13px;">${progCount} programs</span>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+            return html;
+        },
+
+                /**
+         * 🔥 Part 60.5: 渲染欢迎空状态 (显示辅助)
+         * @returns {string} HTML 字符串
+         */
+        _renderWelcomeEmptyState: function() {
+            return `
+                <div style="text-align: center; padding: 60px 20px; background: rgba(255,255,255,0.03); border-radius: 16px; border: 1px dashed rgba(255,255,255,0.08);">
+                    <div style="font-size: 48px; margin-bottom: 16px;">🚀</div>
+                    <h2 style="font-size: 22px; font-weight: 600; margin: 0 0 8px 0;">Welcome to Law AI Academy</h2>
+                    <p style="color: #94a3b8; font-size: 15px; margin: 0;">Schools and programs will appear here soon</p>
+                </div>
+            `;
+        },
+
         // ============================================================
         // PRIVATE — Views
         // ============================================================
 
         _renderDashboard: function(container, data) {
-            // 🔥 Part 60.4: 使用准备的数据
+            // 🔥 Part 60.4: 准备数据
             var viewData = this._prepareDashboardData(data);
             var schools = viewData.schools;
             var continueData = viewData.continueData;
@@ -118,7 +165,9 @@
 
             var html = '';
 
-            // 返回栏
+            // ============================================================
+            // 1. 返回栏 (保留内联，因为它是布局的一部分)
+            // ============================================================
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <a href="/" style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); text-decoration: none; font-family: inherit;">
@@ -128,58 +177,46 @@
                 </div>
             `;
 
+            // ============================================================
+            // 2. 主内容
+            // ============================================================
             html += `
                 <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
                     <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 4px 0;">🏛️ Law AI Academy</h1>
                     <p style="color: #94a3b8; font-size: 14px; margin: 0 0 24px 0;">Explore your learning path</p>
             `;
 
-            // Continue Learning Section
+            // ============================================================
+            // 3. Continue Learning / Empty State
+            // ============================================================
             if (continueData) {
                 html += this._renderContinueLearning(continueData);
             } else {
                 html += this._renderGuidanceEmptyState();
             }
 
-            // Motivation Section
+            // ============================================================
+            // 4. Motivation Summary
+            // ============================================================
             if (motivation) {
                 html += this._renderMotivationSummary();
             }
 
-            // 🔥 Part 60: 快速导航
+            // ============================================================
+            // 5. Quick Navigation (如果活跃)
+            // ============================================================
             var guidance = this._getLearningGuidance();
             if (guidance && guidance.hasActiveState) {
                 html += this._renderQuickNavigation(guidance);
             }
 
+            // ============================================================
+            // 6. 🔥 Part 60.5: School Cards (使用提取的辅助方法)
+            // ============================================================
             if (schools && schools.length > 0) {
-                html += `<h2 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px 0;">🎓 Schools</h2>`;
-                html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">`;
-
-                schools.forEach(function(school) {
-                    var progCount = school.programs?.length || 0;
-                    html += `
-                        <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="LawAIApp.AcademyExperienceManager?.navigateToSchool?.('${school.id}')"
-                             onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
-                             onmouseout="this.style.background='rgba(255,255,255,0.04)'">
-                            <div style="font-size: 32px; margin-bottom: 6px;">${school.icon || '🏛️'}</div>
-                            <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 4px 0;">${school.name}</h3>
-                            <p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px 0;">${school.description || ''}</p>
-                            <span style="color: #4a9eff; font-size: 13px;">${progCount} programs</span>
-                        </div>
-                    `;
-                });
-
-                html += `</div>`;
+                html += this._renderSchoolCards(schools);
             } else {
-                html += `
-                    <div style="text-align: center; padding: 60px 20px; background: rgba(255,255,255,0.03); border-radius: 16px; border: 1px dashed rgba(255,255,255,0.08);">
-                        <div style="font-size: 48px; margin-bottom: 16px;">🚀</div>
-                        <h2 style="font-size: 22px; font-weight: 600; margin: 0 0 8px 0;">Welcome to Law AI Academy</h2>
-                        <p style="color: #94a3b8; font-size: 15px; margin: 0;">Schools and programs will appear here soon</p>
-                    </div>
-                `;
+                html += this._renderWelcomeEmptyState();
             }
 
             html += `</div>`;
