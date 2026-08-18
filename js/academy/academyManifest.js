@@ -90,6 +90,16 @@
                 path: '/js/academy/learningJourneyAdapter.js',
                 description: 'Learning Journey Adapter',
                 required: true
+            },
+
+            // ==========================================================
+            // 5. Learning Context Layer
+            // ==========================================================
+            {
+                id: 'learningContext',
+                path: '/js/academy/learningContext.js',
+                description: 'Learning Context (Aggregation Layer)',
+                required: true
             }
         ],
 
