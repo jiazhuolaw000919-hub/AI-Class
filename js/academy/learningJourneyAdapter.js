@@ -728,7 +728,7 @@
             var state = this._journeyState;
             return state.sessionStatus === 'active' && !!state.currentSessionId;
         },
-
+        
         // ============================================================
         // 11. PUBLIC API — Motivation
         // ============================================================
@@ -840,6 +840,221 @@
             });
 
             return motivation;
+        },
+
+                /**
+         * 🔥 Part 59.3: 获取下一个学习动作
+         * @returns {Object} 标准化的下一个动作对象
+         */
+        getNextLearningAction: function() {
+            console.log('[LearningJourneyAdapter] 🎯 Getting next learning action...');
+
+            var state = this._journeyState;
+            var registry = window.LawAIApp?.AcademyRegistry;
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
+
+            // ============================================================
+            // Priority A: Active Lesson
+            // ============================================================
+            if (state.currentLessonId) {
+                var lesson = registry ? registry.getLesson(state.currentLessonId) : null;
+                return {
+                    type: 'lesson',
+                    action: 'continue',
+                    courseId: state.currentCourseId || null,
+                    moduleId: state.currentModuleId || null,
+                    lessonId: state.currentLessonId,
+                    title: lesson ? (lesson.title || lesson.name || 'Current Lesson') : 'Current Lesson',
+                    reason: 'active_lesson'
+                };
+            }
+
+            // ============================================================
+            // Priority B: Active Module
+            // ============================================================
+            if (state.currentModuleId) {
+                var module = registry ? registry.getModule(state.currentModuleId) : null;
+                return {
+                    type: 'module',
+                    action: 'continue',
+                    courseId: state.currentCourseId || null,
+                    moduleId: state.currentModuleId,
+                    lessonId: null,
+                    title: module ? (module.name || 'Current Module') : 'Current Module',
+                    reason: 'active_module'
+                };
+            }
+
+            // ============================================================
+            // Priority C: Active Course
+            // ============================================================
+            if (state.currentCourseId) {
+                var course = courseRegistry ? courseRegistry.getCourse(state.currentCourseId) : null;
+                return {
+                    type: 'course',
+                    action: 'continue',
+                    courseId: state.currentCourseId,
+                    moduleId: null,
+                    lessonId: null,
+                    title: course ? (course.title || course.name || 'Current Course') : 'Current Course',
+                    reason: 'active_course'
+                };
+            }
+
+            // ============================================================
+            // Priority D: Continue Learning
+            // ============================================================
+            var continueData = this.getContinueLearning();
+            if (continueData && continueData.courseId) {
+                return {
+                    type: continueData.isCompleted ? 'course' : 'lesson',
+                    action: continueData.isCompleted ? 'review' : 'continue',
+                    courseId: continueData.courseId || null,
+                    moduleId: continueData.moduleId || null,
+                    lessonId: continueData.lessonId || null,
+                    title: continueData.title || 'Continue Learning',
+                    reason: 'continue_learning'
+                };
+            }
+
+            // ============================================================
+            // Priority E: First Incomplete Lesson
+            // ============================================================
+            var firstIncomplete = this._findFirstIncompleteLesson();
+            if (firstIncomplete) {
+                return {
+                    type: 'lesson',
+                    action: 'start',
+                    courseId: firstIncomplete.courseId || null,
+                    moduleId: firstIncomplete.moduleId || null,
+                    lessonId: firstIncomplete.lessonId,
+                    title: firstIncomplete.title || 'Start Lesson',
+                    reason: 'next_incomplete_lesson'
+                };
+            }
+
+            // ============================================================
+            // Priority F: First Incomplete Module
+            // ============================================================
+            var firstModule = this._findFirstIncompleteModule();
+            if (firstModule) {
+                return {
+                    type: 'module',
+                    action: 'start',
+                    courseId: firstModule.courseId || null,
+                    moduleId: firstModule.moduleId,
+                    lessonId: null,
+                    title: firstModule.title || 'Start Module',
+                    reason: 'next_incomplete_module'
+                };
+            }
+
+            // ============================================================
+            // Priority G: No Learning State
+            // ============================================================
+            return {
+                type: 'none',
+                action: 'none',
+                courseId: null,
+                moduleId: null,
+                lessonId: null,
+                title: null,
+                reason: 'no_learning_state'
+            };
+        },
+
+        // ============================================================
+        // 🔥 Part 59.3: Private Helpers for Next Action
+        // ============================================================
+
+        /**
+         * 查找第一个未完成的 Lesson
+         * @private
+         */
+        _findFirstIncompleteLesson: function() {
+            var state = this._journeyState;
+            var courseId = state.currentCourseId;
+
+            if (!courseId) {
+                return null;
+            }
+
+            try {
+                var modules = this.getCourseModules(courseId);
+                if (!modules || modules.length === 0) {
+                    return null;
+                }
+
+                var registry = window.LawAIApp?.AcademyRegistry;
+                if (!registry) {
+                    return null;
+                }
+
+                // 遍历 modules 找第一个未完成的 lesson
+                for (var i = 0; i < modules.length; i++) {
+                    var module = modules[i];
+                    if (module.isCompleted) continue;
+
+                    var lessons = registry.getLessonsByModule ? registry.getLessonsByModule(module.id) : [];
+                    if (!lessons || lessons.length === 0) continue;
+
+                    var completedLessons = state.completedLessons || [];
+                    for (var j = 0; j < lessons.length; j++) {
+                        var lesson = lessons[j];
+                        if (completedLessons.indexOf(lesson.id) === -1) {
+                            return {
+                                courseId: courseId,
+                                moduleId: module.id,
+                                lessonId: lesson.id,
+                                title: lesson.title || lesson.name || 'Untitled Lesson'
+                            };
+                        }
+                    }
+                }
+
+                return null;
+
+            } catch (error) {
+                console.warn('[LearningJourneyAdapter] Error finding incomplete lesson:', error);
+                return null;
+            }
+        },
+
+        /**
+         * 查找第一个未完成的 Module
+         * @private
+         */
+        _findFirstIncompleteModule: function() {
+            var state = this._journeyState;
+            var courseId = state.currentCourseId;
+
+            if (!courseId) {
+                return null;
+            }
+
+            try {
+                var modules = this.getCourseModules(courseId);
+                if (!modules || modules.length === 0) {
+                    return null;
+                }
+
+                for (var i = 0; i < modules.length; i++) {
+                    var module = modules[i];
+                    if (!module.isCompleted) {
+                        return {
+                            courseId: courseId,
+                            moduleId: module.id,
+                            title: module.name || 'Untitled Module'
+                        };
+                    }
+                }
+
+                return null;
+
+            } catch (error) {
+                console.warn('[LearningJourneyAdapter] Error finding incomplete module:', error);
+                return null;
+            }
         },
 
         // ============================================================
