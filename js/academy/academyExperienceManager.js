@@ -20,6 +20,8 @@
             currentSchoolId: null,
             currentProgramId: null,
             currentCourseId: null,
+            currentModuleId: null,
+            currentLessonId: null,
             viewMode: 'dashboard' // dashboard | school | program | course | course-learning
         },
 
@@ -105,7 +107,7 @@
             return this;
         },
 
-        navigateToSchool: function(schoolId) {
+                navigateToSchool: function(schoolId) {
             console.log('[AcademyExperienceManager] 📍 Navigating to school:', schoolId);
 
             var schoolRegistry = window.LawAIApp?.SchoolRegistry;
@@ -120,9 +122,12 @@
                 return this;
             }
 
+            // 🔥 Part 59.4: 保留 schoolId，清除下层
             this._state.currentSchoolId = schoolId;
             this._state.currentProgramId = null;
             this._state.currentCourseId = null;
+            this._state.currentModuleId = null;
+            this._state.currentLessonId = null;
             this._state.viewMode = 'school';
 
             console.log('[AcademyExperienceManager] ✅ State updated:', this._state);
@@ -136,7 +141,7 @@
             return this;
         },
 
-        navigateToProgram: function(programId) {
+                navigateToProgram: function(programId) {
             console.log('[AcademyExperienceManager] 📍 Navigating to program:', programId);
 
             var programRegistry = window.LawAIApp?.ProgramRegistry;
@@ -151,10 +156,14 @@
                 return this;
             }
 
+            // 🔥 Part 59.4: 保留 schoolId + programId，清除下层
             this._state.currentProgramId = programId;
             this._state.currentCourseId = null;
+            this._state.currentModuleId = null;
+            this._state.currentLessonId = null;
             this._state.viewMode = 'program';
 
+            // 如果 schoolId 丢失，从 program 中获取
             if (!this._state.currentSchoolId && program.schoolId) {
                 this._state.currentSchoolId = program.schoolId;
             }
@@ -171,7 +180,7 @@
             return this;
         },
 
-        navigateToCourse: function(courseId) {
+                navigateToCourse: function(courseId) {
             console.log('[AcademyExperienceManager] 📍 Navigating to course:', courseId);
 
             var courseRegistry = window.LawAIApp?.CourseRegistry;
@@ -186,7 +195,10 @@
                 return this;
             }
 
+            // 🔥 Part 59.4: 保留 schoolId + programId + courseId，清除下层
             this._state.currentCourseId = courseId;
+            this._state.currentModuleId = null;
+            this._state.currentLessonId = null;
             this._state.viewMode = 'course';
 
             if (!this._state.currentProgramId && course.programId) {
@@ -258,7 +270,6 @@
         selectModule: function(moduleId) {
             console.log('[AcademyExperienceManager] 📍 Selecting module:', moduleId);
 
-            // 验证 Module 存在
             var academyRegistry = window.LawAIApp?.AcademyRegistry;
             if (!academyRegistry) {
                 console.warn('[AcademyExperienceManager] AcademyRegistry not available');
@@ -271,11 +282,16 @@
                 return this;
             }
 
-            // 更新状态
+            // 🔥 Part 59.4: 保留所有父级，只设置 moduleId，清除 lessonId
             this._state.currentModuleId = moduleId;
+            this._state.currentLessonId = null;
             this._state.viewMode = 'module';
 
-            // 通知 LearningJourneyAdapter
+            // 如果 courseId 丢失，从 module 中获取
+            if (!this._state.currentCourseId && module.courseId) {
+                this._state.currentCourseId = module.courseId;
+            }
+
             var adapter = window.LawAIApp?.LearningJourneyAdapter;
             if (adapter && typeof adapter.selectModule === 'function') {
                 adapter.selectModule(moduleId, this._state.currentCourseId);
@@ -294,7 +310,7 @@
             return this;
         },
 
-        /**
+                /**
          * 🔥 Part 58.5: 选择 Lesson
          */
         selectLesson: function(lessonId) {
@@ -312,9 +328,15 @@
                 return this;
             }
 
+            // 🔥 Part 59.4: 保留所有父级，只设置 lessonId
             this._state.currentLessonId = lessonId;
             this._state.currentModuleId = lesson.moduleId;
             this._state.viewMode = 'lesson';
+
+            // 如果 courseId 丢失，从 lesson 中获取
+            if (!this._state.currentCourseId && lesson.courseId) {
+                this._state.currentCourseId = lesson.courseId;
+            }
 
             adapter.selectLesson(lessonId);
 
@@ -323,14 +345,16 @@
                 viewMode: 'lesson',
                 currentLessonId: lessonId,
                 currentModuleId: lesson.moduleId,
-                currentCourseId: this._state.currentCourseId
+                currentCourseId: this._state.currentCourseId,
+                currentProgramId: this._state.currentProgramId,
+                currentSchoolId: this._state.currentSchoolId
             });
 
             console.log('[AcademyExperienceManager] ✅ Lesson selected:', lessonId);
             return this;
         },
 
-                /**
+        /**
          * 🔥 Part 58.6: 开始学习 Lesson
          */
         startLesson: function(lessonId) {
@@ -410,8 +434,8 @@
             return this;
         },
 
-        /**
-         * 🔥 Part 58.5: 导航到 Module
+                /**
+         * 🔥 Part 58.5: 导航到 Module (从 Lesson 返回)
          */
         navigateToModule: function(moduleId) {
             console.log('[AcademyExperienceManager] 📍 Navigating to module:', moduleId);
@@ -428,6 +452,7 @@
                 return this;
             }
 
+            // 🔥 Part 59.4: 保留所有父级，清除 lessonId
             this._state.currentModuleId = moduleId;
             this._state.currentLessonId = null;
             this._state.viewMode = 'module';
@@ -440,19 +465,24 @@
             this._emit('ACADEMY_VIEW_CHANGED', {
                 viewMode: 'module',
                 currentModuleId: moduleId,
-                currentCourseId: this._state.currentCourseId
+                currentCourseId: this._state.currentCourseId,
+                currentProgramId: this._state.currentProgramId,
+                currentSchoolId: this._state.currentSchoolId
             });
 
             console.log('[AcademyExperienceManager] ✅ Navigated to module:', moduleId);
             return this;
         },
 
-        goHome: function() {
+                goHome: function() {
             console.log('[AcademyExperienceManager] 🏠 Going home...');
 
+            // 🔥 Part 59.4: 清除所有上下文，回到 Dashboard
             this._state.currentSchoolId = null;
             this._state.currentProgramId = null;
             this._state.currentCourseId = null;
+            this._state.currentModuleId = null;
+            this._state.currentLessonId = null;
             this._state.viewMode = 'dashboard';
 
             this.render();
@@ -490,6 +520,22 @@
                 mounted: this.mounted,
                 status: this.status,
                 state: this._state
+            };
+        },
+
+        /**
+         * 🔥 Part 59.4: 获取当前学习上下文
+         * @returns {Object} 当前上下文
+         */
+        getCurrentLearningContext: function() {
+            return {
+                schoolId: this._state.currentSchoolId,
+                programId: this._state.currentProgramId,
+                courseId: this._state.currentCourseId,
+                moduleId: this._state.currentModuleId,
+                lessonId: this._state.currentLessonId,
+                viewMode: this._state.viewMode,
+                lastActivity: new Date().toISOString()
             };
         },
 
@@ -533,9 +579,12 @@
                 programs: this._getPrograms(),
                 courses: this._getCourses(),
                 progress: this._getProgress(),
+                // 🔥 Part 59.4: 完整上下文
                 currentSchoolId: this._state.currentSchoolId,
                 currentProgramId: this._state.currentProgramId,
                 currentCourseId: this._state.currentCourseId,
+                currentModuleId: this._state.currentModuleId,
+                currentLessonId: this._state.currentLessonId,
                 viewMode: this._state.viewMode
             };
         },
