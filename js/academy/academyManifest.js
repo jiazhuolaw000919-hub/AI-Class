@@ -99,6 +99,13 @@
                 required: true
             },
 
+            {
+                id: 'continueLearningRenderer',
+                path: '/js/academy/renderers/continueLearningRenderer.js',
+                description: 'Continue Learning Renderer (Pure UI)',
+                required: true
+            },
+
             // ==========================================================
             // 5. Learning Context Layer
             // ==========================================================
