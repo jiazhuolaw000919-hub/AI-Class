@@ -37,6 +37,22 @@
             return this;
         },
 
+                /**
+         * 🔥 Part 63: 获取 Motivation 数据 (兼容性方法)
+         */
+        _getMotivationData: function() {
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            if (!adapter) {
+                return null;
+            }
+            try {
+                return adapter.getLearningMotivation ? adapter.getLearningMotivation() : null;
+            } catch (error) {
+                console.warn('[AcademyView] Motivation data unavailable:', error);
+                return null;
+            }
+        },
+
         render: function(data) {
             // 🔥 Part 59.6: 检查是否已挂载
             if (!this.initialized) {
@@ -239,66 +255,86 @@
             container.innerHTML = html;
         },
 
-            /**
-             * 🔥 Part 58.7: Motivation Summary
-             */
-            _renderMotivationSummary: function() {
-                var adapter = window.LawAIApp?.LearningJourneyAdapter;
-                var motivation = adapter ? adapter.getLearningMotivation() : null;
+                /**
+         * 🔥 Part 63: Motivation Renderer (兼容性包装器)
+         * 委托给独立的 MotivationRenderer
+         */
+        _renderMotivationSummary: function() {
+            // 获取 Motivation 数据
+            var motivation = this._getMotivationData();
 
-                if (!motivation) {
-                    return '';
-                }
+            if (!motivation) {
+                return '';
+            }
 
-                var xp = motivation.xp || 0;
-                var level = motivation.level || 1;
-                var streak = motivation.streak || 0;
-                var achievements = motivation.achievements || [];
-                var achievementCount = motivation.achievementCount || 0;
-                var xpProgress = motivation.xpProgress || 0;
+            // 🔥 使用独立渲染器
+            var renderer = window.LawAIApp?.MotivationRenderer;
+            if (renderer && typeof renderer.render === 'function') {
+                // 创建临时容器用于渲染
+                var tempContainer = document.createElement('div');
+                renderer.render(tempContainer, motivation);
+                return tempContainer.innerHTML;
+            }
 
-                var html = '';
+            // ⚠️ 回退: 如果渲染器不可用，使用原有逻辑 (安全网)
+            console.warn('[AcademyView] MotivationRenderer not available, using fallback');
+            return this._renderMotivationFallback(motivation);
+        },
 
-                html += `
-                    <div style="margin: 16px 0 24px 0;">
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 12px; background: rgba(255,255,255,0.04); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(255,255,255,0.06);">
-                            <div style="text-align: center;">
-                                <div style="font-size: 20px; font-weight: 700; color: #4a9eff;">${xp}</div>
-                                <div style="font-size: 11px; color: #94a3b8;">XP</div>
-                            </div>
-                            <div style="text-align: center;">
-                                <div style="font-size: 20px; font-weight: 700; color: #f59e0b;">${level}</div>
-                                <div style="font-size: 11px; color: #94a3b8;">Level</div>
-                                <div style="font-size: 10px; color: #64748b; margin-top: 2px;">
-                                    <div style="background: rgba(255,255,255,0.06); border-radius: 2px; height: 2px; overflow: hidden; width: 60px; margin: 0 auto;">
-                                        <div style="background: #f59e0b; height: 100%; width: ${Math.min(100, xpProgress)}%; transition: width 0.3s;"></div>
-                                    </div>
+        /**
+         * 🔥 Part 63: Motivation Fallback (仅当渲染器不可用时)
+         * @private
+         */
+        _renderMotivationFallback: function(motivation) {
+            var xp = motivation.xp || 0;
+            var level = motivation.level || 1;
+            var streak = motivation.streak || 0;
+            var achievements = motivation.achievements || [];
+            var achievementCount = motivation.achievementCount || 0;
+            var xpProgress = motivation.xpProgress || 0;
+
+            var html = '';
+
+            html += `
+                <div style="margin: 16px 0 24px 0;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 12px; background: rgba(255,255,255,0.04); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(255,255,255,0.06);">
+                        <div style="text-align: center;">
+                            <div style="font-size: 20px; font-weight: 700; color: #4a9eff;">${xp}</div>
+                            <div style="font-size: 11px; color: #94a3b8;">XP</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 20px; font-weight: 700; color: #f59e0b;">${level}</div>
+                            <div style="font-size: 11px; color: #94a3b8;">Level</div>
+                            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">
+                                <div style="background: rgba(255,255,255,0.06); border-radius: 2px; height: 2px; overflow: hidden; width: 60px; margin: 0 auto;">
+                                    <div style="background: #f59e0b; height: 100%; width: ${Math.min(100, xpProgress)}%; transition: width 0.3s;"></div>
                                 </div>
                             </div>
-                            <div style="text-align: center;">
-                                <div style="font-size: 20px; font-weight: 700; color: #ec4899;">${streak}</div>
-                                <div style="font-size: 11px; color: #94a3b8;">🔥 Day Streak</div>
-                            </div>
-                            <div style="text-align: center;">
-                                <div style="font-size: 20px; font-weight: 700; color: #10b981;">${achievementCount}</div>
-                                <div style="font-size: 11px; color: #94a3b8;">🏆 Achievements</div>
-                            </div>
                         </div>
-                        ${achievements && achievements.length > 0 ? `
-                            <div style="margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;">
-                                ${achievements.slice(0, 3).map(function(a) {
-                                    var name = a.name || a.title || a;
-                                    var icon = a.icon || '🏆';
-                                    return `<span style="background: rgba(74,158,255,0.08); padding: 2px 10px; border-radius: 12px; font-size: 11px; color: #4a9eff; display: inline-flex; align-items: center; gap: 4px;">${icon} ${name}</span>`;
-                                }).join('')}
-                                ${achievements.length > 3 ? `<span style="font-size: 11px; color: #64748b;">+${achievements.length - 3} more</span>` : ''}
-                            </div>
-                        ` : ''}
+                        <div style="text-align: center;">
+                            <div style="font-size: 20px; font-weight: 700; color: #ec4899;">${streak}</div>
+                            <div style="font-size: 11px; color: #94a3b8;">🔥 Day Streak</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 20px; font-weight: 700; color: #10b981;">${achievementCount}</div>
+                            <div style="font-size: 11px; color: #94a3b8;">🏆 Achievements</div>
+                        </div>
                     </div>
-                `;
+                    ${achievements && achievements.length > 0 ? `
+                        <div style="margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;">
+                            ${achievements.slice(0, 3).map(function(a) {
+                                var name = a.name || a.title || a;
+                                var icon = a.icon || '🏆';
+                                return `<span style="background:rgba(74,158,255,0.08);padding:2px 10px;border-radius:12px;font-size:11px;color:#4a9eff;display:inline-flex;align-items:center;gap:4px;">${icon} ${name}</span>`;
+                            }).join('')}
+                            ${achievements.length > 3 ? `<span style="font-size:11px;color:#64748b;">+${achievements.length - 3} more</span>` : ''}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
 
-                return html;
-            },
+            return html;
+        },
 
         /**
          * 🔥 Part 59.5: Continue Learning / Resume Experience (升级版)
