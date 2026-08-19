@@ -1775,7 +1775,7 @@
         // Export
         // ============================================================
 
-        if (!window.LawAIApp) {
+        if (window.LawAIApp) {
             window.LawAIApp = {};
         }
 
