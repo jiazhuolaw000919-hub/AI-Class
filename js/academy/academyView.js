@@ -37,7 +37,7 @@
             return this;
         },
 
-                /**
+        /**
          * 🔥 Part 63: 获取 Motivation 数据 (兼容性方法)
          */
         _getMotivationData: function() {
@@ -51,6 +51,39 @@
                 console.warn('[AcademyView] Motivation data unavailable:', error);
                 return null;
             }
+        },
+
+                /**
+         * 🔥 Part 64: 准备 Continue Learning 数据
+         */
+        _prepareContinueLearningData: function() {
+            var continueData = this._getContinueLearning();
+            if (!continueData || !continueData.courseId) {
+                return null;
+            }
+
+            // 构建面包屑
+            var breadcrumb = this._buildResumeBreadcrumb(
+                continueData.courseId,
+                continueData.moduleId,
+                continueData.lessonId
+            );
+
+            // 计算时间
+            var timeAgo = continueData.lastActivity ? this._getTimeAgo(continueData.lastActivity) : '';
+
+            return {
+                courseId: continueData.courseId,
+                title: continueData.title || 'Your Course',
+                progress: continueData.progress || 0,
+                isCompleted: continueData.isCompleted || false,
+                lastActivity: continueData.lastActivity || null,
+                lessonId: continueData.lessonId || null,
+                moduleId: continueData.moduleId || null,
+                hasActiveSession: continueData.hasActiveSession || false,
+                breadcrumb: breadcrumb,
+                timeAgo: timeAgo
+            };
         },
 
         render: function(data) {
@@ -336,18 +369,17 @@
             return html;
         },
 
-        /**
-         * 🔥 Part 59.5: Continue Learning / Resume Experience (升级版)
-         */
-        _renderContinueLearning: function(continueData) {
-            if (!continueData || !continueData.courseId) {
-                return this._renderResumeEmptyState();
-            }
+                // ============================================================
+        // CONTINUE LEARNING
+        // ============================================================
 
-            var progress = continueData.progress || 0;
-            var isCompleted = continueData.isCompleted || false;
-            var hasActiveSession = continueData.hasActiveSession || false;
-            var lastActivity = continueData.lastActivity || null;
+        /**
+         * 🔥 Part 64: 准备 Continue Learning 数据
+         */
+        _prepareContinueLearningData: function(continueData) {
+            if (!continueData || !continueData.courseId) {
+                return null;
+            }
 
             // 获取课程元数据
             var courseRegistry = window.LawAIApp?.CourseRegistry;
@@ -377,70 +409,90 @@
                 }
             }
 
-            // 确定状态标签
-            var statusLabel = isCompleted ? 'Completed' : hasActiveSession ? 'Active Session' : 'In Progress';
-            var statusColor = isCompleted ? '#10b981' : hasActiveSession ? '#4a9eff' : '#f59e0b';
-            var statusIcon = isCompleted ? '🎉' : hasActiveSession ? '▶️' : '📖';
-
-            // 确定动作标签
-            var actionLabel = isCompleted ? 'Review Course' : hasActiveSession ? 'Resume Learning' : 'Continue Learning';
-            var actionColor = isCompleted ? '#10b981' : '#4a9eff';
-
             // 构建层级路径
             var breadcrumb = this._buildResumeBreadcrumb(course, moduleInfo, lessonInfo);
 
             // 时间信息
             var timeAgo = '';
-            if (lastActivity) {
-                timeAgo = this._getTimeAgo(lastActivity);
+            if (continueData.lastActivity) {
+                timeAgo = this._getTimeAgo(continueData.lastActivity);
             }
 
-            var html = '';
+            var title = course ? (course.title || course.name || continueData.title) : (continueData.title || 'Your Course');
 
-            html += `
-                <div style="background: linear-gradient(135deg, rgba(74,158,255,0.08) 0%, rgba(74,158,255,0.02) 100%); 
-                            border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; 
-                            border: 1px solid rgba(74,158,255,0.12);">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
-                        <div style="flex: 1; min-width: 180px;">
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-                                <span style="font-size: 20px;">${statusIcon}</span>
-                                <span style="font-size: 13px; color: ${statusColor}; font-weight: 500;">${statusLabel}</span>
-                                ${timeAgo ? `<span style="font-size: 11px; color: #64748b;">· ${timeAgo}</span>` : ''}
+            return {
+                courseId: continueData.courseId,
+                title: title,
+                progress: continueData.progress || 0,
+                isCompleted: continueData.isCompleted || false,
+                lastActivity: continueData.lastActivity || null,
+                lessonId: continueData.lessonId || null,
+                moduleId: continueData.moduleId || null,
+                hasActiveSession: continueData.hasActiveSession || false,
+                breadcrumb: breadcrumb,
+                timeAgo: timeAgo
+            };
+        },
+
+        /**
+         * 🔥 Part 64: Continue Learning / Resume Experience (兼容性包装器)
+         */
+        _renderContinueLearning: function(continueData) {
+            if (!continueData || !continueData.courseId) {
+                return this._renderResumeEmptyState();
+            }
+
+            // 🔥 Part 64: 使用独立渲染器
+            var renderer = window.LawAIApp?.ContinueLearningRenderer;
+            if (renderer && typeof renderer.render === 'function') {
+                var preparedData = this._prepareContinueLearningData(continueData);
+                if (!preparedData) {
+                    return this._renderResumeEmptyState();
+                }
+
+                var tempContainer = document.createElement('div');
+                renderer.render(tempContainer, preparedData);
+                return tempContainer.innerHTML;
+            }
+
+            // ⚠️ 回退: 使用原有逻辑 (安全网)
+            console.warn('[AcademyView] ContinueLearningRenderer not available, using fallback');
+            return this._renderContinueLearningFallback(continueData);
+        },
+
+        /**
+         * 🔥 Part 64: Continue Learning Fallback (仅当渲染器不可用时)
+         * @private
+         */
+        _renderContinueLearningFallback: function(continueData) {
+            // 安全网: 返回空状态
+            return this._renderResumeEmptyState();
+        },
+
+        /**
+         * 🔥 Part 60: Guidance 空状态
+         */
+        _renderGuidanceEmptyState: function() {
+            return `
+                <div style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; border: 1px solid rgba(255,255,255,0.06);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 24px;">🚀</span>
+                            <div>
+                                <div style="font-size: 13px; color: #94a3b8;">Ready to Learn</div>
+                                <div style="font-size: 15px; font-weight: 500; color: #e2e8f0;">Explore your first course</div>
                             </div>
-                            <div style="font-size: 16px; font-weight: 600; color: #e2e8f0;">
-                                ${course ? course.title || course.name || continueData.title : continueData.title || 'Your Course'}
-                            </div>
-                            ${breadcrumb ? `<div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">${breadcrumb}</div>` : ''}
-                            ${!isCompleted ? `
-                                <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
-                                    <span style="font-size: 12px; color: #94a3b8;">${progress}% complete</span>
-                                    <div style="flex: 1; max-width: 100px; background: rgba(255,255,255,0.06); border-radius: 3px; height: 3px; overflow: hidden;">
-                                        <div style="background: ${statusColor}; height: 100%; width: ${Math.min(100, progress)}%; transition: width 0.3s;"></div>
-                                    </div>
-                                </div>
-                            ` : ''}
                         </div>
-                        <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
-                            ${isCompleted ? `
-                                <span style="font-size: 12px; color: #10b981; background: rgba(16,185,129,0.1); padding: 2px 12px; border-radius: 12px;">✅ Done</span>
-                            ` : ''}
-                            <button onclick="LawAIApp.AcademyExperienceManager?.startCourse?.('${continueData.courseId}')" 
-                                    style="padding: 8px 20px; background: ${actionColor}; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; font-family: inherit;"
+                        <div>
+                            <button onclick="LawAIApp.AcademyExperienceManager?.navigateToSchool?.('school-ai')" 
+                                    style="padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; font-family: inherit;"
                                     onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
-                                ${isCompleted ? '🔄 Review' : '📖 Continue'}
+                                Explore Schools →
                             </button>
                         </div>
                     </div>
-                    ${!isCompleted && progress > 0 ? `
-                        <div style="margin-top: 10px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 4px; overflow: hidden;">
-                            <div style="background: linear-gradient(90deg, #4a9eff, ${progress > 80 ? '#10b981' : '#4a9eff'}); height: 100%; width: ${Math.min(100, progress)}%; transition: width 0.3s;"></div>
-                        </div>
-                    ` : ''}
                 </div>
             `;
-
-            return html;
         },
 
         /**
