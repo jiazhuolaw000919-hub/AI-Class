@@ -92,6 +92,13 @@
                 required: true
             },
 
+            {
+                id: 'motivationRenderer',
+                path: '/js/academy/renderers/motivationRenderer.js',
+                description: 'Motivation Renderer (Pure UI)',
+                required: true
+            },
+
             // ==========================================================
             // 5. Learning Context Layer
             // ==========================================================
@@ -102,15 +109,15 @@
                 required: true
             },
 
-            // ==========================================================
+        // ==========================================================
         // 6. Experience Intelligence Layer
         // ==========================================================
-        {
-            id: 'experienceIntelligence',
-            path: '/js/academy/experienceIntelligence.js',
-            description: 'Experience Intelligence (Interpretation Layer)',
-            required: false  // 可选，不阻塞 Academy
-        }
+            {
+                id: 'experienceIntelligence',
+                path: '/js/academy/experienceIntelligence.js',
+                description: 'Experience Intelligence (Interpretation Layer)',
+                required: false  // 可选，不阻塞 Academy
+            }
         ],
 
         // ============================================================
