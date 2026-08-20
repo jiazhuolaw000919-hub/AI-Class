@@ -49,6 +49,16 @@
             },
 
             // ==========================================================
+            // 1.5. Subject Registry Layer (S4)
+            // ==========================================================
+            {
+                id: 'subjectRegistry',
+                path: '/js/academy/subjectRegistry.js',
+                description: 'Subject Registry (S4)',
+                required: true
+            },
+
+            // ==========================================================
             // 2. Curriculum Layer
             // ==========================================================
             {
@@ -161,6 +171,8 @@
             programRegistry: ['schoolRegistry'],
 
             courseRegistry: ['programRegistry'],
+
+            subjectRegistry: ['courseRegistry'],
 
             // Curriculum Layer
             curriculumRegistry: ['schoolRegistry', 'programRegistry', 'courseRegistry'],
@@ -409,6 +421,7 @@
             'LawAIApp.SchoolRegistry',
             'LawAIApp.ProgramRegistry',
             'LawAIApp.CourseRegistry',
+            'LawAIApp.SubjectRegistry',
             'LawAIApp.CurriculumRegistry',
             'LawAIApp.CurriculumSeed',
             'LawAIApp.AcademyView',
