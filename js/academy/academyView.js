@@ -26,6 +26,20 @@
             return this;
         },
 
+                /**
+         * ═══ S4 新增: 确保 S4 内容已加载 ═══
+         */
+        _ensureS4ContentLoaded: function() {
+            var registry = window.LawAIApp?.CourseRegistry;
+            if (registry && typeof registry.loadFromS4 === 'function' && !registry._s4Loaded) {
+                console.log('[AcademyView] 🔄 Loading S4 content...');
+                return registry.loadFromS4().catch(function(err) {
+                    console.warn('[AcademyView] S4 load failed, continuing with legacy content:', err);
+                });
+            }
+            return Promise.resolve();
+        },
+
         /**
          * 🔥 Part 59.6: 销毁 AcademyView (清理事件)
          */
@@ -99,15 +113,25 @@
                 return;
             }
 
-            // 🔥 Part 60.6: 使用 Render Router
-            var viewMode = data.viewMode || 'dashboard';
-            console.log('[AcademyView] Rendering viewMode:', viewMode);
+            // ═══ S4 新增: 确保 S4 内容已加载再渲染 ═══
+            var self = this;
+            this._ensureS4ContentLoaded().then(function() {
+                // 🔥 Part 60.6: 使用 Render Router
+                var viewMode = data.viewMode || 'dashboard';
+                console.log('[AcademyView] Rendering viewMode:', viewMode);
 
-            // 更新状态
-            this._currentViewMode = viewMode;
+                // 更新状态
+                self._currentViewMode = viewMode;
 
-            // 通过 Router 渲染
-            this._renderCurrentView(container, data);
+                // 通过 Router 渲染
+                self._renderCurrentView(container, data);
+            }).catch(function(err) {
+                // 如果 S4 加载失败，仍然用现有数据渲染
+                console.warn('[AcademyView] S4 load error, using existing data:', err);
+                var viewMode = data.viewMode || 'dashboard';
+                self._currentViewMode = viewMode;
+                self._renderCurrentView(container, data);
+            });
         },
 
         /**
