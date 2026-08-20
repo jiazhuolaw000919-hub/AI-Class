@@ -1606,10 +1606,18 @@
             }
         },
 
-        /**
-         * ═══ Part 4: Lesson 加载状态 ═══
+                /**
+         * ═══ Part 4: Lesson 加载状态（使用 LoadingStates） ═══
          */
         _renderLessonLoadingState: function() {
+            var loadingStates = window.LawAIApp?.LoadingStates;
+            if (loadingStates && typeof loadingStates.showSpinner === 'function') {
+                // 创建一个临时容器获取 HTML
+                var temp = document.createElement('div');
+                loadingStates.showSpinner(temp, 'Loading lesson content...');
+                return temp.innerHTML;
+            }
+            // Fallback
             return `
                 <div style="text-align: center; padding: 60px 20px; color: #94a3b8;">
                     <div style="font-size: 32px; margin-bottom: 12px;">⏳</div>
@@ -1618,33 +1626,42 @@
             `;
         },
 
-        /**
-         * ═══ Part 4: Lesson 占位（保留原有占位样式） ═══
+                /**
+         * ═══ Part 4: Lesson 占位（使用 EmptyStates） ═══
          */
         _renderLessonPlaceholder: function() {
+            var emptyStates = window.LawAIApp?.EmptyStates;
+            if (emptyStates && typeof emptyStates.render === 'function') {
+                return emptyStates.render('lessons', 'This lesson is being prepared. Interactive content will appear here.');
+            }
+            // Fallback
             return `
                 <div style="text-align: center; padding: 80px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08);">
                     <div style="font-size: 56px; margin-bottom: 16px;">📝</div>
                     <p style="font-size: 18px; margin: 0; font-weight: 500; color: #94a3b8;">Lesson Experience Coming Soon</p>
                     <p style="font-size: 14px; margin: 8px 0 0; color: #64748b;">This lesson is being prepared</p>
-                    <p style="font-size: 13px; margin: 4px 0 0; color: #475569;">Interactive lesson content will appear here</p>
                 </div>
             `;
         },
 
                 /**
-         * ═══ Part 7: Lesson 错误状态 ═══
+         * ═══ Part 7: Lesson 错误状态（使用 EmptyStates） ═══
          */
         _renderLessonErrorState: function(lessonId, error) {
+            var emptyStates = window.LawAIApp?.EmptyStates;
+            if (emptyStates && typeof emptyStates.render === 'function') {
+                return emptyStates.render('default', '⚠️ Unable to load this lesson. ' + (error || 'Content temporarily unavailable.') + ' Please try again later.');
+            }
+            // Fallback
             return `
                 <div style="padding: 60px 20px; text-align: center; color: #94a3b8;">
                     <div style="font-size: 32px; margin-bottom: 12px;">⚠️</div>
                     <p style="font-size: 16px; font-weight: 500; color: #ef4444;">Unable to load this lesson</p>
                     <p style="font-size: 14px; color: #64748b; margin-top: 4px;">${error || 'Content temporarily unavailable'}</p>
                     <div style="margin-top: 16px; display: flex; gap: 12px; justify-content: center;">
-                        <button onclick="LawAIApp.AcademyExperienceManager?.navigateToSubject?.('${lessonId}')" 
+                        <button onclick="LawAIApp.AcademyExperienceManager?.goHome?.()" 
                                 style="padding: 8px 20px; background: rgba(74,158,255,0.1); border: 1px solid rgba(74,158,255,0.15); border-radius: 8px; color: #4a9eff; cursor: pointer; font-family: inherit;">
-                            ← Back to Subject
+                            ← Back to Academy
                         </button>
                         <button onclick="location.reload()" 
                                 style="padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer; font-family: inherit;">
