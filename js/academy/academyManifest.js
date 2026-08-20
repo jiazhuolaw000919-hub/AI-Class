@@ -58,6 +58,13 @@
                 required: true
             },
 
+            {
+                id: 'contentValidator',
+                path: '/js/academy/contentValidator.js',
+                description: 'S4 Content Validator (Lesson Contract)',
+                required: false
+            },
+
             // ==========================================================
             // 2. Curriculum Layer
             // ==========================================================
@@ -422,6 +429,7 @@
             'LawAIApp.ProgramRegistry',
             'LawAIApp.CourseRegistry',
             'LawAIApp.SubjectRegistry',
+            'LawAIApp.ContentValidator',
             'LawAIApp.CurriculumRegistry',
             'LawAIApp.CurriculumSeed',
             'LawAIApp.AcademyView',
