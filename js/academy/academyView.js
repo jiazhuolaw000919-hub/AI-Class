@@ -1430,10 +1430,15 @@
             container.innerHTML = html;
         },
 
-        /**
-         * 🔥 Part 58.5: Lesson View (Placeholder)
+                /**
+         * 🔥 Part 58.5: Lesson View (On-Demand Loading + Legacy Fallback)
          */
         _renderLessonView: function(container, lessonId) {
+            var self = this;
+
+            // ═══════════════════════════════════════════════════════════════
+            // 1. 先尝试从 LearningJourneyAdapter 获取基础信息（保留原逻辑）
+            // ═══════════════════════════════════════════════════════════════
             var adapter = window.LawAIApp?.LearningJourneyAdapter;
             var lesson = adapter ? adapter.getLessonDetail(lessonId) : null;
 
@@ -1455,9 +1460,13 @@
             var statusColor = isCompleted ? '#10b981' : '#4a9eff';
             var statusText = isCompleted ? 'Completed' : 'Ready';
 
+            // ═══════════════════════════════════════════════════════════════
+            // 2. 构建基础 HTML（返回栏 + 头部 + Session Panel + 加载占位）
+            //    ⚠️ 注意：这里用 var html = ''，后面会根据加载状态替换内容
+            // ═══════════════════════════════════════════════════════════════
             var html = '';
 
-            // 返回栏 — Back to Module
+            // 返回栏 — Back to Module（保留原有逻辑）
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <button onclick="LawAIApp.AcademyExperienceManager?.navigateToModule?.('${lesson.moduleId}')" 
@@ -1468,7 +1477,7 @@
                 </div>
             `;
 
-            // Lesson 内容
+            // 主内容容器（头部 + 状态 + Session Panel + 内容区）
             html += `
                 <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
@@ -1484,25 +1493,269 @@
                         <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 Module: ${lesson.moduleId}</span>
                     </div>
 
-                    // 🔥 Part 58.6: Learning Session Panel (加在这里！)
-                    html += this._renderSessionPanel(lessonId);
+                    ${this._renderSessionPanel(lessonId)}
 
-                    <!-- Lesson 内容占位 -->
-                    <div style="margin-top: 24px;">
-                        <div style="text-align: center; padding: 80px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08);">
-                            <div style="font-size: 56px; margin-bottom: 16px;">📝</div>
-                            <p style="font-size: 18px; margin: 0; font-weight: 500; color: #94a3b8;">Lesson Experience Coming Soon</p>
-                            <p style="font-size: 14px; margin: 8px 0 0; color: #64748b;">This lesson is being prepared</p>
-                            <p style="font-size: 13px; margin: 4px 0 0; color: #475569;">Interactive lesson content will appear here</p>
-                        </div>
+                    <!-- ═══ 内容区：由 _renderLessonBody 填充 ═══ -->
+                    <div id="lesson-body-container" style="margin-top: 24px;">
+                        ${this._renderLessonLoadingState()}
                     </div>
                 </div>
             `;
 
+            // ═══════════════════════════════════════════════════════════════
+            // 3. 先渲染基础框架（让用户看到头部和加载状态）
+            // ═══════════════════════════════════════════════════════════════
             container.innerHTML = html;
+
+            // ═══════════════════════════════════════════════════════════════
+            // 4. On-Demand 加载 Lesson 内容（异步，不阻塞 UI）
+            // ═══════════════════════════════════════════════════════════════
+            var bodyContainer = document.getElementById('lesson-body-container');
+
+            // 如果 bodyContainer 不存在，直接返回（安全网）
+            if (!bodyContainer) {
+                console.warn('[AcademyView] lesson-body-container not found');
+                return;
+            }
+
+            // 查找 lesson 所属的 subject（从 SubjectRegistry 获取）
+            var subjectRegistry = window.LawAIApp?.SubjectRegistry;
+            var lessonMeta = null;
+
+            if (subjectRegistry) {
+                var allSubjects = subjectRegistry.getAllSubjects ? subjectRegistry.getAllSubjects() : [];
+                for (var i = 0; i < allSubjects.length; i++) {
+                    var subject = allSubjects[i];
+                    if (subject.lessons && subject.lessons.indexOf(lessonId) !== -1) {
+                        lessonMeta = {
+                            courseId: subject.courseId,
+                            subjectId: subject.id
+                        };
+                        break;
+                    }
+                }
+            }
+
+            // 如果没有从 SubjectRegistry 找到，尝试从 adapter 获取
+            if (!lessonMeta) {
+                var adapter2 = window.LawAIApp?.LearningJourneyAdapter;
+                var lessonDetail = adapter2 ? adapter2.getLessonDetail(lessonId) : null;
+                if (lessonDetail) {
+                    lessonMeta = {
+                        courseId: lessonDetail.courseId || lessonDetail.programId,
+                        subjectId: lessonDetail.moduleId || lessonDetail.subjectId
+                    };
+                }
+            }
+
+            // ═══ 尝试从 S4 ContentLoader 加载内容 ═══
+            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+
+            if (loader && typeof loader.loadLesson === 'function' && lessonMeta) {
+                loader.loadLesson(lessonMeta.courseId, lessonMeta.subjectId, lessonId)
+                    .then(function(lessonContent) {
+                        if (lessonContent) {
+                            // ✅ 成功加载：渲染完整内容
+                            var contentHtml = self._renderLessonBody(lessonContent);
+                            var bodyContainer2 = document.getElementById('lesson-body-container');
+                            if (bodyContainer2) {
+                                bodyContainer2.innerHTML = contentHtml;
+                            }
+                        } else {
+                            // ⚠️ 加载失败：显示占位（保留原有占位样式）
+                            var bodyContainer3 = document.getElementById('lesson-body-container');
+                            if (bodyContainer3) {
+                                bodyContainer3.innerHTML = self._renderLessonPlaceholder();
+                            }
+                        }
+                    })
+                    .catch(function(err) {
+                        console.warn('[AcademyView] Lesson load failed:', err);
+                        var bodyContainer4 = document.getElementById('lesson-body-container');
+                        if (bodyContainer4) {
+                            bodyContainer4.innerHTML = self._renderLessonPlaceholder();
+                        }
+                    });
+            } else {
+                // ═══ Fallback: 如果没有 ContentLoader 或 lessonMeta，显示占位 ═══
+                var bodyContainer5 = document.getElementById('lesson-body-container');
+                if (bodyContainer5) {
+                    bodyContainer5.innerHTML = this._renderLessonPlaceholder();
+                }
+            }
         },
 
-                /**
+        /**
+         * ═══ Part 4: Lesson 加载状态 ═══
+         */
+        _renderLessonLoadingState: function() {
+            return `
+                <div style="text-align: center; padding: 60px 20px; color: #94a3b8;">
+                    <div style="font-size: 32px; margin-bottom: 12px;">⏳</div>
+                    <p style="font-size: 15px;">Loading lesson content...</p>
+                </div>
+            `;
+        },
+
+        /**
+         * ═══ Part 4: Lesson 占位（保留原有占位样式） ═══
+         */
+        _renderLessonPlaceholder: function() {
+            return `
+                <div style="text-align: center; padding: 80px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08);">
+                    <div style="font-size: 56px; margin-bottom: 16px;">📝</div>
+                    <p style="font-size: 18px; margin: 0; font-weight: 500; color: #94a3b8;">Lesson Experience Coming Soon</p>
+                    <p style="font-size: 14px; margin: 8px 0 0; color: #64748b;">This lesson is being prepared</p>
+                    <p style="font-size: 13px; margin: 4px 0 0; color: #475569;">Interactive lesson content will appear here</p>
+                </div>
+            `;
+        },
+
+        /**
+         * ═══ Part 4: 渲染 Lesson 完整内容 ═══
+         */
+        _renderLessonBody: function(lessonContent) {
+            var html = '';
+
+            // ── 摘要 ──
+            if (lessonContent.summary) {
+                html += `
+                    <div style="background: rgba(74,158,255,0.06); border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; border-left: 4px solid #4a9eff;">
+                        <p style="color: #e2e8f0; font-size: 15px; margin: 0; line-height: 1.6;">${lessonContent.summary}</p>
+                    </div>
+                `;
+            }
+
+            // ── Sections ──
+            if (lessonContent.sections) {
+                var types = ['foundation', 'intermediate', 'advanced', 'expert'];
+                var labels = {
+                    foundation: '📘 Foundation',
+                    intermediate: '📗 Intermediate',
+                    advanced: '📕 Advanced',
+                    expert: '📙 Expert'
+                };
+                var colors = {
+                    foundation: '#10b981',
+                    intermediate: '#4a9eff',
+                    advanced: '#f59e0b',
+                    expert: '#ef4444'
+                };
+
+                for (var i = 0; i < types.length; i++) {
+                    var type = types[i];
+                    var content = lessonContent.sections[type];
+                    if (!content || content.length === 0) continue;
+
+                    html += `
+                        <div style="margin: 12px 0; padding: 14px 18px; background: rgba(255,255,255,0.03); border-radius: 10px; border-left: 4px solid ${colors[type]};">
+                            <h4 style="font-size: 15px; font-weight: 600; margin: 0 0 6px 0; color: ${colors[type]};">${labels[type]}</h4>
+                            ${content.map(function(item) {
+                                return `<p style="color: #e2e8f0; font-size: 14px; margin: 4px 0; line-height: 1.6;">${item}</p>`;
+                            }).join('')}
+                        </div>
+                    `;
+                }
+            }
+
+            // ── Key Takeaways ──
+            if (lessonContent.keyTakeaways && lessonContent.keyTakeaways.length > 0) {
+                html += `
+                    <div style="margin: 16px 0; padding: 16px 20px; background: rgba(16,185,129,0.06); border-radius: 10px; border: 1px solid rgba(16,185,129,0.12);">
+                        <h4 style="font-size: 15px; font-weight: 600; margin: 0 0 8px 0; color: #10b981;">🎯 Key Takeaways</h4>
+                        <ul style="margin: 0; padding-left: 20px; color: #e2e8f0;">
+                            ${lessonContent.keyTakeaways.map(function(t) {
+                                return `<li style="margin: 4px 0; font-size: 14px;">${t}</li>`;
+                            }).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            // ── Video ──
+            if (lessonContent.video && lessonContent.video.url) {
+                var v = lessonContent.video;
+                html += `
+                    <div style="margin: 16px 0; padding: 16px 20px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+                        <h4 style="font-size: 15px; font-weight: 600; margin: 0 0 8px 0;">🎬 ${v.title || 'Video'}</h4>
+                        <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; background: #0a0a0a;">
+                            <iframe src="${v.url}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;" allowfullscreen></iframe>
+                        </div>
+                        ${v.duration ? `<span style="color: #64748b; font-size: 12px; margin-top: 4px; display: block;">⏱️ ${Math.floor(v.duration/60)} min</span>` : ''}
+                    </div>
+                `;
+            }
+
+            // ── Flashcards ──
+            if (lessonContent.flashcards && lessonContent.flashcards.length > 0) {
+                var fcs = lessonContent.flashcards;
+                html += `
+                    <div style="margin: 16px 0; padding: 16px 20px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+                        <h4 style="font-size: 15px; font-weight: 600; margin: 0 0 12px 0;">🃏 Flashcards (${fcs.length})</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                            ${fcs.map(function(fc) {
+                                return `
+                                    <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.06);">
+                                        <div style="font-size: 13px; font-weight: 500; color: #4a9eff;">Q: ${fc.front}</div>
+                                        <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">A: ${fc.back}</div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // ── Practice ──
+            if (lessonContent.practice && lessonContent.practice.length > 0) {
+                var practices = lessonContent.practice;
+                html += `
+                    <div style="margin: 16px 0; padding: 16px 20px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+                        <h4 style="font-size: 15px; font-weight: 600; margin: 0 0 12px 0;">✍️ Practice (${practices.length})</h4>
+                        ${practices.map(function(p) {
+                            return `
+                                <div style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; border-left: 3px solid #4a9eff;">
+                                    <div style="font-size: 14px;">${p.question}</div>
+                                    ${p.hints ? `<div style="font-size: 12px; color: #64748b; margin-top: 4px;">💡 ${p.hints.join(', ')}</div>` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+
+            // ── Quiz ──
+            if (lessonContent.quiz && lessonContent.quiz.length > 0) {
+                var quizzes = lessonContent.quiz;
+                html += `
+                    <div style="margin: 16px 0; padding: 16px 20px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+                        <h4 style="font-size: 15px; font-weight: 600; margin: 0 0 12px 0;">📝 Quiz (${quizzes.length})</h4>
+                        ${quizzes.map(function(q, idx) {
+                            return `
+                                <div style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; border-left: 3px solid #f59e0b;">
+                                    <div style="font-size: 14px; font-weight: 500;">${idx+1}. ${q.question}</div>
+                                    <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">
+                                        ${q.options.map(function(opt, optIdx) {
+                                            return (optIdx === q.correctAnswer ? '✅ ' : '○ ') + opt;
+                                        }).join(' | ')}
+                                    </div>
+                                    ${q.explanation ? `<div style="font-size: 12px; color: #64748b; margin-top: 4px;">💡 ${q.explanation}</div>` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+
+            // ── 如果没有任何内容，显示占位 ──
+            if (!html) {
+                html = this._renderLessonPlaceholder();
+            }
+
+            return html;
+        },
+        
+        /**
          * 🔥 Part 58.6: Session Panel
          */
         _renderSessionPanel: function(lessonId) {
