@@ -1,1 +1,15 @@
-
+{
+  "id": "subject-prompt-engineering",
+  "courseId": "course-ai",
+  "title": "Prompt Engineering",
+  "description": "Master the art of crafting effective prompts for AI models.",
+  "version": "1.0.0",
+  "status": "published",
+  "lessons": [
+    "lesson-prompt-basics-001",
+    "lesson-prompt-advanced-001"
+  ],
+  "tags": ["ai", "prompting", "intermediate"],
+  "estimatedHours": 6,
+  "difficulty": "intermediate"
+}
