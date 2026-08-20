@@ -309,6 +309,33 @@
             return course;
         },
 
+                /**
+         * ═══ Part 8: 按需加载 Lesson（如果已缓存则直接返回） ═══
+         */
+        loadLessonIfNeeded: async function(courseId, subjectId, lessonId) {
+            // 1. 检查是否已缓存
+            var cacheKey = 's4_lesson_' + lessonId;
+            var cached = LawAIApp.StorageEngine?.get(cacheKey);
+            if (cached) {
+                var now = Date.now();
+                var age = now - (cached._cachedAt || 0);
+                if (age < 300000) {
+                    return { source: 'cache', data: cached };
+                }
+            }
+            
+            // 2. 检查是否正在加载
+            var requestKey = courseId + '|' + subjectId + '|' + lessonId;
+            if (this._loadingRequests && this._loadingRequests[requestKey]) {
+                var data = await this._loadingRequests[requestKey];
+                return { source: 'loading', data: data };
+            }
+            
+            // 3. 加载
+            var data = await this.loadLesson(courseId, subjectId, lessonId);
+            return { source: 'fresh', data: data };
+        },
+
         /**
          * S4: 加载单个 Lesson（带防重复请求 + 防竞态）
          */
