@@ -1,9 +1,7 @@
 // js/academy/academyManifest.js
 // Part 57.4-57.6 — Academy Manifest (Structure Recovery)
+// S4 Extended — Added Content Registry & Loader support
 // Law AI Academy Developer Bible
-//
-// PURPOSE: Define Academy module loading order for Season 3
-// LOADING ORDER: Registry → Curriculum → Experience → Learning Journey
 
 (function() {
     'use strict';
@@ -15,7 +13,7 @@
     var ACADEMY_MANIFEST = {
         version: '2.0.0',
         name: 'Academy Experience Layer',
-        description: 'Law AI Academy — Season 3 Architecture',
+        description: 'Law AI Academy — Season 3 Architecture + S4 Content Layer',
 
         // ============================================================
         // 1. MODULES — Actual Loading Order
@@ -116,14 +114,36 @@
                 required: true
             },
 
-        // ==========================================================
-        // 6. Experience Intelligence Layer
-        // ==========================================================
+            // ==========================================================
+            // 6. Experience Intelligence Layer
+            // ==========================================================
             {
                 id: 'experienceIntelligence',
                 path: '/js/academy/experienceIntelligence.js',
                 description: 'Experience Intelligence (Interpretation Layer)',
                 required: false  // 可选，不阻塞 Academy
+            },
+
+            // ==========================================================
+            // ═══ S4 新增: Content Layer (Part 3) ═══
+            // ==========================================================
+            {
+                id: 'contentLoader',
+                path: '/js/academy/contentLoader.js',
+                description: 'S4 Content Loader (Lazy Loading)',
+                required: false
+            },
+            {
+                id: 'contentRegistry',
+                path: '/js/academy/contentRegistry.js',
+                description: 'S4 Content Registry (Discovery)',
+                required: false
+            },
+            {
+                id: 'contentAdapter',
+                path: '/js/academy/contentAdapter.js',
+                description: 'S4 Content Adapter (Bridge Legacy/S4)',
+                required: false
             }
         ],
 
@@ -153,7 +173,14 @@
             academyExperienceManager: ['academyView', 'curriculumRegistry', 'curriculumSeed'],
 
             // Learning Journey Layer
-            learningJourneyAdapter: ['curriculumRegistry', 'academyView', 'academyExperienceManager']
+            learningJourneyAdapter: ['curriculumRegistry', 'academyView', 'academyExperienceManager'],
+
+            // ==========================================================
+            // ═══ S4 新增依赖 ═══
+            // ==========================================================
+            contentLoader: ['courseRegistry'],
+            contentRegistry: ['contentLoader'],
+            contentAdapter: ['contentRegistry']
         },
 
         // ============================================================
@@ -365,7 +392,13 @@
             'LEARNING_SESSION_STARTED',
             'LEARNING_SESSION_ENDED',
             'LEARNING_PROGRESS_UPDATED',
-            'MOTIVATION_UPDATED'
+            'MOTIVATION_UPDATED',
+            // ==========================================================
+            // ═══ S4 新增事件 ═══
+            // ==========================================================
+            'S4_CONTENT_LOADED',
+            'S4_CONTENT_REGISTERED',
+            'S4_COURSE_LOADED'
         ],
 
         // ============================================================
@@ -380,8 +413,26 @@
             'LawAIApp.CurriculumSeed',
             'LawAIApp.AcademyView',
             'LawAIApp.AcademyExperienceManager',
-            'LawAIApp.LearningJourneyAdapter'
-        ]
+            'LawAIApp.LearningJourneyAdapter',
+            // ==========================================================
+            // ═══ S4 新增健康检查 ═══
+            // ==========================================================
+            'LawAIApp.ContentLoader',
+            'LawAIApp.ContentRegistry',
+            'LawAIApp.ContentAdapter'
+        ],
+
+        // ============================================================
+        // ═══ S4 新增: S4 配置 ═══
+        // ============================================================
+        s4: {
+            enabled: true,
+            version: '1.0.0',
+            contentBase: '/content/',
+            lazyLoading: true,
+            fallbackToLegacy: true,
+            autoSync: true
+        }
     };
 
     // ============================================================
@@ -398,10 +449,12 @@
 
         // Update only the properties we own
         existing.version = ACADEMY_MANIFEST.version;
+        existing.description = ACADEMY_MANIFEST.description;
         existing.modules = ACADEMY_MANIFEST.modules;
         existing.dependencies = ACADEMY_MANIFEST.dependencies;
         existing.healthChecks = ACADEMY_MANIFEST.healthChecks;
         existing.events = ACADEMY_MANIFEST.events;
+        existing.s4 = ACADEMY_MANIFEST.s4;
 
         console.log('[AcademyManifest] ✅ Merged (v' + existing.version + ')');
     } else {
@@ -417,5 +470,6 @@
 
     console.log('[AcademyManifest] Modules to load:', ACADEMY_MANIFEST.modules.length);
     console.log('[AcademyManifest] Health checks:', ACADEMY_MANIFEST.healthChecks.length);
+    console.log('[AcademyManifest] S4 enabled:', ACADEMY_MANIFEST.s4.enabled);
 
 })();
