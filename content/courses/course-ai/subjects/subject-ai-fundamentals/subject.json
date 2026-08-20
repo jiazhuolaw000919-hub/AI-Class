@@ -1,0 +1,16 @@
+{
+  "id": "subject-ai-fundamentals",
+  "courseId": "course-ai",
+  "title": "AI Fundamentals",
+  "description": "Understand what AI is, how it works, and the landscape of modern AI.",
+  "version": "1.0.0",
+  "status": "published",
+  "lessons": [
+    "lesson-ai-fundamentals-001",
+    "lesson-ai-fundamentals-002",
+    "lesson-ai-fundamentals-003"
+  ],
+  "tags": ["ai", "fundamentals", "beginner"],
+  "estimatedHours": 4,
+  "difficulty": "beginner"
+}
