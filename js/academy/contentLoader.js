@@ -178,6 +178,50 @@
             }
         },
 
+                /**
+         * S4: 加载单个 Course
+         * 路径: content/courses/{courseId}/course.json
+         */
+        async loadCourse(courseId) {
+            const cacheKey = `s4_course_${courseId}`;
+            
+            const cached = LawAIApp.StorageEngine?.get(cacheKey);
+            if (cached) {
+                const now = Date.now();
+                const age = now - (cached._cachedAt || 0);
+                if (age < 300000) {
+                    return cached;
+                }
+            }
+
+            try {
+                const resp = await fetch(`content/courses/${courseId}/course.json`);
+                if (!resp.ok) throw new Error(`Course ${courseId} not found`);
+                const data = await resp.json();
+                
+                // ════════════════════════════════════════════════════
+                // ═══ 新增：加载后验证 ═══
+                // ════════════════════════════════════════════════════
+                const validator = window.LawAIApp?.ContentValidator;
+                if (validator && typeof validator.validateCourse === 'function') {
+                    const result = validator.validateCourse(data);
+                    if (!result.valid) {
+                        console.warn('[ContentLoader] Course validation failed:', courseId, result.errors);
+                        data._validation = { valid: false, errors: result.errors };
+                    } else {
+                        data._validation = { valid: true };
+                    }
+                }
+                
+                data._cachedAt = Date.now();
+                LawAIApp.StorageEngine?.set(cacheKey, data);
+                return data;
+            } catch (e) {
+                console.warn('[ContentLoader] Failed to load course:', courseId, e);
+                return null;
+            }
+        },
+
         /**
          * S4: 加载单个 Lesson（带防重复请求 + 防竞态）
          * 路径: content/courses/{courseId}/subjects/{subjectId}/lessons/{lessonId}.json
