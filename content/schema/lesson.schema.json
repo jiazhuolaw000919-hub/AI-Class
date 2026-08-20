@@ -1,0 +1,280 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://lawai.academy/schemas/lesson.schema.json",
+  "title": "Lesson Schema",
+  "description": "Law AI Academy Lesson Content Contract — Season 4",
+  "type": "object",
+  "required": ["id", "title", "subjectId", "version"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^lesson-[a-z0-9-]+$",
+      "description": "Unique lesson identifier. Must be stable across content updates."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version for content tracking."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable lesson title."
+    },
+    "slug": {
+      "type": "string",
+      "description": "URL-friendly version of title."
+    },
+    "subjectId": {
+      "type": "string",
+      "pattern": "^subject-[a-z0-9-]+$",
+      "description": "Reference to parent Subject."
+    },
+    "moduleId": {
+      "type": ["string", "null"],
+      "description": "Optional Module reference for future organizational layer."
+    },
+    "order": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Display order within Subject."
+    },
+    "estimatedMinutes": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Estimated learning time in minutes."
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": ["foundation", "beginner", "intermediate", "advanced", "expert", "mixed"],
+      "description": "Metadata only — NOT a lock/gate."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "published", "archived", "under_review"],
+      "default": "draft"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short lesson description/summary."
+    },
+    "learningObjectives": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "What the learner will achieve."
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "title"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["foundation", "core", "intermediate", "advanced", "expert", "application", "practice", "summary"]
+          },
+          "title": { "type": "string" },
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["text", "heading", "image", "video", "code", "callout", "example", "definition", "formula", "comparison", "timeline", "table", "quote", "resource"]
+                },
+                "content": { "type": "string" },
+                "language": { "type": "string" },
+                "code": { "type": "string" },
+                "url": { "type": "string", "format": "uri" },
+                "caption": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "video": {
+      "type": ["object", "null"],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["youtube", "vimeo", "self-hosted", "external"]
+        },
+        "url": { "type": "string", "format": "uri" },
+        "title": { "type": "string" },
+        "durationMinutes": { "type": "integer", "minimum": 0 },
+        "thumbnail": { "type": "string", "format": "uri" },
+        "transcript": { "type": "string" }
+      }
+    },
+    "flashcards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "front", "back"],
+        "properties": {
+          "id": { "type": "string" },
+          "front": { "type": "string" },
+          "back": { "type": "string" },
+          "hint": { "type": "string" },
+          "difficulty": {
+            "type": "string",
+            "enum": ["foundation", "core", "advanced", "expert"]
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "practice": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "type": {
+          "type": "string",
+          "enum": ["questions", "coding", "ai", "scenario", "reflection", "project", "quiz", "mixed"]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "type", "question"],
+            "properties": {
+              "id": { "type": "string" },
+              "type": {
+                "type": "string",
+                "enum": ["multipleChoice", "shortAnswer", "coding", "aiPrompt", "scenario", "reflection", "project"]
+              },
+              "question": { "type": "string" },
+              "language": { "type": "string" },
+              "starterCode": { "type": "string" },
+              "expectedOutcome": { "type": "string" },
+              "testCases": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "input": { "type": "string" },
+                    "expected": { "type": "string" }
+                  }
+                }
+              },
+              "prompt": { "type": "string" },
+              "recommendedTools": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "hints": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "answer": { "type": "string" },
+              "explanation": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "object",
+      "properties": {
+        "summary": { "type": "string" },
+        "keyPoints": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "importantTerms": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "term": { "type": "string" },
+              "definition": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "aiTools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": ["chatgpt", "claude", "gemini", "deepseek", "perplexity", "copilot", "grok", "qwen", "mistral", "other"]
+          },
+          "role": {
+            "type": "string",
+            "enum": ["reasoning", "long_context", "multimodal", "coding", "research", "writing", "creative", "analysis", "general"]
+          },
+          "recommendedFor": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["documentation", "article", "video", "github", "paper", "tool", "website", "book", "dataset"]
+          },
+          "url": { "type": "string", "format": "uri" },
+          "provider": { "type": "string" }
+        }
+      }
+    },
+    "news": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "summary": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "publishedAt": { "type": "string", "format": "date-time" },
+          "provider": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["product_update", "new_model", "feature", "api_change", "research", "tutorial"]
+          }
+        }
+      }
+    },
+    "relatedLessons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^lesson-[a-z0-9-]+$"
+      }
+    },
+    "keyTakeaways": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
