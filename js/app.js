@@ -54,6 +54,7 @@ window.App = {
     _composerHandler: null,
     _fallbackTimer: null,
     _renderAttempted: false,
+    _cacheCleanupTimer: null,
 
     // ============================================================
     // 2. Runtime Lifecycle
@@ -77,7 +78,7 @@ window.App = {
         this._state.healthy = true;
         this._state.bootTimeline.push({ event: 'init', time: Date.now() });
 
-        console.log("🚀 App Runtime V" + this.version);
+                console.log("🚀 App Runtime V" + this.version);
         console.log("📋 Boot payload:", payload);
 
         this._boot = payload?.boot || window.LawAIApp.bootStatus || {};
@@ -92,6 +93,25 @@ window.App = {
         }
 
         this.mountRoot();
+
+        // ════════════════════════════════════════════════════════════
+        // ═══ S4 Part 10: 初始化 ContentLoader（新增） ═══
+        // ════════════════════════════════════════════════════════════
+        var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+        if (loader && typeof loader.loadCourseIndex === 'function') {
+            console.log('[App] 📚 Preloading Content Index...');
+            loader.loadCourseIndex().then(function(index) {
+                console.log('[App] ✅ Content Index loaded:', index ? Object.keys(index.schools || {}).length + ' schools' : 'none');
+            }).catch(function(err) {
+                console.warn('[App] ⚠️ Content Index preload failed:', err);
+            });
+        } else {
+            console.warn('[App] ⚠️ ContentLoader not available, skipping S4 content preload');
+        }
+
+        // ═══ S4 Part 10: 启动缓存清理定时器（新增） ═══
+        this._startCacheCleanup();
+
         this._renderImmediately();
         this._setupComposerListener();
 
@@ -184,8 +204,14 @@ window.App = {
         }.bind(this), 1000);
     },
 
-    destroy: function() {
+        destroy: function() {
         if (this._state.destroyed) return;
+
+        // ═══ S4 Part 10: 清理缓存清理定时器 ═══
+        if (this._cacheCleanupTimer) {
+            clearInterval(this._cacheCleanupTimer);
+            this._cacheCleanupTimer = null;
+        }
 
         this._state.initialized = false;
         this._state.started = false;
@@ -211,6 +237,33 @@ window.App = {
         this._emit('RUNTIME_DESTROYED', {});
         console.log("🧹 App Runtime destroyed");
     },
+
+    /**
+     * ═══ S4 Part 10: 启动缓存清理定时器 ═══
+     */
+    _startCacheCleanup: function() {
+        if (this._cacheCleanupTimer) {
+            clearInterval(this._cacheCleanupTimer);
+            this._cacheCleanupTimer = null;
+        }
+
+        // 每 5 分钟清理一次旧缓存（最多保留 50 条，10 分钟以上过期）
+        this._cacheCleanupTimer = setInterval(function() {
+            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            if (loader && typeof loader.evictOldCache === 'function') {
+                try {
+                    var result = loader.evictOldCache(50, 600000);
+                    if (result && result.evicted > 0) {
+                        console.log('[App] 🧹 Cache cleanup: evicted ' + result.evicted + ' entries');
+                    }
+                } catch (e) {
+                    console.warn('[App] ⚠️ Cache cleanup error:', e);
+                }
+            }
+        }, 300000); // 5 分钟
+
+        console.log('[App] 🧹 Cache cleanup timer started (every 5 minutes)');
+    }, 
 
     // ============================================================
     // 3. Runtime Health
