@@ -1,0 +1,27 @@
+{
+  "id": "course-ai",
+  "type": "course",
+  "schoolId": "science",
+  "title": "Artificial Intelligence Course",
+  "slug": "ai",
+  "description": "Complete AI education from fundamentals to advanced multi-model workflows.",
+  "version": "1.0.0",
+  "status": "published",
+  "icon": "🤖",
+  "estimatedHours": 40,
+  "recommendedSessionMinutes": 30,
+  "adaptivePlanning": true,
+  "subjects": [
+    "subject-ai-fundamentals",
+    "subject-prompt-engineering",
+    "subject-chatgpt"
+  ],
+  "tags": ["AI", "technology", "generative-ai"],
+  "metadata": {
+    "author": "Law AI Academy",
+    "language": "en",
+    "difficulty": "mixed"
+  },
+  "createdAt": "2026-08-20T00:00:00Z",
+  "updatedAt": "2026-08-20T00:00:00Z"
+}
