@@ -54,6 +54,8 @@ window.App = {
     _composerHandler: null,
     _fallbackTimer: null,
     _renderAttempted: false,
+
+    // ═══ S4 Part 10: 缓存清理定时器 ═══
     _cacheCleanupTimer: null,
 
     // ============================================================
@@ -78,7 +80,7 @@ window.App = {
         this._state.healthy = true;
         this._state.bootTimeline.push({ event: 'init', time: Date.now() });
 
-                console.log("🚀 App Runtime V" + this.version);
+        console.log("🚀 App Runtime V" + this.version);
         console.log("📋 Boot payload:", payload);
 
         this._boot = payload?.boot || window.LawAIApp.bootStatus || {};
@@ -204,7 +206,7 @@ window.App = {
         }.bind(this), 1000);
     },
 
-        destroy: function() {
+    destroy: function() {
         if (this._state.destroyed) return;
 
         // ═══ S4 Part 10: 清理缓存清理定时器 ═══
@@ -238,9 +240,7 @@ window.App = {
         console.log("🧹 App Runtime destroyed");
     },
 
-    /**
-     * ═══ S4 Part 10: 启动缓存清理定时器 ═══
-     */
+    // ═══ S4 Part 10: 启动缓存清理定时器 ═══
     _startCacheCleanup: function() {
         if (this._cacheCleanupTimer) {
             clearInterval(this._cacheCleanupTimer);
@@ -263,7 +263,7 @@ window.App = {
         }, 300000); // 5 分钟
 
         console.log('[App] 🧹 Cache cleanup timer started (every 5 minutes)');
-    }, 
+    },
 
     // ============================================================
     // 3. Runtime Health
