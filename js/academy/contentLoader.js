@@ -649,6 +649,138 @@
             }
             return count;
         },
+
+                /**
+         * ═══ Part 10: 主动清理旧缓存（防止内存无限增长） ═══
+         * @param {number} maxEntries - 最大缓存条目数，默认 50
+         * @param {number} maxAgeMs - 最大缓存年龄（毫秒），默认 10 分钟
+         * @returns {Object} 清理统计
+         */
+        evictOldCache: function(maxEntries, maxAgeMs) {
+            maxEntries = maxEntries || 50;
+            maxAgeMs = maxAgeMs || 600000; // 10 分钟
+            
+            if (!LawAIApp.StorageEngine) {
+                return { available: false, message: 'StorageEngine not available' };
+            }
+            
+            var allKeys = LawAIApp.StorageEngine.getAllKeys?.() || [];
+            var s4Keys = allKeys.filter(function(k) { return k.startsWith('s4_'); });
+            
+            if (s4Keys.length <= maxEntries) {
+                return { 
+                    evicted: 0, 
+                    remaining: s4Keys.length,
+                    message: 'Cache under limit, no eviction needed'
+                };
+            }
+            
+            // 按最后访问时间排序（如果有的话）
+            var cacheEntries = [];
+            for (var i = 0; i < s4Keys.length; i++) {
+                var key = s4Keys[i];
+                var data = LawAIApp.StorageEngine.get(key);
+                if (data) {
+                    cacheEntries.push({
+                        key: key,
+                        cachedAt: data._cachedAt || 0,
+                        // 尝试从 key 判断类型
+                        type: key.startsWith('s4_lesson_') ? 'lesson' :
+                               key.startsWith('s4_subject_') ? 'subject' :
+                               key.startsWith('s4_course_') ? 'course' : 'other'
+                    });
+                }
+            }
+            
+            // 按缓存时间排序（旧的在前）
+            cacheEntries.sort(function(a, b) {
+                return (a.cachedAt || 0) - (b.cachedAt || 0);
+            });
+            
+            // 计算需要删除的数量
+            var toEvictCount = cacheEntries.length - maxEntries;
+            
+            // 同时检查过期的缓存
+            var now = Date.now();
+            var expiredCount = 0;
+            var toEvict = [];
+            
+            for (var j = 0; j < cacheEntries.length; j++) {
+                var entry = cacheEntries[j];
+                var age = now - (entry.cachedAt || 0);
+                if (age > maxAgeMs) {
+                    // 过期了，标记删除
+                    toEvict.push(entry);
+                    expiredCount++;
+                } else if (toEvict.length < toEvictCount) {
+                    // 还没过期但需要腾出空间
+                    toEvict.push(entry);
+                }
+            }
+            
+            // 执行删除
+            var evictedCount = 0;
+            for (var k = 0; k < toEvict.length; k++) {
+                LawAIApp.StorageEngine.remove(toEvict[k].key);
+                evictedCount++;
+            }
+            
+            console.log('[ContentLoader] Cache eviction complete:', {
+                evicted: evictedCount,
+                expired: expiredCount,
+                remaining: cacheEntries.length - evictedCount
+            });
+            
+            return {
+                evicted: evictedCount,
+                expired: expiredCount,
+                remaining: cacheEntries.length - evictedCount,
+                maxEntries: maxEntries,
+                maxAgeMs: maxAgeMs
+            };
+        },
+
+        /**
+         * ═══ Part 10: 获取缓存大小统计 ═══
+         */
+        getCacheSize: function() {
+            if (!LawAIApp.StorageEngine) {
+                return { available: false };
+            }
+            
+            var allKeys = LawAIApp.StorageEngine.getAllKeys?.() || [];
+            var s4Keys = allKeys.filter(function(k) { return k.startsWith('s4_'); });
+            
+            var lessonCount = 0;
+            var subjectCount = 0;
+            var courseCount = 0;
+            var otherCount = 0;
+            var totalSize = 0;
+            
+            for (var i = 0; i < s4Keys.length; i++) {
+                var key = s4Keys[i];
+                var data = LawAIApp.StorageEngine.get(key);
+                if (data) {
+                    var size = JSON.stringify(data).length;
+                    totalSize += size;
+                    
+                    if (key.startsWith('s4_lesson_')) lessonCount++;
+                    else if (key.startsWith('s4_subject_')) subjectCount++;
+                    else if (key.startsWith('s4_course_')) courseCount++;
+                    else otherCount++;
+                }
+            }
+            
+            return {
+                totalEntries: s4Keys.length,
+                lessons: lessonCount,
+                subjects: subjectCount,
+                courses: courseCount,
+                other: otherCount,
+                totalSizeBytes: totalSize,
+                totalSizeKB: Math.round(totalSize / 1024)
+            };
+        },
     };
 
     // ============================================================
