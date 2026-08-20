@@ -343,7 +343,7 @@
             const cacheKey = `s4_lesson_${lessonId}`;
             const requestKey = `${courseId}|${subjectId}|${lessonId}`;
             
-            // ═══ 1. 防竞态：如果正在加载，返回同一个 Promise ═══
+            // ═══ 1. 防竞态 ═══
             if (this._loadingRequests && this._loadingRequests[requestKey]) {
                 console.log('[ContentLoader] Already loading:', lessonId);
                 return this._loadingRequests[requestKey];
@@ -365,6 +365,21 @@
                     const resp = await fetch(`content/courses/${courseId}/subjects/${subjectId}/lessons/${lessonId}.json`);
                     if (!resp.ok) throw new Error(`Lesson ${lessonId} not found`);
                     const data = await resp.json();
+                    
+                    // ════════════════════════════════════════════════════
+                    // ═══ 新增：加载后验证 ═══
+                    // ════════════════════════════════════════════════════
+                    const validator = window.LawAIApp?.ContentValidator;
+                    if (validator && typeof validator.validateLesson === 'function') {
+                        const result = validator.validateLesson(data);
+                        if (!result.valid) {
+                            console.warn('[ContentLoader] Lesson validation failed:', lessonId, result.errors);
+                            data._validation = { valid: false, errors: result.errors };
+                        } else {
+                            data._validation = { valid: true };
+                        }
+                    }
+                    
                     data._cachedAt = Date.now();
                     LawAIApp.StorageEngine?.set(cacheKey, data);
                     return data;
@@ -372,14 +387,12 @@
                     console.warn('[ContentLoader] Failed to load lesson:', lessonId, e);
                     return null;
                 } finally {
-                    // ═══ 加载完成后清除请求标记 ═══
                     if (this._loadingRequests) {
                         delete this._loadingRequests[requestKey];
                     }
                 }
             })();
 
-            // ═══ 4. 存储 Promise 到请求队列 ═══
             if (!this._loadingRequests) this._loadingRequests = {};
             this._loadingRequests[requestKey] = loadPromise;
             return loadPromise;
@@ -405,11 +418,26 @@
                 const resp = await fetch(`content/courses/${courseId}/subjects/${subjectId}/subject.json`);
                 if (!resp.ok) throw new Error(`Subject ${subjectId} not found`);
                 const data = await resp.json();
+                
+                // ════════════════════════════════════════════════════
+                // ═══ 新增：加载后验证 ═══
+                // ════════════════════════════════════════════════════
+                const validator = window.LawAIApp?.ContentValidator;
+                if (validator && typeof validator.validateSubject === 'function') {
+                    const result = validator.validateSubject(data);
+                    if (!result.valid) {
+                        console.warn('[ContentLoader] Subject validation failed:', subjectId, result.errors);
+                        data._validation = { valid: false, errors: result.errors };
+                    } else {
+                        data._validation = { valid: true };
+                    }
+                }
+                
                 data._cachedAt = Date.now();
                 LawAIApp.StorageEngine?.set(cacheKey, data);
                 return data;
             } catch (e) {
-                console.warn('[S4ContentLoader] Failed to load subject:', subjectId, e);
+                console.warn('[ContentLoader] Failed to load subject:', subjectId, e);
                 return null;
             }
         },
