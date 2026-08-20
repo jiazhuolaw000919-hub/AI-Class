@@ -58,6 +58,19 @@
         },
         curriculumSeed: function() {
           return !!(window.LawAIApp && window.LawAIApp.CurriculumSeed);
+        },
+        // ═══ S4 新增模块检查 ═══
+        contentLoader: function() {
+          return !!(window.LawAIApp && window.LawAIApp.ContentLoader);
+        },
+        contentRegistry: function() {
+          return !!(window.LawAIApp && window.LawAIApp.ContentRegistry);
+        },
+        contentAdapter: function() {
+          return !!(window.LawAIApp && window.LawAIApp.ContentAdapter);
+        },
+        subjectRegistry: function() {
+          return !!(window.LawAIApp && window.LawAIApp.SubjectRegistry);
         }
       };
     }
@@ -308,7 +321,11 @@
           { id: 'curriculumRegistry', path: '/js/academy/curriculumRegistry.js' },
           { id: 'curriculumSeed', path: '/js/academy/curriculumSeed.js' },
           { id: 'academyView', path: '/js/academy/academyView.js' },
-          { id: 'academyExperienceManager', path: '/js/academy/academyExperienceManager.js' }
+          { id: 'academyExperienceManager', path: '/js/academy/academyExperienceManager.js' },
+          { id: 'contentLoader', path: '/js/academy/contentLoader.js' },
+          { id: 'contentRegistry', path: '/js/academy/contentRegistry.js' },
+          { id: 'contentAdapter', path: '/js/academy/contentAdapter.js' },
+          { id: 'subjectRegistry', path: '/js/academy/subjectRegistry.js' }
         ]
       };
     }
