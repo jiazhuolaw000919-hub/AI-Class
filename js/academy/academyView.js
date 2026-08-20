@@ -1436,6 +1436,20 @@
         _renderLessonView: function(container, lessonId) {
             var self = this;
 
+            // ═══ Part 7: 检查加载状态 ═══
+            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            if (loader && typeof loader.getLessonLoadStatus === 'function') {
+                var status = loader.getLessonLoadStatus(lessonId);
+                if (status.status === 'loading') {
+                    container.innerHTML = this._renderLessonLoadingState();
+                    return;
+                }
+                if (status.status === 'error') {
+                    container.innerHTML = this._renderLessonErrorState(lessonId, status.error);
+                    return;
+                }
+            }
+            
             // ═══════════════════════════════════════════════════════════════
             // 1. 先尝试从 LearningJourneyAdapter 获取基础信息（保留原逻辑）
             // ═══════════════════════════════════════════════════════════════
@@ -1607,6 +1621,29 @@
                     <p style="font-size: 18px; margin: 0; font-weight: 500; color: #94a3b8;">Lesson Experience Coming Soon</p>
                     <p style="font-size: 14px; margin: 8px 0 0; color: #64748b;">This lesson is being prepared</p>
                     <p style="font-size: 13px; margin: 4px 0 0; color: #475569;">Interactive lesson content will appear here</p>
+                </div>
+            `;
+        },
+
+                /**
+         * ═══ Part 7: Lesson 错误状态 ═══
+         */
+        _renderLessonErrorState: function(lessonId, error) {
+            return `
+                <div style="padding: 60px 20px; text-align: center; color: #94a3b8;">
+                    <div style="font-size: 32px; margin-bottom: 12px;">⚠️</div>
+                    <p style="font-size: 16px; font-weight: 500; color: #ef4444;">Unable to load this lesson</p>
+                    <p style="font-size: 14px; color: #64748b; margin-top: 4px;">${error || 'Content temporarily unavailable'}</p>
+                    <div style="margin-top: 16px; display: flex; gap: 12px; justify-content: center;">
+                        <button onclick="LawAIApp.AcademyExperienceManager?.navigateToSubject?.('${lessonId}')" 
+                                style="padding: 8px 20px; background: rgba(74,158,255,0.1); border: 1px solid rgba(74,158,255,0.15); border-radius: 8px; color: #4a9eff; cursor: pointer; font-family: inherit;">
+                            ← Back to Subject
+                        </button>
+                        <button onclick="location.reload()" 
+                                style="padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer; font-family: inherit;">
+                            🔄 Retry
+                        </button>
+                    </div>
                 </div>
             `;
         },
