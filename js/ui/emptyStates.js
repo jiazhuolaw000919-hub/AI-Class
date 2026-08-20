@@ -28,7 +28,15 @@ LawAIApp.EmptyStates = {
     academy: 'No academies available yet.',
     lessons: 'No lessons completed yet.',
     skills: 'No skills tracked yet.',
-    default: 'Nothing here yet. Start exploring!'
+    default: 'Nothing here yet. Start exploring!',
+    lesson: 'This lesson is being prepared. Interactive content will appear here.',
+    subject: 'No lessons available for this subject yet.',
+    course: 'This course is being prepared. Check back soon.',
+    content: 'Content is being prepared. Please check back later.',
+    lesson_error: 'Unable to load this lesson. Please try again later.',
+    subject_error: 'Unable to load this subject. Please try again later.',
+    course_error: 'Unable to load this course. Please try again later.',
+    no_content: 'No content available yet. Start learning to see materials here.'
   },
 
   // 获取空状态文案（带兜底）
@@ -55,7 +63,15 @@ LawAIApp.EmptyStates = {
       skills: '🧠',
       lessons: '📖',
       academy: '🏛️',
-      dashboard: '🚀'
+      dashboard: '🚀',
+      lesson: '📖',
+      subject: '📂',
+      course: '📘',
+      content: '📝',
+      lesson_error: '⚠️',
+      subject_error: '⚠️',
+      course_error: '⚠️',
+      no_content: '📭'
     };
     icon = iconMap[moduleName] || '📭';
 
