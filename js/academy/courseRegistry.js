@@ -347,4 +347,29 @@
     window.LawAIApp.CourseRegistry = courseRegistry;
 
     function autoInit() {
-        const programReg = window.LawAIApp
+        const programReg = window.LawAIApp?.ProgramRegistry;
+        if (programReg && programReg.initialized) {
+            courseRegistry.initialize();
+        } else {
+            document.addEventListener('PROGRAM_REGISTRY_READY', () => {
+                courseRegistry.initialize();
+            });
+            setTimeout(() => {
+                if (!courseRegistry.initialized) {
+                    courseRegistry.initialize();
+                }
+            }, 1500);
+        }
+    }
+
+    if (document.readyState === 'complete') {
+        setTimeout(autoInit, 300);
+    } else {
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(autoInit, 300);
+        });
+    }
+
+    console.log('[CourseRegistry] Module loaded (S4 Extended)');
+
+})();
