@@ -388,35 +388,6 @@
         },
 
         /**
-         * S4: 加载单个 Lesson
-         * 路径: content/courses/{courseId}/subjects/{subjectId}/lessons/{lessonId}.json
-         */
-        async loadLesson(courseId, subjectId, lessonId) {
-            const cacheKey = `s4_lesson_${lessonId}`;
-            
-            const cached = LawAIApp.StorageEngine?.get(cacheKey);
-            if (cached) {
-                const now = Date.now();
-                const age = now - (cached._cachedAt || 0);
-                if (age < 300000) {
-                    return cached;
-                }
-            }
-
-            try {
-                const resp = await fetch(`content/courses/${courseId}/subjects/${subjectId}/lessons/${lessonId}.json`);
-                if (!resp.ok) throw new Error(`Lesson ${lessonId} not found`);
-                const data = await resp.json();
-                data._cachedAt = Date.now();
-                LawAIApp.StorageEngine?.set(cacheKey, data);
-                return data;
-            } catch (e) {
-                console.warn('[S4ContentLoader] Failed to load lesson:', lessonId, e);
-                return null;
-            }
-        },
-
-        /**
          * S4: 批量加载 Course 的所有 Subjects（只加载元数据，不加载 Lessons）
          */
         async loadCourseSubjects(courseId) {
