@@ -16,7 +16,10 @@ LawAIApp.LoadingStates = {
             list: this._skeletonList(),
             lesson: this._skeletonLesson(),
             dashboard: this._skeletonDashboard(),
-            grid: this._skeletonGrid()
+            grid: this._skeletonGrid(),
+            lessonContent: this._skeletonLessonContent(),
+            subjectList: this._skeletonSubjectList(),
+            courseCatalog: this._skeletonCourseCatalog()
         };
         return skeletons[type] || skeletons.card;
     },
