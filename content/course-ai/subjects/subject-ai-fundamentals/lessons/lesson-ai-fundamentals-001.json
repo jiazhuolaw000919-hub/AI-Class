@@ -1,0 +1,159 @@
+{
+  "id": "lesson-ai-fundamentals-001",
+  "version": "1.0.0",
+  "title": "What is Artificial Intelligence?",
+  "slug": "what-is-artificial-intelligence",
+  "subjectId": "subject-ai-fundamentals",
+  "moduleId": null,
+  "order": 1,
+  "estimatedMinutes": 20,
+  "difficulty": "foundation",
+  "status": "published",
+  "description": "This lesson introduces the fundamental concept of Artificial Intelligence—what it is, what it isn't, and where it's used today.",
+  "learningObjectives": [
+    "Define artificial intelligence",
+    "Distinguish between AI, ML, and DL",
+    "Identify real-world AI applications"
+  ],
+  "sections": [
+    {
+      "id": "section-01",
+      "type": "foundation",
+      "title": "What is AI?",
+      "content": [
+        {
+          "type": "text",
+          "content": "Artificial Intelligence (AI) is the simulation of human intelligence in machines. It encompasses everything from rule-based systems to self-learning neural networks."
+        },
+        {
+          "type": "definition",
+          "content": "Machine Learning: A subset of AI where systems learn from data without explicit programming."
+        },
+        {
+          "type": "definition",
+          "content": "Deep Learning: A subset of ML using neural networks with many layers."
+        }
+      ]
+    },
+    {
+      "id": "section-02",
+      "type": "core",
+      "title": "How AI Works",
+      "content": [
+        {
+          "type": "text",
+          "content": "Modern AI is powered by transformer architectures and trained on massive datasets. The key insight is that intelligence emerges from scale and pattern recognition."
+        },
+        {
+          "type": "example",
+          "content": "ChatGPT, self-driving cars, and recommendation systems are all real-world AI applications."
+        }
+      ]
+    },
+    {
+      "id": "section-03",
+      "type": "advanced",
+      "title": "Advanced Insights",
+      "content": [
+        {
+          "type": "text",
+          "content": "The relationship between AI, ML, and DL is hierarchical: AI ⊃ ML ⊃ DL. Understanding this hierarchy is crucial for navigating the AI landscape."
+        }
+      ]
+    }
+  ],
+  "video": {
+    "provider": "youtube",
+    "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao",
+    "title": "What is AI?",
+    "durationMinutes": 8
+  },
+  "flashcards": [
+    {
+      "id": "fc-001",
+      "front": "What is Artificial Intelligence?",
+      "back": "AI is the simulation of human intelligence in machines.",
+      "difficulty": "foundation",
+      "tags": ["definition"]
+    },
+    {
+      "id": "fc-002",
+      "front": "What is the relationship between AI, ML, and DL?",
+      "back": "ML is a subset of AI. DL is a subset of ML.",
+      "difficulty": "core",
+      "tags": ["hierarchy"]
+    }
+  ],
+  "practice": {
+    "enabled": true,
+    "type": "mixed",
+    "items": [
+      {
+        "id": "practice-001",
+        "type": "shortAnswer",
+        "question": "Explain the difference between AI, Machine Learning, and Deep Learning in your own words.",
+        "answer": "AI is the broad field of creating intelligent machines. ML is a subset where machines learn from data. DL is a subset of ML using multi-layer neural networks.",
+        "explanation": "Think of AI as the universe, ML as a galaxy within it, and DL as a solar system within that galaxy."
+      }
+    ]
+  },
+  "notes": {
+    "summary": "AI is the simulation of human intelligence in machines. ML and DL are subsets of AI.",
+    "keyPoints": [
+      "AI = simulation of human intelligence in machines",
+      "ML: Systems that learn from data without explicit programming.",
+      "DL: ML using neural networks with many layers."
+    ],
+    "importantTerms": [
+      {
+        "term": "Artificial Intelligence",
+        "definition": "The simulation of human intelligence in machines."
+      },
+      {
+        "term": "Machine Learning",
+        "definition": "A subset of AI where systems learn from data."
+      },
+      {
+        "term": "Deep Learning",
+        "definition": "A subset of ML using multi-layer neural networks."
+      }
+    ]
+  },
+  "aiTools": [
+    {
+      "provider": "chatgpt",
+      "role": "reasoning",
+      "recommendedFor": ["explaining concepts", "answering questions"]
+    },
+    {
+      "provider": "claude",
+      "role": "writing",
+      "recommendedFor": ["detailed explanations", "long-form content"]
+    }
+  ],
+  "resources": [
+    {
+      "id": "resource-001",
+      "title": "Introduction to AI",
+      "type": "article",
+      "url": "https://example.com/ai-intro",
+      "provider": "official"
+    }
+  ],
+  "news": [],
+  "relatedLessons": [
+    "lesson-ai-fundamentals-002",
+    "lesson-ai-fundamentals-003"
+  ],
+  "keyTakeaways": [
+    "AI simulates human intelligence in machines.",
+    "ML learns from data; DL is ML with deep neural networks.",
+    "AI powers real-world applications like chatbots and recommendation systems."
+  ],
+  "metadata": {
+    "author": "Law AI Academy",
+    "language": "en"
+  },
+  "createdAt": "2026-08-20T00:00:00Z",
+  "updatedAt": "2026-08-20T00:00:00Z"
+}
