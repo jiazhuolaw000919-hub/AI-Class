@@ -1,0 +1,60 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-08-20T00:00:00Z",
+  "courses": [
+    {
+      "id": "course-ai",
+      "schoolId": "science",
+      "title": "Artificial Intelligence Course",
+      "slug": "ai",
+      "description": "Complete AI education from fundamentals to advanced multi-model workflows.",
+      "status": "published",
+      "icon": "🤖",
+      "estimatedHours": 40,
+      "subjectCount": 8,
+      "lessonCount": 24,
+      "tags": ["AI", "technology", "productivity", "generative-ai"],
+      "metadata": {
+        "author": "Law AI Academy",
+        "language": "en",
+        "difficulty": "mixed"
+      }
+    },
+    {
+      "id": "course-programming",
+      "schoolId": "science",
+      "title": "Programming Fundamentals",
+      "slug": "programming",
+      "description": "Learn programming from the ground up with practical projects.",
+      "status": "draft",
+      "icon": "💻",
+      "estimatedHours": 60,
+      "subjectCount": 0,
+      "lessonCount": 0,
+      "tags": ["programming", "coding", "beginner"],
+      "metadata": {
+        "author": "Law AI Academy",
+        "language": "en",
+        "difficulty": "beginner"
+      }
+    },
+    {
+      "id": "course-business-essentials",
+      "schoolId": "business",
+      "title": "Business Essentials",
+      "slug": "business-essentials",
+      "description": "Core business concepts, strategy, and operations.",
+      "status": "draft",
+      "icon": "📊",
+      "estimatedHours": 30,
+      "subjectCount": 0,
+      "lessonCount": 0,
+      "tags": ["business", "strategy", "management"],
+      "metadata": {
+        "author": "Law AI Academy",
+        "language": "en",
+        "difficulty": "beginner"
+      }
+    }
+  ]
+}
