@@ -158,6 +158,9 @@
                 case 'module':
                     this._renderModuleView(container, data.currentModuleId);
                     break;
+                case 'subject':
+                    this._renderSubjectView(container, data.currentSubjectId);
+                    break;
                 case 'lesson':
                     this._renderLessonView(container, data.currentLessonId);
                     break;
@@ -227,7 +230,7 @@
             return html;
         },
 
-                /**
+        /**
          * 🔥 Part 60.5: 渲染欢迎空状态 (显示辅助)
          * @returns {string} HTML 字符串
          */
@@ -1430,7 +1433,18 @@
             container.innerHTML = html;
         },
 
-                /**
+        /**
+         * ═══ Part 12: Subject View（别名，调用 Module View） ═══
+         * Subject 是 S4 的概念，Module 是 Legacy 概念
+         * 但内部逻辑相同，所以复用 _renderModuleView
+         */
+        _renderSubjectView: function(container, subjectId) {
+            // Subject 在 S4 中对应 Legacy 的 Module
+            // 复用 _renderModuleView，但传入 subjectId 作为 moduleId
+            this._renderModuleView(container, subjectId);
+        },
+
+        /**
          * 🔥 Part 58.5: Lesson View (On-Demand Loading + Legacy Fallback)
          */
         _renderLessonView: function(container, lessonId) {
