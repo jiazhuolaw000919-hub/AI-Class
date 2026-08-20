@@ -21,6 +21,7 @@
             currentProgramId: null,
             currentCourseId: null,
             currentModuleId: null,
+            currentSubjectId: null,
             currentLessonId: null,
             viewMode: 'dashboard' // dashboard | school | program | course | course-learning
         },
@@ -107,7 +108,7 @@
             return this;
         },
 
-                navigateToSchool: function(schoolId) {
+        navigateToSchool: function(schoolId) {
             console.log('[AcademyExperienceManager] 📍 Navigating to school:', schoolId);
 
             var schoolRegistry = window.LawAIApp?.SchoolRegistry;
@@ -127,6 +128,7 @@
             this._state.currentProgramId = null;
             this._state.currentCourseId = null;
             this._state.currentModuleId = null;
+            this._state.currentSubjectId = null;
             this._state.currentLessonId = null;
             this._state.viewMode = 'school';
 
@@ -141,7 +143,7 @@
             return this;
         },
 
-                navigateToProgram: function(programId) {
+        navigateToProgram: function(programId) {
             console.log('[AcademyExperienceManager] 📍 Navigating to program:', programId);
 
             var programRegistry = window.LawAIApp?.ProgramRegistry;
@@ -160,6 +162,7 @@
             this._state.currentProgramId = programId;
             this._state.currentCourseId = null;
             this._state.currentModuleId = null;
+            this._state.currentSubjectId = null;
             this._state.currentLessonId = null;
             this._state.viewMode = 'program';
 
@@ -180,7 +183,7 @@
             return this;
         },
 
-                navigateToCourse: function(courseId) {
+        navigateToCourse: function(courseId) {
             console.log('[AcademyExperienceManager] 📍 Navigating to course:', courseId);
 
             var courseRegistry = window.LawAIApp?.CourseRegistry;
@@ -198,6 +201,7 @@
             // 🔥 Part 59.4: 保留 schoolId + programId + courseId，清除下层
             this._state.currentCourseId = courseId;
             this._state.currentModuleId = null;
+            this._state.currentSubjectId = null;
             this._state.currentLessonId = null;
             this._state.viewMode = 'course';
 
@@ -239,6 +243,7 @@
 
             // 更新状态
             this._state.currentCourseId = courseId;
+            this._state.currentSubjectId = null;
             this._state.viewMode = 'course-learning';
 
             // 初始化学习状态
@@ -284,6 +289,7 @@
 
             // 🔥 Part 59.4: 保留所有父级，只设置 moduleId，清除 lessonId
             this._state.currentModuleId = moduleId;
+             this._state.currentSubjectId;
             this._state.currentLessonId = null;
             this._state.viewMode = 'module';
 
@@ -331,6 +337,7 @@
             // 🔥 Part 59.4: 保留所有父级，只设置 lessonId
             this._state.currentLessonId = lessonId;
             this._state.currentModuleId = lesson.moduleId;
+            this._state.currentSubjectId = null;
             this._state.viewMode = 'lesson';
 
             // 如果 courseId 丢失，从 lesson 中获取
@@ -474,7 +481,34 @@
             return this;
         },
 
-                goHome: function() {
+                /**
+         * ═══ Part 12: 导航到 Subject ═══
+         */
+        navigateToSubject: function(subjectId) {
+            if (!subjectId) {
+                console.warn('[AcademyExperienceManager] navigateToSubject: subjectId required');
+                return;
+            }
+
+            // 从 SubjectRegistry 获取 Subject
+            var subjectRegistry = window.LawAIApp?.SubjectRegistry;
+            var subject = subjectRegistry ? subjectRegistry.getSubject(subjectId) : null;
+            
+            if (!subject) {
+                console.warn('[AcademyExperienceManager] Subject not found:', subjectId);
+                return;
+            }
+
+            // 更新导航状态
+            this._state.currentSubjectId = subjectId;
+            this._state.currentCourseId = subject.courseId || this._state.currentCourseId;
+            this._state.viewMode = 'subject';
+
+            // 刷新视图
+            this._refreshView();
+        },
+
+        goHome: function() {
             console.log('[AcademyExperienceManager] 🏠 Going home...');
 
             // 🔥 Part 59.4: 清除所有上下文，回到 Dashboard
@@ -482,6 +516,7 @@
             this._state.currentProgramId = null;
             this._state.currentCourseId = null;
             this._state.currentModuleId = null;
+            this._state.currentSubjectId = null;
             this._state.currentLessonId = null;
             this._state.viewMode = 'dashboard';
 
@@ -584,6 +619,7 @@
                 currentProgramId: this._state.currentProgramId,
                 currentCourseId: this._state.currentCourseId,
                 currentModuleId: this._state.currentModuleId,
+                currentSubjectId: this._state.currentSubjectId,
                 currentLessonId: this._state.currentLessonId,
                 viewMode: this._state.viewMode
             };
