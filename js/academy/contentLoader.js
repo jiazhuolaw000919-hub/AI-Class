@@ -179,35 +179,51 @@
         },
 
         /**
-         * S4: 加载单个 Course 的完整数据
-         * 路径: content/courses/{courseId}/course.json
+         * S4: 加载单个 Lesson（带防重复请求 + 防竞态）
+         * 路径: content/courses/{courseId}/subjects/{subjectId}/lessons/{lessonId}.json
          */
-        async loadCourse(courseId) {
-            const cacheKey = `s4_course_${courseId}`;
+        _loadingRequests: {},
+
+        async loadLesson(courseId, subjectId, lessonId) {
+            const cacheKey = `s4_lesson_${lessonId}`;
             
-            // 先检查缓存
+            // ═══ 1. 检查是否正在加载（防重复请求） ═══
+            const requestKey = `${courseId}|${subjectId}|${lessonId}`;
+            if (this._loadingRequests[requestKey]) {
+                console.log('[S4ContentLoader] Already loading:', lessonId);
+                return this._loadingRequests[requestKey];
+            }
+
+            // ═══ 2. 检查缓存 ═══
             const cached = LawAIApp.StorageEngine?.get(cacheKey);
             if (cached) {
                 const now = Date.now();
                 const age = now - (cached._cachedAt || 0);
-                // 缓存 5 分钟有效
                 if (age < 300000) {
                     return cached;
                 }
             }
 
-            try {
-                const resp = await fetch(`content/courses/${courseId}/course.json`);
-                if (!resp.ok) throw new Error(`Course ${courseId} not found`);
-                const data = await resp.json();
-                // 添加缓存时间戳
-                data._cachedAt = Date.now();
-                LawAIApp.StorageEngine?.set(cacheKey, data);
-                return data;
-            } catch (e) {
-                console.warn('[S4ContentLoader] Failed to load course:', courseId, e);
-                return null;
-            }
+            // ═══ 3. 创建加载 Promise（防竞态） ═══
+            const loadPromise = (async () => {
+                try {
+                    const resp = await fetch(`content/courses/${courseId}/subjects/${subjectId}/lessons/${lessonId}.json`);
+                    if (!resp.ok) throw new Error(`Lesson ${lessonId} not found`);
+                    const data = await resp.json();
+                    data._cachedAt = Date.now();
+                    LawAIApp.StorageEngine?.set(cacheKey, data);
+                    return data;
+                } catch (e) {
+                    console.warn('[S4ContentLoader] Failed to load lesson:', lessonId, e);
+                    return null;
+                } finally {
+                    // ═══ 加载完成后清除请求标记 ═══
+                    delete this._loadingRequests[requestKey];
+                }
+            })();
+
+            this._loadingRequests[requestKey] = loadPromise;
+            return loadPromise;
         },
 
         /**
