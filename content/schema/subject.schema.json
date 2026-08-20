@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://lawai.academy/schemas/subject.schema.json",
+  "title": "Subject Schema",
+  "description": "Law AI Academy Subject Content Contract — Season 4",
+  "type": "object",
+  "required": ["id", "title", "courseId", "version"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^subject-[a-z0-9-]+$",
+      "description": "Unique subject identifier."
+    },
+    "type": {
+      "type": "string",
+      "enum": ["subject"],
+      "default": "subject"
+    },
+    "courseId": {
+      "type": "string",
+      "pattern": "^course-[a-z0-9-]+$",
+      "description": "Reference to parent Course."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable subject title."
+    },
+    "slug": {
+      "type": "string",
+      "description": "URL-friendly version of title."
+    },
+    "description": {
+      "type": "string",
+      "description": "Short subject description."
+    },
+    "order": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Display order within Course."
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": ["foundation", "beginner", "intermediate", "advanced", "expert", "mixed"],
+      "default": "mixed",
+      "description": "Metadata only."
+    },
+    "lessons": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^lesson-[a-z0-9-]+$" },
+      "description": "References to Lessons in this Subject."
+    },
+    "estimatedMinutes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total estimated learning minutes."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "published", "archived", "under_review"],
+      "default": "draft"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version for content tracking."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Search/discovery tags."
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Extensible metadata."
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  }
+}
