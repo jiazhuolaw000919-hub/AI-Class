@@ -186,6 +186,129 @@
         _loadingLessonId: null,
         _loadingPromise: null,
 
+        // ═══ Part 7: 加载状态追踪 ═══
+        _loadingStatus: {},
+
+        /**
+         * ═══ Part 7: 获取 Lesson 加载状态 ═══
+         */
+        getLessonLoadStatus: function(lessonId) {
+            return this._loadingStatus[lessonId] || {
+                lessonId: lessonId,
+                status: 'idle', // idle | loading | loaded | error
+                lastAttempt: null,
+                error: null
+            };
+        },
+
+        /**
+         * ═══ Part 7: 检查 Lesson 是否已加载 ═══
+         */
+        isLessonLoaded: function(lessonId) {
+            var cacheKey = 's4_lesson_' + lessonId;
+            var cached = LawAIApp.StorageEngine?.get(cacheKey);
+            return !!cached;
+        },
+
+        /**
+         * ═══ Part 7: 预加载 Lesson（不阻塞 UI） ═══
+         */
+        preloadLesson: async function(courseId, subjectId, lessonId) {
+            var status = this.getLessonLoadStatus(lessonId);
+            if (status.status === 'loading' || status.status === 'loaded') {
+                return status;
+            }
+
+            this._loadingStatus[lessonId] = {
+                lessonId: lessonId,
+                status: 'loading',
+                lastAttempt: Date.now(),
+                error: null
+            };
+
+            try {
+                var data = await this.loadLesson(courseId, subjectId, lessonId);
+                this._loadingStatus[lessonId] = {
+                    lessonId: lessonId,
+                    status: data ? 'loaded' : 'error',
+                    lastAttempt: Date.now(),
+                    error: data ? null : 'Lesson not found'
+                };
+                return this._loadingStatus[lessonId];
+            } catch (e) {
+                this._loadingStatus[lessonId] = {
+                    lessonId: lessonId,
+                    status: 'error',
+                    lastAttempt: Date.now(),
+                    error: e.message || 'Unknown error'
+                };
+                return this._loadingStatus[lessonId];
+            }
+        },
+
+                /**
+         * ═══ Part 7: 批量加载 Lesson Metadata（轻量级） ═══
+         */
+        async loadLessonsMetadata(lessonIds) {
+            if (!lessonIds || lessonIds.length === 0) return [];
+
+            var results = [];
+            var lessonIndex = await this.loadLessonIndex();
+            if (!lessonIndex || !lessonIndex.lessons) return [];
+
+            for (var i = 0; i < lessonIds.length; i++) {
+                var lesson = lessonIndex.lessons.find(function(l) {
+                    return l.id === lessonIds[i];
+                });
+                if (lesson) {
+                    results.push({
+                        id: lesson.id,
+                        title: lesson.title,
+                        order: lesson.order,
+                        estimatedMinutes: lesson.estimatedMinutes,
+                        difficulty: lesson.difficulty,
+                        status: lesson.status,
+                        hasVideo: lesson.hasVideo || false,
+                        hasPractice: lesson.hasPractice || false,
+                        hasFlashcards: lesson.hasFlashcards || false,
+                        hasNotes: lesson.hasNotes || false,
+                        hasAITools: lesson.hasAITools || false
+                    });
+                }
+            }
+
+            return results;
+        },
+
+                /**
+         * ═══ Part 7: 预加载 Course 的轻量级数据 ═══
+         */
+        async preloadCourse(courseId) {
+            // 1. 加载 Course 元数据
+            var course = await this.loadCourse(courseId);
+            if (!course) return null;
+
+            // 2. 加载该 Course 的 Subjects（轻量级）
+            var subjectIndex = await this.loadSubjectIndex();
+            if (subjectIndex && subjectIndex.subjects) {
+                course.subjects = subjectIndex.subjects.filter(function(s) {
+                    return s.courseId === courseId;
+                });
+            }
+
+            // 3. 加载该 Course 的 Lessons（轻量级，只存 ID）
+            var lessonIndex = await this.loadLessonIndex();
+            if (lessonIndex && lessonIndex.lessons) {
+                var courseLessons = lessonIndex.lessons.filter(function(l) {
+                    return l.courseId === courseId;
+                });
+                course.lessonIds = courseLessons.map(function(l) { return l.id; });
+                course.lessonCount = courseLessons.length;
+            }
+
+            return course;
+        },
+
         /**
          * S4: 加载单个 Lesson（带防重复请求 + 防竞态）
          */
