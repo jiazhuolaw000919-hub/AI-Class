@@ -569,7 +569,7 @@
             };
         },
 
-        /**
+                /**
          * 清空 S4 缓存
          */
         clearCache() {
@@ -581,12 +581,12 @@
                 }
             }
             console.log('[S4ContentLoader] Cache cleared');
-        }
+        },
 
-                /**
+        /**
          * ═══ Part 8: 获取缓存统计 ═══
          */
-        getCacheStats: function() {
+        getCacheStats() {
             if (!LawAIApp.StorageEngine) {
                 return { available: false, message: 'StorageEngine not available' };
             }
@@ -624,7 +624,7 @@
         /**
          * ═══ Part 8: 清除单个 Lesson 缓存 ═══
          */
-        clearLessonCache: function(lessonId) {
+        clearLessonCache(lessonId) {
             if (!LawAIApp.StorageEngine) return false;
             var key = 's4_lesson_' + lessonId;
             var existed = LawAIApp.StorageEngine.get(key) !== null;
@@ -635,7 +635,7 @@
         /**
          * ═══ Part 8: 清除 Course 相关缓存 ═══
          */
-        clearCourseCache: function(courseId) {
+        clearCourseCache(courseId) {
             if (!LawAIApp.StorageEngine) return false;
             var count = 0;
             var keys = LawAIApp.StorageEngine.getAllKeys?.() || [];
