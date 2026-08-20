@@ -61,7 +61,7 @@
         /**
          * S4: 注册 Course（自动从 course.json 提取信息）
          */
-        registerCourse(courseData) {
+        registerCourse: function(courseData) {
             if (!courseData.id) {
                 console.warn('[S4ContentRegistry] Course id required');
                 return null;
@@ -91,7 +91,7 @@
         /**
          * S4: 注册 Subject
          */
-        registerSubject(subjectData) {
+        registerSubject: function(subjectData) {
             if (!subjectData.id) {
                 console.warn('[S4ContentRegistry] Subject id required');
                 return null;
@@ -117,7 +117,7 @@
         /**
          * S4: 注册 Lesson
          */
-        registerLesson(lessonData) {
+        registerLesson: function(lessonData) {
             if (!lessonData.id) {
                 console.warn('[S4ContentRegistry] Lesson id required');
                 return null;
@@ -146,42 +146,42 @@
         /**
          * S4: 获取所有 Course 条目
          */
-        getCourses() {
+        getCourses: function() {
             return this.filter({ type: 'course' });
         },
 
         /**
          * S4: 获取某 School 的所有 Course
          */
-        getCoursesBySchool(schoolId) {
+        getCoursesBySchool: function(schoolId) {
             return this.filter({ type: 'course' }).filter(c => c.school === schoolId);
         },
 
         /**
          * S4: 获取某 Course 的所有 Subject
          */
-        getSubjectsByCourse(courseId) {
+        getSubjectsByCourse: function(courseId) {
             return this.filter({ type: 'subject' }).filter(s => s.courseId === courseId);
         },
 
         /**
          * S4: 获取某 Subject 的所有 Lesson
          */
-        getLessonsBySubject(subjectId) {
+        getLessonsBySubject: function(subjectId) {
             return this.filter({ type: 'lesson' }).filter(l => l.subjectId === subjectId);
         },
 
         /**
          * S4: 按难度筛选 Lesson
          */
-        getLessonsByDifficulty(difficulty) {
+        getLessonsByDifficulty: function(difficulty) {
             return this.filter({ type: 'lesson' }).filter(l => l.difficulty === difficulty);
         },
 
         /**
          * S4: 获取统计
          */
-        getS4Stats() {
+        getS4Stats: function() {
             const courses = this.getCourses();
             const subjects = this.filter({ type: 'subject' });
             const lessons = this.filter({ type: 'lesson' });
@@ -256,13 +256,16 @@
                 console.error('[S4ContentRegistry] Sync failed:', e);
                 return false;
             }
-        }
-    };
+        },
+
+        // ============================================================
+        // ═══ Part 6: Catalog/Index 同步方法 ═══
+        // ============================================================
 
         /**
          * ═══ Part 6: 从 Catalog 同步 Course 到 Registry ═══
          */
-        syncCoursesFromCatalog: async function() {
+        async syncCoursesFromCatalog() {
             var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
             if (!loader) {
                 console.warn('[S4ContentRegistry] ContentLoader not available');
@@ -311,7 +314,7 @@
         /**
          * ═══ Part 6: 从 Subject Index 同步 Subject 到 Registry ═══
          */
-        syncSubjectsFromIndex: async function() {
+        async syncSubjectsFromIndex() {
             var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
             if (!loader) {
                 console.warn('[S4ContentRegistry] ContentLoader not available');
@@ -360,7 +363,7 @@
         /**
          * ═══ Part 6: 从 Lesson Index 同步 Lesson 到 Registry ═══
          */
-        syncLessonsFromIndex: async function() {
+        async syncLessonsFromIndex() {
             var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
             if (!loader) {
                 console.warn('[S4ContentRegistry] ContentLoader not available');
@@ -416,7 +419,7 @@
         /**
          * ═══ Part 6: 完整同步所有 Catalog/Index 到 Registry ═══
          */
-        syncAllFromCatalog: async function() {
+        async syncAllFromCatalog() {
             console.log('[S4ContentRegistry] 🔄 Syncing all from catalog/index...');
             var results = {
                 courses: await this.syncCoursesFromCatalog(),
@@ -426,6 +429,7 @@
             console.log('[S4ContentRegistry] ✅ Sync complete:', results);
             return results;
         }
+    };  // ⬅️ 这里闭合 S4ContentRegistry
 
     // ============================================================
     // 合并
