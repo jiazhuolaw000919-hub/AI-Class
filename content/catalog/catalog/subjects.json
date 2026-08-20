@@ -1,0 +1,58 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-08-20T00:00:00Z",
+  "subjects": [
+    {
+      "id": "subject-ai-fundamentals",
+      "courseId": "course-ai",
+      "title": "AI Fundamentals",
+      "slug": "ai-fundamentals",
+      "description": "Understand what AI is, how it works, and the landscape of modern AI.",
+      "order": 1,
+      "difficulty": "foundation",
+      "status": "published",
+      "lessonCount": 3,
+      "estimatedMinutes": 60,
+      "tags": ["AI", "foundation", "beginner"],
+      "lessons": [
+        "lesson-ai-fundamentals-001",
+        "lesson-ai-fundamentals-002",
+        "lesson-ai-fundamentals-003"
+      ]
+    },
+    {
+      "id": "subject-prompt-engineering",
+      "courseId": "course-ai",
+      "title": "Prompt Engineering",
+      "slug": "prompt-engineering",
+      "description": "Master the art of crafting effective prompts for AI models.",
+      "order": 2,
+      "difficulty": "intermediate",
+      "status": "published",
+      "lessonCount": 2,
+      "estimatedMinutes": 90,
+      "tags": ["prompting", "AI", "intermediate"],
+      "lessons": [
+        "lesson-prompt-basics-001",
+        "lesson-prompt-advanced-001"
+      ]
+    },
+    {
+      "id": "subject-chatgpt",
+      "courseId": "course-ai",
+      "title": "ChatGPT",
+      "slug": "chatgpt",
+      "description": "Learn to use ChatGPT effectively for learning, work, and creativity.",
+      "order": 3,
+      "difficulty": "beginner",
+      "status": "published",
+      "lessonCount": 2,
+      "estimatedMinutes": 60,
+      "tags": ["chatgpt", "AI", "openai"],
+      "lessons": [
+        "lesson-chatgpt-basics-001",
+        "lesson-chatgpt-advanced-001"
+      ]
+    }
+  ]
+}
