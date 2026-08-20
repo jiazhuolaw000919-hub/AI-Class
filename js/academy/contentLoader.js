@@ -195,7 +195,7 @@
             }
 
             try {
-                const resp = await fetch(`content/courses/${courseId}/course.json`);
+                const resp = await fetch(`/content/courses/${courseId}/course.json`);
                 if (!resp.ok) throw new Error(`Course ${courseId} not found`);
                 const data = await resp.json();
                 
@@ -406,7 +406,7 @@
             // ═══ 3. 创建加载 Promise ═══
             const loadPromise = (async () => {
                 try {
-                    const resp = await fetch(`content/courses/${courseId}/subjects/${subjectId}/lessons/${lessonId}.json`);
+                    const resp = await fetch(`/content/courses/${courseId}/subjects/${subjectId}/lessons/${lessonId}.json`);
                     if (!resp.ok) throw new Error(`Lesson ${lessonId} not found`);
                     const data = await resp.json();
                     
@@ -459,7 +459,7 @@
             }
 
             try {
-                const resp = await fetch(`content/courses/${courseId}/subjects/${subjectId}/subject.json`);
+                const resp = await fetch(`/content/courses/${courseId}/subjects/${subjectId}/subject.json`);
                 if (!resp.ok) throw new Error(`Subject ${subjectId} not found`);
                 const data = await resp.json();
                 
