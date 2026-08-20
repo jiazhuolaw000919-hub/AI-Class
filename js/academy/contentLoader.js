@@ -169,7 +169,7 @@
          */
         async loadCourseIndex() {
             try {
-                const resp = await fetch('content/index.json');
+                const resp = await fetch('/content/index.json');
                 if (!resp.ok) throw new Error('Index not found');
                 return await resp.json();
             } catch (e) {
