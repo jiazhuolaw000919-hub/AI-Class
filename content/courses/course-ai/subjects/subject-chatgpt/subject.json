@@ -1,1 +1,15 @@
-
+{
+  "id": "subject-chatgpt",
+  "courseId": "course-ai",
+  "title": "ChatGPT",
+  "description": "Learn to use ChatGPT effectively for learning, work, and creativity.",
+  "version": "1.0.0",
+  "status": "published",
+  "lessons": [
+    "lesson-chatgpt-basics-001",
+    "lesson-chatgpt-advanced-001"
+  ],
+  "tags": ["ai", "chatgpt", "openai"],
+  "estimatedHours": 5,
+  "difficulty": "beginner"
+}
