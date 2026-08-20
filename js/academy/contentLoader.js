@@ -483,6 +483,73 @@
             }
             console.log('[S4ContentLoader] Cache cleared');
         }
+
+                /**
+         * ═══ Part 8: 获取缓存统计 ═══
+         */
+        getCacheStats: function() {
+            if (!LawAIApp.StorageEngine) {
+                return { available: false, message: 'StorageEngine not available' };
+            }
+            
+            var keys = LawAIApp.StorageEngine.getAllKeys?.() || [];
+            var s4Keys = keys.filter(function(k) { return k.startsWith('s4_'); });
+            
+            var stats = {
+                available: true,
+                totalKeys: keys.length,
+                s4Keys: s4Keys.length,
+                byType: {
+                    course: 0,
+                    subject: 0,
+                    lesson: 0,
+                    catalog: 0,
+                    index: 0,
+                    other: 0
+                }
+            };
+            
+            for (var i = 0; i < s4Keys.length; i++) {
+                var key = s4Keys[i];
+                if (key.startsWith('s4_course_')) stats.byType.course++;
+                else if (key.startsWith('s4_subject_')) stats.byType.subject++;
+                else if (key.startsWith('s4_lesson_')) stats.byType.lesson++;
+                else if (key.startsWith('s4_catalog_')) stats.byType.catalog++;
+                else if (key.includes('index')) stats.byType.index++;
+                else stats.byType.other++;
+            }
+            
+            return stats;
+        },
+
+        /**
+         * ═══ Part 8: 清除单个 Lesson 缓存 ═══
+         */
+        clearLessonCache: function(lessonId) {
+            if (!LawAIApp.StorageEngine) return false;
+            var key = 's4_lesson_' + lessonId;
+            var existed = LawAIApp.StorageEngine.get(key) !== null;
+            LawAIApp.StorageEngine.remove(key);
+            return existed;
+        },
+
+        /**
+         * ═══ Part 8: 清除 Course 相关缓存 ═══
+         */
+        clearCourseCache: function(courseId) {
+            if (!LawAIApp.StorageEngine) return false;
+            var count = 0;
+            var keys = LawAIApp.StorageEngine.getAllKeys?.() || [];
+            for (var i = 0; i < keys.length; i++) {
+                var key = keys[i];
+                if (key.startsWith('s4_course_' + courseId) || 
+                    key.startsWith('s4_subject_') && LawAIApp.StorageEngine.get(key)?.courseId === courseId) {
+                    LawAIApp.StorageEngine.remove(key);
+                    count++;
+                }
+            }
+            return count;
+        },
     };
 
     // ============================================================
