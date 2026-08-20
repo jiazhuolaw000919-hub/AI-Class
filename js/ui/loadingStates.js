@@ -342,58 +342,58 @@ LawAIApp.LoadingStates = {
             `;
         }
         return '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;">' + items + '</div>';
-    }
+    },
 
     /**
- * ═══ Season 4: Lesson Content 骨架 ═══
- */
-_skeletonLessonContent: function() {
-    return `
-        <div style="padding:24px;max-width:800px;margin:0 auto;">
-            <div style="
-                height:32px;
-                width:60%;
-                background:linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
-                background-size:200% 100%;
-                border-radius:8px;
-                animation:skeletonShimmer 1.5s ease-in-out infinite;
-                margin-bottom:16px;
-            "></div>
-            <div style="
-                height:80px;
-                background:linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
-                background-size:200% 100%;
-                border-radius:12px;
-                animation:skeletonShimmer 1.5s ease-in-out infinite 0.2s;
-                margin-bottom:16px;
-            "></div>
-            <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+     * ═══ Season 4: Lesson Content 骨架 ═══
+     */
+    _skeletonLessonContent: function() {
+        return `
+            <div style="padding:24px;max-width:800px;margin:0 auto;">
                 <div style="
-                    height:60px;
-                    background:linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+                    height:32px;
+                    width:60%;
+                    background:linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
                     background-size:200% 100%;
-                    border-radius:12px;
-                    animation:skeletonShimmer 1.5s ease-in-out infinite 0.4s;
+                    border-radius:8px;
+                    animation:skeletonShimmer 1.5s ease-in-out infinite;
+                    margin-bottom:16px;
                 "></div>
                 <div style="
-                    height:60px;
-                    background:linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+                    height:80px;
+                    background:linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
                     background-size:200% 100%;
                     border-radius:12px;
-                    animation:skeletonShimmer 1.5s ease-in-out infinite 0.6s;
+                    animation:skeletonShimmer 1.5s ease-in-out infinite 0.2s;
+                    margin-bottom:16px;
+                "></div>
+                <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+                    <div style="
+                        height:60px;
+                        background:linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+                        background-size:200% 100%;
+                        border-radius:12px;
+                        animation:skeletonShimmer 1.5s ease-in-out infinite 0.4s;
+                    "></div>
+                    <div style="
+                        height:60px;
+                        background:linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+                        background-size:200% 100%;
+                        border-radius:12px;
+                        animation:skeletonShimmer 1.5s ease-in-out infinite 0.6s;
+                    "></div>
+                </div>
+                <div style="
+                    height:40px;
+                    background:linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+                    background-size:200% 100%;
+                    border-radius:8px;
+                    animation:skeletonShimmer 1.5s ease-in-out infinite 0.8s;
+                    margin-top:16px;
                 "></div>
             </div>
-            <div style="
-                height:40px;
-                background:linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
-                background-size:200% 100%;
-                border-radius:8px;
-                animation:skeletonShimmer 1.5s ease-in-out infinite 0.8s;
-                margin-top:16px;
-            "></div>
-        </div>
-    `;
-},
+        `;
+    },
 
 /**
  * ═══ Season 4: Subject List 骨架 ═══
