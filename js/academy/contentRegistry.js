@@ -259,6 +259,178 @@
         }
     };
 
+            // ============================================================
+        // ═══ Part 6: Catalog/Index 同步方法 ═══
+        // ============================================================
+
+        /**
+         * ═══ Part 6: 从 Catalog 同步 Course 到 Registry ═══
+         */
+        syncCoursesFromCatalog: async function() {
+            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            if (!loader) {
+                console.warn('[S4ContentRegistry] ContentLoader not available');
+                return false;
+            }
+
+            try {
+                var catalog = await loader.loadCourseCatalog();
+                if (!catalog || !catalog.courses) {
+                    console.warn('[S4ContentRegistry] No courses in catalog');
+                    return false;
+                }
+
+                var count = 0;
+                for (var i = 0; i < catalog.courses.length; i++) {
+                    var course = catalog.courses[i];
+                    var entry = {
+                        contentId: 's4_course_' + course.id,
+                        type: 'course',
+                        courseId: course.id,
+                        school: course.schoolId,
+                        title: course.title,
+                        description: course.description,
+                        version: course.version || '1.0.0',
+                        status: course.status || 'published',
+                        subjectCount: course.subjectCount || 0,
+                        lessonCount: course.lessonCount || 0,
+                        metadata: {
+                            estimatedHours: course.estimatedHours,
+                            tags: course.tags,
+                            icon: course.icon
+                        }
+                    };
+                    this.register(entry);
+                    count++;
+                }
+
+                console.log('[S4ContentRegistry] ✅ Synced ' + count + ' courses from catalog');
+                return true;
+            } catch (e) {
+                console.error('[S4ContentRegistry] Sync failed:', e);
+                return false;
+            }
+        },
+
+        /**
+         * ═══ Part 6: 从 Subject Index 同步 Subject 到 Registry ═══
+         */
+        syncSubjectsFromIndex: async function() {
+            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            if (!loader) {
+                console.warn('[S4ContentRegistry] ContentLoader not available');
+                return false;
+            }
+
+            try {
+                var index = await loader.loadSubjectIndex();
+                if (!index || !index.subjects) {
+                    console.warn('[S4ContentRegistry] No subjects in index');
+                    return false;
+                }
+
+                var count = 0;
+                for (var i = 0; i < index.subjects.length; i++) {
+                    var subject = index.subjects[i];
+                    var entry = {
+                        contentId: 's4_subject_' + subject.id,
+                        type: 'subject',
+                        subjectId: subject.id,
+                        courseId: subject.courseId,
+                        title: subject.title,
+                        description: subject.description,
+                        version: subject.version || '1.0.0',
+                        status: subject.status || 'published',
+                        lessonCount: subject.lessonCount || 0,
+                        metadata: {
+                            order: subject.order,
+                            difficulty: subject.difficulty,
+                            tags: subject.tags,
+                            estimatedMinutes: subject.estimatedMinutes
+                        }
+                    };
+                    this.register(entry);
+                    count++;
+                }
+
+                console.log('[S4ContentRegistry] ✅ Synced ' + count + ' subjects from index');
+                return true;
+            } catch (e) {
+                console.error('[S4ContentRegistry] Sync failed:', e);
+                return false;
+            }
+        },
+
+        /**
+         * ═══ Part 6: 从 Lesson Index 同步 Lesson 到 Registry ═══
+         */
+        syncLessonsFromIndex: async function() {
+            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            if (!loader) {
+                console.warn('[S4ContentRegistry] ContentLoader not available');
+                return false;
+            }
+
+            try {
+                var index = await loader.loadLessonIndex();
+                if (!index || !index.lessons) {
+                    console.warn('[S4ContentRegistry] No lessons in index');
+                    return false;
+                }
+
+                var count = 0;
+                for (var i = 0; i < index.lessons.length; i++) {
+                    var lesson = index.lessons[i];
+                    var entry = {
+                        contentId: 's4_lesson_' + lesson.id,
+                        type: 'lesson',
+                        lessonId: lesson.id,
+                        subjectId: lesson.subjectId,
+                        title: lesson.title,
+                        difficulty: lesson.difficulty || 'mixed',
+                        estimatedDuration: lesson.estimatedMinutes || 15,
+                        version: lesson.version || '1.0.0',
+                        status: lesson.status || 'published',
+                        hasVideo: lesson.hasVideo || false,
+                        hasPractice: lesson.hasPractice || false,
+                        hasFlashcards: lesson.hasFlashcards || false,
+                        hasNotes: lesson.hasNotes || false,
+                        hasAITools: lesson.hasAITools || false,
+                        hasNews: lesson.hasNews || false,
+                        hasResources: lesson.hasResources || false,
+                        metadata: {
+                            order: lesson.order,
+                            tags: lesson.tags,
+                            contentRef: lesson.contentRef,
+                            courseId: lesson.courseId
+                        }
+                    };
+                    this.register(entry);
+                    count++;
+                }
+
+                console.log('[S4ContentRegistry] ✅ Synced ' + count + ' lessons from index');
+                return true;
+            } catch (e) {
+                console.error('[S4ContentRegistry] Sync failed:', e);
+                return false;
+            }
+        },
+
+        /**
+         * ═══ Part 6: 完整同步所有 Catalog/Index 到 Registry ═══
+         */
+        syncAllFromCatalog: async function() {
+            console.log('[S4ContentRegistry] 🔄 Syncing all from catalog/index...');
+            var results = {
+                courses: await this.syncCoursesFromCatalog(),
+                subjects: await this.syncSubjectsFromIndex(),
+                lessons: await this.syncLessonsFromIndex()
+            };
+            console.log('[S4ContentRegistry] ✅ Sync complete:', results);
+            return results;
+        }
+
     // ============================================================
     // 合并
     // ============================================================
