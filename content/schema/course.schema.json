@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://lawai.academy/schemas/course.schema.json",
+  "title": "Course Schema",
+  "description": "Law AI Academy Course Content Contract — Season 4",
+  "type": "object",
+  "required": ["id", "title", "schoolId", "version"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^course-[a-z0-9-]+$",
+      "description": "Unique course identifier. Must be stable."
+    },
+    "type": {
+      "type": "string",
+      "enum": ["course"],
+      "default": "course"
+    },
+    "schoolId": {
+      "type": "string",
+      "enum": ["business", "art", "science"],
+      "description": "School classification. Only 3 Schools exist."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable course title."
+    },
+    "slug": {
+      "type": "string",
+      "description": "URL-friendly version of title."
+    },
+    "description": {
+      "type": "string",
+      "description": "Short course description."
+    },
+    "subjects": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^subject-[a-z0-9-]+$" },
+      "description": "References to Subjects in this Course."
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": ["beginner", "intermediate", "advanced", "expert", "mixed", "adaptive"],
+      "default": "mixed",
+      "description": "Metadata only — NOT a lock/gate."
+    },
+    "estimatedHours": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total estimated learning hours."
+    },
+    "recommendedSessionMinutes": {
+      "type": "integer",
+      "minimum": 5,
+      "default": 30,
+      "description": "Recommended daily session length in minutes."
+    },
+    "adaptivePlanning": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether AI can adapt learning plan."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "published", "archived", "under_review"],
+      "default": "draft"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version for content tracking."
+    },
+    "icon": {
+      "type": "string",
+      "description": "Emoji or icon for the Course."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Search/discovery tags."
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Extensible metadata."
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  }
+}
