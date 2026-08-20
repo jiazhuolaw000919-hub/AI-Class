@@ -442,6 +442,73 @@
             return loadPromise;
         },
 
+                /**
+         * ═══ Part 11: 加载 Lesson 摘要（轻量级，不含完整内容） ═══
+         */
+        async loadLessonSummary(lessonId) {
+            var lessonIndex = await this.loadLessonIndex();
+            if (!lessonIndex || !lessonIndex.lessons) return null;
+            
+            var lesson = lessonIndex.lessons.find(function(l) {
+                return l.id === lessonId;
+            });
+            
+            if (!lesson) return null;
+            
+            // 只返回轻量级摘要
+            return {
+                id: lesson.id,
+                title: lesson.title,
+                subjectId: lesson.subjectId,
+                courseId: lesson.courseId,
+                order: lesson.order,
+                estimatedMinutes: lesson.estimatedMinutes,
+                difficulty: lesson.difficulty,
+                status: lesson.status,
+                hasVideo: lesson.hasVideo || false,
+                hasPractice: lesson.hasPractice || false,
+                hasFlashcards: lesson.hasFlashcards || false,
+                hasNotes: lesson.hasNotes || false,
+                hasAITools: lesson.hasAITools || false,
+                hasNews: lesson.hasNews || false,
+                hasResources: lesson.hasResources || false,
+                tags: lesson.tags || []
+            };
+        },
+
+        /**
+         * ═══ Part 11: 批量加载 Lesson 摘要 ═══
+         */
+        async loadLessonsSummary(lessonIds) {
+            if (!lessonIds || lessonIds.length === 0) return [];
+            
+            var results = [];
+            for (var i = 0; i < lessonIds.length; i++) {
+                var summary = await this.loadLessonSummary(lessonIds[i]);
+                if (summary) results.push(summary);
+            }
+            return results;
+        },
+
+        /**
+         * ═══ Part 11: 检查 Lesson 是否存在 ═══
+         */
+        async hasLesson(lessonId) {
+            var lessonIndex = await this.loadLessonIndex();
+            if (!lessonIndex || !lessonIndex.lessons) return false;
+            
+            return lessonIndex.lessons.some(function(l) {
+                return l.id === lessonId;
+            });
+        },
+
+        /**
+         * ═══ Part 11: 获取 Lesson 文件路径 ═══
+         */
+        getLessonPath: function(courseId, subjectId, lessonId) {
+            return `/content/courses/${courseId}/subjects/${subjectId}/lessons/${lessonId}.json`;
+        },
+
         /**
          * S4: 加载单个 Subject
          * 路径: content/courses/{courseId}/subjects/{subjectId}/subject.json
