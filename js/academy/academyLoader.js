@@ -71,6 +71,9 @@
         },
         subjectRegistry: function() {
           return !!(window.LawAIApp && window.LawAIApp.SubjectRegistry);
+        },
+        contentValidator: function() {
+          return !!(window.LawAIApp && window.LawAIApp.ContentValidator);
         }
       };
     }
@@ -228,6 +231,13 @@
       });
 
       console.log('[AcademyLoader] 📦 Module loading complete:', this.loadedModules.length + ' loaded, ' + this.failedModules.length + ' failed');
+
+      // ═══ S4: 检查 S4 模块是否加载成功 ═══
+      var s4Modules = ['contentLoader', 'contentRegistry', 'contentAdapter', 'subjectRegistry', 'contentValidator'];
+      var loadedS4 = s4Modules.filter(function(id) { return this.loadedModules.indexOf(id) !== -1; }.bind(this));
+      if (loadedS4.length > 0) {
+        console.log('[AcademyLoader] 🧩 S4 modules loaded:', loadedS4.join(', '));
+      }
     }
 
     // ============================================================
@@ -266,6 +276,11 @@
 
           const existsAfter = this._checkModuleExists(module.id);
           if (existsAfter) {
+            // ═══ S4: 记录加载的模块 ═══
+            if (module.id === 'contentLoader' || module.id === 'contentRegistry' || 
+                module.id === 'subjectRegistry' || module.id === 'contentValidator') {
+              console.log('[AcademyLoader] ✅ S4 module loaded:', module.id);
+            }
             resolve({ success: true });
           } else {
             console.warn('[AcademyLoader] ⚠️ Module loaded but not registered:', module.id);
@@ -322,10 +337,12 @@
           { id: 'curriculumSeed', path: '/js/academy/curriculumSeed.js' },
           { id: 'academyView', path: '/js/academy/academyView.js' },
           { id: 'academyExperienceManager', path: '/js/academy/academyExperienceManager.js' },
+          // ═══ S4 新增模块 ═══
           { id: 'contentLoader', path: '/js/academy/contentLoader.js' },
           { id: 'contentRegistry', path: '/js/academy/contentRegistry.js' },
           { id: 'contentAdapter', path: '/js/academy/contentAdapter.js' },
-          { id: 'subjectRegistry', path: '/js/academy/subjectRegistry.js' }
+          { id: 'subjectRegistry', path: '/js/academy/subjectRegistry.js' },
+          { id: 'contentValidator', path: '/js/academy/contentValidator.js' }
         ]
       };
     }
