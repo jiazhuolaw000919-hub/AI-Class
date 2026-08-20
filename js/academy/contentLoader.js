@@ -183,14 +183,19 @@
          * 路径: content/courses/{courseId}/subjects/{subjectId}/lessons/{lessonId}.json
          */
         _loadingRequests: {},
+        _loadingLessonId: null,
+        _loadingPromise: null,
 
+        /**
+         * S4: 加载单个 Lesson（带防重复请求 + 防竞态）
+         */
         async loadLesson(courseId, subjectId, lessonId) {
             const cacheKey = `s4_lesson_${lessonId}`;
-            
-            // ═══ 1. 检查是否正在加载（防重复请求） ═══
             const requestKey = `${courseId}|${subjectId}|${lessonId}`;
-            if (this._loadingRequests[requestKey]) {
-                console.log('[S4ContentLoader] Already loading:', lessonId);
+            
+            // ═══ 1. 防竞态：如果正在加载，返回同一个 Promise ═══
+            if (this._loadingRequests && this._loadingRequests[requestKey]) {
+                console.log('[ContentLoader] Already loading:', lessonId);
                 return this._loadingRequests[requestKey];
             }
 
@@ -204,7 +209,7 @@
                 }
             }
 
-            // ═══ 3. 创建加载 Promise（防竞态） ═══
+            // ═══ 3. 创建加载 Promise ═══
             const loadPromise = (async () => {
                 try {
                     const resp = await fetch(`content/courses/${courseId}/subjects/${subjectId}/lessons/${lessonId}.json`);
@@ -214,14 +219,18 @@
                     LawAIApp.StorageEngine?.set(cacheKey, data);
                     return data;
                 } catch (e) {
-                    console.warn('[S4ContentLoader] Failed to load lesson:', lessonId, e);
+                    console.warn('[ContentLoader] Failed to load lesson:', lessonId, e);
                     return null;
                 } finally {
                     // ═══ 加载完成后清除请求标记 ═══
-                    delete this._loadingRequests[requestKey];
+                    if (this._loadingRequests) {
+                        delete this._loadingRequests[requestKey];
+                    }
                 }
             })();
 
+            // ═══ 4. 存储 Promise 到请求队列 ═══
+            if (!this._loadingRequests) this._loadingRequests = {};
             this._loadingRequests[requestKey] = loadPromise;
             return loadPromise;
         },
