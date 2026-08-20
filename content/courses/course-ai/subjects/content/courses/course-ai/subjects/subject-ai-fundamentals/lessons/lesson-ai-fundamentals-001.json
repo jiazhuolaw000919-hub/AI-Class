@@ -1,0 +1,87 @@
+{
+  "id": "lesson-ai-fundamentals-001",
+  "subjectId": "subject-ai-fundamentals",
+  "title": "What is Artificial Intelligence?",
+  "summary": "This lesson introduces the fundamental concept of Artificial Intelligence—what it is, what it isn't, and where it's used today.",
+  "version": "1.0.0",
+  "status": "published",
+  "estimatedMinutes": 15,
+  "sections": {
+    "foundation": [
+      "AI is the simulation of human intelligence in machines.",
+      "It encompasses everything from rule-based systems to self-learning neural networks."
+    ],
+    "intermediate": [
+      "Machine Learning is a subset of AI where systems learn from data.",
+      "Deep Learning is a subset of ML using neural networks with many layers."
+    ],
+    "advanced": [
+      "Modern AI is powered by transformer architectures.",
+      "The key insight is that intelligence emerges from scale and pattern recognition."
+    ]
+  },
+  "video": {
+    "provider": "youtube",
+    "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao",
+    "title": "What is AI?",
+    "duration": 480
+  },
+  "flashcards": [
+    {
+      "id": "fc-001",
+      "front": "What is Artificial Intelligence?",
+      "back": "AI is the simulation of human intelligence in machines.",
+      "tags": ["definition"]
+    },
+    {
+      "id": "fc-002",
+      "front": "What is the relationship between AI, ML, and DL?",
+      "back": "ML is a subset of AI. DL is a subset of ML.",
+      "tags": ["hierarchy"]
+    }
+  ],
+  "practice": [
+    {
+      "id": "practice-001",
+      "type": "shortAnswer",
+      "question": "Explain the difference between AI, Machine Learning, and Deep Learning.",
+      "difficulty": "beginner",
+      "answer": "AI is the broad field. ML is a subset where machines learn from data. DL is a subset of ML using multi-layer neural networks.",
+      "explanation": "Think of AI as the universe, ML as a galaxy, and DL as a solar system."
+    }
+  ],
+  "quiz": [
+    {
+      "id": "quiz-001",
+      "question": "Which of the following is a subset of Machine Learning?",
+      "options": ["Artificial Intelligence", "Deep Learning", "Robotics"],
+      "correctAnswer": 1,
+      "explanation": "Deep Learning is a subset of Machine Learning."
+    }
+  ],
+  "notes": [
+    {
+      "id": "note-001",
+      "type": "keyPoint",
+      "content": "AI = simulation of human intelligence in machines"
+    },
+    {
+      "id": "note-002",
+      "type": "definition",
+      "content": "ML: Systems that learn from data without explicit programming."
+    }
+  ],
+  "keyTakeaways": [
+    "AI simulates human intelligence in machines.",
+    "ML learns from data; DL is ML with deep neural networks.",
+    "AI powers real-world applications like chatbots and recommendation systems."
+  ],
+  "aiTools": ["chatgpt", "claude"],
+  "references": [
+    {
+      "title": "Introduction to AI",
+      "url": "https://example.com/ai-intro",
+      "type": "article"
+    }
+  ]
+}
