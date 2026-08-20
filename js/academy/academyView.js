@@ -1562,6 +1562,13 @@
                 }
             }
 
+            // ═══ Part 8: 先检查缓存（加速返回） ═══
+            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            if (loader && typeof loader.isLessonLoaded === 'function' && loader.isLessonLoaded(lessonId)) {
+                // 缓存存在，直接加载（会从缓存返回）
+                // 但继续执行，因为 loadLesson 会使用缓存
+            }
+
             // ═══ 尝试从 S4 ContentLoader 加载内容 ═══
             var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
 
