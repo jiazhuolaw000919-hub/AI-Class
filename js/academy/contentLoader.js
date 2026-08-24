@@ -629,6 +629,54 @@
         },
 
         /**
+         * ═══ Part 31: 获取 Lesson 所有资产 ═══
+         * 返回 Lesson 的完整资产清单（视频、闪卡、练习等）
+         */
+        async getLessonAssets(lessonId) {
+            var lessonContent = await this.loadLessonSummary(lessonId);
+            if (!lessonContent) {
+                return {
+                    lessonId: lessonId,
+                    hasVideo: false,
+                    hasPractice: false,
+                    hasFlashcards: false,
+                    hasNotes: false,
+                    hasQuiz: false,
+                    hasAITools: false,
+                    hasResources: false,
+                    assets: {}
+                };
+            }
+
+            // 获取完整 Lesson 内容（如果已缓存）
+            var cacheKey = 's4_lesson_' + lessonId;
+            var fullLesson = LawAIApp.StorageEngine?.get(cacheKey);
+            var assets = {};
+
+            if (fullLesson) {
+                assets.video = fullLesson.video || null;
+                assets.practice = fullLesson.practice || null;
+                assets.flashcards = fullLesson.flashcards || [];
+                assets.notes = fullLesson.notes || null;
+                assets.quiz = fullLesson.quiz || [];
+                assets.aiTools = fullLesson.aiTools || [];
+                assets.resources = fullLesson.resources || [];
+            }
+
+            return {
+                lessonId: lessonId,
+                hasVideo: !!(fullLesson?.video?.url || lessonContent.hasVideo),
+                hasPractice: !!(fullLesson?.practice?.enabled || lessonContent.hasPractice),
+                hasFlashcards: !!(fullLesson?.flashcards?.length || lessonContent.hasFlashcards),
+                hasNotes: !!(fullLesson?.notes?.keyPoints?.length || lessonContent.hasNotes),
+                hasQuiz: !!(fullLesson?.quiz?.length || 0) > 0,
+                hasAITools: !!(fullLesson?.aiTools?.length || lessonContent.hasAITools),
+                hasResources: !!(fullLesson?.resources?.length || lessonContent.hasResources),
+                assets: assets
+            };
+        },
+
+        /**
          * ═══ Part 23: 获取 Subject 清单（轻量级，含 Lesson 引用） ═══
          */
         async getSubjectManifest(subjectId) {
