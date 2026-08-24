@@ -607,6 +607,52 @@
             return courses;
         },
 
+        // ════════════════════════════════════════════════════════════
+        // ═══ Part 13: 支持 School 加载（加在这里） ═══
+        // ════════════════════════════════════════════════════════════
+
+        /**
+         * ═══ Part 13: 加载 School ═══
+         * 路径: content/schools/{schoolId}/school.json
+         */
+        async loadSchool(schoolId) {
+            const cacheKey = `s4_school_${schoolId}`;
+            
+            const cached = LawAIApp.StorageEngine?.get(cacheKey);
+            if (cached) {
+                const now = Date.now();
+                const age = now - (cached._cachedAt || 0);
+                if (age < 300000) {
+                    return cached;
+                }
+            }
+
+            try {
+                const resp = await fetch(`/content/schools/${schoolId}/school.json`);
+                if (!resp.ok) throw new Error(`School ${schoolId} not found`);
+                const data = await resp.json();
+                data._cachedAt = Date.now();
+                LawAIApp.StorageEngine?.set(cacheKey, data);
+                return data;
+            } catch (e) {
+                console.warn('[ContentLoader] Failed to load school:', schoolId, e);
+                return null;
+            }
+        },
+
+        /**
+         * ═══ Part 13: 加载所有 Schools ═══
+         */
+        async loadAllSchools() {
+            var schoolIds = ['school-science', 'school-business', 'school-art'];
+            var schools = [];
+            for (var i = 0; i < schoolIds.length; i++) {
+                var school = await this.loadSchool(schoolIds[i]);
+                if (school) schools.push(school);
+            }
+            return schools;
+        },
+
         /**
          * Fallback Index（当 content/index.json 不存在时）
          */
