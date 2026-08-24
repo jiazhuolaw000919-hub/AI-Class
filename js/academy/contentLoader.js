@@ -628,7 +628,7 @@
             };
         },
 
-                /**
+        /**
          * ═══ Part 23: 获取 Subject 清单（轻量级，含 Lesson 引用） ═══
          */
         async getSubjectManifest(subjectId) {
@@ -654,7 +654,7 @@
             };
         },
 
-                /**
+        /**
          * ═══ Part 23: 获取 Course 清单（轻量级，含 Subject 引用） ═══
          */
         async getCourseManifest(courseId) {
@@ -672,6 +672,63 @@
                 status: course.status,
                 tags: course.tags || []
             };
+        },
+
+        /**
+         * ═══ Part 24: 验证内容引用完整性 ═══
+         * 检查 Course → Subject → Lesson 引用是否有效
+         */
+        async validateContentReference(contentType, id) {
+            var result = {
+                valid: true,
+                errors: [],
+                warnings: []
+            };
+
+            if (contentType === 'lesson') {
+                var lesson = await this.loadLessonSummary(id);
+                if (!lesson) {
+                    result.valid = false;
+                    result.errors.push('Lesson not found: ' + id);
+                    return result;
+                }
+                // 检查 Subject 是否存在
+                var subject = await this.loadSubjectManifest(lesson.subjectId);
+                if (!subject) {
+                    result.valid = false;
+                    result.errors.push('Subject not found for lesson: ' + lesson.subjectId);
+                }
+                // 检查 Course 是否存在
+                var course = await this.loadCourseManifest(lesson.courseId);
+                if (!course) {
+                    result.valid = false;
+                    result.errors.push('Course not found for lesson: ' + lesson.courseId);
+                }
+            }
+
+            if (contentType === 'subject') {
+                var subject = await this.getSubjectManifest(id);
+                if (!subject) {
+                    result.valid = false;
+                    result.errors.push('Subject not found: ' + id);
+                    return result;
+                }
+                var course = await this.loadCourseManifest(subject.courseId);
+                if (!course) {
+                    result.valid = false;
+                    result.errors.push('Course not found for subject: ' + subject.courseId);
+                }
+            }
+
+            if (contentType === 'course') {
+                var course = await this.loadCourseManifest(id);
+                if (!course) {
+                    result.valid = false;
+                    result.errors.push('Course not found: ' + id);
+                }
+            }
+
+            return result;
         },
 
         /**
