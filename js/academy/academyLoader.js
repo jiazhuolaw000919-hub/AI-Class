@@ -75,6 +75,16 @@
         contentValidator: function() {
           return !!(window.LawAIApp && window.LawAIApp.ContentValidator);
         }
+        
+        practiceEngine: function() {
+            return !!(window.LawAIApp && window.LawAIApp.PracticeEngine);
+        },
+        practiceModule: function() {
+            return !!(window.LawAIApp && window.LawAIApp.PracticeModule);
+        },
+        practiceProgress: function() {
+            return !!(window.LawAIApp && window.LawAIApp.PracticeProgress);
+        }
       };
     }
 
@@ -342,7 +352,10 @@
           { id: 'contentRegistry', path: '/js/academy/contentRegistry.js' },
           { id: 'contentAdapter', path: '/js/academy/contentAdapter.js' },
           { id: 'subjectRegistry', path: '/js/academy/subjectRegistry.js' },
-          { id: 'contentValidator', path: '/js/academy/contentValidator.js' }
+          { id: 'contentValidator', path: '/js/academy/contentValidator.js' },
+          { id: 'practiceEngine', path: '/js/academy/practiceEngine.js' },
+          { id: 'practiceModule', path: '/js/academy/practice.js' },
+          { id: 'practiceProgress', path: '/js/academy/practiceProgress.js' }
         ]
       };
     }
