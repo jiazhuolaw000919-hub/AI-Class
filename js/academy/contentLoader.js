@@ -776,6 +776,63 @@
         },
 
         /**
+         * ═══ Part 27: 获取 Lesson Pipeline 状态 ═══
+         * 返回 Lesson 在 Pipeline 各阶段的状态
+         */
+        getLessonPipelineStatus: function(lessonId) {
+            var status = {
+                lessonId: lessonId,
+                exists: false,
+                loaded: false,
+                validated: false,
+                cached: false,
+                hasError: false,
+                error: null
+            };
+
+            // 检查是否存在
+            var hasLesson = this._loadingStatus[lessonId] || null;
+            if (hasLesson) {
+                status.exists = true;
+            } else {
+                // 尝试从缓存检查
+                var cacheKey = 's4_lesson_' + lessonId;
+                var cached = LawAIApp.StorageEngine?.get(cacheKey);
+                if (cached) {
+                    status.exists = true;
+                    status.cached = true;
+                    status.loaded = true;
+                    if (cached._validation) {
+                        status.validated = cached._validation.valid !== false;
+                    }
+                }
+                return status;
+            }
+
+            // 检查加载状态
+            var loadStatus = this.getLessonLoadStatus(lessonId);
+            if (loadStatus.status === 'loaded' || loadStatus.status === 'loading') {
+                status.loaded = true;
+            }
+            if (loadStatus.status === 'error') {
+                status.hasError = true;
+                status.error = loadStatus.error;
+            }
+
+            // 检查缓存
+            var cacheKey2 = 's4_lesson_' + lessonId;
+            var cached2 = LawAIApp.StorageEngine?.get(cacheKey2);
+            if (cached2) {
+                status.cached = true;
+                if (cached2._validation) {
+                    status.validated = cached2._validation.valid !== false;
+                }
+            }
+
+            return status;
+        },
+
+        /**
          * S4: 加载单个 Subject
          * 路径: content/courses/{courseId}/subjects/{subjectId}/subject.json
          */
