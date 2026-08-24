@@ -134,10 +134,10 @@
             return subjects;
         }
         
-        /**
+                /**
          * ═══ Part 17: 检查 Subject 是否存在 ═══
          */
-        hasSubject: function(subjectId) {
+        hasSubject(subjectId) {
             if (!subjectId) return false;
             return this._subjects.has(subjectId);
         },
@@ -147,19 +147,19 @@
          */
         getActiveSubjects() {
             return this.getAllSubjects().filter(s => s.status === 'published');
-        }
+        },
 
         /**
          * 按状态筛选
          */
         getSubjectsByStatus(status) {
             return this.getAllSubjects().filter(s => s.status === status);
-        }
+        },
 
         /**
          * ═══ Part 19: 获取 Subject 摘要（轻量级） ═══
          */
-        getSubjectSummary: function(subjectId) {
+        getSubjectSummary(subjectId) {
             var subject = this.getSubject(subjectId);
             if (!subject) return null;
             
