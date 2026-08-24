@@ -262,14 +262,14 @@
             return course.id;
         }
 
-        getCourse(id) {
+                getCourse(id) {
             return this._courses.get(id) || null;
         }
 
         /**
          * ═══ Part 19: 获取 Course 摘要（轻量级） ═══
          */
-        getCourseSummary: function(courseId) {
+        getCourseSummary(courseId) {
             var course = this.getCourse(courseId);
             if (!course) return null;
             
@@ -286,12 +286,12 @@
 
         getAllCourses() {
             return Array.from(this._courses.values());
-        }
+        },
 
         hasCourse(courseId) {
             if (!courseId) return false;
             return this._courses.has(courseId);
-        }
+        },
 
         getCoursesByProgram(programId) {
             return this.getAllCourses().filter((c) => c.programId === programId);
