@@ -419,7 +419,7 @@
         /**
          * ═══ Part 6: 完整同步所有 Catalog/Index 到 Registry ═══
          */
-        async syncAllFromCatalog() {
+                async syncAllFromCatalog() {
             console.log('[S4ContentRegistry] 🔄 Syncing all from catalog/index...');
             var results = {
                 courses: await this.syncCoursesFromCatalog(),
@@ -428,6 +428,7 @@
             };
             console.log('[S4ContentRegistry] ✅ Sync complete:', results);
             return results;
+        },   // ← 这里要加逗号！
 
         /**
          * ═══ Part 20: 统一注册所有内容 ═══
@@ -439,12 +440,10 @@
                 lessons: []
             };
 
-            // 注册 Course
             if (course) {
                 results.course = this.registerCourse(course);
             }
 
-            // 注册 Subjects
             if (subjects && Array.isArray(subjects)) {
                 for (var i = 0; i < subjects.length; i++) {
                     var result = this.registerSubject(subjects[i]);
@@ -452,7 +451,6 @@
                 }
             }
 
-            // 注册 Lessons
             if (lessons && Array.isArray(lessons)) {
                 for (var j = 0; j < lessons.length; j++) {
                     var result = this.registerLesson(lessons[j]);
@@ -461,9 +459,8 @@
             }
 
             return results;
-        },
         }
-    };  // ⬅️ 这里闭合 S4ContentRegistry
+    };  // ← S4ContentRegistry 结束
 
     // ============================================================
     // 合并
