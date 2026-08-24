@@ -723,10 +723,10 @@
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         <p>School not found</p>
-                        <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
-                                style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
+                        <<button onclick="window.LawAIApp && LawAIApp.AcademyExperienceManager && LawAIApp.AcademyExperienceManager.goHome && LawAIApp.AcademyExperienceManager.goHome()" 
+                            style="...">
                             ← Back to Academy
-                        </button>
+                    </button>
                     </div>
                 `;
                 return;
@@ -1902,6 +1902,28 @@
                 ...continueData,
                 hasActiveSession: hasActiveSession
             };
+        },
+
+        /**
+         * 🔥 Part 59.4: 回到 Dashboard
+         */
+        goHome: function() {
+            console.log('[AcademyExperienceManager] 🏠 Going home...');
+
+            this._state.currentSchoolId = null;
+            this._state.currentProgramId = null;
+            this._state.currentCourseId = null;
+            this._state.currentModuleId = null;
+            this._state.currentSubjectId = null;
+            this._state.currentLessonId = null;
+            this._state.viewMode = 'dashboard';
+
+            this.render();
+            this._emit('ACADEMY_VIEW_CHANGED', {
+                viewMode: 'dashboard'
+            });
+
+            return this;
         },
 
         // ============================================================
