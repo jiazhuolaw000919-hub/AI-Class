@@ -135,6 +135,14 @@
         }
 
         /**
+         * ═══ Part 17: 检查 Subject 是否存在 ═══
+         */
+        hasSubject: function(subjectId) {
+            if (!subjectId) return false;
+            return this._subjects.has(subjectId);
+        },
+
+        /**
          * 获取活跃 Subjects
          */
         getActiveSubjects() {
