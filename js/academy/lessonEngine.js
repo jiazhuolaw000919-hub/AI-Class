@@ -94,6 +94,96 @@ LawAIApp.LessonEngine = {
         const difficulty = difficulties[Math.min(Math.floor(validDay / 122), 2)] || 'Beginner';
         const baseXP = 20 + Math.floor(validDay / 5);
 
+            // ============================================================
+    // ═══ S4 兼容方法 (Part 33) ═══
+    // ============================================================
+
+    /**
+     * 通过 S4 Lesson ID 获取 Lesson
+     * @param {string} lessonId - S4 Lesson ID (如 lesson-ai-fundamentals-001)
+     * @returns {Promise<Object|null>} Lesson 对象
+     */
+    getS4Lesson: async function(lessonId) {
+        var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+        if (!loader) {
+            console.warn('[LessonEngine] ContentLoader not available');
+            return null;
+        }
+
+        try {
+            var lesson = await loader.getLessonManifest(lessonId);
+            if (lesson) {
+                return {
+                    lessonId: lesson.id,
+                    title: lesson.title,
+                    subjectId: lesson.subjectId,
+                    courseId: lesson.courseId,
+                    difficulty: lesson.difficulty,
+                    estimatedMinutes: lesson.estimatedMinutes,
+                    hasVideo: lesson.hasVideo || false,
+                    hasPractice: lesson.hasPractice || false,
+                    hasFlashcards: lesson.hasFlashcards || false,
+                    hasNotes: lesson.hasNotes || false,
+                    hasAITools: lesson.hasAITools || false,
+                    // 保留兼容字段
+                    day: parseInt(lesson.id.split('-').pop()) || 0,
+                    category: lesson.tags ? lesson.tags[0] || 'General' : 'General'
+                };
+            }
+            return null;
+        } catch (e) {
+            console.warn('[LessonEngine] Failed to get S4 lesson:', lessonId, e);
+            return null;
+        }
+    },
+
+    /**
+     * 检查 Lesson 是否存在（S4 兼容）
+     * @param {string} lessonId - Lesson ID
+     * @returns {Promise<boolean>}
+     */
+    hasS4Lesson: async function(lessonId) {
+        var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+        if (!loader) return false;
+        try {
+            return await loader.hasLesson(lessonId);
+        } catch (e) {
+            return false;
+        }
+    },
+
+    /**
+     * 获取 Lesson 的 Practice 问题（S4 兼容）
+     * @param {string} lessonId - Lesson ID
+     * @returns {Promise<Array>}
+     */
+    getS4Practice: async function(lessonId) {
+        var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+        if (!loader) return [];
+        try {
+            var practiceData = await loader.getPracticeQuestions(lessonId);
+            return practiceData.questions || [];
+        } catch (e) {
+            return [];
+        }
+    },
+
+    /**
+     * 获取 Lesson 的 Flashcards（S4 兼容）
+     * @param {string} lessonId - Lesson ID
+     * @returns {Promise<Array>}
+     */
+    getS4Flashcards: async function(lessonId) {
+        var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+        if (!loader) return [];
+        try {
+            var assets = await loader.getLessonAssets(lessonId);
+            return assets.assets?.flashcards || [];
+        } catch (e) {
+            return [];
+        }
+    }
+
         return {
             lessonId: `day-${validDay}`,
             day: validDay,
