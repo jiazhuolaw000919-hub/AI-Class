@@ -140,21 +140,21 @@
         hasSubject(subjectId) {
             if (!subjectId) return false;
             return this._subjects.has(subjectId);
-        },
+        }
 
         /**
          * 获取活跃 Subjects
          */
         getActiveSubjects() {
             return this.getAllSubjects().filter(s => s.status === 'published');
-        },
+        }
 
         /**
          * 按状态筛选
          */
         getSubjectsByStatus(status) {
             return this.getAllSubjects().filter(s => s.status === status);
-        },
+        }
 
         /**
          * ═══ Part 19: 获取 Subject 摘要（轻量级） ═══
@@ -172,7 +172,7 @@
                 lessonCount: subject.lessons ? subject.lessons.length : 0,
                 status: subject.status
             };
-        },
+        }
 
         /**
          * 从 S4 ContentLoader 同步 Subjects
