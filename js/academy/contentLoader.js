@@ -324,7 +324,18 @@
             return results;
         },
 
-                /**
+        /**
+         * ═══ Part 17: 获取 Course 的所有 Lessons ═══
+         */
+        getLessonsByCourse: async function(courseId) {
+            var lessonIndex = await this.loadLessonIndex();
+            if (!lessonIndex || !lessonIndex.lessons) return [];
+            return lessonIndex.lessons.filter(function(l) {
+                return l.courseId === courseId;
+            });
+        },
+
+        /**
          * ═══ Part 7: 预加载 Course 的轻量级数据 ═══
          */
         async preloadCourse(courseId) {
