@@ -282,16 +282,16 @@
                 subjectCount: course.subjects ? course.subjects.length : 0,
                 status: course.status
             };
-        },
+        }
 
         getAllCourses() {
             return Array.from(this._courses.values());
-        },
+        }
 
         hasCourse(courseId) {
             if (!courseId) return false;
             return this._courses.has(courseId);
-        },
+        }
 
         getCoursesByProgram(programId) {
             return this.getAllCourses().filter((c) => c.programId === programId);
