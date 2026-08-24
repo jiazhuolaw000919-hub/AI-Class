@@ -508,7 +508,6 @@
                     console.warn('[ContentLoader] Failed to load lesson:', lessonId, e);
                     this.recordContentError(lessonId, e.message || 'Unknown error');
                     return null;
-                }
                 } finally {
                     if (this._loadingRequests) {
                         delete this._loadingRequests[requestKey];
