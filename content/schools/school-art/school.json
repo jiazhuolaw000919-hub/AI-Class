@@ -1,0 +1,13 @@
+{
+  "id": "school-art",
+  "name": "Art",
+  "displayName": "Art",
+  "description": "Design, UI/UX, Photography, Video, Creative Writing, and Digital Art.",
+  "icon": "🎨",
+  "color": "#8b5cf6",
+  "courseIds": [],
+  "status": "active",
+  "version": "1.0.0",
+  "createdAt": "2026-08-24T00:00:00Z",
+  "updatedAt": "2026-08-24T00:00:00Z"
+}
