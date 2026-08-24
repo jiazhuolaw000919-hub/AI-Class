@@ -732,6 +732,50 @@
         },
 
         /**
+         * ═══ Part 25: 获取内容状态（轻量级） ═══
+         * 返回内容的存在状态，不加载完整内容
+         */
+        async getContentStatus(contentType, contentId) {
+            var result = {
+                exists: false,
+                status: 'unknown',
+                version: null,
+                contentType: contentType,
+                contentId: contentId
+            };
+
+            try {
+                if (contentType === 'course') {
+                    var course = await this.loadCourse(contentId);
+                    if (course) {
+                        result.exists = true;
+                        result.status = course.status || 'published';
+                        result.version = course.version || '1.0.0';
+                    }
+                } else if (contentType === 'subject') {
+                    var subject = await this.getSubjectManifest(contentId);
+                    if (subject) {
+                        result.exists = true;
+                        result.status = subject.status || 'published';
+                        result.version = subject.version || '1.0.0';
+                    }
+                } else if (contentType === 'lesson') {
+                    var lesson = await this.getLessonManifest(contentId);
+                    if (lesson) {
+                        result.exists = true;
+                        result.status = lesson.status || 'published';
+                        result.version = lesson.version || '1.0.0';
+                    }
+                }
+            } catch (e) {
+                console.warn('[ContentLoader] getContentStatus error:', e);
+                result.status = 'error';
+            }
+
+            return result;
+        },
+
+        /**
          * S4: 加载单个 Subject
          * 路径: content/courses/{courseId}/subjects/{subjectId}/subject.json
          */
