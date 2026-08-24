@@ -19,7 +19,7 @@
     "schoolId": {
       "type": "string",
       "enum": ["business", "art", "science"],
-      "description": "School classification. Only 3 Schools exist."
+      "description": "School reference. Must start with 'school-"
     },
     "title": {
       "type": "string",
