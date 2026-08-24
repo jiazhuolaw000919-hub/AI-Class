@@ -382,6 +382,123 @@ LawAIApp.ContentValidator = {
         return results;
     },
 
+        /**
+         * ═══ Part 22: 验证生成请求 ═══
+         */
+        validateGenerationRequest: function(request) {
+            var errors = [];
+            var warnings = [];
+
+            if (!request.topic) {
+                errors.push({ field: 'topic', message: 'Topic is required' });
+            }
+
+            if (request.level && !['beginner', 'intermediate', 'advanced', 'adaptive'].includes(request.level)) {
+                warnings.push({ field: 'level', message: 'Invalid level value: ' + request.level });
+            }
+
+            if (request.style && !['practical', 'theoretical', 'mixed'].includes(request.style)) {
+                warnings.push({ field: 'style', message: 'Invalid style value: ' + request.style });
+            }
+
+            return {
+                valid: errors.length === 0,
+                errors: errors,
+                warnings: warnings
+            };
+        },
+
+        /**
+         * ═══ Part 22: 验证课程蓝图 ═══
+         */
+        validateCourseBlueprint: function(blueprint) {
+            var errors = [];
+            var warnings = [];
+
+            if (!blueprint.id) {
+                errors.push({ field: 'id', message: 'Course ID is required' });
+            } else if (!blueprint.id.startsWith('course-')) {
+                warnings.push({ field: 'id', message: 'Course ID should start with "course-"' });
+            }
+
+            if (!blueprint.title) {
+                errors.push({ field: 'title', message: 'Course title is required' });
+            }
+
+            if (!blueprint.schoolId) {
+                errors.push({ field: 'schoolId', message: 'School ID is required' });
+            } else if (!['school-business', 'school-art', 'school-science'].includes(blueprint.schoolId)) {
+                warnings.push({ field: 'schoolId', message: 'School ID should be school-business, school-art, or school-science' });
+            }
+
+            if (!blueprint.version) {
+                errors.push({ field: 'version', message: 'Version is required' });
+            }
+
+            if (blueprint.subjects && !Array.isArray(blueprint.subjects)) {
+                errors.push({ field: 'subjects', message: 'subjects must be an array' });
+            }
+
+            return {
+                valid: errors.length === 0,
+                errors: errors,
+                warnings: warnings,
+                blueprintId: blueprint.id || 'unknown'
+            };
+        },
+
+        /**
+         * ═══ Part 22: 验证完整生成蓝图 ═══
+         */
+        validateGenerationBlueprint: function(blueprint) {
+            var results = {
+                request: this.validateGenerationRequest(blueprint.request || {}),
+                course: this.validateCourseBlueprint(blueprint.course || {}),
+                subjects: [],
+                valid: true,
+                errors: [],
+                warnings: []
+            };
+
+            // 验证 Course
+            if (!results.course.valid) {
+                results.valid = false;
+                results.errors.push({ level: 'course', errors: results.course.errors });
+            }
+
+            // 验证 Subjects
+            if (blueprint.subjects && Array.isArray(blueprint.subjects)) {
+                for (var i = 0; i < blueprint.subjects.length; i++) {
+                    var subject = blueprint.subjects[i];
+                    var subjectResult = this.validateSubject(subject);
+                    results.subjects.push(subjectResult);
+                    if (!subjectResult.valid) {
+                        results.valid = false;
+                        results.errors.push({ level: 'subject', id: subject.id, errors: subjectResult.errors });
+                    }
+                }
+            }
+
+            // 验证 Lessons（如果有）
+            if (blueprint.subjects) {
+                for (var j = 0; j < blueprint.subjects.length; j++) {
+                    var subj = blueprint.subjects[j];
+                    if (subj.lessons && Array.isArray(subj.lessons)) {
+                        for (var k = 0; k < subj.lessons.length; k++) {
+                            var lesson = subj.lessons[k];
+                            var lessonResult = this.validateLesson(lesson);
+                            if (!lessonResult.valid) {
+                                results.valid = false;
+                                results.errors.push({ level: 'lesson', id: lesson.id, errors: lessonResult.errors });
+                            }
+                        }
+                    }
+                }
+            }
+
+            return results;
+        },
+
     // ============================================================
     // ═══ 批量验证 ═══
     // ============================================================
