@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "schools": {
+    "school-science": {
+      "id": "school-science",
+      "title": "Science",
+      "description": "AI, Programming, Data Science, Technology",
+      "courses": ["course-ai"]
+    },
+    "school-business": {
+      "id": "school-business",
+      "title": "Business",
+      "description": "Business, Marketing, Finance",
+      "courses": []
+    },
+    "school-art": {
+      "id": "school-art",
+      "title": "Art",
+      "description": "Design, Creative, Media",
+      "courses": []
+    }
+  }
+}
