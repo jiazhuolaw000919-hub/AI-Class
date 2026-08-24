@@ -1,0 +1,13 @@
+{
+  "id": "school-science",
+  "name": "Science",
+  "displayName": "Science",
+  "description": "AI, Programming, Data Science, Mathematics, Technology, and Engineering.",
+  "icon": "🔬",
+  "color": "#3b82f6",
+  "courseIds": ["course-ai"],
+  "status": "active",
+  "version": "1.0.0",
+  "createdAt": "2026-08-24T00:00:00Z",
+  "updatedAt": "2026-08-24T00:00:00Z"
+}
