@@ -1,7 +1,7 @@
 {
   "id": "course-ai",
   "type": "course",
-  "schoolId": "science",
+  "schoolId": "school-science",
   "title": "Artificial Intelligence Course",
   "slug": "ai",
   "description": "Complete AI education from fundamentals to advanced multi-model workflows.",
@@ -23,5 +23,5 @@
     "difficulty": "mixed"
   },
   "createdAt": "2026-08-20T00:00:00Z",
-  "updatedAt": "2026-08-20T00:00:00Z"
+  "updatedAt": "2026-08-24T00:00:00Z"
 }
