@@ -266,6 +266,24 @@
             return this._courses.get(id) || null;
         }
 
+        /**
+         * ═══ Part 19: 获取 Course 摘要（轻量级） ═══
+         */
+        getCourseSummary: function(courseId) {
+            var course = this.getCourse(courseId);
+            if (!course) return null;
+            
+            return {
+                id: course.id,
+                title: course.title,
+                schoolId: course.schoolId || course._metadata?.school,
+                description: course.description,
+                difficulty: course.difficulty,
+                subjectCount: course.subjects ? course.subjects.length : 0,
+                status: course.status
+            };
+        },
+
         getAllCourses() {
             return Array.from(this._courses.values());
         }
