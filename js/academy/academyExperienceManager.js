@@ -1175,6 +1175,102 @@
             return this;
         },
 
+        /**
+         * ═══ Part 28: 准备 Course View 数据 ═══
+         * 集中准备 Course 页面所需的所有数据，供渲染器使用
+         */
+        _prepareCourseViewData: function(courseId) {
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+
+            var course = courseRegistry ? courseRegistry.getCourse(courseId) : null;
+            if (!course) {
+                return {
+                    course: null,
+                    modules: [],
+                    progress: 0,
+                    isCompleted: false,
+                    currentModuleId: null,
+                    currentLessonId: null
+                };
+            }
+
+            // 获取学习状态
+            var courseState = adapter ? adapter.getCourseState(courseId) : null;
+            var progress = courseState ? courseState.progress : 0;
+            var isCompleted = courseState ? courseState.isCompleted : false;
+            var modules = adapter ? adapter.getCourseModules(courseId) : [];
+
+            // 获取当前导航状态
+            var currentModuleId = this._state?.currentModuleId || null;
+            var currentLessonId = this._state?.currentLessonId || null;
+
+            return {
+                course: course,
+                modules: modules,
+                progress: progress,
+                isCompleted: isCompleted,
+                currentModuleId: currentModuleId,
+                currentLessonId: currentLessonId
+            };
+        },
+
+        /**
+         * ═══ Part 28: 准备 Module View 数据 ═══
+         */
+        _prepareModuleViewData: function(moduleId) {
+            var academyRegistry = window.LawAIApp?.AcademyRegistry;
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+
+            var module = academyRegistry ? academyRegistry.getModule(moduleId) : null;
+            if (!module) {
+                return {
+                    module: null,
+                    lessons: [],
+                    progress: 0,
+                    isCompleted: false,
+                    currentLessonId: null
+                };
+            }
+
+            var progressData = adapter ? adapter.getModuleProgress(moduleId) : { progress: 0, completed: false };
+            var lessons = adapter ? adapter.getModuleLessons(moduleId) : [];
+            var currentLessonId = this._state?.currentLessonId || null;
+
+            return {
+                module: module,
+                lessons: lessons,
+                progress: progressData.progress || 0,
+                isCompleted: progressData.completed || false,
+                currentLessonId: currentLessonId
+            };
+        },
+
+        /**
+         * ═══ Part 28: 准备 Lesson View 数据 ═══
+         */
+        _prepareLessonViewData: function(lessonId) {
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+
+            var lesson = adapter ? adapter.getLessonDetail(lessonId) : null;
+            if (!lesson) {
+                return {
+                    lesson: null,
+                    isCompleted: false,
+                    session: null
+                };
+            }
+
+            var isCompleted = lesson.isCompleted || false;
+            var session = adapter ? adapter.getActiveSession() : null;
+
+            return {
+                lesson: lesson,
+                isCompleted: isCompleted,
+                session: session
+            };
+        },
+
         // ============================================================
         // 7. PRIVATE — Events
         // ============================================================
