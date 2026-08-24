@@ -64,9 +64,9 @@ LawAIApp.ContentValidator = {
         return { valid: allErrors.length === 0, errors: allErrors };
     },
 
-    // ============================================================
-    // ═══ Part 9: 验证 Course（基于 Schema） ═══
-    // ============================================================
+    /**
+    * ═══ Part 9: 验证 Course（基于 Schema） ═══
+    */
     validateCourse: function(course) {
         var errors = [];
         var warnings = [];
@@ -83,8 +83,8 @@ LawAIApp.ContentValidator = {
 
         if (!course.schoolId) {
             errors.push({ field: 'schoolId', message: 'Course schoolId is required' });
-        } else if (['business', 'art', 'science'].indexOf(course.schoolId) === -1) {
-            errors.push({ field: 'schoolId', message: 'schoolId must be business, art, or science' });
+        } else if (!course.schoolId.startsWith('school-')) {
+            warnings.push({ field: 'schoolId', message: 'schoolId should start with "school-"' });
         }
 
         if (!course.version) {
@@ -97,11 +97,8 @@ LawAIApp.ContentValidator = {
             errors.push({ field: 'subjects', message: 'subjects must be an array' });
         }
 
-        if (course.difficulty) {
-            var validDifficulties = ['beginner', 'intermediate', 'advanced', 'expert', 'mixed', 'adaptive'];
-            if (validDifficulties.indexOf(course.difficulty) === -1) {
-                warnings.push({ field: 'difficulty', message: 'Invalid difficulty value: ' + course.difficulty });
-            }
+        if (course.difficulty && !['beginner', 'intermediate', 'advanced', 'expert', 'mixed', 'adaptive'].includes(course.difficulty)) {
+            warnings.push({ field: 'difficulty', message: 'Invalid difficulty value: ' + course.difficulty });
         }
 
         return {
