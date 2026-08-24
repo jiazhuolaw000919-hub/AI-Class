@@ -34,37 +34,28 @@
       // Part 57.5 Chapter 5 — 3 个 Schools
       this.DEFAULT_SCHOOLS = [
         {
-          id: 'school-ai',
-          name: 'School of Artificial Intelligence',
-          shortName: 'AI School',
-          description: 'AI literacy, tools, automation, agents, and AI systems',
-          icon: '🤖',
-          color: '#4a9eff',
-          status: 'active',
-          programs: [],
-          createdAt: new Date().toISOString()
+            id: 'school-science',
+            name: 'Science',
+            displayName: 'Science',
+            description: 'AI, Programming, Data Science, Mathematics, Technology, and Engineering.',
+            icon: '🔬',
+            color: '#3b82f6'
         },
         {
-          id: 'school-business',
-          name: 'School of Business',
-          shortName: 'Business School',
-          description: 'Business strategy, entrepreneurship, management, finance, and productivity',
-          icon: '💼',
-          color: '#10b981',
-          status: 'active',
-          programs: [],
-          createdAt: new Date().toISOString()
+            id: 'school-business',
+            name: 'Business',
+            displayName: 'Business',
+            description: 'Business, Finance, Marketing, Entrepreneurship, Management, and Career.',
+            icon: '📊',
+            color: '#10b981'
         },
         {
-          id: 'school-technology',
-          name: 'School of Technology',
-          shortName: 'Tech School',
-          description: 'Software development, mobile development, game development, and system design',
-          icon: '⚡',
-          color: '#f59e0b',
-          status: 'active',
-          programs: [],
-          createdAt: new Date().toISOString()
+            id: 'school-art',
+            name: 'Art',
+            displayName: 'Art',
+            description: 'Design, UI/UX, Photography, Video, Creative Writing, and Digital Art.',
+            icon: '🎨',
+            color: '#8b5cf6'
         }
       ];
     }
