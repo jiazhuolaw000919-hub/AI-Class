@@ -1904,28 +1904,6 @@
             };
         },
 
-        /**
-         * 🔥 Part 59.4: 回到 Dashboard
-         */
-        goHome: function() {
-            console.log('[AcademyExperienceManager] 🏠 Going home...');
-
-            this._state.currentSchoolId = null;
-            this._state.currentProgramId = null;
-            this._state.currentCourseId = null;
-            this._state.currentModuleId = null;
-            this._state.currentSubjectId = null;
-            this._state.currentLessonId = null;
-            this._state.viewMode = 'dashboard';
-
-            this.render();
-            this._emit('ACADEMY_VIEW_CHANGED', {
-                viewMode: 'dashboard'
-            });
-
-            return this;
-        },
-
         // ============================================================
         // PRIVATE — Events
         // ============================================================
