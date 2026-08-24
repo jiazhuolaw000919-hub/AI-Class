@@ -6,6 +6,8 @@
 (function() {
     'use strict';
 
+    window.LawAIApp = window.LawAIApp || {};
+
     // ═══ Optional Chaining Polyfill (for older browsers) ═══
     if (!window.LawAIApp) window.LawAIApp = {};
 
@@ -1935,7 +1937,6 @@
     // ============================================================
     // Export
     // ============================================================
-
     window.LawAIApp = window.LawAIApp || {};
     window.LawAIApp.AcademyView = AcademyView;
 
