@@ -365,6 +365,43 @@
         },
 
         /**
+         * ═══ Part 21: 获取统一内容状态 ═══
+         */
+        getContentState: function(contentType, contentId) {
+            if (contentType === 'lesson') {
+                return this.getLessonState(contentId);
+            }
+            // 扩展支持 course/subject
+            return {
+                state: this.LOAD_STATE.IDLE,
+                contentType: contentType,
+                contentId: contentId
+            };
+        },
+
+        /**
+         * ═══ Part 21: 获取内容错误记录 ═══
+         */
+        getContentErrors: function(contentId) {
+            var cacheKey = 's4_errors_' + contentId;
+            return LawAIApp.StorageEngine?.get(cacheKey) || null;
+        },
+
+        /**
+         * ═══ Part 21: 记录内容错误 ═══
+         */
+        recordContentError: function(contentId, error) {
+            var cacheKey = 's4_errors_' + contentId;
+            var errorLog = {
+                contentId: contentId,
+                error: error,
+                timestamp: Date.now()
+            };
+            LawAIApp.StorageEngine?.set(cacheKey, errorLog);
+            console.warn('[ContentLoader] Error recorded for:', contentId, error);
+        },
+
+        /**
          * ═══ Part 7: 预加载 Course 的轻量级数据 ═══
          */
         async preloadCourse(courseId) {
@@ -469,7 +506,9 @@
                     return data;
                 } catch (e) {
                     console.warn('[ContentLoader] Failed to load lesson:', lessonId, e);
+                    this.recordContentError(lessonId, e.message || 'Unknown error');
                     return null;
+                }
                 } finally {
                     if (this._loadingRequests) {
                         delete this._loadingRequests[requestKey];
