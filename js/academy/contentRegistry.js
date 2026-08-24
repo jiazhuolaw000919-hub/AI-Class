@@ -428,6 +428,40 @@
             };
             console.log('[S4ContentRegistry] ✅ Sync complete:', results);
             return results;
+
+        /**
+         * ═══ Part 20: 统一注册所有内容 ═══
+         */
+        registerAll: function(course, subjects, lessons) {
+            var results = {
+                course: null,
+                subjects: [],
+                lessons: []
+            };
+
+            // 注册 Course
+            if (course) {
+                results.course = this.registerCourse(course);
+            }
+
+            // 注册 Subjects
+            if (subjects && Array.isArray(subjects)) {
+                for (var i = 0; i < subjects.length; i++) {
+                    var result = this.registerSubject(subjects[i]);
+                    if (result) results.subjects.push(result);
+                }
+            }
+
+            // 注册 Lessons
+            if (lessons && Array.isArray(lessons)) {
+                for (var j = 0; j < lessons.length; j++) {
+                    var result = this.registerLesson(lessons[j]);
+                    if (result) results.lessons.push(result);
+                }
+            }
+
+            return results;
+        },
         }
     };  // ⬅️ 这里闭合 S4ContentRegistry
 
