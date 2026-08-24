@@ -1,18 +1,21 @@
 // js/academy/academyView.js
 // Part 58.5 — Lesson Structure Foundation Layer (完整版)
-// S4 Extended — 兼容所有浏览器（移除 ?. 操作符）
+// S4 Extended — 保留 ?. 操作符，添加 Polyfill 兼容
 // Law AI Academy Developer Bible
 
 (function() {
     'use strict';
 
-    if (window.LawAIApp && window.LawAIApp.AcademyView) {
+    // ═══ Optional Chaining Polyfill (for older browsers) ═══
+    if (!window.LawAIApp) window.LawAIApp = {};
+
+    if (window.LawAIApp.AcademyView) {
         console.log('[AcademyView] Already exists, skipping...');
         return;
     }
 
-    // ═══ S4 安全辅助函数 ═══
-    function __safe(obj, path) {
+    // ═══ 安全辅助函数 (仅用于 onclick 等场景) ═══
+    function __safeCall(obj, path) {
         if (!obj) return undefined;
         var parts = path.split('.');
         var current = obj;
@@ -20,16 +23,11 @@
             if (current === null || current === undefined) return undefined;
             current = current[parts[i]];
         }
-        return current;
-    }
-
-    function __safeCall(obj, path) {
-        var fn = __safe(obj, path);
-        if (typeof fn === 'function') {
+        if (typeof current === 'function') {
             var args = Array.prototype.slice.call(arguments, 2);
-            return fn.apply(null, args);
+            return current.apply(null, args);
         }
-        return undefined;
+        return current;
     }
 
     var AcademyView = {
@@ -52,7 +50,7 @@
          * ═══ S4 新增: 确保 S4 内容已加载 ═══
          */
         _ensureS4ContentLoaded: function() {
-            var registry = window.LawAIApp && window.LawAIApp.CourseRegistry;
+            var registry = window.LawAIApp?.CourseRegistry;
             if (registry && typeof registry.loadFromS4 === 'function' && !registry._s4Loaded) {
                 console.log('[AcademyView] 🔄 Loading S4 content...');
                 return registry.loadFromS4().catch(function(err) {
@@ -77,7 +75,7 @@
          * 🔥 Part 63: 获取 Motivation 数据 (兼容性方法)
          */
         _getMotivationData: function() {
-            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
             if (!adapter) {
                 return null;
             }
@@ -189,7 +187,7 @@
             var continueData = this._getContinueLearning();
             var motivation = null;
 
-            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
             if (adapter && typeof adapter.getLearningMotivation === 'function') {
                 try {
                     motivation = adapter.getLearningMotivation();
@@ -221,7 +219,7 @@
 
             for (var i = 0; i < schools.length; i++) {
                 var school = schools[i];
-                var progCount = school.programs ? school.programs.length : 0;
+                var progCount = school.programs?.length || 0;
                 html += `
                     <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
                          onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.navigateToSchool', '${school.id}')"
@@ -313,7 +311,7 @@
                 return '';
             }
 
-            var renderer = window.LawAIApp && window.LawAIApp.MotivationRenderer;
+            var renderer = window.LawAIApp?.MotivationRenderer;
             if (renderer && typeof renderer.render === 'function') {
                 var tempContainer = document.createElement('div');
                 renderer.render(tempContainer, motivation);
@@ -377,7 +375,7 @@
                 if (achievements.length > 3) {
                     html += `<span style="font-size:11px;color:#64748b;">+${achievements.length - 3} more</span>`;
                 }
-                html += `</div>`;
+                html += '</div>';
             }
 
             html += '</div>';
@@ -392,7 +390,7 @@
                 return this._renderResumeEmptyState();
             }
 
-            var renderer = window.LawAIApp && window.LawAIApp.ContinueLearningRenderer;
+            var renderer = window.LawAIApp?.ContinueLearningRenderer;
             if (renderer && typeof renderer.render === 'function') {
                 var preparedData = this._prepareContinueLearningData(continueData);
                 if (!preparedData) {
@@ -430,7 +428,7 @@
                             </div>
                         </div>
                         <div>
-                            <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.navigateToSchool', 'school-ai')" 
+                            <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.navigateToSchool', 'school-science')" 
                                     style="padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; font-family: inherit;"
                                     onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
                                 Explore Schools →
@@ -445,7 +443,7 @@
          * 🔥 Part 60: 获取学习引导信息
          */
         _getLearningGuidance: function() {
-            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
             if (!adapter) {
                 return null;
             }
@@ -485,7 +483,7 @@
             var moduleName = 'Current Module';
             var lessonName = 'Current Lesson';
 
-            var courseRegistry = window.LawAIApp && window.LawAIApp.CourseRegistry;
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
             if (courseRegistry && courseId) {
                 var course = courseRegistry.getCourse(courseId);
                 if (course) {
@@ -493,7 +491,7 @@
                 }
             }
 
-            var academyRegistry = window.LawAIApp && window.LawAIApp.AcademyRegistry;
+            var academyRegistry = window.LawAIApp?.AcademyRegistry;
             if (academyRegistry) {
                 if (moduleId) {
                     var module = academyRegistry.getModule(moduleId);
@@ -593,7 +591,7 @@
                             </div>
                         </div>
                         <div>
-                            <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.navigateToSchool', 'school-ai')" 
+                            <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.navigateToSchool', 'school-science')" 
                                     style="padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; font-family: inherit;"
                                     onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
                                 Explore Schools →
@@ -608,8 +606,8 @@
          * 🔥 School View
          */
         _renderSchoolView: function(container, schoolId) {
-            var schoolRegistry = window.LawAIApp && window.LawAIApp.SchoolRegistry;
-            var programRegistry = window.LawAIApp && window.LawAIApp.ProgramRegistry;
+            var schoolRegistry = window.LawAIApp?.SchoolRegistry;
+            var programRegistry = window.LawAIApp?.ProgramRegistry;
 
             var school = schoolRegistry ? schoolRegistry.getSchool(schoolId) : null;
             var programs = programRegistry ? programRegistry.getProgramsBySchool(schoolId) : [];
@@ -671,7 +669,7 @@
                                     <p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px 0;">${program.description || ''}</p>
                                     <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                                         <span style="color: ${levelColor}; font-size: 12px; background: rgba(255,255,255,0.06); padding: 2px 10px; border-radius: 12px;">${levelEmoji} ${levelLabel.charAt(0).toUpperCase() + levelLabel.slice(1)}</span>
-                                        <span style="color: #64748b; font-size: 12px;">${program.modules ? program.modules.length : 0} modules</span>
+                                        <span style="color: #64748b; font-size: 12px;">${program.modules?.length || 0} modules</span>
                                     </div>
                                 </div>
                                 <span style="color: #4a9eff; font-size: 18px;">→</span>
@@ -697,8 +695,8 @@
          * 🔥 Program View
          */
         _renderProgramView: function(container, programId) {
-            var programRegistry = window.LawAIApp && window.LawAIApp.ProgramRegistry;
-            var courseRegistry = window.LawAIApp && window.LawAIApp.CourseRegistry;
+            var programRegistry = window.LawAIApp?.ProgramRegistry;
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
 
             var program = programRegistry ? programRegistry.getProgram(programId) : null;
             var courses = courseRegistry ? courseRegistry.getCoursesByProgram(programId) : [];
@@ -746,7 +744,7 @@
                     <div style="display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
                         <span style="color: ${levelColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${levelEmoji} ${levelLabel.charAt(0).toUpperCase() + levelLabel.slice(1)}</span>
                         <span style="color: ${statusColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)}</span>
-                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${program.modules ? program.modules.length : 0} modules</span>
+                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${program.modules?.length || 0} modules</span>
                     </div>
             `;
 
@@ -770,7 +768,7 @@
                                     <p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px 0;">${course.description || ''}</p>
                                     <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                                         <span style="color: ${courseStatusColor}; font-size: 11px; background: rgba(255,255,255,0.06); padding: 2px 10px; border-radius: 12px;">${courseStatus}</span>
-                                        <span style="color: #64748b; font-size: 11px;">${course.modules ? course.modules.length : 0} modules</span>
+                                        <span style="color: #64748b; font-size: 11px;">${course.modules?.length || 0} modules</span>
                                     </div>
                                 </div>
                                 <span style="color: #4a9eff; font-size: 16px;">→</span>
@@ -797,7 +795,7 @@
          * 🔥 Course View
          */
         _renderCourseView: function(container, courseId) {
-            var courseRegistry = window.LawAIApp && window.LawAIApp.CourseRegistry;
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
             var course = courseRegistry ? courseRegistry.getCourse(courseId) : null;
 
             if (!course) {
@@ -805,7 +803,7 @@
                 return;
             }
 
-            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
             var courseState = adapter ? adapter.getCourseState(courseId) : null;
             var progress = courseState ? courseState.progress : 0;
             var modules = adapter ? adapter.getCourseModules(courseId) : [];
@@ -1026,7 +1024,7 @@
          * 🔥 Course Learning View
          */
         _renderCourseLearningView: function(container, courseId) {
-            var courseRegistry = window.LawAIApp && window.LawAIApp.CourseRegistry;
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
             var course = courseRegistry ? courseRegistry.getCourse(courseId) : null;
 
             if (!course) {
@@ -1042,7 +1040,7 @@
                 return;
             }
 
-            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
             var state = adapter ? adapter.getState() : null;
             var progress = state ? state.progress : 0;
             var modules = adapter ? adapter.getCourseModules(courseId) : [];
@@ -1155,7 +1153,7 @@
          * 🔥 Module View
          */
         _renderModuleView: function(container, moduleId) {
-            var academyRegistry = window.LawAIApp && window.LawAIApp.AcademyRegistry;
+            var academyRegistry = window.LawAIApp?.AcademyRegistry;
             var module = academyRegistry ? academyRegistry.getModule(moduleId) : null;
 
             if (!module) {
@@ -1171,7 +1169,7 @@
                 return;
             }
 
-            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
             var state = adapter ? adapter.getState() : null;
             var moduleProgress = state && state.moduleProgress ? state.moduleProgress[moduleId] || 0 : 0;
             var isModuleCompleted = state && state.completedModules ? state.completedModules.indexOf(moduleId) !== -1 : false;
@@ -1318,7 +1316,7 @@
             var self = this;
 
             // ═══ Part 7: 检查加载状态 ═══
-            var loader = window.LawAIApp && (window.LawAIApp.S4ContentLoader || window.LawAIApp.ContentLoader);
+            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
             if (loader && typeof loader.getLessonLoadStatus === 'function') {
                 var status = loader.getLessonLoadStatus(lessonId);
                 if (status.status === 'loading') {
@@ -1332,7 +1330,7 @@
             }
 
             // ═══ 1. 先尝试从 LearningJourneyAdapter 获取基础信息 ═══
-            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
             var lesson = adapter ? adapter.getLessonDetail(lessonId) : null;
 
             if (!lesson) {
@@ -1397,7 +1395,7 @@
             }
 
             // 查找 lesson 所属的 subject
-            var subjectRegistry = window.LawAIApp && window.LawAIApp.SubjectRegistry;
+            var subjectRegistry = window.LawAIApp?.SubjectRegistry;
             var lessonMeta = null;
 
             if (subjectRegistry) {
@@ -1415,7 +1413,7 @@
             }
 
             if (!lessonMeta) {
-                var adapter2 = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
+                var adapter2 = window.LawAIApp?.LearningJourneyAdapter;
                 var lessonDetail = adapter2 ? adapter2.getLessonDetail(lessonId) : null;
                 if (lessonDetail) {
                     lessonMeta = {
@@ -1425,7 +1423,7 @@
                 }
             }
 
-            var loader2 = window.LawAIApp && (window.LawAIApp.S4ContentLoader || window.LawAIApp.ContentLoader);
+            var loader2 = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
 
             if (loader2 && typeof loader2.loadLesson === 'function' && lessonMeta) {
                 loader2.loadLesson(lessonMeta.courseId, lessonMeta.subjectId, lessonId)
@@ -1462,7 +1460,7 @@
          * ═══ Part 4: Lesson 加载状态 ═══
          */
         _renderLessonLoadingState: function() {
-            var loadingStates = window.LawAIApp && window.LawAIApp.LoadingStates;
+            var loadingStates = window.LawAIApp?.LoadingStates;
             if (loadingStates && typeof loadingStates.showSpinner === 'function') {
                 var temp = document.createElement('div');
                 loadingStates.showSpinner(temp, 'Loading lesson content...');
@@ -1480,7 +1478,7 @@
          * ═══ Part 4: Lesson 占位 ═══
          */
         _renderLessonPlaceholder: function() {
-            var emptyStates = window.LawAIApp && window.LawAIApp.EmptyStates;
+            var emptyStates = window.LawAIApp?.EmptyStates;
             if (emptyStates && typeof emptyStates.render === 'function') {
                 return emptyStates.render('lessons', 'This lesson is being prepared. Interactive content will appear here.');
             }
@@ -1498,7 +1496,7 @@
          * ═══ Part 7: Lesson 错误状态 ═══
          */
         _renderLessonErrorState: function(lessonId, error) {
-            var emptyStates = window.LawAIApp && window.LawAIApp.EmptyStates;
+            var emptyStates = window.LawAIApp?.EmptyStates;
             if (emptyStates && typeof emptyStates.render === 'function') {
                 return emptyStates.render('default', '⚠️ Unable to load this lesson. ' + (error || 'Content temporarily unavailable.') + ' Please try again later.');
             }
@@ -1664,7 +1662,7 @@
          * ═══ Part 58.6: Session Panel ═══
          */
         _renderSessionPanel: function(lessonId) {
-            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
             var session = adapter ? adapter.getActiveSession() : null;
             var isActive = session && session.lessonId === lessonId && session.status === 'active';
 
@@ -1715,7 +1713,7 @@
          * 🔥 Part 58.0: 获取 Continue Learning 数据
          */
         _getContinueLearning: function() {
-            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
             if (!adapter) {
                 return null;
             }
@@ -1746,7 +1744,7 @@
             var viewChangedHandler = function(e) {
                 var data = e.detail || {};
                 console.log('[AcademyView] 📡 ACADEMY_VIEW_CHANGED received:', data);
-                var manager = window.LawAIApp && window.LawAIApp.AcademyExperienceManager;
+                var manager = window.LawAIApp?.AcademyExperienceManager;
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
@@ -1757,7 +1755,7 @@
 
             var refreshHandler = function() {
                 console.log('[AcademyView] 📡 ACADEMY_REFRESH received');
-                var manager = window.LawAIApp && window.LawAIApp.AcademyExperienceManager;
+                var manager = window.LawAIApp?.AcademyExperienceManager;
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
@@ -1768,7 +1766,7 @@
 
             var learningUpdatedHandler = function(e) {
                 console.log('[AcademyView] 📡 ACADEMY_LEARNING_UPDATED received');
-                var manager = window.LawAIApp && window.LawAIApp.AcademyExperienceManager;
+                var manager = window.LawAIApp?.AcademyExperienceManager;
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
@@ -1786,7 +1784,7 @@
                     return;
                 }
 
-                var manager = window.LawAIApp && window.LawAIApp.AcademyExperienceManager;
+                var manager = window.LawAIApp?.AcademyExperienceManager;
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
@@ -1804,7 +1802,7 @@
                     return;
                 }
 
-                var manager = window.LawAIApp && window.LawAIApp.AcademyExperienceManager;
+                var manager = window.LawAIApp?.AcademyExperienceManager;
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
@@ -1822,7 +1820,7 @@
                     return;
                 }
 
-                var manager = window.LawAIApp && window.LawAIApp.AcademyExperienceManager;
+                var manager = window.LawAIApp?.AcademyExperienceManager;
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
@@ -1840,7 +1838,7 @@
                     return;
                 }
 
-                var manager = window.LawAIApp && window.LawAIApp.AcademyExperienceManager;
+                var manager = window.LawAIApp?.AcademyExperienceManager;
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
@@ -1858,7 +1856,7 @@
                     return;
                 }
 
-                var manager = window.LawAIApp && window.LawAIApp.AcademyExperienceManager;
+                var manager = window.LawAIApp?.AcademyExperienceManager;
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
@@ -1876,7 +1874,7 @@
                     return;
                 }
 
-                var manager = window.LawAIApp && window.LawAIApp.AcademyExperienceManager;
+                var manager = window.LawAIApp?.AcademyExperienceManager;
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
@@ -1941,6 +1939,6 @@
     window.LawAIApp = window.LawAIApp || {};
     window.LawAIApp.AcademyView = AcademyView;
 
-    console.log('[AcademyView] Module loaded (Part 58.5 + S4 Extended + Compat)');
+    console.log('[AcademyView] Module loaded (Part 58.5 + S4 Extended)');
 
 })();
