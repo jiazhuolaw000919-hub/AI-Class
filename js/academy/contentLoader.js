@@ -594,7 +594,71 @@
             return `/content/courses/${courseId}/subjects/${subjectId}/lessons/${lessonId}.json`;
         },
 
-                /**
+        /**
+         * ═══ Part 33: 获取 Lesson 的 Practice 问题 ═══
+         * 返回标准化的问题列表
+         */
+        async getPracticeQuestions(lessonId) {
+            var cacheKey = 's4_lesson_' + lessonId;
+            var fullLesson = LawAIApp.StorageEngine?.get(cacheKey);
+
+            // 尝试从完整 Lesson 获取 practice
+            var practiceData = fullLesson?.practice || null;
+
+            // 如果 practice 不存在，尝试从 lesson 摘要获取
+            if (!practiceData) {
+                var summary = await this.loadLessonSummary(lessonId);
+                if (summary && summary.hasPractice) {
+                    // 需要加载完整 lesson
+                    var lesson = await this.loadLesson(
+                        summary.courseId,
+                        summary.subjectId,
+                        lessonId
+                    );
+                    if (lesson && lesson.practice) {
+                        practiceData = lesson.practice;
+                    }
+                }
+            }
+
+            if (!practiceData || !practiceData.enabled) {
+                return {
+                    lessonId: lessonId,
+                    enabled: false,
+                    questions: [],
+                    type: null,
+                    hasPractice: false
+                };
+            }
+
+            // 标准化问题
+            var questions = (practiceData.items || []).map(function(item) {
+                return {
+                    id: item.id || 'q_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                    type: item.type || 'multiple-choice',
+                    prompt: item.question || item.prompt || '',
+                    options: item.options || [],
+                    answer: item.answer || null,
+                    acceptedAnswers: item.acceptedAnswers || [],
+                    hint: item.hint || null,
+                    explanation: item.explanation || null,
+                    difficulty: item.difficulty || 2,
+                    conceptIds: item.conceptIds || [],
+                    tags: item.tags || [],
+                    sourceLessonId: lessonId
+                };
+            });
+
+            return {
+                lessonId: lessonId,
+                enabled: true,
+                type: practiceData.type || 'mixed',
+                questions: questions,
+                hasPractice: questions.length > 0
+            };
+        },
+
+        /**
          * ═══ Part 23: 获取 Lesson 清单（轻量级，不含完整内容） ═══
          */
         async getLessonManifest(lessonId) {
