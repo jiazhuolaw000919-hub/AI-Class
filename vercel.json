@@ -10,7 +10,15 @@
       "use": "@vercel/static"
     },
     {
+      "src": "css/**/*.js",
+      "use": "@vercel/static"
+    },
+    {
       "src": "js/**/*.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "content/**/*.json",
       "use": "@vercel/static"
     }
   ],
@@ -18,7 +26,12 @@
     { "src": "/", "dest": "/index.html" },
     { "src": "/pages/(.*)", "dest": "/pages/$1" },
     { "src": "/css/(.*)", "dest": "/css/$1" },
-    { "src": "/js/(.*)", "dest": "/js/$1" }
+    { "src": "/js/(.*)", "dest": "/js/$1" },
+    { "src": "/content/(.*)", "dest": "/content/$1" },
+    { "src": "/academy", "dest": "/pages/academy.html" },
+    { "src": "/academy/", "dest": "/pages/academy.html" },
+    { "src": "/lesson", "dest": "/pages/lesson.html" },
+    { "src": "/lesson/", "dest": "/pages/lesson.html" }
   ],
   "headers": [
     {
@@ -73,7 +86,41 @@
       ]
     },
     {
+      "source": "/content/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        },
+        {
+          "key": "Expires",
+          "value": "0"
+        }
+      ]
+    },
+    {
       "source": "/(.*).html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        },
+        {
+          "key": "Expires",
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "source": "/js/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
