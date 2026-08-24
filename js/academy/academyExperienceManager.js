@@ -1219,6 +1219,67 @@
         },
 
         /**
+         * ═══ Part 33: 获取 Practice 入口 ═══
+         * @param {string} lessonId - Lesson ID
+         * @param {string} type - Practice 类型
+         * @returns {Promise<Object>} Practice 会话
+         */
+        startPractice: async function(lessonId, type) {
+            var practiceModule = window.LawAIApp?.PracticeModule;
+            if (!practiceModule) {
+                console.warn('[ExperienceManager] PracticeModule not available');
+                return null;
+            }
+
+            try {
+                var practice = await practiceModule.startPractice(lessonId, type);
+                if (practice) {
+                    this._emit('PRACTICE_STARTED', {
+                        lessonId: lessonId,
+                        practiceId: practice.practiceId,
+                        type: type
+                    });
+                }
+                return practice;
+            } catch (e) {
+                console.warn('[ExperienceManager] Failed to start practice:', e);
+                return null;
+            }
+        },
+
+        /**
+         * ═══ Part 33: 提交 Practice 答案 ═══
+         */
+        submitPracticeAnswer: function(practice, userAnswer, questionIndex) {
+            var practiceModule = window.LawAIApp?.PracticeModule;
+            if (!practiceModule) {
+                console.warn('[ExperienceManager] PracticeModule not available');
+                return null;
+            }
+
+            var result = practiceModule.submitAnswer(practice, userAnswer, questionIndex);
+            if (result) {
+                this._emit('PRACTICE_ANSWER_SUBMITTED', {
+                    practiceId: practice.practiceId,
+                    correct: result.correct,
+                    isComplete: result.isComplete,
+                    score: result.score,
+                    total: result.total
+                });
+            }
+            return result;
+        },
+
+        /**
+         * ═══ Part 33: 获取 Practice 状态 ═══
+         */
+        getPracticeStatus: function(practice) {
+            var practiceModule = window.LawAIApp?.PracticeModule;
+            if (!practiceModule) return { exists: false, progress: 0, completed: false };
+            return practiceModule.getStatus(practice);
+        }
+
+        /**
          * ═══ Part 29: 准备 Motivation View Model ═══
          */
         _prepareMotivationViewModel: function() {
