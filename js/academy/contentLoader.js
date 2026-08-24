@@ -594,6 +594,86 @@
             return `/content/courses/${courseId}/subjects/${subjectId}/lessons/${lessonId}.json`;
         },
 
+                /**
+         * ═══ Part 23: 获取 Lesson 清单（轻量级，不含完整内容） ═══
+         */
+        async getLessonManifest(lessonId) {
+            var lessonIndex = await this.loadLessonIndex();
+            if (!lessonIndex || !lessonIndex.lessons) return null;
+            
+            var lesson = lessonIndex.lessons.find(function(l) {
+                return l.id === lessonId;
+            });
+            
+            if (!lesson) return null;
+            
+            // 只返回清单信息（不含完整内容路径）
+            return {
+                id: lesson.id,
+                title: lesson.title,
+                subjectId: lesson.subjectId,
+                courseId: lesson.courseId,
+                order: lesson.order,
+                estimatedMinutes: lesson.estimatedMinutes,
+                difficulty: lesson.difficulty,
+                status: lesson.status,
+                hasVideo: lesson.hasVideo || false,
+                hasPractice: lesson.hasPractice || false,
+                hasFlashcards: lesson.hasFlashcards || false,
+                hasNotes: lesson.hasNotes || false,
+                hasAITools: lesson.hasAITools || false,
+                hasNews: lesson.hasNews || false,
+                hasResources: lesson.hasResources || false,
+                tags: lesson.tags || []
+            };
+        },
+
+                /**
+         * ═══ Part 23: 获取 Subject 清单（轻量级，含 Lesson 引用） ═══
+         */
+        async getSubjectManifest(subjectId) {
+            var subjectIndex = await this.loadSubjectIndex();
+            if (!subjectIndex || !subjectIndex.subjects) return null;
+            
+            var subject = subjectIndex.subjects.find(function(s) {
+                return s.id === subjectId;
+            });
+            
+            if (!subject) return null;
+            
+            return {
+                id: subject.id,
+                title: subject.title,
+                courseId: subject.courseId,
+                description: subject.description,
+                difficulty: subject.difficulty,
+                lessonCount: subject.lessonCount || 0,
+                estimatedMinutes: subject.estimatedMinutes || 0,
+                status: subject.status,
+                tags: subject.tags || []
+            };
+        },
+
+                /**
+         * ═══ Part 23: 获取 Course 清单（轻量级，含 Subject 引用） ═══
+         */
+        async getCourseManifest(courseId) {
+            var course = await this.loadCourse(courseId);
+            if (!course) return null;
+            
+            return {
+                id: course.id,
+                title: course.title,
+                schoolId: course.schoolId,
+                description: course.description,
+                difficulty: course.difficulty,
+                estimatedHours: course.estimatedHours || 0,
+                subjectCount: course.subjects ? course.subjects.length : 0,
+                status: course.status,
+                tags: course.tags || []
+            };
+        },
+
         /**
          * S4: 加载单个 Subject
          * 路径: content/courses/{courseId}/subjects/{subjectId}/subject.json
