@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://lawai.academy/schemas/school.schema.json",
+  "title": "School Schema",
+  "description": "Law AI Academy School Content Contract — Season 4",
+  "type": "object",
+  "required": ["id", "name", "displayName"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^school-[a-z]+$",
+      "description": "Unique school identifier. Must be stable."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Canonical school name (e.g., 'Science')."
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Display name (e.g., 'Science')."
+    },
+    "description": {
+      "type": "string",
+      "description": "School description."
+    },
+    "icon": {
+      "type": "string",
+      "description": "Emoji or icon for the School."
+    },
+    "color": {
+      "type": "string",
+      "description": "Theme color for the School."
+    },
+    "courseIds": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^course-[a-z0-9-]+$" },
+      "description": "References to Courses in this School (may be derived)."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "archived", "draft"],
+      "default": "active"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version for content tracking."
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  }
+}
