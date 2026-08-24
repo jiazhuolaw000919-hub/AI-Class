@@ -514,6 +514,13 @@
         },
 
         /**
+         * ═══ Part 17: 获取 Lesson 元数据（轻量级） ═══
+         */
+        getLesson: async function(lessonId) {
+            return this.loadLessonSummary(lessonId);
+        },
+
+        /**
          * ═══ Part 11: 获取 Lesson 文件路径 ═══
          */
         getLessonPath: function(courseId, subjectId, lessonId) {
