@@ -18,8 +18,8 @@
     },
     "schoolId": {
       "type": "string",
-      "enum": ["business", "art", "science"],
-      "description": "School reference. Must start with 'school-"
+      "pattern": "^school-[a-z]+$",
+      "description": "School reference. Must start with 'school-'."
     },
     "title": {
       "type": "string",
