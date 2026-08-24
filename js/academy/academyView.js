@@ -215,7 +215,7 @@
                 var progCount = school.programs?.length || 0;
                 html += `
                     <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                         onclick="LawAIApp.AcademyExperienceManager?.navigateToSchool?.('${school.id}')"
+                         onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.navigateToSchool', '${school.id}')"
                          onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
                          onmouseout="this.style.background='rgba(255,255,255,0.04)'">
                         <div style="font-size: 32px; margin-bottom: 6px;">${school.icon || '🏛️'}</div>
@@ -723,7 +723,7 @@
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         <p>School not found</p>
-                        <button onclick="LawAIApp.AcademyExperienceManager?.goHome?.()" 
+                        <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
                                 style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
                             ← Back to Academy
                         </button>
@@ -736,7 +736,7 @@
 
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="LawAIApp.AcademyExperienceManager?.goHome?.()" 
+                    <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to Academy
                     </button>
@@ -766,7 +766,7 @@
 
                     html += `
                         <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="LawAIApp.AcademyExperienceManager?.navigateToProgram?.('${program.id}')"
+                             onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.navigateToProgram', '${program.id}'"
                              onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.04)'">
                             <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
@@ -808,7 +808,7 @@
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         <p>Program not found</p>
-                        <button onclick="LawAIApp.AcademyExperienceManager?.goHome?.()" 
+                        <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
                                 style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
                             ← Back to Academy
                         </button>
@@ -861,7 +861,7 @@
 
                     html += `
                         <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="LawAIApp.AcademyExperienceManager?.navigateToCourse?.('${course.id}')"
+                             onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.navigateToCourse', '${course.id}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.04)'">
                             <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
@@ -937,7 +937,7 @@
                         <span style="font-size:16px;">←</span> Back to Program
                     </button>
                     <span style="color: #475569; font-size: 14px;">|</span>
-                    <button onclick="LawAIApp.AcademyExperienceManager?.goHome?.()" 
+                    <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.04); color: #94a3b8; border: 1px solid rgba(255,255,255,0.06); font-family: inherit;">
                         <span style="font-size:14px;">🏠</span> Dashboard
                     </button>
@@ -1006,7 +1006,7 @@
                             <div style="font-size: 28px; font-weight: 700; color: ${statusColor};">${progressDisplay}</div>
                             <div style="font-size: 14px; color: ${statusColor};">${statusText}</div>
                         </div>
-                        <button onclick="LawAIApp.AcademyExperienceManager?.startCourse?.('${courseId}')" 
+                        <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.startCourse', '${courseId}')" 
                                 style="padding: 12px 32px; background: ${actionColor}; border: none; border-radius: 10px; color: white; font-weight: 600; font-size: 16px; cursor: pointer; transition: all 0.2s; font-family: inherit;"
                                 onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
                             ${actionLabel}
@@ -1048,7 +1048,7 @@
 
                 html += `
                     <div style="background: ${bgColor}; border-radius: 12px; padding: 14px 18px; border: 1px solid ${borderColor}; cursor: pointer; transition: all 0.2s;"
-                         onclick="LawAIApp.AcademyExperienceManager?.selectModule?.('${module.id}')"
+                         onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.selectModule', '${module.id}')"
                          onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
                          onmouseout="this.style.background='${bgColor}'">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">
@@ -1093,7 +1093,7 @@
                 <div style="padding: 40px; text-align: center; color: #94a3b8;">
                     <div style="font-size: 48px; margin-bottom: 16px;">📖</div>
                     <p style="font-size: 16px; margin: 0;">Course not found</p>
-                    <button onclick="LawAIApp.AcademyExperienceManager?.goHome?.()" 
+                    <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
                             style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
                         ← Back to Academy
                     </button>
@@ -1152,7 +1152,7 @@
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         <p>Course not found</p>
-                        <button onclick="LawAIApp.AcademyExperienceManager?.goHome?.()" 
+                        <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
                                 style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
                             ← Back to Academy
                         </button>
@@ -1224,7 +1224,7 @@
 
                     html += `
                         <div style="background: ${bgColor}; border-radius: 10px; padding: 14px 18px; border: 1px solid ${borderColor}; cursor: pointer; transition: all 0.2s;"
-                             onclick="LawAIApp.AcademyExperienceManager?.selectModule?.('${module.id}')"
+                             onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.selectModule', '${module.id}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
                              onmouseout="this.style.background='${bgColor}'">
                             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
@@ -1285,7 +1285,7 @@
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         <p>Module not found</p>
-                        <button onclick="LawAIApp.AcademyExperienceManager?.goHome?.()" 
+                        <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
                                 style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
                             ← Back to Academy
                         </button>
@@ -1392,7 +1392,7 @@
 
                     html += `
                         <div style="background: ${lBgColor}; border-radius: 10px; padding: 12px 16px; border: 1px solid ${lBorderColor}; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;"
-                             onclick="LawAIApp.AcademyExperienceManager?.selectLesson?.('${lesson.id}')"
+                             onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.selectLesson', '${lesson.id}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
                              onmouseout="this.style.background='${lBgColor}'">
                             <div style="display: flex; align-items: center; gap: 12px;">
@@ -1474,7 +1474,7 @@
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         <p>Lesson not found</p>
-                        <button onclick="LawAIApp.AcademyExperienceManager?.goHome?.()" 
+                        <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
                                 style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
                             ← Back to Academy
                         </button>
@@ -1497,7 +1497,7 @@
             // 返回栏 — Back to Module（保留原有逻辑）
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="LawAIApp.AcademyExperienceManager?.navigateToModule?.('${lesson.moduleId}')" 
+                    <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.navigateToModule', '${lesson.moduleId}')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to Module
                     </button>
@@ -1673,7 +1673,7 @@
                     <p style="font-size: 16px; font-weight: 500; color: #ef4444;">Unable to load this lesson</p>
                     <p style="font-size: 14px; color: #64748b; margin-top: 4px;">${error || 'Content temporarily unavailable'}</p>
                     <div style="margin-top: 16px; display: flex; gap: 12px; justify-content: center;">
-                        <button onclick="LawAIApp.AcademyExperienceManager?.goHome?.()" 
+                        <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
                                 style="padding: 8px 20px; background: rgba(74,158,255,0.1); border: 1px solid rgba(74,158,255,0.15); border-radius: 8px; color: #4a9eff; cursor: pointer; font-family: inherit;">
                             ← Back to Academy
                         </button>
@@ -1851,13 +1851,13 @@
                             ${isActive ? `<div style="font-size: 12px; color: #64748b;">Started: ${new Date(session.startedAt).toLocaleTimeString()}</div>` : ''}
                         </div>
                         ${isActive ? `
-                            <button onclick="LawAIApp.AcademyExperienceManager?.endLessonSession?.()" 
+                            <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.endLessonSession')" 
                                     style="padding: 10px 24px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; color: #ef4444; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit;"
                                     onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">
                                 ⏹️ End Session
                             </button>
                         ` : `
-                            <button onclick="LawAIApp.AcademyExperienceManager?.startLesson?.('${lessonId}')" 
+                            <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.startLesson', '${lessonId}')" 
                                     style="padding: 12px 32px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 16px; cursor: pointer; transition: all 0.2s; font-family: inherit;"
                                     onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
                                 🚀 Start Learning
