@@ -289,7 +289,7 @@
 
             // 🔥 Part 59.4: 保留所有父级，只设置 moduleId，清除 lessonId
             this._state.currentModuleId = moduleId;
-             this._state.currentSubjectId;
+            this._state.currentSubjectId = null;
             this._state.currentLessonId = null;
             this._state.viewMode = 'module';
 
@@ -484,45 +484,36 @@
                 /**
          * ═══ Part 12: 导航到 Subject ═══
          */
-        navigateToSubject: function(subjectId) {
+                navigateToSubject: function(subjectId) {
             if (!subjectId) {
                 console.warn('[AcademyExperienceManager] navigateToSubject: subjectId required');
-                return;
+                return this;
             }
 
-            // 从 SubjectRegistry 获取 Subject
             var subjectRegistry = window.LawAIApp?.SubjectRegistry;
             var subject = subjectRegistry ? subjectRegistry.getSubject(subjectId) : null;
             
             if (!subject) {
                 console.warn('[AcademyExperienceManager] Subject not found:', subjectId);
-                return;
+                return this;
             }
 
             // 更新导航状态
             this._state.currentSubjectId = subjectId;
             this._state.currentCourseId = subject.courseId || this._state.currentCourseId;
+            this._state.currentModuleId = null;
+            this._state.currentLessonId = null;
             this._state.viewMode = 'subject';
 
-            // 刷新视图
-            this._refreshView();
-        },
-
-        goHome: function() {
-            console.log('[AcademyExperienceManager] 🏠 Going home...');
-
-            // 🔥 Part 59.4: 清除所有上下文，回到 Dashboard
-            this._state.currentSchoolId = null;
-            this._state.currentProgramId = null;
-            this._state.currentCourseId = null;
-            this._state.currentModuleId = null;
-            this._state.currentSubjectId = null;
-            this._state.currentLessonId = null;
-            this._state.viewMode = 'dashboard';
+            console.log('[AcademyExperienceManager] ✅ State updated:', this._state);
 
             this.render();
             this._emit('ACADEMY_VIEW_CHANGED', {
-                viewMode: 'dashboard'
+                viewMode: 'subject',
+                currentSubjectId: subjectId,
+                currentCourseId: this._state.currentCourseId,
+                currentProgramId: this._state.currentProgramId,
+                currentSchoolId: this._state.currentSchoolId
             });
 
             return this;
