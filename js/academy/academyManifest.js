@@ -66,6 +66,28 @@
             },
 
             // ==========================================================
+            // ═══ Part 33: Practice 模块 ═══
+            // ==========================================================
+            {
+                id: 'practiceEngine',
+                path: '/js/academy/practiceEngine.js',
+                description: 'Practice Engine (S4)',
+                required: false
+            },
+            {
+                id: 'practiceModule',
+                path: '/js/academy/practice.js',
+                description: 'Practice Module (S4)',
+                required: false
+            },
+            {
+                id: 'practiceProgress',
+                path: '/js/academy/practiceProgress.js',
+                description: 'Practice Progress (S4)',
+                required: false
+            },
+
+            // ==========================================================
             // 2. Curriculum Layer
             // ==========================================================
             {
