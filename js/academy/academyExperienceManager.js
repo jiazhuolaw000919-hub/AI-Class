@@ -1141,6 +1141,169 @@
             container.innerHTML = html;
         },
 
+        /**
+         * ═══ Part 29: 准备 Motivation View Model ═══
+         */
+        _prepareMotivationViewModel: function() {
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            if (!adapter) {
+                return {
+                    xp: 0,
+                    level: 1,
+                    streak: 0,
+                    achievements: [],
+                    achievementCount: 0,
+                    nextLevelXp: 0,
+                    xpProgress: 0
+                };
+            }
+
+            var motivation = adapter.getLearningMotivation ? adapter.getLearningMotivation() : null;
+            if (!motivation) {
+                return {
+                    xp: 0,
+                    level: 1,
+                    streak: 0,
+                    achievements: [],
+                    achievementCount: 0,
+                    nextLevelXp: 0,
+                    xpProgress: 0
+                };
+            }
+
+            return {
+                xp: motivation.xp || 0,
+                level: motivation.level || 1,
+                streak: motivation.streak || 0,
+                achievements: motivation.achievements || [],
+                achievementCount: motivation.achievementCount || 0,
+                nextLevelXp: motivation.nextLevelXp || 0,
+                xpProgress: motivation.xpProgress || 0
+            };
+        },
+
+        /**
+         * ═══ Part 29: 准备 Continue Learning View Model ═══
+         */
+        _prepareContinueLearningViewModel: function() {
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            if (!adapter) {
+                return {
+                    courseId: null,
+                    title: '',
+                    progress: 0,
+                    isCompleted: false,
+                    lastActivity: null,
+                    lessonId: null,
+                    moduleId: null,
+                    hasActiveSession: false
+                };
+            }
+
+            var continueData = adapter.getContinueLearning ? adapter.getContinueLearning() : null;
+            if (!continueData || !continueData.courseId) {
+                return {
+                    courseId: null,
+                    title: '',
+                    progress: 0,
+                    isCompleted: false,
+                    lastActivity: null,
+                    lessonId: null,
+                    moduleId: null,
+                    hasActiveSession: false
+                };
+            }
+
+            var hasActiveSession = adapter.hasActiveSession ? adapter.hasActiveSession() : false;
+
+            // 获取课程名称
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            var course = courseRegistry ? courseRegistry.getCourse(continueData.courseId) : null;
+            var title = course ? (course.title || course.name || continueData.title) : (continueData.title || 'Your Course');
+
+            return {
+                courseId: continueData.courseId,
+                title: title,
+                progress: continueData.progress || 0,
+                isCompleted: continueData.isCompleted || false,
+                lastActivity: continueData.lastActivity || null,
+                lessonId: continueData.lessonId || null,
+                moduleId: continueData.moduleId || null,
+                hasActiveSession: hasActiveSession
+            };
+        },
+
+        /**
+         * ═══ Part 29: 准备 Subject View Model（轻量级） ═══
+         */
+        _prepareSubjectViewModel: function(subjectId) {
+            var subjectRegistry = window.LawAIApp?.SubjectRegistry;
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+
+            var subject = subjectRegistry ? subjectRegistry.getSubject(subjectId) : null;
+            if (!subject) {
+                return {
+                    subject: null,
+                    lessons: [],
+                    progress: 0,
+                    isCompleted: false,
+                    currentLessonId: null
+                };
+            }
+
+            // 获取 Lessons（从 SubjectRegistry）
+            var lessons = subject.lessons || [];
+            var lessonIds = lessons.map(function(l) { return l.id || l; });
+
+            // 获取进度（如果 adapter 支持）
+            var progress = 0;
+            var isCompleted = false;
+            if (adapter && typeof adapter.getSubjectProgress === 'function') {
+                var progressData = adapter.getSubjectProgress(subjectId);
+                if (progressData) {
+                    progress = progressData.progress || 0;
+                    isCompleted = progressData.completed || false;
+                }
+            } else if (adapter && typeof adapter.getModuleProgress === 'function') {
+                // Fallback: 使用 Module 进度（兼容旧架构）
+                var moduleProgress = adapter.getModuleProgress(subjectId);
+                if (moduleProgress) {
+                    progress = moduleProgress.progress || 0;
+                    isCompleted = moduleProgress.completed || false;
+                }
+            }
+
+            return {
+                subject: subject,
+                lessons: lessonIds,
+                progress: progress,
+                isCompleted: isCompleted,
+                currentLessonId: this._state?.currentLessonId || null
+            };
+        },
+
+        /**
+         * ═══ Part 29: 准备 Dashboard View Model（增强版） ═══
+         */
+        _prepareDashboardViewModel: function() {
+            var schools = this._getSchools();
+            var continueData = this._prepareContinueLearningViewModel();
+            var motivation = this._prepareMotivationViewModel();
+
+            // 获取当前状态
+            var guidance = this._getLearningGuidance();
+
+            return {
+                schools: schools,
+                viewMode: this._state?.viewMode || 'dashboard',
+                continueLearning: continueData,
+                motivation: motivation,
+                guidance: guidance,
+                hasContinueLearning: continueData.courseId !== null,
+                hasSchools: schools && schools.length > 0
+            };
+        },
+
         // ============================================================
         // 6. PRIVATE — Helpers
         // ============================================================
