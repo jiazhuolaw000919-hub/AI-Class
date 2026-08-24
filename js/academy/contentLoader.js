@@ -8,7 +8,7 @@
     // 原有 ContentLoader 保留（兼容旧 Academy）
     // ============================================================
     const OriginalContentLoader = LawAIApp.ContentLoader || {};
-
+    
     // ============================================================
     // S4 ContentLoader 扩展
     // ============================================================
@@ -28,7 +28,7 @@
                 return this.loadFromLocalStorage(academyId);
             }
         },
-
+       
         loadFromLocalStorage: OriginalContentLoader.loadFromLocalStorage || function(academyId) {
             const packData = LawAIApp.StorageEngine?.get(`pack_${academyId}`);
             return packData || null;
@@ -159,6 +159,15 @@
             return errors;
         },
 
+         // ═══ Part 18: 加载状态常量 ═══
+        LOAD_STATE: {
+            IDLE: 'idle',
+            LOADING: 'loading',
+            LOADED: 'loaded',
+            ERROR: 'error',
+            MISSING: 'missing'
+        },
+
         // ============================================================
         // ═══ S4 新增方法 ═══
         // ============================================================
@@ -178,7 +187,7 @@
             }
         },
 
-                /**
+        /**
          * S4: 加载单个 Course
          * 路径: content/courses/{courseId}/course.json
          */
@@ -333,6 +342,26 @@
             return lessonIndex.lessons.filter(function(l) {
                 return l.courseId === courseId;
             });
+        },
+
+                /**
+         * ═══ Part 18: 获取 Lesson 标准化状态 ═══
+         */
+        getLessonState: function(lessonId) {
+            var status = this.getLessonLoadStatus(lessonId);
+            if (!status || status.status === 'idle') {
+                return { state: this.LOAD_STATE.IDLE, lessonId: lessonId };
+            }
+            if (status.status === 'loading') {
+                return { state: this.LOAD_STATE.LOADING, lessonId: lessonId };
+            }
+            if (status.status === 'loaded') {
+                return { state: this.LOAD_STATE.LOADED, lessonId: lessonId };
+            }
+            if (status.status === 'error') {
+                return { state: this.LOAD_STATE.ERROR, lessonId: lessonId, error: status.error };
+            }
+            return { state: this.LOAD_STATE.IDLE, lessonId: lessonId };
         },
 
         /**
