@@ -31,7 +31,7 @@
          */
         _ensureS4ContentLoaded: function() {
             var registry = window.LawAIApp?.CourseRegistry;
-            if (registry ?. typeof registry.loadFromS4 === 'function' ?. !registry._s4Loaded) {
+            if (registry && typeof registry.loadFromS4 === 'function' && !registry._s4Loaded) {
                 console.log('[AcademyView] 🔄 Loading S4 content...');
                 return registry.loadFromS4().catch(function(err) {
                     console.warn('[AcademyView] S4 load failed, continuing with legacy content:', err);
