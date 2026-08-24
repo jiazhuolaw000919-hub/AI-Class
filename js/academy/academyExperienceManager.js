@@ -1142,6 +1142,83 @@
         },
 
         /**
+         * ═══ Part 32: 准备 Lesson Experience View Model ═══
+         * 组装完整的 Lesson 体验数据（含所有资产）
+         */
+        async prepareLessonExperience(lessonId) {
+            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+
+            // 1. 获取 Lesson 元数据
+            var lessonMeta = loader ? await loader.getLessonManifest(lessonId) : null;
+            if (!lessonMeta) {
+                return {
+                    lesson: null,
+                    intro: null,
+                    objectives: [],
+                    content: null,
+                    video: null,
+                    notes: null,
+                    flashcards: [],
+                    practice: null,
+                    ai: null,
+                    summary: null,
+                    reflection: null,
+                    isCompleted: false,
+                    progress: 0
+                };
+            }
+
+            // 2. 获取完整 Lesson 内容
+            var fullLesson = null;
+            if (loader && typeof loader.loadLesson === 'function') {
+                // 尝试从缓存或加载获取完整内容
+                var courseId = lessonMeta.courseId;
+                var subjectId = lessonMeta.subjectId;
+                fullLesson = await loader.loadLesson(courseId, subjectId, lessonId);
+            }
+
+            // 3. 获取进度
+            var isCompleted = false;
+            var progress = 0;
+            if (adapter) {
+                var state = adapter.getState ? adapter.getState() : null;
+                if (state) {
+                    // 从 state 中获取进度
+                    var lessonProgress = state.lessonProgress ? state.lessonProgress[lessonId] : null;
+                    if (lessonProgress) {
+                        progress = lessonProgress.progress || 0;
+                        isCompleted = lessonProgress.completed || false;
+                    }
+                }
+            }
+
+            // 4. 组装 View Model
+            return {
+                lesson: fullLesson || lessonMeta,
+                intro: fullLesson?.intro || null,
+                objectives: fullLesson?.learningObjectives || lessonMeta?.objectives || [],
+                content: fullLesson?.content || null,
+                video: fullLesson?.video || null,
+                notes: fullLesson?.notes || null,
+                flashcards: fullLesson?.flashcards || [],
+                practice: fullLesson?.practice || null,
+                ai: fullLesson?.aiTools || null,
+                summary: fullLesson?.summary || null,
+                reflection: fullLesson?.reflection || null,
+                isCompleted: isCompleted,
+                progress: progress,
+                // 资产存在性标记（供 UI 快速判断）
+                hasVideo: !!(fullLesson?.video?.url),
+                hasNotes: !!(fullLesson?.notes?.keyPoints?.length),
+                hasFlashcards: !!(fullLesson?.flashcards?.length),
+                hasPractice: !!(fullLesson?.practice?.enabled),
+                hasAI: !!(fullLesson?.aiTools?.length),
+                hasSummary: !!(fullLesson?.summary?.keyTakeaways?.length)
+            };
+        },
+
+        /**
          * ═══ Part 29: 准备 Motivation View Model ═══
          */
         _prepareMotivationViewModel: function() {
