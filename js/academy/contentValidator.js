@@ -295,6 +295,76 @@ LawAIApp.ContentValidator = {
         };
     },
 
+            /**
+         * ═══ Part 26: 验证 Lesson 体验完整性 ═══
+         * 检查 Lesson 是否包含足够的学习体验元素
+         * 仅警告，不阻断（因为不是所有 Lesson 都需要所有元素）
+         */
+        validateLessonExperience: function(lesson) {
+            var warnings = [];
+            var info = [];
+
+            if (!lesson.estimatedMinutes && lesson.estimatedMinutes !== 0) {
+                warnings.push({ field: 'estimatedMinutes', message: 'No estimated time provided' });
+            } else if (lesson.estimatedMinutes < 5) {
+                warnings.push({ field: 'estimatedMinutes', message: 'Very short lesson: ' + lesson.estimatedMinutes + ' min' });
+            }
+
+            if (!lesson.learningObjectives || lesson.learningObjectives.length === 0) {
+                warnings.push({ field: 'learningObjectives', message: 'No learning objectives defined' });
+            }
+
+            if (!lesson.sections || lesson.sections.length === 0) {
+                warnings.push({ field: 'sections', message: 'No content sections found' });
+            }
+
+            if (lesson.video && typeof lesson.video === 'object') {
+                if (!lesson.video.url) {
+                    warnings.push({ field: 'video.url', message: 'Video enabled but URL missing' });
+                } else {
+                    info.push({ field: 'video', message: 'Video content present' });
+                }
+            }
+
+            if (lesson.practice && lesson.practice.enabled) {
+                if (!lesson.practice.items || lesson.practice.items.length === 0) {
+                    warnings.push({ field: 'practice.items', message: 'Practice enabled but no items found' });
+                } else {
+                    info.push({ field: 'practice', message: 'Practice content present (' + lesson.practice.items.length + ' items)' });
+                }
+            }
+
+            if (lesson.flashcards && lesson.flashcards.length > 0) {
+                info.push({ field: 'flashcards', message: 'Flashcards present (' + lesson.flashcards.length + ' cards)' });
+            }
+
+            if (lesson.notes && lesson.notes.keyPoints && lesson.notes.keyPoints.length > 0) {
+                info.push({ field: 'notes', message: 'Notes present (' + lesson.notes.keyPoints.length + ' key points)' });
+            }
+
+            if (lesson.quiz && lesson.quiz.length > 0) {
+                info.push({ field: 'quiz', message: 'Quiz present (' + lesson.quiz.length + ' questions)' });
+            }
+
+            if (lesson.aiTools && lesson.aiTools.length > 0) {
+                info.push({ field: 'aiTools', message: 'AI tools recommended (' + lesson.aiTools.length + ' providers)' });
+            }
+
+            return {
+                lessonId: lesson.id || 'unknown',
+                valid: true, // 不阻断，仅报告
+                warnings: warnings,
+                info: info,
+                hasVideo: !!(lesson.video && lesson.video.url),
+                hasPractice: !!(lesson.practice && lesson.practice.enabled && lesson.practice.items && lesson.practice.items.length > 0),
+                hasFlashcards: !!(lesson.flashcards && lesson.flashcards.length > 0),
+                hasNotes: !!(lesson.notes && lesson.notes.keyPoints && lesson.notes.keyPoints.length > 0),
+                hasQuiz: !!(lesson.quiz && lesson.quiz.length > 0),
+                hasAITools: !!(lesson.aiTools && lesson.aiTools.length > 0),
+                hasSections: !!(lesson.sections && lesson.sections.length > 0)
+            };
+        },
+
     // ============================================================
     // ═══ Part 9: 验证完整层级（Course → Subject → Lesson） ═══
     // ============================================================
