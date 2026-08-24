@@ -128,6 +128,17 @@ window.App = {
         }
     },
 
+        // ═══ S4 Part 10: 启动缓存清理定时器（新增） ═══
+        this._startCacheCleanup();
+
+        // ════════════════════════════════════════════════════════════
+        // ═══ Part 33: 初始化 Practice 模块 ═══
+        // ════════════════════════════════════════════════════════════
+        this._initPracticeModules();
+
+        this._renderImmediately();
+        this._setupComposerListener();
+
     _renderImmediately: function() {
         if (this._renderAttempted) return;
         this._renderAttempted = true;
@@ -263,6 +274,52 @@ window.App = {
         }, 300000); // 5 分钟
 
         console.log('[App] 🧹 Cache cleanup timer started (every 5 minutes)');
+    },
+
+        // ═══ S4 Part 10: 启动缓存清理定时器 ═══
+    _startCacheCleanup: function() {
+        // ... 现有代码 ...
+    },
+
+    // ════════════════════════════════════════════════════════════
+    // ═══ Part 33: 初始化 Practice 模块 ═══
+    // ════════════════════════════════════════════════════════════
+    _initPracticeModules: function() {
+        // 检查 PracticeEngine 是否已加载
+        var engine = window.LawAIApp?.PracticeEngine;
+        if (engine && typeof engine.init === 'function') {
+            engine.init();
+            console.log('[App] ✅ PracticeEngine initialized');
+        } else {
+            console.log('[App] ⚠️ PracticeEngine not available yet, will retry...');
+            // 如果还没加载，延迟重试
+            setTimeout(function() {
+                var engine2 = window.LawAIApp?.PracticeEngine;
+                if (engine2 && typeof engine2.init === 'function') {
+                    engine2.init();
+                    console.log('[App] ✅ PracticeEngine initialized (delayed)');
+                }
+            }, 1000);
+        }
+
+        // 检查 PracticeModule
+        var module = window.LawAIApp?.PracticeModule;
+        if (module) {
+            console.log('[App] ✅ PracticeModule available');
+        }
+
+        // 检查 PracticeProgress
+        var progress = window.LawAIApp?.PracticeProgress;
+        if (progress) {
+            console.log('[App] ✅ PracticeProgress available');
+        }
+    },
+
+    // ============================================================
+    // 3. Runtime Health
+    // ============================================================
+    getHealth: function() {
+        // ... 现有代码 ...
     },
 
     // ============================================================
