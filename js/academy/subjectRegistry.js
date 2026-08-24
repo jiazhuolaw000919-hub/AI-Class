@@ -133,7 +133,7 @@
             }
             return subjects;
         }
-
+        
         /**
          * ═══ Part 17: 检查 Subject 是否存在 ═══
          */
@@ -155,6 +155,24 @@
         getSubjectsByStatus(status) {
             return this.getAllSubjects().filter(s => s.status === status);
         }
+
+        /**
+         * ═══ Part 19: 获取 Subject 摘要（轻量级） ═══
+         */
+        getSubjectSummary: function(subjectId) {
+            var subject = this.getSubject(subjectId);
+            if (!subject) return null;
+            
+            return {
+                id: subject.id,
+                title: subject.title,
+                courseId: subject.courseId,
+                description: subject.description,
+                difficulty: subject.difficulty,
+                lessonCount: subject.lessons ? subject.lessons.length : 0,
+                status: subject.status
+            };
+        },
 
         /**
          * 从 S4 ContentLoader 同步 Subjects
