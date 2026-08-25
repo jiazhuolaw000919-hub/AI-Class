@@ -30,6 +30,11 @@
 //   generateInteractivePractice(lessonTitle, type) -> Practice object
 //   checkAnswer(practice, selectedIndex)        -> Result object
 //   getStatus()                                 -> Status object
+//   getPracticeDiagnostics()                    -> Diagnostics object
+//   loadPracticeFromLesson(lessonId)            -> Promise<Array>
+//   startS4Practice(lessonId, type)             -> Promise<Practice>
+//   submitS4Answer(practice, userAnswer, index) -> Result object
+//   getS4PracticeStatus(practice)               -> Status object
 //
 // PRACTICE TYPES
 // ================================================================
@@ -84,7 +89,7 @@ LawAIApp.PracticeEngine = (function() {
     var _history = [];
 
     // ===========================================
-    // 生成练习
+    // 生成练习（内部函数）
     // ===========================================
     function generatePractice(lessonId, type) {
         type = type || 'mini_exercise';
@@ -99,8 +104,8 @@ LawAIApp.PracticeEngine = (function() {
             }
         } catch (e) {}
 
-        var title = lesson?.title || lessonId || 'Lesson';
-        var category = lesson?.category || 'General';
+        var title = (lesson && lesson.title) || lessonId || 'Lesson';
+        var category = (lesson && lesson.category) || 'General';
 
         var practiceTypes = {
             'mini_exercise': 'Practice: Summarize the key point of "' + title + '" in one sentence.',
@@ -113,193 +118,6 @@ LawAIApp.PracticeEngine = (function() {
 
         var description = practiceTypes[type] || practiceTypes['mini_exercise'];
         var isMultipleChoice = (type === 'multiple_choice');
-
-            // ============================================================
-    // ═══ S4 集成方法 (Part 33) ═══
-    // ============================================================
-
-    /**
-     * 从 S4 Lesson 加载 Practice 问题
-     * @param {string} lessonId - S4 Lesson ID
-     * @returns {Promise<Array>} Practice 问题列表
-     */
-    async loadPracticeFromLesson(lessonId) {
-        var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
-        if (!loader) {
-            console.warn('[PracticeEngine] ContentLoader not available');
-            return [];
-        }
-
-        try {
-            var practiceData = await loader.getPracticeQuestions(lessonId);
-            if (practiceData && practiceData.enabled) {
-                return practiceData.questions || [];
-            }
-            return [];
-        } catch (e) {
-            console.warn('[PracticeEngine] Failed to load practice from lesson:', lessonId, e);
-            return [];
-        }
-    },
-
-    /**
-     * 开始 S4 Lesson 的 Practice 会话
-     * @param {string} lessonId - S4 Lesson ID
-     * @param {string} type - Practice 类型
-     * @returns {Promise<Object>} Practice 会话对象
-     */
-    startS4Practice: async function(lessonId, type) {
-        type = type || 'mixed';
-        var questions = await this.loadPracticeFromLesson(lessonId);
-        
-        if (!questions || questions.length === 0) {
-            // Fallback: 生成默认 Practice
-            return this.startPractice(lessonId, type);
-        }
-
-        var practice = {
-            practiceId: 'practice_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-            lessonId: lessonId,
-            type: type,
-            difficulty: 'mixed',
-            questions: questions,
-            currentQuestionIndex: 0,
-            answers: [],
-            startedAt: new Date().toISOString(),
-            completed: false,
-            score: 0,
-            totalQuestions: questions.length
-        };
-
-        LawAIApp.EventBus?.emit?.('PracticeStarted', { practice: practice });
-        return practice;
-    },
-
-    /**
-     * 提交 S4 Practice 答案
-     * @param {Object} practice - Practice 会话对象
-     * @param {number|string} userAnswer - 用户答案
-     * @param {number} questionIndex - 问题索引
-     * @returns {Object} 反馈结果
-     */
-    submitS4Answer: function(practice, userAnswer, questionIndex) {
-        if (!practice || !practice.questions) {
-            return { correct: false, feedback: 'Practice session invalid.' };
-        }
-
-        var index = questionIndex !== undefined ? questionIndex : practice.currentQuestionIndex;
-        var question = practice.questions[index];
-        if (!question) {
-            return { correct: false, feedback: 'Question not found.' };
-        }
-
-        var isCorrect = false;
-        var explanation = '';
-
-        // 根据问题类型评估
-        if (question.type === 'multiple-choice' || question.type === 'multipleChoice') {
-            var selected = parseInt(userAnswer);
-            isCorrect = (selected === question.answer);
-            explanation = question.explanation || (isCorrect ? 'Correct!' : 'Not quite. Review the explanation.');
-        } else if (question.type === 'short-answer' || question.type === 'shortAnswer') {
-            var userText = String(userAnswer).trim().toLowerCase();
-            var accepted = question.acceptedAnswers || [];
-            var exactMatch = (userText === String(question.answer || '').trim().toLowerCase());
-            var acceptedMatch = accepted.some(function(a) {
-                return userText === String(a).trim().toLowerCase();
-            });
-            isCorrect = exactMatch || acceptedMatch || userText.length > 10;
-            explanation = question.explanation || (isCorrect ? 'Good answer!' : 'Review the concept and try again.');
-        } else {
-            // Fallback: 默认通过
-            isCorrect = true;
-            explanation = 'Practice recorded.';
-        }
-
-        // 记录答案
-        if (!practice.answers) practice.answers = [];
-        practice.answers[index] = {
-            questionId: question.id,
-            userAnswer: userAnswer,
-            correct: isCorrect,
-            timestamp: new Date().toISOString()
-        };
-
-        // 更新分数
-        var correctCount = 0;
-        for (var i = 0; i < practice.answers.length; i++) {
-            if (practice.answers[i] && practice.answers[i].correct) correctCount++;
-        }
-        practice.score = correctCount;
-        practice.currentQuestionIndex = index + 1;
-
-        // 检查是否完成
-        if (practice.currentQuestionIndex >= practice.totalQuestions) {
-            practice.completed = true;
-            practice.completedAt = new Date().toISOString();
-            LawAIApp.EventBus?.emit?.('PracticeCompleted', {
-                practice: practice,
-                score: practice.score,
-                total: practice.totalQuestions
-            });
-        }
-
-        return {
-            correct: isCorrect,
-            explanation: explanation,
-            isComplete: practice.completed,
-            score: practice.score,
-            total: practice.totalQuestions,
-            nextIndex: practice.currentQuestionIndex
-        };
-    },
-
-    /**
-     * 获取 S4 Practice 状态
-     * @param {Object} practice - Practice 会话对象
-     * @returns {Object} 状态信息
-     */
-    getS4PracticeStatus: function(practice) {
-        if (!practice) {
-            return { exists: false, progress: 0, completed: false };
-        }
-        return {
-            exists: true,
-            progress: practice.totalQuestions > 0 ? 
-                Math.round((practice.currentQuestionIndex / practice.totalQuestions) * 100) : 0,
-            completed: practice.completed || false,
-            score: practice.score || 0,
-            total: practice.totalQuestions || 0,
-            currentIndex: practice.currentQuestionIndex || 0
-        };
-    },
-
-    /**
-     * 获取 Practice 诊断信息
-     */
-    getPracticeDiagnostics: function() {
-        var history = this.getAllHistory();
-        var total = history.length;
-        var correct = 0;
-        var byType = {};
-
-        for (var i = 0; i < history.length; i++) {
-            var record = history[i];
-            if (record.correct) correct++;
-            var type = record.type || 'unknown';
-            if (!byType[type]) byType[type] = { total: 0, correct: 0 };
-            byType[type].total++;
-            if (record.correct) byType[type].correct++;
-        }
-
-        return {
-            totalPractices: total,
-            correctPractices: correct,
-            accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
-            byType: byType,
-            recent: history.slice(-5).reverse()
-        };
-    }
 
         return {
             practiceId: 'practice_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
@@ -326,7 +144,10 @@ LawAIApp.PracticeEngine = (function() {
     function startPractice(lessonId, type) {
         var practice = generatePractice(lessonId, type);
         if (practice) {
-            LawAIApp.EventBus?.emit?.('PracticeStarted', { practice: practice });
+            var eventBus = window.LawAIApp && window.LawAIApp.EventBus;
+            if (eventBus && typeof eventBus.emit === 'function') {
+                eventBus.emit('PracticeStarted', { practice: practice });
+            }
         }
         return practice;
     }
@@ -364,11 +185,12 @@ LawAIApp.PracticeEngine = (function() {
         };
         _history.push(record);
         
-        // 保存到存储
         try {
-            var stored = LawAIApp.StorageEngine?.get?.('practice_history') || [];
+            var stored = window.LawAIApp && LawAIApp.StorageEngine && LawAIApp.StorageEngine.get('practice_history') || [];
             stored.push(record);
-            LawAIApp.StorageEngine?.set?.('practice_history', stored);
+            if (window.LawAIApp && LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.set === 'function') {
+                LawAIApp.StorageEngine.set('practice_history', stored);
+            }
         } catch (e) {}
 
         // 更新技能掌握度
@@ -381,7 +203,6 @@ LawAIApp.PracticeEngine = (function() {
                     if (lesson && lesson.category) skillName = lesson.category;
                 }
             }
-            // 更新 MasteryEngine（如果存在）
             if (LawAIApp.MasteryEngine && typeof LawAIApp.MasteryEngine.updateSkill === 'function') {
                 var progressGain = isCorrect ? 10 : 3;
                 var confidenceGain = isCorrect ? 15 : 5;
@@ -389,7 +210,10 @@ LawAIApp.PracticeEngine = (function() {
             }
         } catch (e) {}
 
-        LawAIApp.EventBus?.emit?.('PracticeCompleted', { practice: practice, feedback: feedback, correct: isCorrect });
+        var eventBus = window.LawAIApp && window.LawAIApp.EventBus;
+        if (eventBus && typeof eventBus.emit === 'function') {
+            eventBus.emit('PracticeCompleted', { practice: practice, feedback: feedback, correct: isCorrect });
+        }
         return { correct: isCorrect, feedback: feedback };
     }
 
@@ -409,7 +233,7 @@ LawAIApp.PracticeEngine = (function() {
 
     function getHistoryByLesson(lessonId) {
         try {
-            var stored = LawAIApp.StorageEngine?.get?.('practice_history') || [];
+            var stored = window.LawAIApp && LawAIApp.StorageEngine && LawAIApp.StorageEngine.get('practice_history') || [];
             return stored.filter(function(r) { return r.lessonId === lessonId; });
         } catch (e) {
             return [];
@@ -419,7 +243,7 @@ LawAIApp.PracticeEngine = (function() {
     function getRecent(limit) {
         limit = limit || 10;
         try {
-            var stored = LawAIApp.StorageEngine?.get?.('practice_history') || [];
+            var stored = window.LawAIApp && LawAIApp.StorageEngine && LawAIApp.StorageEngine.get('practice_history') || [];
             return stored.slice(-limit).reverse();
         } catch (e) {
             return _history.slice(-limit).reverse();
@@ -428,7 +252,7 @@ LawAIApp.PracticeEngine = (function() {
 
     function getAllHistory() {
         try {
-            return LawAIApp.StorageEngine?.get?.('practice_history') || _history;
+            return window.LawAIApp && LawAIApp.StorageEngine && LawAIApp.StorageEngine.get('practice_history') || _history;
         } catch (e) {
             return _history;
         }
@@ -479,6 +303,33 @@ LawAIApp.PracticeEngine = (function() {
     }
 
     // ===========================================
+    // 诊断
+    // ===========================================
+    function getPracticeDiagnostics() {
+        var history = getAllHistory();
+        var total = history.length;
+        var correct = 0;
+        var byType = {};
+
+        for (var i = 0; i < history.length; i++) {
+            var record = history[i];
+            if (record.correct) correct++;
+            var type = record.type || 'unknown';
+            if (!byType[type]) byType[type] = { total: 0, correct: 0 };
+            byType[type].total++;
+            if (record.correct) byType[type].correct++;
+        }
+
+        return {
+            totalPractices: total,
+            correctPractices: correct,
+            accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
+            byType: byType,
+            recent: history.slice(-5).reverse()
+        };
+    }
+
+    // ===========================================
     // ENGINE STATUS
     // ===========================================
     function getStatus() {
@@ -498,8 +349,180 @@ LawAIApp.PracticeEngine = (function() {
             totalPractices: totalPractices,
             correctPractices: correctPractices,
             accuracy: totalPractices > 0 ? Math.round((correctPractices / totalPractices) * 100) : 0,
-            storageAvailable: !!(LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.get === 'function'),
-            eventBusAvailable: !!(LawAIApp.EventBus && typeof LawAIApp.EventBus.emit === 'function')
+            storageAvailable: !!(window.LawAIApp && LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.get === 'function'),
+            eventBusAvailable: !!(window.LawAIApp && LawAIApp.EventBus && typeof LawAIApp.EventBus.emit === 'function')
+        };
+    }
+
+    // ===========================================
+    // ═══ S4 集成方法 (Part 33) ═══
+    // ===========================================
+
+    /**
+     * 从 S4 Lesson 加载 Practice 问题
+     * @param {string} lessonId - S4 Lesson ID
+     * @returns {Promise<Array>} Practice 问题列表
+     */
+    function loadPracticeFromLesson(lessonId) {
+        return new Promise(function(resolve) {
+            var loader = window.LawAIApp && (window.LawAIApp.S4ContentLoader || window.LawAIApp.ContentLoader);
+            if (!loader) {
+                console.warn('[PracticeEngine] ContentLoader not available');
+                resolve([]);
+                return;
+            }
+            try {
+                var result = loader.getPracticeQuestions(lessonId);
+                if (result && typeof result.then === 'function') {
+                    result.then(function(practiceData) {
+                        if (practiceData && practiceData.enabled) {
+                            resolve(practiceData.questions || []);
+                        } else {
+                            resolve([]);
+                        }
+                    }).catch(function(e) {
+                        console.warn('[PracticeEngine] Failed to load practice from lesson:', lessonId, e);
+                        resolve([]);
+                    });
+                } else {
+                    resolve([]);
+                }
+            } catch (e) {
+                console.warn('[PracticeEngine] Error loading practice from lesson:', lessonId, e);
+                resolve([]);
+            }
+        });
+    }
+
+    /**
+     * 开始 S4 Lesson 的 Practice 会话
+     * @param {string} lessonId - S4 Lesson ID
+     * @param {string} type - Practice 类型
+     * @returns {Promise<Object>} Practice 会话对象
+     */
+    function startS4Practice(lessonId, type) {
+        type = type || 'mixed';
+        return loadPracticeFromLesson(lessonId).then(function(questions) {
+            if (!questions || questions.length === 0) {
+                return startPractice(lessonId, type);
+            }
+
+            var practice = {
+                practiceId: 'practice_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                lessonId: lessonId,
+                type: type,
+                difficulty: 'mixed',
+                questions: questions,
+                currentQuestionIndex: 0,
+                answers: [],
+                startedAt: new Date().toISOString(),
+                completed: false,
+                score: 0,
+                totalQuestions: questions.length
+            };
+
+            var eventBus = window.LawAIApp && window.LawAIApp.EventBus;
+            if (eventBus && typeof eventBus.emit === 'function') {
+                eventBus.emit('PracticeStarted', { practice: practice });
+            }
+            return practice;
+        });
+    }
+
+    /**
+     * 提交 S4 Practice 答案
+     * @param {Object} practice - Practice 会话对象
+     * @param {number|string} userAnswer - 用户答案
+     * @param {number} questionIndex - 问题索引
+     * @returns {Object} 反馈结果
+     */
+    function submitS4Answer(practice, userAnswer, questionIndex) {
+        if (!practice || !practice.questions) {
+            return { correct: false, feedback: 'Practice session invalid.' };
+        }
+
+        var index = questionIndex !== undefined ? questionIndex : practice.currentQuestionIndex;
+        var question = practice.questions[index];
+        if (!question) {
+            return { correct: false, feedback: 'Question not found.' };
+        }
+
+        var isCorrect = false;
+        var explanation = '';
+
+        if (question.type === 'multiple-choice' || question.type === 'multipleChoice') {
+            var selected = parseInt(userAnswer);
+            isCorrect = (selected === question.answer);
+            explanation = question.explanation || (isCorrect ? 'Correct!' : 'Not quite. Review the explanation.');
+        } else if (question.type === 'short-answer' || question.type === 'shortAnswer') {
+            var userText = String(userAnswer).trim().toLowerCase();
+            var accepted = question.acceptedAnswers || [];
+            var exactMatch = (userText === String(question.answer || '').trim().toLowerCase());
+            var acceptedMatch = accepted.some(function(a) {
+                return userText === String(a).trim().toLowerCase();
+            });
+            isCorrect = exactMatch || acceptedMatch || userText.length > 10;
+            explanation = question.explanation || (isCorrect ? 'Good answer!' : 'Review the concept and try again.');
+        } else {
+            isCorrect = true;
+            explanation = 'Practice recorded.';
+        }
+
+        if (!practice.answers) practice.answers = [];
+        practice.answers[index] = {
+            questionId: question.id,
+            userAnswer: userAnswer,
+            correct: isCorrect,
+            timestamp: new Date().toISOString()
+        };
+
+        var correctCount = 0;
+        for (var i = 0; i < practice.answers.length; i++) {
+            if (practice.answers[i] && practice.answers[i].correct) correctCount++;
+        }
+        practice.score = correctCount;
+        practice.currentQuestionIndex = index + 1;
+
+        if (practice.currentQuestionIndex >= practice.totalQuestions) {
+            practice.completed = true;
+            practice.completedAt = new Date().toISOString();
+            var eventBus = window.LawAIApp && window.LawAIApp.EventBus;
+            if (eventBus && typeof eventBus.emit === 'function') {
+                eventBus.emit('PracticeCompleted', {
+                    practice: practice,
+                    score: practice.score,
+                    total: practice.totalQuestions
+                });
+            }
+        }
+
+        return {
+            correct: isCorrect,
+            explanation: explanation,
+            isComplete: practice.completed,
+            score: practice.score,
+            total: practice.totalQuestions,
+            nextIndex: practice.currentQuestionIndex
+        };
+    }
+
+    /**
+     * 获取 S4 Practice 状态
+     * @param {Object} practice - Practice 会话对象
+     * @returns {Object} 状态信息
+     */
+    function getS4PracticeStatus(practice) {
+        if (!practice) {
+            return { exists: false, progress: 0, completed: false };
+        }
+        return {
+            exists: true,
+            progress: practice.totalQuestions > 0 ? 
+                Math.round((practice.currentQuestionIndex / practice.totalQuestions) * 100) : 0,
+            completed: practice.completed || false,
+            score: practice.score || 0,
+            total: practice.totalQuestions || 0,
+            currentIndex: practice.currentQuestionIndex || 0
         };
     }
 
@@ -512,20 +535,31 @@ LawAIApp.PracticeEngine = (function() {
         console.log('✏️ PracticeEngine initialized');
     }
 
+    // 延迟初始化
     setTimeout(init, 300);
 
+    // ===========================================
+    // PUBLIC API
+    // ===========================================
     return {
         init: init,
         startPractice: startPractice,
         completePractice: completePractice,
         getRecommendedType: getRecommendedType,
-        getMastery: getMastery,
+        getHistoryByLesson: getHistoryByLesson,
         getRecent: getRecent,
         getHistory: getAllHistory,
-        getHistoryByLesson: getHistoryByLesson,
+        getAllHistory: getAllHistory,
+        getMastery: getMastery,
         generateInteractivePractice: generateInteractivePractice,
         checkAnswer: checkAnswer,
-        getStatus: getStatus
+        getStatus: getStatus,
+        getPracticeDiagnostics: getPracticeDiagnostics,
+        // S4 方法
+        loadPracticeFromLesson: loadPracticeFromLesson,
+        startS4Practice: startS4Practice,
+        submitS4Answer: submitS4Answer,
+        getS4PracticeStatus: getS4PracticeStatus
     };
 })();
 
