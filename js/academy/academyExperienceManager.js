@@ -1294,7 +1294,7 @@
                     nextLevelXp: 0,
                     xpProgress: 0
                 };
-            }
+            },
 
             var motivation = adapter.getLearningMotivation ? adapter.getLearningMotivation() : null;
             if (!motivation) {
@@ -1307,7 +1307,7 @@
                     nextLevelXp: 0,
                     xpProgress: 0
                 };
-            }
+            },
 
             return {
                 xp: motivation.xp || 0,
