@@ -277,7 +277,7 @@ function __safeCall(path) {
             html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">`;
 
             schools.forEach(function(school) {
-                var progCount = school.programs?.length || 0;
+                var progCount = (school.programs && school.programs.length) || 0;
                 html += `
                     <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
                          onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.navigateToSchool', '${school.id}')"
@@ -912,7 +912,7 @@ function __safeCall(path) {
                     <div style="display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
                         <span style="color: ${levelColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${levelEmoji} ${levelLabel.charAt(0).toUpperCase() + levelLabel.slice(1)}</span>
                         <span style="color: ${statusColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)}</span>
-                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${program.modules?.length || 0} modules</span>
+                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${(program.modules && program.modules.length) || 0} modules</span>
                     </div>
             `;
 
@@ -935,7 +935,7 @@ function __safeCall(path) {
                                     <p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px 0;">${course.description || ''}</p>
                                     <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                                         <span style="color: ${courseStatusColor}; font-size: 11px; background: rgba(255,255,255,0.06); padding: 2px 10px; border-radius: 12px;">${courseStatus}</span>
-                                        <span style="color: #64748b; font-size: 11px;">${course.modules?.length || 0} modules</span>
+                                        <span style="color: #64748b; font-size: 11px;">${(course.modules && course.modules.length) || 0} modules</span>
                                     </div>
                                 </div>
                                 <span style="color: #4a9eff; font-size: 16px;">→</span>
@@ -1375,7 +1375,7 @@ function __safeCall(path) {
             }
 
             // 获取 CourseId (从 module 或 state)
-            var courseId = module.courseId || module.programId || state?.currentCourseId || '';
+            var courseId = module.courseId || module.programId || (state && state.currentCourseId) || '';
 
             var html = '';
 
@@ -1612,7 +1612,7 @@ function __safeCall(path) {
             }
 
             // 查找 lesson 所属的 subject（从 SubjectRegistry 获取）
-            var subjectRegistry = window.LawAIApp?.SubjectRegistry;
+            var subjectRegistry = safeGet(window, 'LawAIApp.SubjectRegistry');
             var lessonMeta = null;
 
             if (subjectRegistry) {
@@ -1689,7 +1689,7 @@ function __safeCall(path) {
          * ═══ Part 4: Lesson 加载状态（使用 LoadingStates） ═══
          */
         _renderLessonLoadingState: function() {
-            var loadingStates = window.LawAIApp?.LoadingStates;
+            var loadingStates = safeGet(window, 'LawAIApp.LoadingStates');
             if (loadingStates && typeof loadingStates.showSpinner === 'function') {
                 // 创建一个临时容器获取 HTML
                 var temp = document.createElement('div');
@@ -1989,7 +1989,7 @@ function __safeCall(path) {
             var viewChangedHandler = function(e) {
                 var data = e.detail || {};
                 console.log('[AcademyView] 📡 ACADEMY_VIEW_CHANGED received:', data);
-                var manager = window.LawAIApp?.AcademyExperienceManager;
+                var manager = safeGet(window, 'LawAIApp.AcademyExperienceManager');
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
