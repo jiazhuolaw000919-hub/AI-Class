@@ -3,6 +3,31 @@
 // 渲染优先：立即显示 Dashboard，不等待任何引擎初始化完成
 // ================================================================
 
+// ============================================================
+// 🔥 安全访问辅助函数（与 academyView.js 保持一致）
+// ============================================================
+
+/**
+ * 安全获取对象属性（替代 ?.）
+ * @param {Object} obj - 目标对象
+ * @param {string} path - 属性路径，用 '.' 分隔
+ * @returns {*} 属性值或 undefined
+ */
+function safeGet(obj, path) {
+    if (!obj || typeof obj !== 'object') {
+        return undefined;
+    }
+    var parts = path.split('.');
+    var current = obj;
+    for (var i = 0; i < parts.length; i++) {
+        if (current == null || typeof current !== 'object') {
+            return undefined;
+        }
+        current = current[parts[i]];
+    }
+    return current;
+}
+
 window.LawAIApp = window.LawAIApp || {};
 
 // ============================================================
@@ -99,7 +124,7 @@ window.App = {
         // ════════════════════════════════════════════════════════════
         // ═══ S4 Part 10: 初始化 ContentLoader（新增） ═══
         // ════════════════════════════════════════════════════════════
-        var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+        var loader = safeGet(window, 'LawAIApp.S4ContentLoader') || safeGet(window, 'LawAIApp.ContentLoader');
         if (loader && typeof loader.loadCourseIndex === 'function') {
             console.log('[App] 📚 Preloading Content Index...');
             loader.loadCourseIndex().then(function(index) {
@@ -113,6 +138,11 @@ window.App = {
 
         // ═══ S4 Part 10: 启动缓存清理定时器（新增） ═══
         this._startCacheCleanup();
+
+        // ════════════════════════════════════════════════════════════
+        // ═══ Part 33: 初始化 Practice 模块 ═══
+        // ════════════════════════════════════════════════════════════
+        this._initPracticeModules();
 
         this._renderImmediately();
         this._setupComposerListener();
@@ -131,17 +161,6 @@ window.App = {
         }
     },
 
-        // ═══ S4 Part 10: 启动缓存清理定时器（新增） ═══
-        this._startCacheCleanup();
-
-        // ════════════════════════════════════════════════════════════
-        // ═══ Part 33: 初始化 Practice 模块 ═══
-        // ════════════════════════════════════════════════════════════
-        this._initPracticeModules();
-
-        this._renderImmediately();
-        this._setupComposerListener();
-
     _renderImmediately: function() {
         if (this._renderAttempted) return;
         this._renderAttempted = true;
@@ -158,7 +177,7 @@ window.App = {
             LawAIApp.DevTools.RuntimeProfiler.recordRender('dashboard');
         }
 
-        var composer = window.LawAIApp?.SystemComposer;
+        var composer = safeGet(window, 'LawAIApp.SystemComposer');
 
         if (composer && typeof composer.init === 'function') {
             try {
@@ -206,7 +225,7 @@ window.App = {
         `;
 
         setTimeout(function() {
-            var composer = window.LawAIApp?.SystemComposer;
+            var composer = safeGet(window, 'LawAIApp.SystemComposer');
             if (composer && typeof composer.init === 'function') {
                 try {
                     composer.init(this._boot);
@@ -263,7 +282,7 @@ window.App = {
 
         // 每 5 分钟清理一次旧缓存（最多保留 50 条，10 分钟以上过期）
         this._cacheCleanupTimer = setInterval(function() {
-            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            var loader = safeGet(window, 'LawAIApp.S4ContentLoader') || safeGet(window, 'LawAIApp.ContentLoader');
             if (loader && typeof loader.evictOldCache === 'function') {
                 try {
                     var result = loader.evictOldCache(50, 600000);
@@ -279,17 +298,12 @@ window.App = {
         console.log('[App] 🧹 Cache cleanup timer started (every 5 minutes)');
     },
 
-        // ═══ S4 Part 10: 启动缓存清理定时器 ═══
-    _startCacheCleanup: function() {
-        // ... 现有代码 ...
-    },
-
     // ════════════════════════════════════════════════════════════
     // ═══ Part 33: 初始化 Practice 模块 ═══
     // ════════════════════════════════════════════════════════════
     _initPracticeModules: function() {
         // 检查 PracticeEngine 是否已加载
-        var engine = window.LawAIApp?.PracticeEngine;
+        var engine = safeGet(window, 'LawAIApp.PracticeEngine');
         if (engine && typeof engine.init === 'function') {
             engine.init();
             console.log('[App] ✅ PracticeEngine initialized');
@@ -297,7 +311,7 @@ window.App = {
             console.log('[App] ⚠️ PracticeEngine not available yet, will retry...');
             // 如果还没加载，延迟重试
             setTimeout(function() {
-                var engine2 = window.LawAIApp?.PracticeEngine;
+                var engine2 = safeGet(window, 'LawAIApp.PracticeEngine');
                 if (engine2 && typeof engine2.init === 'function') {
                     engine2.init();
                     console.log('[App] ✅ PracticeEngine initialized (delayed)');
@@ -306,13 +320,13 @@ window.App = {
         }
 
         // 检查 PracticeModule
-        var module = window.LawAIApp?.PracticeModule;
+        var module = safeGet(window, 'LawAIApp.PracticeModule');
         if (module) {
             console.log('[App] ✅ PracticeModule available');
         }
 
         // 检查 PracticeProgress
-        var progress = window.LawAIApp?.PracticeProgress;
+        var progress = safeGet(window, 'LawAIApp.PracticeProgress');
         if (progress) {
             console.log('[App] ✅ PracticeProgress available');
         }
@@ -321,17 +335,11 @@ window.App = {
     // ============================================================
     // 3. Runtime Health
     // ============================================================
-    getHealth: function() {
-        // ... 现有代码 ...
-    },
-
-    // ============================================================
-    // 3. Runtime Health
-    // ============================================================
 
     getHealth: function() {
-        var composerReady = !!(window.LawAIApp?.SystemComposer?.initialized);
-        var composerMounted = !!(window.LawAIApp?.SystemComposer?._mountedNotified);
+        var composer = safeGet(window, 'LawAIApp.SystemComposer');
+        var composerReady = !!(composer && composer.initialized);
+        var composerMounted = !!(composer && composer._mountedNotified);
 
         return {
             version: this.version,
@@ -410,15 +418,16 @@ window.App = {
         this._state.errors = [];
         this._state.mounted = false;
 
-        if (window.LawAIApp?.SystemComposer) {
+        if (safeGet(window, 'LawAIApp.SystemComposer')) {
+            var composer = safeGet(window, 'LawAIApp.SystemComposer');
             try {
-                if (typeof window.LawAIApp.SystemComposer.recover === 'function') {
-                    window.LawAIApp.SystemComposer.recover();
+                if (typeof composer.recover === 'function') {
+                    composer.recover();
                 } else {
-                    if (typeof window.LawAIApp.SystemComposer.destroy === 'function') {
-                        window.LawAIApp.SystemComposer.destroy();
+                    if (typeof composer.destroy === 'function') {
+                        composer.destroy();
                     }
-                    window.LawAIApp.SystemComposer.init(this._boot);
+                    composer.init(this._boot);
                 }
                 this.markHealthy();
                 console.log("✅ Recovery successful");
@@ -472,7 +481,10 @@ window.App = {
         this._state.mounted = false;
         this._state.retries = 0;
 
-        window.LawAIApp?.SystemComposer?.refresh?.();
+        var composer = safeGet(window, 'LawAIApp.SystemComposer');
+        if (composer && typeof composer.refresh === 'function') {
+            composer.refresh();
+        }
 
         setTimeout(function() {
             if (!this._state.mounted) {
@@ -557,7 +569,8 @@ window.App = {
 
         window.addEventListener('COMPOSER_MOUNTED', this._composerHandler);
 
-        if (window.LawAIApp?.SystemComposer?.initialized) {
+        var composer = safeGet(window, 'LawAIApp.SystemComposer');
+        if (composer && composer.initialized) {
             console.log("✅ SystemComposer already initialized, marking as mounted");
             this._state.mounted = true;
             this.markHealthy();
@@ -598,7 +611,7 @@ window.App = {
         try {
             var event = new CustomEvent(eventName, { detail: data || {} });
             window.dispatchEvent(event);
-            if (window.LawAIApp?.EventBus && typeof window.LawAIApp.EventBus.emit === 'function') {
+            if (safeGet(window, 'LawAIApp.EventBus') && typeof window.LawAIApp.EventBus.emit === 'function') {
                 window.LawAIApp.EventBus.emit(eventName, data);
             }
         } catch (err) {}
@@ -634,7 +647,8 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     setTimeout(function() {
         if (!window.App._state.initialized) {
             console.warn("⚠️ App not initialized after DOM ready, checking for SystemComposer...");
-            if (window.LawAIApp?.SystemComposer?.init) {
+            var composer = safeGet(window, 'LawAIApp.SystemComposer');
+            if (composer && composer.init) {
                 console.log("🔄 Auto-initializing App");
                 window.App.init({ boot: window.LawAIApp.bootStatus || {} });
             }
