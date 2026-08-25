@@ -123,7 +123,7 @@ LawAIApp.PracticeEngine = (function() {
      * @param {string} lessonId - S4 Lesson ID
      * @returns {Promise<Array>} Practice 问题列表
      */
-    loadPracticeFromLesson: async function(lessonId) {
+    async loadPracticeFromLesson(lessonId) {
         var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
         if (!loader) {
             console.warn('[PracticeEngine] ContentLoader not available');
