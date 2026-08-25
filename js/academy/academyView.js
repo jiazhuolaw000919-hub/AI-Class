@@ -2160,25 +2160,23 @@ function __safeCall(path) {
             };
 
             return mapping[internalName] || internalName;
-        }
-};
+        }   // ← 注意：这里没有逗号
+
+}; 
 
 
 // ============================================================
 // Export
 // ============================================================
 
-// ✅ 正确：不存在才创建，存在就保留
 window.LawAIApp = window.LawAIApp || {};
 
-// ✅ 安全挂载 AcademyView
 if (typeof AcademyView !== 'undefined') {
     window.LawAIApp.AcademyView = AcademyView;
     console.log('[AcademyView] ✅ Module loaded successfully');
 } else {
     console.error('[AcademyView] ❌ AcademyView is not defined!');
 
-    // 如果没定义，创建一个空的防止报错
     window.LawAIApp.AcademyView = function() {
         console.warn('[AcademyView] AcademyView is a stub (not fully loaded)');
     };
