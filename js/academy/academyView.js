@@ -2166,3 +2166,4 @@ function __safeCall(path) {
 
 window.LawAIApp = window.LawAIApp || {};
 window.LawAIApp.AcademyView = AcademyView;
+})();
