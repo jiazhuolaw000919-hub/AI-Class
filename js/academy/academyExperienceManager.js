@@ -767,16 +767,28 @@
         _getSchools: function() {
             var registry = window.LawAIApp && window.LawAIApp.SchoolRegistry;
             if (registry) {
-                if (typeof registry.getAllSchools === 'function') return registry.getAllSchools();
-                if (typeof registry.getAll === 'function') return registry.getAll();
+                if (typeof registry.getAllSchools === 'function') {
+                    var schools = registry.getAllSchools();
+                    return schools || [];
+                }
+                if (typeof registry.getAll === 'function') {
+                    var schools = registry.getAll();
+                    return schools || [];
+                }
+        // 如果 registry 有 schools 属性
+                if (registry.schools && Array.isArray(registry.schools)) {
+                    return registry.schools;
+                }
             }
-            return [];
-        },
-
-        _getPrograms: function() {
-            var registry = window.LawAIApp && window.LawAIApp.ProgramRegistry;
-            if (registry) {
-                if (typeof registry.getAllPrograms === 'function') return registry.getAllPrograms();
+            // 尝试从 S4 加载
+            var loader = window.LawAIApp && (window.LawAIApp.S4ContentLoader || window.LawAIApp.ContentLoader);
+            if (loader && typeof loader.getSchools === 'function') {
+                try {
+                    var schools = loader.getSchools();
+                    if (schools && schools.length > 0) {
+                        return schools;
+                    }
+                } catch (e) {}
             }
             return [];
         },
