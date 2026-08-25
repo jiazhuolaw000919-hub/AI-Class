@@ -771,8 +771,6 @@ function __safeCall(pathOrObj) {
                             <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSchool', 'school-ai')" 
                                     style="padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; font-family: inherit;"
                                     onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
-                                Explore Schools →
-                            </button>
                         </div>
                     </div>
                 </div>
