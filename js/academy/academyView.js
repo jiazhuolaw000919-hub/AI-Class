@@ -2126,12 +2126,11 @@
         // ============================================================
         // Export
         // ============================================================
-        if (window.LawAIApp) {
-            window.LawAIApp = {};
-        }
 
+        // ✅ 正确：不存在才创建，存在就保留
+        window.LawAIApp = window.LawAIApp || {};
+
+        // ✅ 挂载 AcademyView
         window.LawAIApp.AcademyView = AcademyView;
 
         console.log('[AcademyView] Module loaded (Part 58.5)');
-
-    })();
