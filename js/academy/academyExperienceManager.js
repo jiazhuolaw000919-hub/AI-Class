@@ -1167,7 +1167,7 @@
                     isCompleted: false,
                     progress: 0
                 };
-            },
+            }
 
             // 2. 获取完整 Lesson 内容
             var fullLesson = null;
@@ -1176,7 +1176,7 @@
                 var courseId = lessonMeta.courseId;
                 var subjectId = lessonMeta.subjectId;
                 fullLesson = await loader.loadLesson(courseId, subjectId, lessonId);
-            },
+            }
 
             // 3. 获取进度
             var isCompleted = false;
@@ -1191,7 +1191,7 @@
                         isCompleted = lessonProgress.completed || false;
                     }
                 }
-            },
+            }
 
             // 4. 组装 View Model
             return {
@@ -1216,7 +1216,7 @@
                 hasAI: !!(fullLesson?.aiTools?.length),
                 hasSummary: !!(fullLesson?.summary?.keyTakeaways?.length)
             };
-        },
+        }
 
         /**
          * ═══ Part 33: 获取 Practice 入口 ═══
@@ -1245,7 +1245,7 @@
                 console.warn('[ExperienceManager] Failed to start practice:', e);
                 return null;
             }
-        },
+        }
 
         /**
          * ═══ Part 33: 提交 Practice 答案 ═══
@@ -1268,7 +1268,7 @@
                 });
             }
             return result;
-        },
+        }
 
         /**
          * ═══ Part 33: 获取 Practice 状态 ═══
@@ -1294,7 +1294,7 @@
                     nextLevelXp: 0,
                     xpProgress: 0
                 };
-            },
+            }
 
             var motivation = adapter.getLearningMotivation ? adapter.getLearningMotivation() : null;
             if (!motivation) {
@@ -1307,7 +1307,7 @@
                     nextLevelXp: 0,
                     xpProgress: 0
                 };
-            },
+            }
 
             return {
                 xp: motivation.xp || 0,
@@ -1318,7 +1318,7 @@
                 nextLevelXp: motivation.nextLevelXp || 0,
                 xpProgress: motivation.xpProgress || 0
             };
-        },
+        }
 
         /**
          * ═══ Part 29: 准备 Continue Learning View Model ═══
@@ -1369,7 +1369,7 @@
                 moduleId: continueData.moduleId || null,
                 hasActiveSession: hasActiveSession
             };
-        },
+        }
 
         /**
          * ═══ Part 29: 准备 Subject View Model（轻量级） ═══
@@ -1418,7 +1418,7 @@
                 isCompleted: isCompleted,
                 currentLessonId: this._state?.currentLessonId || null
             };
-        },
+        }
 
         /**
          * ═══ Part 29: 准备 Dashboard View Model（增强版） ═══
@@ -1440,7 +1440,7 @@
                 hasContinueLearning: continueData.courseId !== null,
                 hasSchools: schools && schools.length > 0
             };
-        },
+        }
 
         /**
          * ═══ Part 30: 验证 View Model 结构完整性 ═══
@@ -1466,7 +1466,7 @@
             }
 
             return true;
-        },
+        }
 
         /**
          * ═══ Part 30: 标准化进度值 ═══
@@ -1478,14 +1478,14 @@
             if (value < 0) return 0;
             if (value > 100) return 100;
             return Math.round(value);
-        },
+        }
 
         /**
          * ═══ Part 30: 标准化布尔值 ═══
          */
         _normalizeBoolean: function(value) {
             return value === true || value === 'true' || value === 1;
-        },
+        }
 
         /**
          * ═══ Part 30: 获取 View Model 状态诊断 ═══
@@ -1539,7 +1539,7 @@
             }
 
             return diagnostics;
-        },
+        }
 
         // ============================================================
         // 6. PRIVATE — Helpers
@@ -1551,7 +1551,7 @@
                 return adapter.getContinueLearning();
             }
             return null;
-        },
+        }
 
         /**
          * 🔥 Part 59.4: 回到 Dashboard
@@ -1573,7 +1573,7 @@
             });
 
             return this;
-        },
+        }
 
         /**
          * ═══ Part 28: 准备 Course View 数据 ═══
@@ -1613,7 +1613,7 @@
                 currentModuleId: currentModuleId,
                 currentLessonId: currentLessonId
             };
-        },
+        }
 
         /**
          * ═══ Part 28: 准备 Module View 数据 ═══
@@ -1644,7 +1644,7 @@
                 isCompleted: progressData.completed || false,
                 currentLessonId: currentLessonId
             };
-        },
+        }
 
         /**
          * ═══ Part 28: 准备 Lesson View 数据 ═══
@@ -1669,7 +1669,7 @@
                 isCompleted: isCompleted,
                 session: session
             };
-        },
+        }
 
         // ============================================================
         // 7. PRIVATE — Events
@@ -1707,7 +1707,7 @@
             });
 
             console.log('[AcademyExperienceManager] ✅ Events bound');
-        },
+        }
 
         // ============================================================
         // 8. PRIVATE — Event Helpers
