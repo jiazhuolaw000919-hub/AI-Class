@@ -1216,7 +1216,7 @@
                 hasAI: !!(fullLesson?.aiTools?.length),
                 hasSummary: !!(fullLesson?.summary?.keyTakeaways?.length)
             };
-        }
+        },
 
         /**
          * ═══ Part 33: 获取 Practice 入口 ═══
@@ -1246,7 +1246,7 @@
                 console.warn('[ExperienceManager] Failed to start practice:', e);
                 return null;
             };
-        }
+        },
 
         /**
          * ═══ Part 33: 提交 Practice 答案 ═══
@@ -1269,7 +1269,7 @@
                 });
             }
             return result;
-        }
+        },
 
         /**
          * ═══ Part 33: 获取 Practice 状态 ═══
@@ -1278,7 +1278,7 @@
             var practiceModule = window.LawAIApp?.PracticeModule;
             if (!practiceModule) return { exists: false, progress: 0, completed: false };
             return practiceModule.getStatus(practice);
-        }
+        },
 
         /**
          * ═══ Part 29: 准备 Motivation View Model ═══
@@ -1295,7 +1295,7 @@
                     nextLevelXp: 0,
                     xpProgress: 0
                 };
-            }
+            },
 
             var motivation = adapter.getLearningMotivation ? adapter.getLearningMotivation() : null;
             if (!motivation) {
