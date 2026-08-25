@@ -10,6 +10,33 @@
         return;
     }
 
+    // ============================================================
+    // 🔥 FALLBACK DATA
+    // ============================================================
+    var FALLBACK_SCHOOLS = [
+        {
+            id: 'school-science',
+            name: 'School of Science',
+            icon: '🔬',
+            description: 'Explore the fundamentals of science and technology',
+            programs: []
+        },
+        {
+            id: 'school-business',
+            name: 'School of Business',
+            icon: '💼',
+            description: 'Master business strategies and leadership',
+            programs: []
+        },
+        {
+            id: 'school-art',
+            name: 'School of Art',
+            icon: '🎨',
+            description: 'Unleash your creativity and artistic expression',
+            programs: []
+        }
+    ];
+
     var AcademyExperienceManager = {
         version: '6.2.1',
         initialized: false,
@@ -23,7 +50,7 @@
             currentModuleId: null,
             currentSubjectId: null,
             currentLessonId: null,
-            viewMode: 'dashboard', // dashboard | school | program | course | course-learning
+            viewMode: 'dashboard',
             sessionStatus: null,
             currentSessionId: null
         },
@@ -115,13 +142,46 @@
 
             var schoolRegistry = window.LawAIApp && window.LawAIApp.SchoolRegistry;
             if (!schoolRegistry) {
-                console.warn('[AcademyExperienceManager] SchoolRegistry not available');
+                console.warn('[AcademyExperienceManager] SchoolRegistry not available, using fallback');
+                // 从 fallback 中查找
+                var fallbackSchool = FALLBACK_SCHOOLS.find(function(s) { return s.id === schoolId; });
+                if (fallbackSchool) {
+                    this._state.currentSchoolId = schoolId;
+                    this._state.currentProgramId = null;
+                    this._state.currentCourseId = null;
+                    this._state.currentModuleId = null;
+                    this._state.currentSubjectId = null;
+                    this._state.currentLessonId = null;
+                    this._state.viewMode = 'school';
+                    this.render();
+                    this._emit('ACADEMY_VIEW_CHANGED', {
+                        viewMode: 'school',
+                        currentSchoolId: schoolId
+                    });
+                }
                 return this;
             }
 
             var school = schoolRegistry.getSchool ? schoolRegistry.getSchool(schoolId) : null;
             if (!school) {
-                console.warn('[AcademyExperienceManager] School not found:', schoolId);
+                // 尝试从 fallback 中查找
+                var fallbackSchool = FALLBACK_SCHOOLS.find(function(s) { return s.id === schoolId; });
+                if (fallbackSchool) {
+                    this._state.currentSchoolId = schoolId;
+                    this._state.currentProgramId = null;
+                    this._state.currentCourseId = null;
+                    this._state.currentModuleId = null;
+                    this._state.currentSubjectId = null;
+                    this._state.currentLessonId = null;
+                    this._state.viewMode = 'school';
+                    this.render();
+                    this._emit('ACADEMY_VIEW_CHANGED', {
+                        viewMode: 'school',
+                        currentSchoolId: schoolId
+                    });
+                } else {
+                    console.warn('[AcademyExperienceManager] School not found:', schoolId);
+                }
                 return this;
             }
 
@@ -220,9 +280,6 @@
             return this;
         },
 
-        /**
-         * 🔥 Part 58.1: 开始学习 Course
-         */
         startCourse: function(courseId) {
             console.log('[AcademyExperienceManager] 🚀 Starting course:', courseId);
 
@@ -263,9 +320,6 @@
             return this;
         },
 
-        /**
-         * 🔥 Part 58.3: 选择 Module
-         */
         selectModule: function(moduleId) {
             console.log('[AcademyExperienceManager] 📍 Selecting module:', moduleId);
 
@@ -308,9 +362,6 @@
             return this;
         },
 
-        /**
-         * 🔥 Part 58.5: 选择 Lesson
-         */
         selectLesson: function(lessonId) {
             console.log('[AcademyExperienceManager] 📍 Selecting lesson:', lessonId);
 
@@ -353,9 +404,6 @@
             return this;
         },
 
-        /**
-         * 🔥 Part 58.6: 开始学习 Lesson
-         */
         startLesson: function(lessonId) {
             console.log('[AcademyExperienceManager] 🚀 Starting lesson:', lessonId);
 
@@ -397,9 +445,6 @@
             return this;
         },
 
-        /**
-         * 🔥 Part 58.6: 结束学习 Session
-         */
         endLessonSession: function() {
             console.log('[AcademyExperienceManager] 🏁 Ending lesson session...');
 
@@ -429,9 +474,6 @@
             return this;
         },
 
-        /**
-         * 🔥 Part 58.5: 导航到 Module (从 Lesson 返回)
-         */
         navigateToModule: function(moduleId) {
             console.log('[AcademyExperienceManager] 📍 Navigating to module:', moduleId);
 
@@ -468,9 +510,6 @@
             return this;
         },
 
-        /**
-         * ═══ Part 12: 导航到 Subject ═══
-         */
         navigateToSubject: function(subjectId) {
             if (!subjectId) {
                 console.warn('[AcademyExperienceManager] navigateToSubject: subjectId required');
@@ -533,10 +572,6 @@
             };
         },
 
-        /**
-         * 🔥 Part 59.4: 获取当前学习上下文
-         * @returns {Object} 当前上下文
-         */
         getCurrentLearningContext: function() {
             return {
                 schoolId: this._state.currentSchoolId,
@@ -549,9 +584,6 @@
             };
         },
 
-        /**
-         * 🔥 Part 59.4: 回到 Dashboard
-         */
         goHome: function() {
             console.log('[AcademyExperienceManager] 🏠 Going home...');
 
@@ -571,9 +603,6 @@
             return this;
         },
 
-        /**
-         * ═══ Part 32: 准备 Lesson Experience View Model ═══
-         */
         prepareLessonExperience: async function(lessonId) {
             var loader = window.LawAIApp && (window.LawAIApp.S4ContentLoader || window.LawAIApp.ContentLoader);
             var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
@@ -648,9 +677,6 @@
             };
         },
 
-        /**
-         * ═══ Part 33: 获取 Practice 入口 ═══
-         */
         startPractice: async function(lessonId, type) {
             var practiceModule = window.LawAIApp && window.LawAIApp.PracticeModule;
             if (!practiceModule) {
@@ -674,9 +700,6 @@
             }
         },
 
-        /**
-         * ═══ Part 33: 提交 Practice 答案 ═══
-         */
         submitPracticeAnswer: function(practice, userAnswer, questionIndex) {
             var practiceModule = window.LawAIApp && window.LawAIApp.PracticeModule;
             if (!practiceModule) {
@@ -697,9 +720,6 @@
             return result;
         },
 
-        /**
-         * ═══ Part 33: 获取 Practice 状态 ═══
-         */
         getPracticeStatus: function(practice) {
             var practiceModule = window.LawAIApp && window.LawAIApp.PracticeModule;
             if (!practiceModule) {
@@ -741,6 +761,31 @@
                 curriculumRegistry.init();
             }
 
+            // 🔥 确保 SchoolRegistry 有数据
+            var existingSchools = this._getSchools();
+            if (!existingSchools || existingSchools.length === 0) {
+                console.warn('[AcademyExperienceManager] No schools found, using fallback data');
+                // 注入 fallback 到 window
+                if (!window.LawAIApp) window.LawAIApp = {};
+                if (!window.LawAIApp.SchoolRegistry) {
+                    window.LawAIApp.SchoolRegistry = {
+                        schools: FALLBACK_SCHOOLS,
+                        getAllSchools: function() { return this.schools; },
+                        getSchool: function(id) {
+                            return this.schools.find(function(s) { return s.id === id; });
+                        },
+                        getProgramsBySchool: function(schoolId) {
+                            var programRegistry = window.LawAIApp && window.LawAIApp.ProgramRegistry;
+                            if (programRegistry && typeof programRegistry.getProgramsBySchool === 'function') {
+                                return programRegistry.getProgramsBySchool(schoolId);
+                            }
+                            return [];
+                        }
+                    };
+                    console.log('[AcademyExperienceManager] ✅ Created fallback SchoolRegistry with ' + FALLBACK_SCHOOLS.length + ' schools');
+                }
+            }
+
             console.log('[AcademyExperienceManager] ✅ Layers initialized');
         },
 
@@ -769,26 +814,38 @@
             if (registry) {
                 if (typeof registry.getAllSchools === 'function') {
                     var schools = registry.getAllSchools();
-                    return schools || [];
-                }
-                if (typeof registry.getAll === 'function') {
-                    var schools = registry.getAll();
-                    return schools || [];
-                }
-        // 如果 registry 有 schools 属性
-                if (registry.schools && Array.isArray(registry.schools)) {
-                    return registry.schools;
-                }
-            }
-            // 尝试从 S4 加载
-            var loader = window.LawAIApp && (window.LawAIApp.S4ContentLoader || window.LawAIApp.ContentLoader);
-            if (loader && typeof loader.getSchools === 'function') {
-                try {
-                    var schools = loader.getSchools();
                     if (schools && schools.length > 0) {
                         return schools;
                     }
-                } catch (e) {}
+                }
+                if (typeof registry.getAll === 'function') {
+                    var schools = registry.getAll();
+                    if (schools && schools.length > 0) {
+                        return schools;
+                    }
+                }
+                if (registry.schools && Array.isArray(registry.schools) && registry.schools.length > 0) {
+                    return registry.schools;
+                }
+            }
+
+            // 🔥 FALLBACK: 返回预定义数据
+            console.warn('[AcademyExperienceManager] No schools in registry, using fallback');
+            return FALLBACK_SCHOOLS;
+        },
+
+        _getPrograms: function() {
+            var registry = window.LawAIApp && window.LawAIApp.ProgramRegistry;
+            if (registry) {
+                if (typeof registry.getAllPrograms === 'function') {
+                    var programs = registry.getAllPrograms();
+                    if (programs && programs.length > 0) {
+                        return programs;
+                    }
+                }
+                if (registry.programs && Array.isArray(registry.programs) && registry.programs.length > 0) {
+                    return registry.programs;
+                }
             }
             return [];
         },
@@ -796,7 +853,12 @@
         _getCourses: function() {
             var registry = window.LawAIApp && window.LawAIApp.CourseRegistry;
             if (registry) {
-                if (typeof registry.getAllCourses === 'function') return registry.getAllCourses();
+                if (typeof registry.getAllCourses === 'function') {
+                    var courses = registry.getAllCourses();
+                    if (courses && courses.length > 0) {
+                        return courses;
+                    }
+                }
             }
             return [];
         },
@@ -868,6 +930,11 @@
             var schools = data.schools || [];
             var continueData = this._getContinueLearning();
 
+            // 🔥 如果 schools 为空，使用 fallback
+            if (!schools || schools.length === 0) {
+                schools = FALLBACK_SCHOOLS;
+            }
+
             var html = '';
 
             html += `
@@ -898,7 +965,7 @@
                     var progCount = school.programs ? school.programs.length : 0;
                     html += `
                         <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="LawAIApp.AcademyExperienceManager.navigateToSchool('${school.id}')"
+                             onclick="window.LawAIApp.AcademyExperienceManager.navigateToSchool('${school.id}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.04)'">
                             <div style="font-size: 32px; margin-bottom: 6px;">${school.icon || '🏛️'}</div>
@@ -924,9 +991,6 @@
             container.innerHTML = html;
         },
 
-        /**
-         * 🔥 Part 58.1: Continue Learning Fallback
-         */
         _renderContinueLearningFallback: function(continueData) {
             var progress = continueData.progress || 0;
             var isCompleted = continueData.isCompleted || false;
@@ -947,7 +1011,7 @@
                             <div style="text-align: right;">
                                 <div style="font-size: 13px; color: #94a3b8;">${isCompleted ? '✅ Done' : progress + '% complete'}</div>
                             </div>
-                            <button onclick="LawAIApp.AcademyExperienceManager.startCourse('${continueData.courseId}')" 
+                            <button onclick="window.LawAIApp.AcademyExperienceManager.startCourse('${continueData.courseId}')" 
                                     style="padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit;"
                                     onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
                                 ${isCompleted ? 'Review →' : 'Continue →'}
@@ -968,13 +1032,17 @@
             var programRegistry = window.LawAIApp && window.LawAIApp.ProgramRegistry;
 
             var school = schoolRegistry && schoolRegistry.getSchool ? schoolRegistry.getSchool(schoolId) : null;
+            // 如果 school 不存在，从 fallback 中查找
+            if (!school) {
+                school = FALLBACK_SCHOOLS.find(function(s) { return s.id === schoolId; });
+            }
             var programs = programRegistry && programRegistry.getProgramsBySchool ? programRegistry.getProgramsBySchool(schoolId) : [];
 
             if (!school) {
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         <p>School not found</p>
-                        <button onclick="LawAIApp.AcademyExperienceManager.goHome()" 
+                        <button onclick="window.LawAIApp.AcademyExperienceManager.goHome()" 
                                 style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
                             ← Back to Academy
                         </button>
@@ -987,7 +1055,7 @@
 
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="LawAIApp.AcademyExperienceManager.goHome()" 
+                    <button onclick="window.LawAIApp.AcademyExperienceManager.goHome()" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to Academy
                     </button>
@@ -1019,7 +1087,7 @@
 
                     html += `
                         <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="LawAIApp.AcademyExperienceManager.navigateToProgram('${program.id}')"
+                             onclick="window.LawAIApp.AcademyExperienceManager.navigateToProgram('${program.id}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.04)'">
                             <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
@@ -1061,7 +1129,7 @@
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         <p>Program not found</p>
-                        <button onclick="LawAIApp.AcademyExperienceManager.goHome()" 
+                        <button onclick="window.LawAIApp.AcademyExperienceManager.goHome()" 
                                 style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
                             ← Back to Academy
                         </button>
@@ -1081,7 +1149,7 @@
 
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="LawAIApp.AcademyExperienceManager.navigateToSchool('${program.schoolId}')" 
+                    <button onclick="window.LawAIApp.AcademyExperienceManager.navigateToSchool('${program.schoolId}')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to School
                     </button>
@@ -1117,7 +1185,7 @@
 
                     html += `
                         <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="LawAIApp.AcademyExperienceManager.navigateToCourse('${course.id}')"
+                             onclick="window.LawAIApp.AcademyExperienceManager.navigateToCourse('${course.id}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.04)'">
                             <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
@@ -1157,7 +1225,7 @@
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         <p>Course not found</p>
-                        <button onclick="LawAIApp.AcademyExperienceManager.goHome()" 
+                        <button onclick="window.LawAIApp.AcademyExperienceManager.goHome()" 
                                 style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
                             ← Back to Academy
                         </button>
@@ -1181,7 +1249,7 @@
 
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="LawAIApp.AcademyExperienceManager.navigateToProgram('${course.programId}')" 
+                    <button onclick="window.LawAIApp.AcademyExperienceManager.navigateToProgram('${course.programId}')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to Program
                     </button>
@@ -1206,7 +1274,6 @@
                     </div>
             `;
 
-            // 学习面板
             var completedLessons = courseState && courseState.completedLessons ? courseState.completedLessons.length : 0;
             html += `
                 <div style="margin-top: 24px; background: rgba(74,158,255,0.04); border-radius: 12px; padding: 20px; border: 1px solid rgba(74,158,255,0.08);">
@@ -1216,7 +1283,7 @@
                             <div style="font-size: 24px; font-weight: 700; color: #4a9eff;">${progress}%</div>
                             <div style="font-size: 12px; color: #64748b;">${completedLessons} lessons completed</div>
                         </div>
-                        <button onclick="LawAIApp.AcademyExperienceManager.startCourse('${courseId}')" 
+                        <button onclick="window.LawAIApp.AcademyExperienceManager.startCourse('${courseId}')" 
                                 style="padding: 12px 32px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 16px; cursor: pointer; transition: all 0.2s; font-family: inherit;"
                                 onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
                             ${progress > 0 ? '📖 Continue Learning' : '🚀 Start Learning'}
@@ -1245,9 +1312,6 @@
             container.innerHTML = html;
         },
 
-        /**
-         * 🔥 Part 58.1: Course Learning View
-         */
         _renderCourseLearningViewFallback: function(container, courseId) {
             var courseRegistry = window.LawAIApp && window.LawAIApp.CourseRegistry;
             var course = courseRegistry && courseRegistry.getCourse ? courseRegistry.getCourse(courseId) : null;
@@ -1256,7 +1320,7 @@
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         <p>Course not found</p>
-                        <button onclick="LawAIApp.AcademyExperienceManager.goHome()" 
+                        <button onclick="window.LawAIApp.AcademyExperienceManager.goHome()" 
                                 style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
                             ← Back to Academy
                         </button>
@@ -1273,7 +1337,7 @@
 
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="LawAIApp.AcademyExperienceManager.navigateToCourse('${courseId}')" 
+                    <button onclick="window.LawAIApp.AcademyExperienceManager.navigateToCourse('${courseId}')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to Course
                     </button>
@@ -1317,12 +1381,9 @@
         },
 
         // ============================================================
-        // 6. PRIVATE — View Model Preparation (Parts 28-30)
+        // 6. PRIVATE — View Model Preparation
         // ============================================================
 
-        /**
-         * ═══ Part 29: 准备 Motivation View Model ═══
-         */
         _prepareMotivationViewModel: function() {
             var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
             if (!adapter) {
@@ -1361,9 +1422,6 @@
             };
         },
 
-        /**
-         * ═══ Part 29: 准备 Continue Learning View Model ═══
-         */
         _prepareContinueLearningViewModel: function() {
             var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
             if (!adapter) {
@@ -1411,9 +1469,6 @@
             };
         },
 
-        /**
-         * ═══ Part 29: 准备 Dashboard View Model（增强版） ═══
-         */
         _prepareDashboardViewModel: function() {
             var schools = this._getSchools();
             var continueData = this._prepareContinueLearningViewModel();
@@ -1431,9 +1486,6 @@
             };
         },
 
-        /**
-         * ═══ Part 28: 准备 Course View 数据 ═══
-         */
         _prepareCourseViewData: function(courseId) {
             var courseRegistry = window.LawAIApp && window.LawAIApp.CourseRegistry;
             var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
@@ -1465,9 +1517,6 @@
             };
         },
 
-        /**
-         * ═══ Part 28: 准备 Module View 数据 ═══
-         */
         _prepareModuleViewData: function(moduleId) {
             var academyRegistry = window.LawAIApp && window.LawAIApp.AcademyRegistry;
             var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
@@ -1495,9 +1544,6 @@
             };
         },
 
-        /**
-         * ═══ Part 28: 准备 Lesson View 数据 ═══
-         */
         _prepareLessonViewData: function(lessonId) {
             var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
 
@@ -1520,9 +1566,6 @@
             };
         },
 
-        /**
-         * ═══ Part 30: 验证 View Model 结构完整性 ═══
-         */
         _validateViewModel: function(viewModel, expectedKeys) {
             if (!viewModel || typeof viewModel !== 'object') {
                 console.warn('[ExperienceManager] Invalid ViewModel: not an object');
@@ -1545,9 +1588,6 @@
             return true;
         },
 
-        /**
-         * ═══ Part 30: 标准化进度值 ═══
-         */
         _normalizeProgress: function(value) {
             if (typeof value !== 'number' || isNaN(value)) {
                 return 0;
@@ -1557,16 +1597,10 @@
             return Math.round(value);
         },
 
-        /**
-         * ═══ Part 30: 标准化布尔值 ═══
-         */
         _normalizeBoolean: function(value) {
             return value === true || value === 'true' || value === 1;
         },
 
-        /**
-         * ═══ Part 30: 获取 View Model 状态诊断 ═══
-         */
         _getViewModelDiagnostics: function() {
             var diagnostics = {
                 viewModels: {},
