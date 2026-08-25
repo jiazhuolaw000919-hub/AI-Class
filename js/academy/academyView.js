@@ -2126,7 +2126,7 @@
         // ============================================================
         // Export
         // ============================================================
-        if (!window.LawAIApp) {
+        if (window.LawAIApp) {
             window.LawAIApp = {};
         }
 
@@ -2134,4 +2134,4 @@
 
         console.log('[AcademyView] Module loaded (Part 58.5)');
 
-    ();
+    })();
