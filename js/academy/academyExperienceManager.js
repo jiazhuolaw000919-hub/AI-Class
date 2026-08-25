@@ -1224,8 +1224,9 @@
          * @param {string} type - Practice 类型
          * @returns {Promise<Object>} Practice 会话
          */
-        startPractice: async function(lessonId, type) {
-            var practiceModule = window.LawAIApp?.PracticeModule;
+        async startPractice(lessonId, type) {
+            var practiceModule = window.LawAIApp &&
+                window.LawAIApp.PracticeModule;
             if (!practiceModule) {
                 console.warn('[ExperienceManager] PracticeModule not available');
                 return null;
