@@ -2147,39 +2147,22 @@ function __safeCall(path) {
          * 🔥 Part 59.6: 映射内部事件名到 DOM 事件名
          */
         _getEventName: function(internalName) {
-            var mapping = {
-                'viewChanged': 'ACADEMY_VIEW_CHANGED',
-                'academyRefresh': 'ACADEMY_REFRESH',
-                'learningUpdated': 'ACADEMY_LEARNING_UPDATED',
-                'stateUpdated': 'LEARNING_STATE_UPDATED',
-                'progressUpdated': 'LEARNING_PROGRESS_UPDATED',
-                'sessionStarted': 'LEARNING_SESSION_STARTED',
-                'sessionEnded': 'LEARNING_SESSION_ENDED',
-                'moduleCompleted': 'MODULE_COMPLETED',
-                'motivationUpdated': 'MOTIVATION_UPDATED'
-            };
-
-            return mapping[internalName] || internalName;
-        }   // ← 注意：这里没有逗号
-
-}; 
-
-
-// ============================================================
-// Export
-// ============================================================
-
-window.LawAIApp = window.LawAIApp || {};
-
-if (typeof AcademyView !== 'undefined') {
-    window.LawAIApp.AcademyView = AcademyView;
-    console.log('[AcademyView] ✅ Module loaded successfully');
-} else {
-    console.error('[AcademyView] ❌ AcademyView is not defined!');
-
-    window.LawAIApp.AcademyView = function() {
-        console.warn('[AcademyView] AcademyView is a stub (not fully loaded)');
+    var mapping = {
+        'viewChanged': 'ACADEMY_VIEW_CHANGED',
+        'academyRefresh': 'ACADEMY_REFRESH',
+        'learningUpdated': 'ACADEMY_LEARNING_UPDATED',
+        'stateUpdated': 'LEARNING_STATE_UPDATED',
+        'progressUpdated': 'LEARNING_PROGRESS_UPDATED',
+        'sessionStarted': 'LEARNING_SESSION_STARTED',
+        'sessionEnded': 'LEARNING_SESSION_ENDED',
+        'moduleCompleted': 'MODULE_COMPLETED',
+        'motivationUpdated': 'MOTIVATION_UPDATED'
     };
+
+    return mapping[internalName] || internalName;
 }
 
-console.log('[AcademyView] Module loaded (Part 58.5)');
+}; // AcademyView END
+
+window.LawAIApp = window.LawAIApp || {};
+window.LawAIApp.AcademyView = AcademyView;
