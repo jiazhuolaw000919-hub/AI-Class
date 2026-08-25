@@ -2134,4 +2134,4 @@
 
         console.log('[AcademyView] Module loaded (Part 58.5)');
 
-    })();
+    ();
