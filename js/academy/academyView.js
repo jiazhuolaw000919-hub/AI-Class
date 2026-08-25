@@ -2,6 +2,68 @@
 // Part 58.5 — Lesson Structure Foundation Layer (完整版)
 // Law AI Academy Developer Bible
 
+// ============================================================
+// 🔥 安全访问辅助函数（替代 ?. 可选链）
+// ============================================================
+
+/**
+ * 安全获取对象属性（替代 ?.）
+ * @param {Object} obj - 目标对象
+ * @param {string} path - 属性路径，用 '.' 分隔
+ * @returns {*} 属性值或 undefined
+ */
+function safeGet(obj, path) {
+    if (!obj || typeof obj !== 'object') {
+        return undefined;
+    }
+    var parts = path.split('.');
+    var current = obj;
+    for (var i = 0; i < parts.length; i++) {
+        if (current == null || typeof current !== 'object') {
+            return undefined;
+        }
+        current = current[parts[i]];
+    }
+    return current;
+}
+
+/**
+ * 安全调用函数（替代 ?.()）
+ * @param {Object} obj - 目标对象
+ * @param {string} path - 方法路径，用 '.' 分隔
+ * @param {...*} args - 参数
+ * @returns {*} 函数返回值或 undefined
+ */
+function safeCall(obj, path) {
+    var fn = safeGet(obj, path);
+    if (typeof fn === 'function') {
+        var args = Array.prototype.slice.call(arguments, 2);
+        return fn.apply(safeGet(obj, path.substring(0, path.lastIndexOf('.'))), args);
+    }
+    return undefined;
+}
+
+/**
+ * 安全执行表达式（用于 onclick 等内联事件）
+ * @param {string} path - 完整路径，如 'LawAIApp.AcademyExperienceManager.navigateToSchool'
+ * @param {...*} args - 参数
+ * @returns {*} 函数返回值或 undefined
+ */
+function __safeCall(path) {
+    var parts = path.split('.');
+    var obj = window;
+    for (var i = 0; i < parts.length - 1; i++) {
+        if (obj == null) return undefined;
+        obj = obj[parts[i]];
+    }
+    var fn = obj ? obj[parts[parts.length - 1]] : undefined;
+    if (typeof fn === 'function') {
+        var args = Array.prototype.slice.call(arguments, 1);
+        return fn.apply(obj, args);
+    }
+    return undefined;
+}
+
 (function() {
     'use strict';
 
@@ -33,7 +95,7 @@
          * ═══ S4 新增: 确保 S4 内容已加载 ═══
          */
         _ensureS4ContentLoaded: function() {
-            var registry = window.LawAIApp?.CourseRegistry;
+            var registry = safeGet(window, 'LawAIApp.CourseRegistry');
             if (registry && typeof registry.loadFromS4 === 'function' && !registry._s4Loaded) {
                 console.log('[AcademyView] 🔄 Loading S4 content...');
                 return registry.loadFromS4().catch(function(err) {
@@ -58,7 +120,7 @@
          * 🔥 Part 63: 获取 Motivation 数据 (兼容性方法)
          */
         _getMotivationData: function() {
-            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var adapter = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
             if (!adapter) {
                 return null;
             }
@@ -182,7 +244,7 @@
             var motivation = null;
 
             // 获取 Motivation (如果可用)
-            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var adapter = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
             if (adapter && typeof adapter.getLearningMotivation === 'function') {
                 try {
                     motivation = adapter.getLearningMotivation();
@@ -331,7 +393,7 @@
             }
 
             // 🔥 使用独立渲染器
-            var renderer = window.LawAIApp?.MotivationRenderer;
+            var renderer = safeGet(window, 'LawAIApp.MotivationRenderer');
             if (renderer && typeof renderer.render === 'function') {
                 // 创建临时容器用于渲染
                 var tempContainer = document.createElement('div');
@@ -412,11 +474,11 @@
             }
 
             // 获取课程元数据
-            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            var courseRegistry = safeGet(window, 'LawAIApp.CourseRegistry');
             var course = courseRegistry ? courseRegistry.getCourse(continueData.courseId) : null;
 
             // 获取 Module/Lesson 元数据
-            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var adapter = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
             var moduleInfo = null;
             var lessonInfo = null;
 
@@ -473,7 +535,7 @@
             }
 
             // 🔥 Part 64: 使用独立渲染器
-            var renderer = window.LawAIApp?.ContinueLearningRenderer;
+            var renderer = safeGet(window, 'LawAIApp.ContinueLearningRenderer');
             if (renderer && typeof renderer.render === 'function') {
                 var preparedData = this._prepareContinueLearningData(continueData);
                 if (!preparedData) {
@@ -514,7 +576,7 @@
                             </div>
                         </div>
                         <div>
-                            <button onclick="LawAIApp.AcademyExperienceManager?.navigateToSchool?.('school-ai')" 
+                            <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSchool', 'school-ai')" 
                                     style="padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; font-family: inherit;"
                                     onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
                                 Explore Schools →
@@ -540,7 +602,7 @@
                             </div>
                         </div>
                         <div>
-                            <button onclick="LawAIApp.AcademyExperienceManager?.navigateToSchool?.('school-ai')" 
+                            <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSchool', 'school-ai')" 
                                     style="padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; font-family: inherit;"
                                     onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
                                 Explore Schools →
@@ -555,7 +617,7 @@
          * 🔥 Part 60: 获取学习引导信息
          */
         _getLearningGuidance: function() {
-            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var adapter = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
             if (!adapter) {
                 return null;
             }
@@ -596,7 +658,7 @@
             var lessonName = 'Current Lesson';
 
             // 获取名称
-            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            var courseRegistry = safeGet(window, 'LawAIApp.CourseRegistry');
             if (courseRegistry && courseId) {
                 var course = courseRegistry.getCourse(courseId);
                 if (course) {
@@ -604,7 +666,7 @@
                 }
             }
 
-            var academyRegistry = window.LawAIApp?.AcademyRegistry;
+            var academyRegistry = safeGet(window, 'LawAIApp.AcademyRegistry');
             if (academyRegistry) {
                 if (moduleId) {
                     var module = academyRegistry.getModule(moduleId);
@@ -704,7 +766,7 @@
                             </div>
                         </div>
                         <div>
-                            <button onclick="LawAIApp.AcademyExperienceManager?.navigateToSchool?.('school-ai')" 
+                            <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSchool', 'school-ai')" 
                                     style="padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; font-family: inherit;"
                                     onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
                                 Explore Schools →
@@ -801,8 +863,8 @@
             container.innerHTML = html;
         },                
         _renderProgramView: function(container, programId) {
-            var programRegistry = window.LawAIApp?.ProgramRegistry;
-            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            var programRegistry = safeGet(window, 'LawAIApp.ProgramRegistry');
+            var courseRegistry = safeGet(window, 'LawAIApp.CourseRegistry');
 
             var program = programRegistry ? programRegistry.getProgram(programId) : null;
             var courses = courseRegistry ? courseRegistry.getCoursesByProgram(programId) : [];
@@ -900,7 +962,7 @@
          * 🔥 Part 59.2: Course Experience (升级版)
          */
         _renderCourseView: function(container, courseId) {
-            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            var courseRegistry = safeGet(window, 'LawAIApp.CourseRegistry');
             var course = courseRegistry ? courseRegistry.getCourse(courseId) : null;
 
             if (!course) {
@@ -909,7 +971,7 @@
             }
 
             // 获取学习状态
-            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var adapter = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
             var courseState = adapter ? adapter.getCourseState(courseId) : null;
             var progress = courseState ? courseState.progress : 0;
             var modules = adapter ? adapter.getCourseModules(courseId) : [];
@@ -1148,7 +1210,7 @@
          * 🔥 Part 58.2: Course Learning View (含 Module 列表)
          */
         _renderCourseLearningView: function(container, courseId) {
-            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            var courseRegistry = safeGet(window, 'LawAIApp.CourseRegistry');
             var course = courseRegistry ? courseRegistry.getCourse(courseId) : null;
 
             if (!course) {
@@ -1165,7 +1227,7 @@
             }
 
             // 获取学习状态和 Modules
-            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var adapter = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
             var state = adapter ? adapter.getState() : null;
             var progress = state ? state.progress : 0;
             var modules = adapter ? adapter.getCourseModules(courseId) : [];
@@ -1281,7 +1343,7 @@
          * 🔥 Part 58.3: Module View
          */
         _renderModuleView: function(container, moduleId) {
-            var academyRegistry = window.LawAIApp?.AcademyRegistry;
+            var academyRegistry = safeGet(window, 'LawAIApp.AcademyRegistry');
             var module = academyRegistry ? academyRegistry.getModule(moduleId) : null;
 
             if (!module) {
@@ -1298,7 +1360,7 @@
             }
 
             // 获取学习状态
-            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var adapter = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
             var state = adapter ? adapter.getState() : null;
             var moduleProgress = state && state.moduleProgress ? state.moduleProgress[moduleId] || 0 : 0;
             var isModuleCompleted = state && state.completedModules ? state.completedModules.indexOf(moduleId) !== -1 : false;
@@ -1454,7 +1516,7 @@
             var self = this;
 
             // ═══ Part 7: 检查加载状态 ═══
-            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            var loader = safeGet(window, 'LawAIApp.S4ContentLoader') || safeGet(window, 'LawAIApp.ContentLoader');
             if (loader && typeof loader.getLessonLoadStatus === 'function') {
                 var status = loader.getLessonLoadStatus(lessonId);
                 if (status.status === 'loading') {
@@ -1470,7 +1532,7 @@
             // ═══════════════════════════════════════════════════════════════
             // 1. 先尝试从 LearningJourneyAdapter 获取基础信息（保留原逻辑）
             // ═══════════════════════════════════════════════════════════════
-            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var adapter = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
             var lesson = adapter ? adapter.getLessonDetail(lessonId) : null;
 
             if (!lesson) {
@@ -1569,7 +1631,7 @@
 
             // 如果没有从 SubjectRegistry 找到，尝试从 adapter 获取
             if (!lessonMeta) {
-                var adapter2 = window.LawAIApp?.LearningJourneyAdapter;
+                var adapter2 = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
                 var lessonDetail = adapter2 ? adapter2.getLessonDetail(lessonId) : null;
                 if (lessonDetail) {
                     lessonMeta = {
@@ -1580,14 +1642,14 @@
             }
 
             // ═══ Part 8: 先检查缓存（加速返回） ═══
-            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            var loader = safeGet(window, 'LawAIApp.S4ContentLoader') || safeGet(window, 'LawAIApp.ContentLoader');
             if (loader && typeof loader.isLessonLoaded === 'function' && loader.isLessonLoaded(lessonId)) {
                 // 缓存存在，直接加载（会从缓存返回）
                 // 但继续执行，因为 loadLesson 会使用缓存
             }
 
             // ═══ 尝试从 S4 ContentLoader 加载内容 ═══
-            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            var loader = safeGet(window, 'LawAIApp.S4ContentLoader') || safeGet(window, 'LawAIApp.ContentLoader');
 
             if (loader && typeof loader.loadLesson === 'function' && lessonMeta) {
                 loader.loadLesson(lessonMeta.courseId, lessonMeta.subjectId, lessonId)
@@ -1647,7 +1709,7 @@
          * ═══ Part 4: Lesson 占位（使用 EmptyStates） ═══
          */
         _renderLessonPlaceholder: function() {
-            var emptyStates = window.LawAIApp?.EmptyStates;
+            var emptyStates = safeGet(window, 'LawAIApp.EmptyStates');
             if (emptyStates && typeof emptyStates.render === 'function') {
                 return emptyStates.render('lessons', 'This lesson is being prepared. Interactive content will appear here.');
             }
@@ -1665,7 +1727,7 @@
          * ═══ Part 7: Lesson 错误状态（使用 EmptyStates） ═══
          */
         _renderLessonErrorState: function(lessonId, error) {
-            var emptyStates = window.LawAIApp?.EmptyStates;
+            var emptyStates = safeGet(window, 'LawAIApp.EmptyStates');
             if (emptyStates && typeof emptyStates.render === 'function') {
                 return emptyStates.render('default', '⚠️ Unable to load this lesson. ' + (error || 'Content temporarily unavailable.') + ' Please try again later.');
             }
@@ -1837,7 +1899,7 @@
          * 🔥 Part 58.6: Session Panel
          */
         _renderSessionPanel: function(lessonId) {
-            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var adapter = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
             var session = adapter ? adapter.getActiveSession() : null;
             var isActive = session && session.lessonId === lessonId && session.status === 'active';
 
@@ -1888,7 +1950,7 @@
          * 🔥 Part 58.0: 获取 Continue Learning 数据
          */
         _getContinueLearning: function() {
-            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            var adapter = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
             if (!adapter) {
                 return null;
             }
