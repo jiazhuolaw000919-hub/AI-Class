@@ -892,7 +892,7 @@ function __safeCall(path) {
 
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="LawAIApp.AcademyExperienceManager?.navigateToSchool?.('${program.schoolId}')" 
+                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSchool', '${program.schoolId}')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to School
                     </button>
@@ -997,7 +997,7 @@ function __safeCall(path) {
             // ============================================================
             html += `
                 <div class="academy-back-bar" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="LawAIApp.AcademyExperienceManager?.navigateToProgram?.('${course.programId || ''}')" 
+                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToProgram', '${course.programId || ''}')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to Program
                     </button>
@@ -1237,7 +1237,7 @@ function __safeCall(path) {
             // 返回栏
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="LawAIApp.AcademyExperienceManager?.navigateToCourse?.('${courseId}')" 
+                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToCourse', '${courseId}')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to Course
                     </button>
@@ -1382,7 +1382,7 @@ function __safeCall(path) {
             // 返回栏 — Back to Course
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="LawAIApp.AcademyExperienceManager?.navigateToCourse?.('${courseId}')" 
+                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToCourse', '${courseId}')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to Course
                     </button>
@@ -2001,7 +2001,7 @@ function __safeCall(path) {
             // ACADEMY_REFRESH
             var refreshHandler = function() {
                 console.log('[AcademyView] 📡 ACADEMY_REFRESH received');
-                var manager = window.LawAIApp?.AcademyExperienceManager;
+                var manager = safeGet(window, 'LawAIApp.AcademyExperienceManager');
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
@@ -2013,7 +2013,7 @@ function __safeCall(path) {
             // ACADEMY_LEARNING_UPDATED
             var learningUpdatedHandler = function(e) {
                 console.log('[AcademyView] 📡 ACADEMY_LEARNING_UPDATED received');
-                var manager = window.LawAIApp?.AcademyExperienceManager;
+                var manager = safeGet(window, 'LawAIApp.AcademyExperienceManager');
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
@@ -2036,7 +2036,7 @@ function __safeCall(path) {
                     return;
                 }
 
-                var manager = window.LawAIApp?.AcademyExperienceManager;
+                var manager = safeGet(window, 'LawAIApp.AcademyExperienceManager');
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
@@ -2055,7 +2055,7 @@ function __safeCall(path) {
                     return;
                 }
 
-                var manager = window.LawAIApp?.AcademyExperienceManager;
+                var manager = safeGet(window, 'LawAIApp.AcademyExperienceManager');
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
@@ -2074,7 +2074,7 @@ function __safeCall(path) {
                     return;
                 }
 
-                var manager = window.LawAIApp?.AcademyExperienceManager;
+                var manager = safeGet(window, 'LawAIApp.AcademyExperienceManager');
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
@@ -2093,7 +2093,7 @@ function __safeCall(path) {
                     return;
                 }
 
-                var manager = window.LawAIApp?.AcademyExperienceManager;
+                var manager = safeGet(window, 'LawAIApp.AcademyExperienceManager');
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
@@ -2112,7 +2112,7 @@ function __safeCall(path) {
                     return;
                 }
 
-                var manager = window.LawAIApp?.AcademyExperienceManager;
+                var manager = safeGet(window, 'LawAIApp.AcademyExperienceManager');
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
@@ -2131,7 +2131,7 @@ function __safeCall(path) {
                     return;
                 }
 
-                var manager = window.LawAIApp?.AcademyExperienceManager;
+                var manager = safeGet(window, 'LawAIApp.AcademyExperienceManager');
                 if (manager) {
                     var renderData = manager._getRenderData ? manager._getRenderData() : {};
                     self.render(renderData);
