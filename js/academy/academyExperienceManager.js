@@ -1245,7 +1245,7 @@
             } catch (e) {
                 console.warn('[ExperienceManager] Failed to start practice:', e);
                 return null;
-            }
+            };
         }
 
         /**
