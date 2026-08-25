@@ -2143,28 +2143,32 @@ function __safeCall(path) {
             console.log('[AcademyView] ✅ Events bound (' + Object.keys(this._eventHandlers).length + ' handlers)');
         },
 
-        /**
+                /**
          * 🔥 Part 59.6: 映射内部事件名到 DOM 事件名
          */
         _getEventName: function(internalName) {
-    var mapping = {
-        'viewChanged': 'ACADEMY_VIEW_CHANGED',
-        'academyRefresh': 'ACADEMY_REFRESH',
-        'learningUpdated': 'ACADEMY_LEARNING_UPDATED',
-        'stateUpdated': 'LEARNING_STATE_UPDATED',
-        'progressUpdated': 'LEARNING_PROGRESS_UPDATED',
-        'sessionStarted': 'LEARNING_SESSION_STARTED',
-        'sessionEnded': 'LEARNING_SESSION_ENDED',
-        'moduleCompleted': 'MODULE_COMPLETED',
-        'motivationUpdated': 'MOTIVATION_UPDATED'
-    };
+            var mapping = {
+                'viewChanged': 'ACADEMY_VIEW_CHANGED',
+                'academyRefresh': 'ACADEMY_REFRESH',
+                'learningUpdated': 'ACADEMY_LEARNING_UPDATED',
+                'stateUpdated': 'LEARNING_STATE_UPDATED',
+                'progressUpdated': 'LEARNING_PROGRESS_UPDATED',
+                'sessionStarted': 'LEARNING_SESSION_STARTED',
+                'sessionEnded': 'LEARNING_SESSION_ENDED',
+                'moduleCompleted': 'MODULE_COMPLETED',
+                'motivationUpdated': 'MOTIVATION_UPDATED'
+            };
+            return mapping[internalName] || internalName;
+        }
 
-    return mapping[internalName] || internalName;
-}
+    };  // ← 这里只有这一个 }，用来关闭 AcademyView 对象
 
-}; 
+    // ============================================================
+    // Export
+    // ============================================================
 
-window.LawAIApp = window.LawAIApp || {};
-window.LawAIApp.AcademyView = AcademyView;
+    window.LawAIApp = window.LawAIApp || {};
+    window.LawAIApp.AcademyView = AcademyView;
+    console.log('[AcademyView] ✅ Module loaded successfully');
 
-console.log('[AcademyView] ✅ Module loaded successfully');
+})();  // ← 最后还要有 )(); 来关闭 IIFE
