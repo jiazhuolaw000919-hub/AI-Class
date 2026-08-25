@@ -2162,7 +2162,11 @@ function __safeCall(path) {
     return mapping[internalName] || internalName;
 }
 
-}; // AcademyView END
+}; 
 
 window.LawAIApp = window.LawAIApp || {};
 window.LawAIApp.AcademyView = AcademyView;
+
+console.log('[AcademyView] ✅ Module loaded successfully');
+
+})();
