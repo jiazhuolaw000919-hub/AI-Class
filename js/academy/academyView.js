@@ -2133,7 +2133,16 @@
         // ✅ 正确：不存在才创建，存在就保留
         window.LawAIApp = window.LawAIApp || {};
 
-        // ✅ 挂载 AcademyView
-        window.LawAIApp.AcademyView = AcademyView;
+        // ✅ 安全挂载 AcademyView
+        if (typeof AcademyView !== 'undefined') {
+            window.LawAIApp.AcademyView = AcademyView;
+            console.log('[AcademyView] ✅ Module loaded successfully');
+        } else {
+            console.error('[AcademyView] ❌ AcademyView is not defined!');
+            // 如果没定义，创建一个空的防止报错
+            window.LawAIApp.AcademyView = function() {
+                console.warn('[AcademyView] AcademyView is a stub (not fully loaded)');
+            };
+        }
 
         console.log('[AcademyView] Module loaded (Part 58.5)');
