@@ -5,7 +5,10 @@
 (function() {
     'use strict';
 
-    if (window.LawAIApp && window.LawAIApp.AcademyView) {
+    // ✅ 先确保 LawAIApp 存在
+    window.LawAIApp = window.LawAIApp || {};
+
+    if (window.LawAIApp.AcademyView) {
         console.log('[AcademyView] Already exists, skipping...');
         return;
     }
