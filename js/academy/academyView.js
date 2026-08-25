@@ -45,22 +45,52 @@ function safeCall(obj, path) {
 
 /**
  * 安全执行表达式（用于 onclick 等内联事件）
- * @param {string} path - 完整路径，如 'LawAIApp.AcademyExperienceManager.navigateToSchool'
+ * 支持两种调用方式：
+ * 1. __safeCall('path', arg1, arg2, ...)
+ * 2. __safeCall(obj, 'path', arg1, arg2, ...)  // 兼容旧代码
+ * @param {string|Object} pathOrObj - 路径字符串或对象
  * @param {...*} args - 参数
  * @returns {*} 函数返回值或 undefined
  */
-function __safeCall(path) {
-    var parts = path.split('.');
+function __safeCall(pathOrObj) {
+    var path;
+    var args = Array.prototype.slice.call(arguments);
     var obj = window;
+    
+    // 判断调用方式
+    if (typeof pathOrObj === 'string') {
+        // 方式1: __safeCall('path', arg1, arg2)
+        path = pathOrObj;
+        args = args.slice(1);
+    } else if (typeof pathOrObj === 'object' && arguments.length >= 2 && typeof arguments[1] === 'string') {
+        // 方式2: __safeCall(obj, 'path', arg1, arg2)
+        obj = pathOrObj || window;
+        path = arguments[1];
+        args = args.slice(2);
+    } else {
+        console.warn('[__safeCall] Invalid arguments:', arguments);
+        return undefined;
+    }
+    
+    if (!path || typeof path !== 'string') {
+        return undefined;
+    }
+    
+    var parts = path.split('.');
+    var current = obj;
+    
+    // 沿着路径查找
     for (var i = 0; i < parts.length - 1; i++) {
-        if (obj == null) return undefined;
-        obj = obj[parts[i]];
+        if (current == null) return undefined;
+        current = current[parts[i]];
     }
-    var fn = obj ? obj[parts[parts.length - 1]] : undefined;
+    
+    var fn = current ? current[parts[parts.length - 1]] : undefined;
+    
     if (typeof fn === 'function') {
-        var args = Array.prototype.slice.call(arguments, 1);
-        return fn.apply(obj, args);
+        return fn.apply(current, args);
     }
+    
     return undefined;
 }
 
@@ -91,7 +121,7 @@ function __safeCall(path) {
             return this;
         },
 
-                /**
+        /**
          * ═══ S4 新增: 确保 S4 内容已加载 ═══
          */
         _ensureS4ContentLoaded: function() {
@@ -132,7 +162,7 @@ function __safeCall(path) {
             }
         },
 
-                /**
+        /**
          * 🔥 Part 64: 准备 Continue Learning 数据
          */
         _prepareContinueLearningData: function() {
@@ -280,7 +310,7 @@ function __safeCall(path) {
                 var progCount = (school.programs && school.programs.length) || 0;
                 html += `
                     <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                         onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.navigateToSchool', '${school.id}')"
+                         onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSchool', '${school.id}')"
                          onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
                          onmouseout="this.style.background='rgba(255,255,255,0.04)'">
                         <div style="font-size: 32px; margin-bottom: 6px;">${school.icon || '🏛️'}</div>
@@ -380,7 +410,7 @@ function __safeCall(path) {
             container.innerHTML = html;
         },
 
-                /**
+        /**
          * 🔥 Part 63: Motivation Renderer (兼容性包装器)
          * 委托给独立的 MotivationRenderer
          */
@@ -461,7 +491,7 @@ function __safeCall(path) {
             return html;
         },
 
-                // ============================================================
+        // ============================================================
         // CONTINUE LEARNING
         // ============================================================
 
@@ -559,32 +589,6 @@ function __safeCall(path) {
         _renderContinueLearningFallback: function(continueData) {
             // 安全网: 返回空状态
             return this._renderResumeEmptyState();
-        },
-
-        /**
-         * 🔥 Part 60: Guidance 空状态
-         */
-        _renderGuidanceEmptyState: function() {
-            return `
-                <div style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; border: 1px solid rgba(255,255,255,0.06);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <span style="font-size: 24px;">🚀</span>
-                            <div>
-                                <div style="font-size: 13px; color: #94a3b8;">Ready to Learn</div>
-                                <div style="font-size: 15px; font-weight: 500; color: #e2e8f0;">Explore your first course</div>
-                            </div>
-                        </div>
-                        <div>
-                            <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSchool', 'school-ai')" 
-                                    style="padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; font-family: inherit;"
-                                    onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
-                                Explore Schools →
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
         },
 
         /**
@@ -788,7 +792,7 @@ function __safeCall(path) {
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         <p>School not found</p>
-                        <button onclick="window.LawAIApp && LawAIApp.AcademyExperienceManager && LawAIApp.AcademyExperienceManager.goHome && LawAIApp.AcademyExperienceManager.goHome()" 
+                        <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.goHome')" 
                                 style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer; font-family: inherit;">
                             ← Back to Academy
                         </button>
@@ -801,7 +805,7 @@ function __safeCall(path) {
 
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="window.LawAIApp && LawAIApp.AcademyExperienceManager && LawAIApp.AcademyExperienceManager.goHome && LawAIApp.AcademyExperienceManager.goHome()" 
+                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.goHome')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to Academy
                     </button>
@@ -832,7 +836,7 @@ function __safeCall(path) {
 
                     html += `
                         <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="window.LawAIApp && LawAIApp.AcademyExperienceManager && LawAIApp.AcademyExperienceManager.navigateToProgram && LawAIApp.AcademyExperienceManager.navigateToProgram('${program.id}')"
+                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToProgram', '${program.id}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.04)'">
                             <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
@@ -861,7 +865,8 @@ function __safeCall(path) {
 
             html += `</div>`;
             container.innerHTML = html;
-        },                
+        },
+
         _renderProgramView: function(container, programId) {
             var programRegistry = safeGet(window, 'LawAIApp.ProgramRegistry');
             var courseRegistry = safeGet(window, 'LawAIApp.CourseRegistry');
@@ -873,7 +878,7 @@ function __safeCall(path) {
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         <p>Program not found</p>
-                        <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
+                        <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.goHome')" 
                                 style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
                             ← Back to Academy
                         </button>
@@ -926,7 +931,7 @@ function __safeCall(path) {
 
                     html += `
                         <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="window.LawAIApp && LawAIApp.AcademyExperienceManager && LawAIApp.AcademyExperienceManager.navigateToCourse && LawAIApp.AcademyExperienceManager.navigateToCourse('${course.id}')"
+                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToCourse', '${course.id}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.04)'">
                             <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
@@ -1002,7 +1007,7 @@ function __safeCall(path) {
                         <span style="font-size:16px;">←</span> Back to Program
                     </button>
                     <span style="color: #475569; font-size: 14px;">|</span>
-                    <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
+                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.goHome')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.04); color: #94a3b8; border: 1px solid rgba(255,255,255,0.06); font-family: inherit;">
                         <span style="font-size:14px;">🏠</span> Dashboard
                     </button>
@@ -1049,7 +1054,7 @@ function __safeCall(path) {
             container.innerHTML = html;
         },
 
-                // ============================================================
+        // ============================================================
         // 🔥 Part 59.2: Course Experience Helpers
         // ============================================================
 
@@ -1071,7 +1076,7 @@ function __safeCall(path) {
                             <div style="font-size: 28px; font-weight: 700; color: ${statusColor};">${progressDisplay}</div>
                             <div style="font-size: 14px; color: ${statusColor};">${statusText}</div>
                         </div>
-                        <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.startCourse', '${courseId}')" 
+                        <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.startCourse', '${courseId}')" 
                                 style="padding: 12px 32px; background: ${actionColor}; border: none; border-radius: 10px; color: white; font-weight: 600; font-size: 16px; cursor: pointer; transition: all 0.2s; font-family: inherit;"
                                 onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
                             ${actionLabel}
@@ -1113,7 +1118,7 @@ function __safeCall(path) {
 
                 html += `
                     <div style="background: ${bgColor}; border-radius: 12px; padding: 14px 18px; border: 1px solid ${borderColor}; cursor: pointer; transition: all 0.2s;"
-                         onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.selectModule', '${module.id}')"
+                         onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectModule', '${module.id}')"
                          onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
                          onmouseout="this.style.background='${bgColor}'">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">
@@ -1158,7 +1163,7 @@ function __safeCall(path) {
                 <div style="padding: 40px; text-align: center; color: #94a3b8;">
                     <div style="font-size: 48px; margin-bottom: 16px;">📖</div>
                     <p style="font-size: 16px; margin: 0;">Course not found</p>
-                    <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
+                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.goHome')" 
                             style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
                         ← Back to Academy
                     </button>
@@ -1217,7 +1222,7 @@ function __safeCall(path) {
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         <p>Course not found</p>
-                        <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
+                        <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.goHome')" 
                                 style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
                             ← Back to Academy
                         </button>
@@ -1289,7 +1294,7 @@ function __safeCall(path) {
 
                     html += `
                         <div style="background: ${bgColor}; border-radius: 10px; padding: 14px 18px; border: 1px solid ${borderColor}; cursor: pointer; transition: all 0.2s;"
-                             onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.selectModule', '${module.id}')"
+                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectModule', '${module.id}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
                              onmouseout="this.style.background='${bgColor}'">
                             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
@@ -1350,7 +1355,7 @@ function __safeCall(path) {
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         <p>Module not found</p>
-                        <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
+                        <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.goHome')" 
                                 style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
                             ← Back to Academy
                         </button>
@@ -1457,7 +1462,7 @@ function __safeCall(path) {
 
                     html += `
                         <div style="background: ${lBgColor}; border-radius: 10px; padding: 12px 16px; border: 1px solid ${lBorderColor}; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;"
-                             onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.selectLesson', '${lesson.id}')"
+                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectLesson', '${lesson.id}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
                              onmouseout="this.style.background='${lBgColor}'">
                             <div style="display: flex; align-items: center; gap: 12px;">
@@ -1539,7 +1544,7 @@ function __safeCall(path) {
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         <p>Lesson not found</p>
-                        <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
+                        <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.goHome')" 
                                 style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
                             ← Back to Academy
                         </button>
@@ -1562,7 +1567,7 @@ function __safeCall(path) {
             // 返回栏 — Back to Module（保留原有逻辑）
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.navigateToModule', '${lesson.moduleId}')" 
+                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToModule', '${lesson.moduleId}')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to Module
                     </button>
@@ -1685,7 +1690,7 @@ function __safeCall(path) {
             }
         },
 
-                /**
+        /**
          * ═══ Part 4: Lesson 加载状态（使用 LoadingStates） ═══
          */
         _renderLessonLoadingState: function() {
@@ -1705,7 +1710,7 @@ function __safeCall(path) {
             `;
         },
 
-                /**
+        /**
          * ═══ Part 4: Lesson 占位（使用 EmptyStates） ═══
          */
         _renderLessonPlaceholder: function() {
@@ -1723,7 +1728,7 @@ function __safeCall(path) {
             `;
         },
 
-                /**
+        /**
          * ═══ Part 7: Lesson 错误状态（使用 EmptyStates） ═══
          */
         _renderLessonErrorState: function(lessonId, error) {
@@ -1738,7 +1743,7 @@ function __safeCall(path) {
                     <p style="font-size: 16px; font-weight: 500; color: #ef4444;">Unable to load this lesson</p>
                     <p style="font-size: 14px; color: #64748b; margin-top: 4px;">${error || 'Content temporarily unavailable'}</p>
                     <div style="margin-top: 16px; display: flex; gap: 12px; justify-content: center;">
-                        <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
+                        <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.goHome')" 
                                 style="padding: 8px 20px; background: rgba(74,158,255,0.1); border: 1px solid rgba(74,158,255,0.15); border-radius: 8px; color: #4a9eff; cursor: pointer; font-family: inherit;">
                             ← Back to Academy
                         </button>
@@ -1894,7 +1899,7 @@ function __safeCall(path) {
 
             return html;
         },
-        
+
         /**
          * 🔥 Part 58.6: Session Panel
          */
@@ -1916,13 +1921,13 @@ function __safeCall(path) {
                             ${isActive ? `<div style="font-size: 12px; color: #64748b;">Started: ${new Date(session.startedAt).toLocaleTimeString()}</div>` : ''}
                         </div>
                         ${isActive ? `
-                            <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.endLessonSession')" 
+                            <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.endLessonSession')" 
                                     style="padding: 10px 24px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; color: #ef4444; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit;"
                                     onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">
                                 ⏹️ End Session
                             </button>
                         ` : `
-                            <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.startLesson', '${lessonId}')" 
+                            <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.startLesson', '${lessonId}')" 
                                     style="padding: 12px 32px; background: #4a9eff; border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 16px; cursor: pointer; transition: all 0.2s; font-family: inherit;"
                                     onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
                                 🚀 Start Learning
@@ -1963,10 +1968,17 @@ function __safeCall(path) {
             // 🔥 Part 59.5: 添加会话信息
             var hasActiveSession = adapter.hasActiveSession ? adapter.hasActiveSession() : false;
 
-            return {
-                ...continueData,
+            var result = {
                 hasActiveSession: hasActiveSession
             };
+            if (continueData) {
+                for (var key in continueData) {
+                    if (continueData.hasOwnProperty(key)) {
+                        result[key] = continueData[key];
+                    }
+                }
+            }
+            return result;
         },
 
         // ============================================================
@@ -2143,7 +2155,34 @@ function __safeCall(path) {
             console.log('[AcademyView] ✅ Events bound (' + Object.keys(this._eventHandlers).length + ' handlers)');
         },
 
-                /**
+        /**
+         * 🔥 Part 59.6: 移除事件监听 (防止内存泄漏)
+         */
+        _unbindEvents: function() {
+            console.log('[AcademyView] Unbinding events...');
+
+            if (!this._eventHandlers) {
+                console.log('[AcademyView] No handlers to unbind');
+                return;
+            }
+
+            var handlers = this._eventHandlers;
+
+            for (var eventName in handlers) {
+                if (handlers.hasOwnProperty(eventName)) {
+                    var handler = handlers[eventName];
+                    var domEventName = this._getEventName(eventName);
+                    document.removeEventListener(domEventName, handler);
+                    window.removeEventListener(domEventName, handler);
+                    console.log('[AcademyView] Removed listener:', domEventName);
+                }
+            }
+
+            this._eventHandlers = {};
+            console.log('[AcademyView] ✅ Events unbound');
+        },
+
+        /**
          * 🔥 Part 59.6: 映射内部事件名到 DOM 事件名
          */
         _getEventName: function(internalName) {
@@ -2161,9 +2200,9 @@ function __safeCall(path) {
             return mapping[internalName] || internalName;
         }
 
-    };  // ← 这里只有这一个 }，用来关闭 AcademyView 对象
+    };  // AcademyView 对象结束
 
-        // ============================================================
+    // ============================================================
     // Export
     // ============================================================
 
