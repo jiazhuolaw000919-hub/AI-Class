@@ -74,7 +74,7 @@
         },
         contentValidator: function() {
           return !!(window.LawAIApp && window.LawAIApp.ContentValidator);
-        }
+        },
         
         practiceEngine: function() {
             return !!(window.LawAIApp && window.LawAIApp.PracticeEngine);
