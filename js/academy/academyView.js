@@ -2168,5 +2168,3 @@ window.LawAIApp = window.LawAIApp || {};
 window.LawAIApp.AcademyView = AcademyView;
 
 console.log('[AcademyView] ✅ Module loaded successfully');
-
-})();
