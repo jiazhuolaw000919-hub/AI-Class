@@ -712,9 +712,10 @@
             `;
         },
 
+        // 修复 _renderSchoolView 方法中的 HTML 错误
         _renderSchoolView: function(container, schoolId) {
-            var schoolRegistry = window.LawAIApp?.SchoolRegistry;
-            var programRegistry = window.LawAIApp?.ProgramRegistry;
+            var schoolRegistry = window.LawAIApp && window.LawAIApp.SchoolRegistry;
+            var programRegistry = window.LawAIApp && window.LawAIApp.ProgramRegistry;
 
             var school = schoolRegistry ? schoolRegistry.getSchool(schoolId) : null;
             var programs = programRegistry ? programRegistry.getProgramsBySchool(schoolId) : [];
@@ -723,10 +724,10 @@
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         <p>School not found</p>
-                        <<button onclick="window.LawAIApp && LawAIApp.AcademyExperienceManager && LawAIApp.AcademyExperienceManager.goHome && LawAIApp.AcademyExperienceManager.goHome()" 
-                            style="...">
+                        <button onclick="window.LawAIApp && LawAIApp.AcademyExperienceManager && LawAIApp.AcademyExperienceManager.goHome && LawAIApp.AcademyExperienceManager.goHome()" 
+                                style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer; font-family: inherit;">
                             ← Back to Academy
-                    </button>
+                        </button>
                     </div>
                 `;
                 return;
@@ -736,7 +737,7 @@
 
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.goHome')" 
+                    <button onclick="window.LawAIApp && LawAIApp.AcademyExperienceManager && LawAIApp.AcademyExperienceManager.goHome && LawAIApp.AcademyExperienceManager.goHome()" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to Academy
                     </button>
@@ -759,14 +760,16 @@
                 html += `<h2 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px 0;">📚 Programs (${programs.length})</h2>`;
                 html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">`;
 
-                programs.forEach(function(program) {
+                for (var i = 0; i < programs.length; i++) {
+                    var program = programs[i];
                     var levelLabel = program.level || 'beginner';
                     var levelColor = levelLabel === 'beginner' ? '#10b981' : levelLabel === 'intermediate' ? '#f59e0b' : '#ef4444';
                     var levelEmoji = levelLabel === 'beginner' ? '🟢' : levelLabel === 'intermediate' ? '🟡' : '🔴';
+                    var moduleCount = program.modules ? program.modules.length : 0;
 
                     html += `
                         <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="__safeCall(window, 'LawAIApp.AcademyExperienceManager.navigateToProgram', '${program.id}'"
+                             onclick="window.LawAIApp && LawAIApp.AcademyExperienceManager && LawAIApp.AcademyExperienceManager.navigateToProgram && LawAIApp.AcademyExperienceManager.navigateToProgram('${program.id}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.04)'">
                             <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
@@ -775,14 +778,14 @@
                                     <p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px 0;">${program.description || ''}</p>
                                     <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                                         <span style="color: ${levelColor}; font-size: 12px; background: rgba(255,255,255,0.06); padding: 2px 10px; border-radius: 12px;">${levelEmoji} ${levelLabel.charAt(0).toUpperCase() + levelLabel.slice(1)}</span>
-                                        <span style="color: #64748b; font-size: 12px;">${program.modules?.length || 0} modules</span>
+                                        <span style="color: #64748b; font-size: 12px;">${moduleCount} modules</span>
                                     </div>
                                 </div>
                                 <span style="color: #4a9eff; font-size: 18px;">→</span>
                             </div>
                         </div>
                     `;
-                });
+                }
 
                 html += `</div>`;
             } else {
@@ -795,7 +798,7 @@
 
             html += `</div>`;
             container.innerHTML = html;
-        },
+        }
 
         _renderProgramView: function(container, programId) {
             var programRegistry = window.LawAIApp?.ProgramRegistry;
