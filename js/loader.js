@@ -260,9 +260,9 @@ var STAGES = {
         "debug/devPanelCognitive.js"
     ],
     intelligence: [
-        "lessonEngine.js",
+        "academy/lessonEngine.js",
         "memoryEngine.js",
-        "practiceEngine.js",
+        "academy/practiceEngine.js",
         "reflectionEngine.js",
         "AIMentorEngine.js",
         "schoolEngine.js"
