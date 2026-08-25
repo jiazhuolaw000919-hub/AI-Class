@@ -2144,33 +2144,6 @@ function __safeCall(path) {
         },
 
         /**
-         * 🔥 Part 59.6: 移除事件监听 (防止内存泄漏)
-         */
-        _unbindEvents: function() {
-            console.log('[AcademyView] Unbinding events...');
-
-            if (!this._eventHandlers) {
-                console.log('[AcademyView] No handlers to unbind');
-                return;
-            }
-
-            var handlers = this._eventHandlers;
-
-            for (var eventName in handlers) {
-                if (handlers.hasOwnProperty(eventName)) {
-                    var handler = handlers[eventName];
-                    var domEventName = this._getEventName(eventName);
-                    document.removeEventListener(domEventName, handler);
-                    window.removeEventListener(domEventName, handler);
-                    console.log('[AcademyView] Removed listener:', domEventName);
-                }
-            }
-
-            this._eventHandlers = {};
-            console.log('[AcademyView] ✅ Events unbound');
-        },
-
-        /**
          * 🔥 Part 59.6: 映射内部事件名到 DOM 事件名
          */
         _getEventName: function(internalName) {
@@ -2185,26 +2158,30 @@ function __safeCall(path) {
                 'moduleCompleted': 'MODULE_COMPLETED',
                 'motivationUpdated': 'MOTIVATION_UPDATED'
             };
+
             return mapping[internalName] || internalName;
-        },
-
-        // ============================================================
-        // Export
-        // ============================================================
-
-        // ✅ 正确：不存在才创建，存在就保留
-        window.LawAIApp = window.LawAIApp || {};
-
-        // ✅ 安全挂载 AcademyView
-        if (typeof AcademyView !== 'undefined') {
-            window.LawAIApp.AcademyView = AcademyView;
-            console.log('[AcademyView] ✅ Module loaded successfully');
-        } else {
-            console.error('[AcademyView] ❌ AcademyView is not defined!');
-            // 如果没定义，创建一个空的防止报错
-            window.LawAIApp.AcademyView = function() {
-                console.warn('[AcademyView] AcademyView is a stub (not fully loaded)');
-            };
         }
+};
 
-        console.log('[AcademyView] Module loaded (Part 58.5)');
+
+// ============================================================
+// Export
+// ============================================================
+
+// ✅ 正确：不存在才创建，存在就保留
+window.LawAIApp = window.LawAIApp || {};
+
+// ✅ 安全挂载 AcademyView
+if (typeof AcademyView !== 'undefined') {
+    window.LawAIApp.AcademyView = AcademyView;
+    console.log('[AcademyView] ✅ Module loaded successfully');
+} else {
+    console.error('[AcademyView] ❌ AcademyView is not defined!');
+
+    // 如果没定义，创建一个空的防止报错
+    window.LawAIApp.AcademyView = function() {
+        console.warn('[AcademyView] AcademyView is a stub (not fully loaded)');
+    };
+}
+
+console.log('[AcademyView] Module loaded (Part 58.5)');
