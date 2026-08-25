@@ -2163,7 +2163,7 @@ function __safeCall(path) {
 
     };  // ← 这里只有这一个 }，用来关闭 AcademyView 对象
 
-    // ============================================================
+        // ============================================================
     // Export
     // ============================================================
 
@@ -2171,4 +2171,16 @@ function __safeCall(path) {
     window.LawAIApp.AcademyView = AcademyView;
     console.log('[AcademyView] ✅ Module loaded successfully');
 
-})();  // ← 最后还要有 )(); 来关闭 IIFE
+    // ============================================================
+    // Auto-init
+    // ============================================================
+    if (document.getElementById('academy-root')) {
+        try {
+            AcademyView.init().render({ viewMode: 'dashboard' });
+            console.log('[AcademyView] ✅ Auto-initialized');
+        } catch (e) {
+            console.warn('[AcademyView] ⚠️ Auto-init failed:', e);
+        }
+    }
+
+})();  // 关闭 IIFE
