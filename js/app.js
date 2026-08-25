@@ -121,7 +121,10 @@ window.App = {
         this._emit('APP_INITIALIZED', { version: this.version });
 
         // 🔥 Profiler + Dependency
-        if (LawAIApp.DevTools?.RuntimeProfiler) {
+        if (
+            LawAIApp.DevTools &&
+            LawAIApp.DevTools.RuntimeProfiler
+        ) {
             LawAIApp.DevTools.RuntimeProfiler.registerEngine('App');
             LawAIApp.DevTools.RuntimeProfiler._currentCaller = 'App';
             LawAIApp.DevTools.RuntimeProfiler.addDependency('App', 'SystemComposer');
