@@ -712,7 +712,6 @@
             `;
         },
 
-        // 修复 _renderSchoolView 方法中的 HTML 错误
         _renderSchoolView: function(container, schoolId) {
             var schoolRegistry = window.LawAIApp && window.LawAIApp.SchoolRegistry;
             var programRegistry = window.LawAIApp && window.LawAIApp.ProgramRegistry;
@@ -799,7 +798,7 @@
             html += `</div>`;
             container.innerHTML = html;
         }
-
+        
         _renderProgramView: function(container, programId) {
             var programRegistry = window.LawAIApp?.ProgramRegistry;
             var courseRegistry = window.LawAIApp?.CourseRegistry;
