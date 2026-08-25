@@ -1167,7 +1167,7 @@
                     isCompleted: false,
                     progress: 0
                 };
-            }
+            },
 
             // 2. 获取完整 Lesson 内容
             var fullLesson = null;
@@ -1176,7 +1176,7 @@
                 var courseId = lessonMeta.courseId;
                 var subjectId = lessonMeta.subjectId;
                 fullLesson = await loader.loadLesson(courseId, subjectId, lessonId);
-            }
+            },
 
             // 3. 获取进度
             var isCompleted = false;
@@ -1191,7 +1191,7 @@
                         isCompleted = lessonProgress.completed || false;
                     }
                 }
-            }
+            },
 
             // 4. 组装 View Model
             return {
