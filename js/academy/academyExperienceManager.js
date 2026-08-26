@@ -1435,7 +1435,7 @@
                     moduleId: null,
                     hasActiveSession: false
                 };
-            },
+            }
 
             var continueData = adapter.getContinueLearning ? adapter.getContinueLearning() : null;
             if (!continueData || !continueData.courseId) {
