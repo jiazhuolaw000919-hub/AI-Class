@@ -1380,6 +1380,275 @@
             container.innerHTML = html;
         },
 
+        // ============================================================
+        // 6. PRIVATE — View Model Preparation
+        // ============================================================
+
+        _prepareMotivationViewModel: function() {
+            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
+            if (!adapter) {
+                return {
+                    xp: 0,
+                    level: 1,
+                    streak: 0,
+                    achievements: [],
+                    achievementCount: 0,
+                    nextLevelXp: 0,
+                    xpProgress: 0
+                };
+            }
+
+            var motivation = adapter.getLearningMotivation ? adapter.getLearningMotivation() : null;
+            if (!motivation) {
+                return {
+                    xp: 0,
+                    level: 1,
+                    streak: 0,
+                    achievements: [],
+                    achievementCount: 0,
+                    nextLevelXp: 0,
+                    xpProgress: 0
+                };
+            },
+
+            return {
+                xp: motivation.xp || 0,
+                level: motivation.level || 1,
+                streak: motivation.streak || 0,
+                achievements: motivation.achievements || [],
+                achievementCount: motivation.achievementCount || 0,
+                nextLevelXp: motivation.nextLevelXp || 0,
+                xpProgress: motivation.xpProgress || 0
+            };
+        },
+
+        _prepareContinueLearningViewModel: function() {
+            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
+            if (!adapter) {
+                return {
+                    courseId: null,
+                    title: '',
+                    progress: 0,
+                    isCompleted: false,
+                    lastActivity: null,
+                    lessonId: null,
+                    moduleId: null,
+                    hasActiveSession: false
+                };
+            },
+
+            var continueData = adapter.getContinueLearning ? adapter.getContinueLearning() : null;
+            if (!continueData || !continueData.courseId) {
+                return {
+                    courseId: null,
+                    title: '',
+                    progress: 0,
+                    isCompleted: false,
+                    lastActivity: null,
+                    lessonId: null,
+                    moduleId: null,
+                    hasActiveSession: false
+                };
+            },
+
+            var hasActiveSession = adapter.hasActiveSession ? adapter.hasActiveSession() : false;
+
+            var courseRegistry = window.LawAIApp && window.LawAIApp.CourseRegistry;
+            var course = courseRegistry && courseRegistry.getCourse ? courseRegistry.getCourse(continueData.courseId) : null;
+            var title = course ? (course.title || course.name || continueData.title) : (continueData.title || 'Your Course');
+
+            return {
+                courseId: continueData.courseId,
+                title: title,
+                progress: continueData.progress || 0,
+                isCompleted: continueData.isCompleted || false,
+                lastActivity: continueData.lastActivity || null,
+                lessonId: continueData.lessonId || null,
+                moduleId: continueData.moduleId || null,
+                hasActiveSession: hasActiveSession
+            };
+        },
+
+        _prepareDashboardViewModel: function() {
+            var schools = this._getSchools();
+            var continueData = this._prepareContinueLearningViewModel();
+            var motivation = this._prepareMotivationViewModel();
+            var guidance = this._getLearningGuidance();
+
+            return {
+                schools: schools,
+                viewMode: this._state.viewMode || 'dashboard',
+                continueLearning: continueData,
+                motivation: motivation,
+                guidance: guidance,
+                hasContinueLearning: continueData.courseId !== null,
+                hasSchools: schools && schools.length > 0
+            };
+        },
+
+        _prepareCourseViewData: function(courseId) {
+            var courseRegistry = window.LawAIApp && window.LawAIApp.CourseRegistry;
+            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
+
+            var course = courseRegistry && courseRegistry.getCourse ? courseRegistry.getCourse(courseId) : null;
+            if (!course) {
+                return {
+                    course: null,
+                    modules: [],
+                    progress: 0,
+                    isCompleted: false,
+                    currentModuleId: null,
+                    currentLessonId: null
+                };
+            }
+
+            var courseState = adapter && adapter.getCourseState ? adapter.getCourseState(courseId) : null;
+            var progress = courseState ? courseState.progress : 0;
+            var isCompleted = courseState ? courseState.isCompleted : false;
+            var modules = adapter && adapter.getCourseModules ? adapter.getCourseModules(courseId) : [];
+
+            return {
+                course: course,
+                modules: modules,
+                progress: progress,
+                isCompleted: isCompleted,
+                currentModuleId: this._state.currentModuleId || null,
+                currentLessonId: this._state.currentLessonId || null
+            };
+        },
+
+        _prepareModuleViewData: function(moduleId) {
+            var academyRegistry = window.LawAIApp && window.LawAIApp.AcademyRegistry;
+            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
+
+            var module = academyRegistry && academyRegistry.getModule ? academyRegistry.getModule(moduleId) : null;
+            if (!module) {
+                return {
+                    module: null,
+                    lessons: [],
+                    progress: 0,
+                    isCompleted: false,
+                    currentLessonId: null
+                };
+            }
+
+            var progressData = adapter && adapter.getModuleProgress ? adapter.getModuleProgress(moduleId) : { progress: 0, completed: false };
+            var lessons = adapter && adapter.getModuleLessons ? adapter.getModuleLessons(moduleId) : [];
+
+            return {
+                module: module,
+                lessons: lessons,
+                progress: progressData.progress || 0,
+                isCompleted: progressData.completed || false,
+                currentLessonId: this._state.currentLessonId || null
+            };
+        },
+
+        _prepareLessonViewData: function(lessonId) {
+            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
+
+            var lesson = adapter && adapter.getLessonDetail ? adapter.getLessonDetail(lessonId) : null;
+            if (!lesson) {
+                return {
+                    lesson: null,
+                    isCompleted: false,
+                    session: null
+                };
+            }
+
+            var isCompleted = lesson.isCompleted || false;
+            var session = adapter && adapter.getActiveSession ? adapter.getActiveSession() : null;
+
+            return {
+                lesson: lesson,
+                isCompleted: isCompleted,
+                session: session
+            };
+        },
+
+        _validateViewModel: function(viewModel, expectedKeys) {
+            if (!viewModel || typeof viewModel !== 'object') {
+                console.warn('[ExperienceManager] Invalid ViewModel: not an object');
+                return false;
+            }
+
+            var missingKeys = [];
+            for (var i = 0; i < expectedKeys.length; i++) {
+                var key = expectedKeys[i];
+                if (!(key in viewModel)) {
+                    missingKeys.push(key);
+                }
+            }
+
+            if (missingKeys.length > 0) {
+                console.warn('[ExperienceManager] ViewModel missing keys:', missingKeys);
+                return false;
+            }
+
+            return true;
+        },
+
+        _normalizeProgress: function(value) {
+            if (typeof value !== 'number' || isNaN(value)) {
+                return 0;
+            }
+            if (value < 0) return 0;
+            if (value > 100) return 100;
+            return Math.round(value);
+        },
+
+        _normalizeBoolean: function(value) {
+            return value === true || value === 'true' || value === 1;
+        },
+
+        _getViewModelDiagnostics: function() {
+            var diagnostics = {
+                viewModels: {},
+                errors: [],
+                warnings: []
+            };
+
+            try {
+                var dashboardVM = this._prepareDashboardViewModel();
+                var dashboardKeys = ['schools', 'viewMode', 'continueLearning', 'motivation', 'guidance'];
+                var isValid = this._validateViewModel(dashboardVM, dashboardKeys);
+                diagnostics.viewModels.dashboard = {
+                    valid: isValid,
+                    hasData: !!(dashboardVM.schools && dashboardVM.schools.length > 0)
+                };
+            } catch (e) {
+                diagnostics.errors.push('Dashboard VM error: ' + e.message);
+            }
+
+            try {
+                var motivationVM = this._prepareMotivationViewModel();
+                var motivationKeys = ['xp', 'level', 'streak', 'achievements', 'achievementCount', 'nextLevelXp', 'xpProgress'];
+                var isValid = this._validateViewModel(motivationVM, motivationKeys);
+                diagnostics.viewModels.motivation = {
+                    valid: isValid,
+                    xp: motivationVM.xp || 0,
+                    level: motivationVM.level || 0
+                };
+            } catch (e) {
+                diagnostics.errors.push('Motivation VM error: ' + e.message);
+            }
+
+            try {
+                var continueVM = this._prepareContinueLearningViewModel();
+                var continueKeys = ['courseId', 'title', 'progress', 'isCompleted', 'lastActivity', 'lessonId', 'moduleId', 'hasActiveSession'];
+                var isValid = this._validateViewModel(continueVM, continueKeys);
+                diagnostics.viewModels.continueLearning = {
+                    valid: isValid,
+                    hasCourse: !!(continueVM.courseId),
+                    progress: continueVM.progress || 0
+                };
+            } catch (e) {
+                diagnostics.errors.push('Continue Learning VM error: ' + e.message);
+            }
+
+            return diagnostics;
+        },
+
         /**
          * ═══ Part 34: 保存知识点到 Notes ═══
          * @param {Object} noteData - 笔记数据
@@ -1659,275 +1928,6 @@
                 byType: byType,
                 byCourse: byCourse
             };
-        }
-
-        // ============================================================
-        // 6. PRIVATE — View Model Preparation
-        // ============================================================
-
-        _prepareMotivationViewModel: function() {
-            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
-            if (!adapter) {
-                return {
-                    xp: 0,
-                    level: 1,
-                    streak: 0,
-                    achievements: [],
-                    achievementCount: 0,
-                    nextLevelXp: 0,
-                    xpProgress: 0
-                };
-            },
-
-            var motivation = adapter.getLearningMotivation ? adapter.getLearningMotivation() : null;
-            if (!motivation) {
-                return {
-                    xp: 0,
-                    level: 1,
-                    streak: 0,
-                    achievements: [],
-                    achievementCount: 0,
-                    nextLevelXp: 0,
-                    xpProgress: 0
-                };
-            },
-
-            return {
-                xp: motivation.xp || 0,
-                level: motivation.level || 1,
-                streak: motivation.streak || 0,
-                achievements: motivation.achievements || [],
-                achievementCount: motivation.achievementCount || 0,
-                nextLevelXp: motivation.nextLevelXp || 0,
-                xpProgress: motivation.xpProgress || 0
-            };
-        },
-
-        _prepareContinueLearningViewModel: function() {
-            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
-            if (!adapter) {
-                return {
-                    courseId: null,
-                    title: '',
-                    progress: 0,
-                    isCompleted: false,
-                    lastActivity: null,
-                    lessonId: null,
-                    moduleId: null,
-                    hasActiveSession: false
-                };
-            },
-
-            var continueData = adapter.getContinueLearning ? adapter.getContinueLearning() : null;
-            if (!continueData || !continueData.courseId) {
-                return {
-                    courseId: null,
-                    title: '',
-                    progress: 0,
-                    isCompleted: false,
-                    lastActivity: null,
-                    lessonId: null,
-                    moduleId: null,
-                    hasActiveSession: false
-                };
-            },
-
-            var hasActiveSession = adapter.hasActiveSession ? adapter.hasActiveSession() : false;
-
-            var courseRegistry = window.LawAIApp && window.LawAIApp.CourseRegistry;
-            var course = courseRegistry && courseRegistry.getCourse ? courseRegistry.getCourse(continueData.courseId) : null;
-            var title = course ? (course.title || course.name || continueData.title) : (continueData.title || 'Your Course');
-
-            return {
-                courseId: continueData.courseId,
-                title: title,
-                progress: continueData.progress || 0,
-                isCompleted: continueData.isCompleted || false,
-                lastActivity: continueData.lastActivity || null,
-                lessonId: continueData.lessonId || null,
-                moduleId: continueData.moduleId || null,
-                hasActiveSession: hasActiveSession
-            };
-        },
-
-        _prepareDashboardViewModel: function() {
-            var schools = this._getSchools();
-            var continueData = this._prepareContinueLearningViewModel();
-            var motivation = this._prepareMotivationViewModel();
-            var guidance = this._getLearningGuidance();
-
-            return {
-                schools: schools,
-                viewMode: this._state.viewMode || 'dashboard',
-                continueLearning: continueData,
-                motivation: motivation,
-                guidance: guidance,
-                hasContinueLearning: continueData.courseId !== null,
-                hasSchools: schools && schools.length > 0
-            };
-        },
-
-        _prepareCourseViewData: function(courseId) {
-            var courseRegistry = window.LawAIApp && window.LawAIApp.CourseRegistry;
-            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
-
-            var course = courseRegistry && courseRegistry.getCourse ? courseRegistry.getCourse(courseId) : null;
-            if (!course) {
-                return {
-                    course: null,
-                    modules: [],
-                    progress: 0,
-                    isCompleted: false,
-                    currentModuleId: null,
-                    currentLessonId: null
-                };
-            }
-
-            var courseState = adapter && adapter.getCourseState ? adapter.getCourseState(courseId) : null;
-            var progress = courseState ? courseState.progress : 0;
-            var isCompleted = courseState ? courseState.isCompleted : false;
-            var modules = adapter && adapter.getCourseModules ? adapter.getCourseModules(courseId) : [];
-
-            return {
-                course: course,
-                modules: modules,
-                progress: progress,
-                isCompleted: isCompleted,
-                currentModuleId: this._state.currentModuleId || null,
-                currentLessonId: this._state.currentLessonId || null
-            };
-        },
-
-        _prepareModuleViewData: function(moduleId) {
-            var academyRegistry = window.LawAIApp && window.LawAIApp.AcademyRegistry;
-            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
-
-            var module = academyRegistry && academyRegistry.getModule ? academyRegistry.getModule(moduleId) : null;
-            if (!module) {
-                return {
-                    module: null,
-                    lessons: [],
-                    progress: 0,
-                    isCompleted: false,
-                    currentLessonId: null
-                };
-            }
-
-            var progressData = adapter && adapter.getModuleProgress ? adapter.getModuleProgress(moduleId) : { progress: 0, completed: false };
-            var lessons = adapter && adapter.getModuleLessons ? adapter.getModuleLessons(moduleId) : [];
-
-            return {
-                module: module,
-                lessons: lessons,
-                progress: progressData.progress || 0,
-                isCompleted: progressData.completed || false,
-                currentLessonId: this._state.currentLessonId || null
-            };
-        },
-
-        _prepareLessonViewData: function(lessonId) {
-            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
-
-            var lesson = adapter && adapter.getLessonDetail ? adapter.getLessonDetail(lessonId) : null;
-            if (!lesson) {
-                return {
-                    lesson: null,
-                    isCompleted: false,
-                    session: null
-                };
-            }
-
-            var isCompleted = lesson.isCompleted || false;
-            var session = adapter && adapter.getActiveSession ? adapter.getActiveSession() : null;
-
-            return {
-                lesson: lesson,
-                isCompleted: isCompleted,
-                session: session
-            };
-        },
-
-        _validateViewModel: function(viewModel, expectedKeys) {
-            if (!viewModel || typeof viewModel !== 'object') {
-                console.warn('[ExperienceManager] Invalid ViewModel: not an object');
-                return false;
-            }
-
-            var missingKeys = [];
-            for (var i = 0; i < expectedKeys.length; i++) {
-                var key = expectedKeys[i];
-                if (!(key in viewModel)) {
-                    missingKeys.push(key);
-                }
-            }
-
-            if (missingKeys.length > 0) {
-                console.warn('[ExperienceManager] ViewModel missing keys:', missingKeys);
-                return false;
-            }
-
-            return true;
-        },
-
-        _normalizeProgress: function(value) {
-            if (typeof value !== 'number' || isNaN(value)) {
-                return 0;
-            }
-            if (value < 0) return 0;
-            if (value > 100) return 100;
-            return Math.round(value);
-        },
-
-        _normalizeBoolean: function(value) {
-            return value === true || value === 'true' || value === 1;
-        },
-
-        _getViewModelDiagnostics: function() {
-            var diagnostics = {
-                viewModels: {},
-                errors: [],
-                warnings: []
-            };
-
-            try {
-                var dashboardVM = this._prepareDashboardViewModel();
-                var dashboardKeys = ['schools', 'viewMode', 'continueLearning', 'motivation', 'guidance'];
-                var isValid = this._validateViewModel(dashboardVM, dashboardKeys);
-                diagnostics.viewModels.dashboard = {
-                    valid: isValid,
-                    hasData: !!(dashboardVM.schools && dashboardVM.schools.length > 0)
-                };
-            } catch (e) {
-                diagnostics.errors.push('Dashboard VM error: ' + e.message);
-            }
-
-            try {
-                var motivationVM = this._prepareMotivationViewModel();
-                var motivationKeys = ['xp', 'level', 'streak', 'achievements', 'achievementCount', 'nextLevelXp', 'xpProgress'];
-                var isValid = this._validateViewModel(motivationVM, motivationKeys);
-                diagnostics.viewModels.motivation = {
-                    valid: isValid,
-                    xp: motivationVM.xp || 0,
-                    level: motivationVM.level || 0
-                };
-            } catch (e) {
-                diagnostics.errors.push('Motivation VM error: ' + e.message);
-            }
-
-            try {
-                var continueVM = this._prepareContinueLearningViewModel();
-                var continueKeys = ['courseId', 'title', 'progress', 'isCompleted', 'lastActivity', 'lessonId', 'moduleId', 'hasActiveSession'];
-                var isValid = this._validateViewModel(continueVM, continueKeys);
-                diagnostics.viewModels.continueLearning = {
-                    valid: isValid,
-                    hasCourse: !!(continueVM.courseId),
-                    progress: continueVM.progress || 0
-                };
-            } catch (e) {
-                diagnostics.errors.push('Continue Learning VM error: ' + e.message);
-            }
-
-            return diagnostics;
         },
 
         // ============================================================
