@@ -84,6 +84,24 @@
         },
         practiceProgress: function() {
             return !!(window.LawAIApp && window.LawAIApp.PracticeProgress);
+        },
+        knowledgeCapture: function() {
+            return !!(window.LawAIApp && window.LawAIApp.KnowledgeCapture);
+        },
+        knowledgeEditor: function() {
+            return !!(window.LawAIApp && window.LawAIApp.KnowledgeEditor);
+        },
+        knowledgeLinker: function() {
+            return !!(window.LawAIApp && window.LawAIApp.KnowledgeLinker);
+        },
+        knowledgeCard: function() {
+            return !!(window.LawAIApp && window.LawAIApp.KnowledgeCard);
+        },
+        secondBrain: function() {
+            return !!(window.LawAIApp && window.LawAIApp.SecondBrain);
+        },
+        notes: function() {
+            return !!(window.LawAIApp && window.LawAIApp.Notes);
         }
       };
     }
@@ -355,7 +373,13 @@
           { id: 'contentValidator', path: '/js/academy/contentValidator.js' },
           { id: 'practiceEngine', path: '/js/academy/practiceEngine.js' },
           { id: 'practiceModule', path: '/js/academy/practice.js' },
-          { id: 'practiceProgress', path: '/js/academy/practiceProgress.js' }
+          { id: 'practiceProgress', path: '/js/academy/practiceProgress.js' },
+          { id: 'knowledgeCapture', path: '/js/academy/knowledgeCapture.js' },
+          { id: 'knowledgeEditor', path: '/js/academy/knowledgeEditor.js' },
+          { id: 'knowledgeLinker', path: '/js/academy/knowledgeLinker.js' },
+          { id: 'knowledgeCard', path: '/js/academy/knowledgeCard.js' },
+          { id: 'secondBrain', path: '/js/academy/secondBrain.js' },
+          { id: 'notes', path: '/js/academy/notes.js' }
         ]
       };
     }
