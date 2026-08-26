@@ -246,7 +246,7 @@
             });
 
             // ============================================================
-            // 🔥 唯一的 initAcademy 函数（合并所有逻辑）
+            // 🔥 唯一的  函数（合并所有逻辑）
             // ============================================================
             function initAcademy() {
                 console.log('🔥 Initializing Academy, targetView:', targetView);
@@ -266,32 +266,26 @@
                         window.LawAIApp.CurriculumSeed.load();
                     }
 
-                    // 初始化 AcademyExperienceManager
+                    // 🔥 初始化 AcademyExperienceManager 时传入 initialView
                     if (window.LawAIApp?.AcademyExperienceManager) {
                         if (!window.LawAIApp.AcademyExperienceManager.initialized) {
-                            window.LawAIApp.AcademyExperienceManager.init();
+                            var initOptions = {};
+                            if (targetView === 'notes') {
+                                initOptions.initialView = 'notes';
+                                console.log('📝 Passing initialView: notes to init()');
+                            }
+                            window.LawAIApp.AcademyExperienceManager.init(initOptions);
                         }
-                    
-                        // 先渲染
+            
+                        // 🔥 直接渲染（不需要再 navigateToNotes，因为状态已经设置好了）
                         window.LawAIApp.AcademyExperienceManager.render();
-                        console.log('✅ Academy rendered');
-                    
-                        // 🔥 如果目标是 Notes，导航到 Notes
-                        if (targetView === 'notes') {
-                            // 延迟确保 render 完成
-                            setTimeout(function() {
-                                if (window.LawAIApp?.AcademyExperienceManager) {
-                                    window.LawAIApp.AcademyExperienceManager.navigateToNotes();
-                                    console.log('✅ Navigated to Notes (targetView = notes)');
-                                }
-                            }, 150);
-                        }
+                        console.log('✅ Academy rendered, viewMode:', window.LawAIApp.AcademyExperienceManager._state.viewMode);
                     }
                 } catch (error) {
                     console.error('❌ Academy init error:', error);
                 }
             }
-
+                    
             // ============================================================
             // 🔥 启动 Academy
             // ============================================================
