@@ -1380,6 +1380,287 @@
             container.innerHTML = html;
         },
 
+        /**
+         * ═══ Part 34: 保存知识点到 Notes ═══
+         * @param {Object} noteData - 笔记数据
+         * @param {string} noteData.type - 类型 (KEY_POINT, DEFINITION, EXAMPLE, SUMMARY, PERSONAL_NOTE, QUESTION, MISTAKE, INSIGHT, BOOKMARK)
+         * @param {string} noteData.title - 标题
+         * @param {string} noteData.content - 内容
+         * @param {string} noteData.courseId - Course ID
+         * @param {string} noteData.subjectId - Subject ID
+         * @param {string} noteData.lessonId - Lesson ID
+         * @param {Array} noteData.tags - 标签
+         * @param {Object} noteData.metadata - 额外元数据
+         * @returns {Object} 创建的 Note
+         */
+        saveNote: function(noteData) {
+            var notesModule = window.LawAIApp?.Notes || window.LawAIApp?.KnowledgeCapture;
+            if (!notesModule) {
+                console.warn('[ExperienceManager] Notes module not available');
+                return null;
+            }
+
+            var note = {
+                id: 'note_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                type: noteData.type || 'KEY_POINT',
+                title: noteData.title || '',
+                content: noteData.content || '',
+                courseId: noteData.courseId || null,
+                subjectId: noteData.subjectId || null,
+                lessonId: noteData.lessonId || null,
+                tags: noteData.tags || [],
+                source: noteData.source || {
+                    type: 'lesson',
+                    lessonId: noteData.lessonId
+                },
+                metadata: noteData.metadata || {},
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                pinned: false,
+                reviewCount: 0,
+                lastReviewedAt: null,
+                reviewStatus: 'new'
+            };
+
+            // 尝试保存到现有系统
+            if (typeof notesModule.saveNote === 'function') {
+                return notesModule.saveNote(note);
+            } else if (typeof notesModule.add === 'function') {
+                return notesModule.add(note);
+            } else if (typeof notesModule.create === 'function') {
+                return notesModule.create(note);
+            }
+
+            // Fallback: 保存到 StorageEngine
+            try {
+                var storage = window.LawAIApp?.StorageEngine;
+                if (storage) {
+                    var notes = storage.get('user_notes', []);
+                    notes.push(note);
+                    storage.set('user_notes', notes);
+                    this._emit('NOTE_CREATED', { note: note });
+                    return note;
+                }
+            } catch (e) {
+                console.warn('[ExperienceManager] Failed to save note:', e);
+                return null;
+            }
+
+            return null;
+        },
+
+        /**
+         * ═══ Part 34: 获取 Notes ═══
+         */
+        getNotes: function(filter) {
+            var notesModule = window.LawAIApp?.Notes || window.LawAIApp?.KnowledgeCapture;
+            if (notesModule) {
+                if (typeof notesModule.getNotes === 'function') {
+                    return notesModule.getNotes(filter);
+                } else if (typeof notesModule.getAll === 'function') {
+                    var all = notesModule.getAll();
+                    return this._filterNotes(all, filter);
+                }
+            }
+
+            // Fallback: 从 StorageEngine 获取
+            try {
+                var storage = window.LawAIApp?.StorageEngine;
+                if (storage) {
+                    var notes = storage.get('user_notes', []);
+                    return this._filterNotes(notes, filter);
+                }
+            } catch (e) {
+                console.warn('[ExperienceManager] Failed to get notes:', e);
+            }
+            return [];
+        },
+
+        /**
+         * ═══ Part 34: 过滤 Notes ═══
+         */
+        _filterNotes: function(notes, filter) {
+            if (!filter || !notes || notes.length === 0) return notes;
+
+            var filtered = notes;
+            if (filter.courseId) {
+                filtered = filtered.filter(function(n) { return n.courseId === filter.courseId; });
+            }
+            if (filter.subjectId) {
+                filtered = filtered.filter(function(n) { return n.subjectId === filter.subjectId; });
+            }
+            if (filter.lessonId) {
+                filtered = filtered.filter(function(n) { return n.lessonId === filter.lessonId; });
+            }
+            if (filter.type) {
+                filtered = filtered.filter(function(n) { return n.type === filter.type; });
+            }
+            if (filter.tag) {
+                filtered = filtered.filter(function(n) {
+                    return n.tags && n.tags.indexOf(filter.tag) !== -1;
+                });
+            }
+            if (filter.pinned !== undefined) {
+                filtered = filtered.filter(function(n) { return n.pinned === filter.pinned; });
+            }
+            return filtered;
+        },
+
+        /**
+         * ═══ Part 34: 更新 Note ═══
+         */
+        updateNote: function(noteId, updates) {
+            var notesModule = window.LawAIApp?.Notes || window.LawAIApp?.KnowledgeCapture;
+            if (notesModule && typeof notesModule.updateNote === 'function') {
+                return notesModule.updateNote(noteId, updates);
+            }
+
+            try {
+                var storage = window.LawAIApp?.StorageEngine;
+                if (storage) {
+                    var notes = storage.get('user_notes', []);
+                    for (var i = 0; i < notes.length; i++) {
+                        if (notes[i].id === noteId) {
+                            notes[i] = { ...notes[i], ...updates, updatedAt: new Date().toISOString() };
+                            storage.set('user_notes', notes);
+                            this._emit('NOTE_UPDATED', { noteId: noteId, updates: updates });
+                            return notes[i];
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('[ExperienceManager] Failed to update note:', e);
+            }
+            return null;
+        },
+
+        /**
+         * ═══ Part 34: 删除 Note ═══
+         */
+        deleteNote: function(noteId) {
+            var notesModule = window.LawAIApp?.Notes || window.LawAIApp?.KnowledgeCapture;
+            if (notesModule && typeof notesModule.deleteNote === 'function') {
+                return notesModule.deleteNote(noteId);
+            }
+
+            try {
+                var storage = window.LawAIApp?.StorageEngine;
+                if (storage) {
+                    var notes = storage.get('user_notes', []);
+                    var newNotes = [];
+                    for (var i = 0; i < notes.length; i++) {
+                        if (notes[i].id !== noteId) {
+                            newNotes.push(notes[i]);
+                        }
+                    }
+                    storage.set('user_notes', newNotes);
+                    this._emit('NOTE_DELETED', { noteId: noteId });
+                    return true;
+                }
+            } catch (e) {
+                console.warn('[ExperienceManager] Failed to delete note:', e);
+            }
+            return false;
+        },
+
+        /**
+         * ═══ Part 34: 固定/取消固定 Note ═══
+         */
+        togglePinNote: function(noteId) {
+            var notes = this.getNotes({});
+            for (var i = 0; i < notes.length; i++) {
+                if (notes[i].id === noteId) {
+                    var newPinned = !notes[i].pinned;
+                    return this.updateNote(noteId, { pinned: newPinned });
+                }
+            }
+            return null;
+        },
+
+        /**
+         * ═══ Part 34: 从 Lesson 保存知识点 ═══
+         */
+        saveFromLesson: function(lessonId, type, content, title) {
+            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            var lessonMeta = null;
+            if (loader && typeof loader.getLessonManifest === 'function') {
+                loader.getLessonManifest(lessonId).then(function(meta) {
+                    lessonMeta = meta;
+                }).catch(function() {});
+            }
+
+            var noteData = {
+                type: type || 'KEY_POINT',
+                title: title || '',
+                content: content || '',
+                lessonId: lessonId,
+                courseId: lessonMeta?.courseId || null,
+                subjectId: lessonMeta?.subjectId || null,
+                source: { type: 'lesson', lessonId: lessonId }
+            };
+
+            if (type === 'MISTAKE') {
+                noteData.metadata = { fromPractice: true };
+            }
+
+            var note = this.saveNote(noteData);
+            if (note) {
+                this._emit('NOTE_SAVED_FROM_LESSON', { note: note, lessonId: lessonId });
+            }
+            return note;
+        },
+
+        /**
+         * ═══ Part 34: 从 Practice 保存解释 ═══
+         */
+        saveFromPractice: function(practice, questionIndex, explanation) {
+            var question = practice?.questions?.[questionIndex];
+            var noteData = {
+                type: 'MISTAKE',
+                title: 'Practice: ' + (question?.prompt || 'Question'),
+                content: explanation || 'Practice explanation saved.',
+                lessonId: practice?.lessonId || null,
+                tags: ['practice', 'mistake'],
+                metadata: {
+                    practiceId: practice?.practiceId,
+                    questionId: question?.id,
+                    questionIndex: questionIndex
+                }
+            };
+
+            var note = this.saveNote(noteData);
+            if (note) {
+                this._emit('NOTE_SAVED_FROM_PRACTICE', { note: note, practiceId: practice?.practiceId });
+            }
+            return note;
+        },
+
+        /**
+         * ═══ Part 34: 获取 Notes 统计 ═══
+         */
+        getNotesStats: function() {
+            var notes = this.getNotes({});
+            var pinned = 0;
+            var byType = {};
+            var byCourse = {};
+
+            for (var i = 0; i < notes.length; i++) {
+                var note = notes[i];
+                if (note.pinned) pinned++;
+                var type = note.type || 'UNKNOWN';
+                byType[type] = (byType[type] || 0) + 1;
+                var courseId = note.courseId || 'UNKNOWN';
+                byCourse[courseId] = (byCourse[courseId] || 0) + 1;
+            }
+
+            return {
+                total: notes.length,
+                pinned: pinned,
+                byType: byType,
+                byCourse: byCourse
+            };
+        }
+
         // ============================================================
         // 6. PRIVATE — View Model Preparation
         // ============================================================
