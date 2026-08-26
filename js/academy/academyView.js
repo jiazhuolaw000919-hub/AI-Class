@@ -1574,8 +1574,13 @@ function __safeCall(pathOrObj) {
             `;
         },
 
+        /**
+         * 🔥 Part 34 Finalization: Notes List
+         */
         _renderNotesList: function(notesData) {
-            var html = `
+            var html = '';
+    
+            html += `
                 <div style="padding: 0 16px 32px; max-width: 1200px; margin: 0 auto;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
                         <div>
@@ -1590,7 +1595,9 @@ function __safeCall(pathOrObj) {
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
             `;
     
-            notesData.forEach(function(note) {
+            // 🔥 修复：使用 for 循环代替 forEach（避免嵌套函数声明问题）
+            for (var i = 0; i < notesData.length; i++) {
+                var note = notesData[i];
                 var title = note.title || 'Untitled Note';
                 var content = note.content || note.summary || 'No content';
                 var date = note.createdAt ? new Date(note.createdAt).toLocaleDateString() : 'Recently';
@@ -1606,7 +1613,7 @@ function __safeCall(pathOrObj) {
                         </div>
                     </div>
                 `;
-            });
+            }
     
             html += `
                     </div>
