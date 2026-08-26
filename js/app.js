@@ -143,6 +143,7 @@ window.App = {
         // ═══ Part 33: 初始化 Practice 模块 ═══
         // ════════════════════════════════════════════════════════════
         this._initPracticeModules();
+        this._initNotesModule();
 
         this._renderImmediately();
         this._setupComposerListener();
@@ -329,6 +330,17 @@ window.App = {
         var progress = safeGet(window, 'LawAIApp.PracticeProgress');
         if (progress) {
             console.log('[App] ✅ PracticeProgress available');
+        }
+    },
+
+    // ═══ Part 34: 初始化 Notes 模块 ═══
+    _initNotesModule: function() {
+        var notes = window.LawAIApp?.Notes || window.LawAIApp?.KnowledgeCapture;
+        if (notes && typeof notes.init === 'function') {
+            notes.init();
+            console.log('[App] ✅ Notes module initialized');
+        } else {
+            console.log('[App] ⚠️ Notes module not available');
         }
     },
 
