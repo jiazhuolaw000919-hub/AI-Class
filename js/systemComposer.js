@@ -1202,7 +1202,7 @@ LawAIApp.SystemComposer = {
             item.removeEventListener('click', self._navClickHandler);
             item.addEventListener('click', self._navClickHandler = function(e) {
                 var tab = this.getAttribute('data-tab');
-                
+            
                 if (tab === 'home') {
                     window.location.href = '/';
                     return;
@@ -1211,14 +1211,15 @@ LawAIApp.SystemComposer = {
                     window.location.href = '/pages/academy.html';
                     return;
                 }
-                
+            
                 e.preventDefault();
-                
+            
+                // 🔥 使用 #notes 保持一致性
                 if (tab === 'notes') {                
-                    window.location.href = '/pages/academy.html?view=notes';
+                    window.location.href = '/pages/academy.html#notes';
                     return;
                 }
-                
+            
                 var tabNames = {
                     'calendar': '📅 Calendar',                    
                     'settings': '⚙️ Settings'
@@ -1229,7 +1230,7 @@ LawAIApp.SystemComposer = {
                 } else {
                     alert(tabDisplay + ' is coming soon! 🚧');
                 }
-                
+            
                 navItems.forEach(function(nav) {
                     nav.style.color = '#64748b';
                     nav.classList.remove('active');
