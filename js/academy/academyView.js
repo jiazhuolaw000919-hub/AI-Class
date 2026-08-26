@@ -1514,12 +1514,6 @@ function __safeCall(pathOrObj) {
         },
 
         /**
-         * 🔥 Part 58.5: Lesson View (On-Demand Loading + Legacy Fallback)
-         */
-        _renderLessonView: function(container, lessonId) {
-            var self = this;
-
-        /**
          * 🔥 Part 34 Finalization: Notes View
          */
         _renderNotesView: function(container, data) {
@@ -1622,6 +1616,12 @@ function __safeCall(pathOrObj) {
     
             return html;
         },
+
+        /**
+         * 🔥 Part 58.5: Lesson View (On-Demand Loading + Legacy Fallback)
+         */
+        _renderLessonView: function(container, lessonId) {
+            var self = this;
 
             // ═══ Part 7: 检查加载状态 ═══
             var loader = safeGet(window, 'LawAIApp.S4ContentLoader') || safeGet(window, 'LawAIApp.ContentLoader');
