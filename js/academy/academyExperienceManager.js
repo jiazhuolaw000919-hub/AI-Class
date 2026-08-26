@@ -705,7 +705,7 @@
             if (!practiceModule) {
                 console.warn('[ExperienceManager] PracticeModule not available');
                 return null;
-            }
+            },
 
             var result = practiceModule.submitAnswer ? practiceModule.submitAnswer(practice, userAnswer, questionIndex) : null;
             if (result) {
@@ -1716,7 +1716,7 @@
                     moduleId: null,
                     hasActiveSession: false
                 };
-            }
+            },
 
             var continueData = adapter.getContinueLearning ? adapter.getContinueLearning() : null;
             if (!continueData || !continueData.courseId) {
@@ -1730,7 +1730,7 @@
                     moduleId: null,
                     hasActiveSession: false
                 };
-            }
+            },
 
             var hasActiveSession = adapter.hasActiveSession ? adapter.hasActiveSession() : false;
 
