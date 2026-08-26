@@ -275,21 +275,21 @@
             console.log('✅ Academy page ready');
 
             // ============================================================
-            // 🔥 检测 hash，直接渲染目标视图（无闪烁）
+            // 🔥 检测 URL hash，直接进入对应视图
             // ============================================================
             (function() {
                 // 检查是否需要直接进入 Notes
                 var targetView = 'dashboard';
-                if (window.location.hash === '#notes') {
+                if (window.location.hash === '#notes' || window.location.search.includes('view=notes')) {
                     targetView = 'notes';
-                    console.log('📝 Direct navigation to Notes detected (hash)');
+                    console.log('📝 Direct navigation to Notes detected');
                 }
 
                 // ============================================================
-                // 🔥 直接初始化 Academy（不经过 Dashboard）
+                // 🔥 直接初始化 Academy
                 // ============================================================
-                function initAcademyDirect() {
-                    console.log('🔥 Initializing Academy directly to:', targetView);
+                function initAcademy() {
+                    console.log('🔥 Initializing Academy, target:', targetView);
 
                     try {
                         // 初始化 Registries
@@ -312,20 +312,18 @@
                                 window.LawAIApp.AcademyExperienceManager.init();
                             }
                 
-                            // 🔥 关键：如果目标是 Notes，直接导航到 Notes
+                            // 🔥 关键：先渲染，然后根据目标导航
+                            window.LawAIApp.AcademyExperienceManager.render();
+                
                             if (targetView === 'notes') {
-                                // 先渲染 Dashboard（让容器有内容），然后立即切换到 Notes
-                                window.LawAIApp.AcademyExperienceManager.render();
-                    
-                                // 使用 requestAnimationFrame 确保在下一帧切换，避免闪烁
-                                requestAnimationFrame(function() {
+                                // 使用 setTimeout 确保 render 完成后再导航
+                                setTimeout(function() {
                                     window.LawAIApp.AcademyExperienceManager.navigateToNotes();
-                                    console.log('✅ Academy rendered directly to Notes view');
-                                });
-                            } else {
-                                window.LawAIApp.AcademyExperienceManager.render();
-                                console.log('✅ Academy rendered to Dashboard');
+                                    console.log('✅ Navigated to Notes');
+                                }, 100);
                             }
+                
+                            console.log('✅ Academy rendered');
                         }
                     } catch (error) {
                         console.error('❌ Academy init error:', error);
@@ -334,14 +332,13 @@
 
                 // 等待 DOM 和脚本加载完成
                 if (document.readyState === 'complete') {
-                    setTimeout(initAcademyDirect, 100);
+                    setTimeout(initAcademy, 200);
                 } else {
                     window.addEventListener('load', function() {
-                        setTimeout(initAcademyDirect, 100);
+                        setTimeout(initAcademy, 200);
                     });
                 }
             })();
-
         })();
     </script>
 </body>
