@@ -603,6 +603,16 @@
             return this;
         },
 
+        navigateToNotes: function() {
+            console.log('[AcademyExperienceManager] 📝 Navigating to Notes');
+            this._state.viewMode = 'notes';
+            this.render();
+            this._emit('ACADEMY_VIEW_CHANGED', {
+                viewMode: 'notes'
+            });
+            return this;
+        },
+
         prepareLessonExperience: async function(lessonId) {
             var loader = window.LawAIApp && (window.LawAIApp.S4ContentLoader || window.LawAIApp.ContentLoader);
             var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
