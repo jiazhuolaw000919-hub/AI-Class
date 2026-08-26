@@ -59,7 +59,7 @@
         // 1. PUBLIC API
         // ============================================================
 
-        init: function() {
+        init: function(options) {
             if (this.initialized) {
                 console.log('[AcademyExperienceManager] Already initialized');
                 return this;
@@ -68,6 +68,12 @@
             console.log('[AcademyExperienceManager] 🚀 Initializing...');
 
             try {
+                // 🔥 如果指定了 initialView，在渲染前设置状态
+                if (options && options.initialView === 'notes') {
+                    console.log('[AcademyExperienceManager] 📝 Initial view: Notes (setting state before mount)');
+                    this._state.viewMode = 'notes';
+                }
+
                 this._initLayers();
                 this._bindEvents();
                 this.mount();
@@ -75,21 +81,12 @@
                 this.initialized = true;
                 this.status = 'ready';
 
-                if (options && options.initialView === 'notes') {
-                    console.log('[AcademyExperienceManager] 📝 Initial view: Notes');
-                    // 延迟一帧确保 mount 完成
-                    var self = this;
-                    requestAnimationFrame(function() {
-                        self.navigateToNotes();
-                    });
-                }
-
                 this._emit('ACADEMY_EXPERIENCE_READY', {
                     version: this.version,
                     timestamp: Date.now()
                 });
 
-                console.log('[AcademyExperienceManager] ✅ Initialized');
+                console.log('[AcademyExperienceManager] ✅ Initialized, viewMode:', this._state.viewMode);
 
             } catch (error) {
                 console.error('[AcademyExperienceManager] Init failed:', error);
@@ -98,7 +95,7 @@
 
             return this;
         },
-
+       
         mount: function() {
             if (this.mounted) {
                 console.log('[AcademyExperienceManager] Already mounted');
