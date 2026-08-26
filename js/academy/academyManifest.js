@@ -86,6 +86,42 @@
                 description: 'Practice Progress (S4)',
                 required: false
             },
+            {
+                id: 'knowledgeCapture',
+                path: '/js/academy/knowledgeCapture.js',
+                description: 'Knowledge Capture (S4)',
+                required: false
+            },
+            {
+                id: 'knowledgeEditor',
+                path: '/js/academy/knowledgeEditor.js',
+                description: 'Knowledge Editor (S4)',
+                required: false
+            },
+            {
+                id: 'knowledgeLinker',
+                path: '/js/academy/knowledgeLinker.js',
+                description: 'Knowledge Linker (S4)',
+                required: false
+            },
+            {
+                id: 'knowledgeCard',
+                path: '/js/academy/knowledgeCard.js',
+                description: 'Knowledge Card (S4)',
+                required: false
+            },
+            {
+                id: 'secondBrain',
+                path: '/js/academy/secondBrain.js',
+                description: 'Second Brain (S4)',
+                required: false
+            },
+            {
+                id: 'notes',
+                path: '/js/academy/notes.js',
+                description: 'Notes Tab (S4)',
+                required: false
+            },
 
             // ==========================================================
             // 2. Curriculum Layer
