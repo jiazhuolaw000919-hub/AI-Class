@@ -140,10 +140,21 @@
 
     <script>
         (function() {
-            console.log('📄 Academy page loaded (v6.1.0)');
+            'use strict';
+
+            console.log('📄 Academy page loaded (v6.2.0)');
 
             // ============================================================
-            // 🔥 覆盖 app.js 的 fallback 机制 (阻止错误页面)
+            // 🔥 检测目标视图（在一切之前执行）
+            // ============================================================
+            var targetView = 'dashboard';
+            if (window.location.hash === '#notes' || window.location.search.includes('view=notes')) {
+                targetView = 'notes';
+                console.log('📝 Direct navigation to Notes detected (targetView = notes)');
+            }
+
+            // ============================================================
+            // 🔥 覆盖 app.js 的 fallback 机制
             // ============================================================
             function overrideAppFallback() {
                 if (window.App) {
@@ -153,7 +164,7 @@
                         window.App._state.booted = true;
                         window.App._state.initialized = true;
                     }
-                    
+                
                     if (typeof window.App._scheduleFallbackCheck === 'function') {
                         window.App._scheduleFallbackCheck = function() {
                             console.log('[Academy] 🛡️ Fallback check blocked');
@@ -162,13 +173,13 @@
                             this._state.booted = true;
                         };
                     }
-                    
+                
                     var event = new CustomEvent('COMPOSER_MOUNTED', {
                         detail: { version: 'academy', mounted: true }
                     });
                     window.dispatchEvent(event);
                     document.dispatchEvent(event);
-                    
+                
                     console.log('[Academy] ✅ App fallback overridden');
                     return true;
                 }
@@ -187,7 +198,7 @@
             }
 
             // ============================================================
-            // 底部导航
+            // 🔥 底部导航
             // ============================================================
             document.querySelectorAll('.nav-item').forEach(function(item) {
                 item.addEventListener('click', function(e) {
@@ -201,14 +212,13 @@
                         return;
                     }
                     e.preventDefault();
+                    
                     if (tab === 'notes') {
                         // 导航到 Notes 视图
                         if (window.LawAIApp?.AcademyExperienceManager) {
                             window.LawAIApp.AcademyExperienceManager.navigateToNotes();
                         } else {
-                            // Fallback: 切换到 Notes 视图
                             window.location.hash = '#notes';
-                            // 或者触发自定义事件
                             var event = new CustomEvent('NAVIGATE_TO_NOTES', {});
                             document.dispatchEvent(event);
                         }
@@ -216,13 +226,11 @@
                     }
 
                     if (tab === 'calendar') {
-                        // 暂时保留 Toast，等 Calendar 实现
                         showComingSoon('📅 Calendar');
                         return;
                     }
 
                     if (tab === 'settings') {
-                        // 暂时保留 Toast，等 Settings 实现
                         showComingSoon('⚙️ Settings');
                         return;
                     }
@@ -238,12 +246,13 @@
             });
 
             // ============================================================
-            // 🔥 直接初始化 Academy
+            // 🔥 唯一的 initAcademy 函数（合并所有逻辑）
             // ============================================================
             function initAcademy() {
-                console.log('🔥 Initializing Academy...');
+                console.log('🔥 Initializing Academy, targetView:', targetView);
 
                 try {
+                    // 初始化 Registries
                     if (window.LawAIApp?.SchoolRegistry && !window.LawAIApp.SchoolRegistry.initialized) {
                         window.LawAIApp.SchoolRegistry.initialize();
                     }
@@ -256,89 +265,45 @@
                     if (window.LawAIApp?.CurriculumSeed && !window.LawAIApp.CurriculumSeed.loaded) {
                         window.LawAIApp.CurriculumSeed.load();
                     }
+
+                    // 初始化 AcademyExperienceManager
                     if (window.LawAIApp?.AcademyExperienceManager) {
                         if (!window.LawAIApp.AcademyExperienceManager.initialized) {
                             window.LawAIApp.AcademyExperienceManager.init();
                         }
+                    
+                        // 先渲染
                         window.LawAIApp.AcademyExperienceManager.render();
-                        console.log('✅ Academy rendered!');
+                        console.log('✅ Academy rendered');
+                    
+                        // 🔥 如果目标是 Notes，导航到 Notes
+                        if (targetView === 'notes') {
+                            // 延迟确保 render 完成
+                            setTimeout(function() {
+                                if (window.LawAIApp?.AcademyExperienceManager) {
+                                    window.LawAIApp.AcademyExperienceManager.navigateToNotes();
+                                    console.log('✅ Navigated to Notes (targetView = notes)');
+                                }
+                            }, 150);
+                        }
                     }
                 } catch (error) {
                     console.error('❌ Academy init error:', error);
                 }
             }
 
-            setTimeout(function() {
-                initAcademy();
-            }, 500);
-
-            console.log('✅ Academy page ready');
-
             // ============================================================
-            // 🔥 检测 URL hash，直接进入对应视图
+            // 🔥 启动 Academy
             // ============================================================
-            (function() {
-                // 检查是否需要直接进入 Notes
-                var targetView = 'dashboard';
-                if (window.location.hash === '#notes' || window.location.search.includes('view=notes')) {
-                    targetView = 'notes';
-                    console.log('📝 Direct navigation to Notes detected');
-                }
-
-                // ============================================================
-                // 🔥 直接初始化 Academy
-                // ============================================================
-                function initAcademy() {
-                    console.log('🔥 Initializing Academy, target:', targetView);
-
-                    try {
-                        // 初始化 Registries
-                        if (window.LawAIApp?.SchoolRegistry && !window.LawAIApp.SchoolRegistry.initialized) {
-                            window.LawAIApp.SchoolRegistry.initialize();
-                        }
-                        if (window.LawAIApp?.ProgramRegistry && !window.LawAIApp.ProgramRegistry.initialized) {
-                            window.LawAIApp.ProgramRegistry.initialize();
-                        }
-                        if (window.LawAIApp?.CourseRegistry && !window.LawAIApp.CourseRegistry.initialized) {
-                            window.LawAIApp.CourseRegistry.initialize();
-                        }
-                        if (window.LawAIApp?.CurriculumSeed && !window.LawAIApp.CurriculumSeed.loaded) {
-                            window.LawAIApp.CurriculumSeed.load();
-                        }
-
-                        // 初始化 AcademyExperienceManager
-                        if (window.LawAIApp?.AcademyExperienceManager) {
-                            if (!window.LawAIApp.AcademyExperienceManager.initialized) {
-                                window.LawAIApp.AcademyExperienceManager.init();
-                            }
-                
-                            // 🔥 关键：先渲染，然后根据目标导航
-                            window.LawAIApp.AcademyExperienceManager.render();
-                
-                            if (targetView === 'notes') {
-                                // 使用 setTimeout 确保 render 完成后再导航
-                                setTimeout(function() {
-                                    window.LawAIApp.AcademyExperienceManager.navigateToNotes();
-                                    console.log('✅ Navigated to Notes');
-                                }, 100);
-                            }
-                
-                            console.log('✅ Academy rendered');
-                        }
-                    } catch (error) {
-                        console.error('❌ Academy init error:', error);
-                    }
-                }
-
-                // 等待 DOM 和脚本加载完成
-                if (document.readyState === 'complete') {
+            if (document.readyState === 'complete') {
+                setTimeout(initAcademy, 200);
+            } else {
+                window.addEventListener('load', function() {
                     setTimeout(initAcademy, 200);
-                } else {
-                    window.addEventListener('load', function() {
-                        setTimeout(initAcademy, 200);
-                    });
-                }
-            })();
+                });
+            }
+
+            console.log('✅ Academy page ready, targetView:', targetView);
         })();
     </script>
 </body>
