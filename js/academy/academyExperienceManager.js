@@ -68,12 +68,7 @@
             console.log('[AcademyExperienceManager] 🚀 Initializing...');
 
             try {
-                // 🔥 如果指定了 initialView，在渲染前设置状态
-                if (options && options.initialView === 'notes') {
-                    console.log('[AcademyExperienceManager] 📝 Initial view: Notes (setting state before mount)');
-                    this._state.viewMode = 'notes';
-                }
-
+              
                 this._initLayers();
                 this._bindEvents();
                 this.mount();
