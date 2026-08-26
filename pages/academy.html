@@ -275,49 +275,70 @@
             console.log('✅ Academy page ready');
 
             // ============================================================
-            // 🔥 检测 URL 参数，自动导航到 Notes
+            // 🔥 检测 hash，直接渲染目标视图（无闪烁）
             // ============================================================
             (function() {
-                var urlParams = new URLSearchParams(window.location.search);
-                var view = urlParams.get('view');
-    
-                if (view === 'notes') {
-                    console.log('📝 URL parameter detected: view=notes, auto-navigating to Notes...');
-        
-                    // 等待 Academy 初始化完成后再导航
-                    function waitForAcademyAndNavigate() {
-                        if (window.LawAIApp?.AcademyExperienceManager?.initialized) {
-                            console.log('✅ AcademyExperienceManager ready, navigating to Notes...');
-                            window.LawAIApp.AcademyExperienceManager.navigateToNotes();
-                            // 清除 URL 参数，避免刷新后重复导航
-                            if (window.history && window.history.replaceState) {
-                                var cleanUrl = window.location.pathname;
-                                window.history.replaceState({}, document.title, cleanUrl);
+                // 检查是否需要直接进入 Notes
+                var targetView = 'dashboard';
+                if (window.location.hash === '#notes') {
+                    targetView = 'notes';
+                    console.log('📝 Direct navigation to Notes detected (hash)');
+                }
+
+                // ============================================================
+                // 🔥 直接初始化 Academy（不经过 Dashboard）
+                // ============================================================
+                function initAcademyDirect() {
+                    console.log('🔥 Initializing Academy directly to:', targetView);
+
+                    try {
+                        // 初始化 Registries
+                        if (window.LawAIApp?.SchoolRegistry && !window.LawAIApp.SchoolRegistry.initialized) {
+                            window.LawAIApp.SchoolRegistry.initialize();
+                        }
+                        if (window.LawAIApp?.ProgramRegistry && !window.LawAIApp.ProgramRegistry.initialized) {
+                            window.LawAIApp.ProgramRegistry.initialize();
+                        }
+                        if (window.LawAIApp?.CourseRegistry && !window.LawAIApp.CourseRegistry.initialized) {
+                            window.LawAIApp.CourseRegistry.initialize();
+                        }
+                        if (window.LawAIApp?.CurriculumSeed && !window.LawAIApp.CurriculumSeed.loaded) {
+                            window.LawAIApp.CurriculumSeed.load();
+                        }
+
+                        // 初始化 AcademyExperienceManager
+                        if (window.LawAIApp?.AcademyExperienceManager) {
+                            if (!window.LawAIApp.AcademyExperienceManager.initialized) {
+                                window.LawAIApp.AcademyExperienceManager.init();
                             }
-                            return true;
+                
+                            // 🔥 关键：如果目标是 Notes，直接导航到 Notes
+                            if (targetView === 'notes') {
+                                // 先渲染 Dashboard（让容器有内容），然后立即切换到 Notes
+                                window.LawAIApp.AcademyExperienceManager.render();
+                    
+                                // 使用 requestAnimationFrame 确保在下一帧切换，避免闪烁
+                                requestAnimationFrame(function() {
+                                    window.LawAIApp.AcademyExperienceManager.navigateToNotes();
+                                    console.log('✅ Academy rendered directly to Notes view');
+                                });
+                            } else {
+                                window.LawAIApp.AcademyExperienceManager.render();
+                                console.log('✅ Academy rendered to Dashboard');
+                            }
                         }
-                        return false;
+                    } catch (error) {
+                        console.error('❌ Academy init error:', error);
                     }
-        
-                    // 立即尝试
-                    if (waitForAcademyAndNavigate()) {
-                        return;
-                    }
-        
-                    // 如果还没准备好，轮询等待（最多 5 秒）
-                    var attempts = 0;
-                    var maxAttempts = 25; // 5 秒 (200ms * 25)
-                    var interval = setInterval(function() {
-                        attempts++;
-                        if (waitForAcademyAndNavigate()) {
-                            clearInterval(interval);
-                            return;
-                        }
-                        if (attempts >= maxAttempts) {
-                            clearInterval(interval);
-                            console.warn('⚠️ Timeout waiting for AcademyExperienceManager');
-                        }
-                    }, 200);
+                }
+
+                // 等待 DOM 和脚本加载完成
+                if (document.readyState === 'complete') {
+                    setTimeout(initAcademyDirect, 100);
+                } else {
+                    window.addEventListener('load', function() {
+                        setTimeout(initAcademyDirect, 100);
+                    });
                 }
             })();
 
