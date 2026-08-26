@@ -75,6 +75,15 @@
                 this.initialized = true;
                 this.status = 'ready';
 
+                if (options && options.initialView === 'notes') {
+                    console.log('[AcademyExperienceManager] 📝 Initial view: Notes');
+                    // 延迟一帧确保 mount 完成
+                    var self = this;
+                    requestAnimationFrame(function() {
+                        self.navigateToNotes();
+                    });
+                }
+
                 this._emit('ACADEMY_EXPERIENCE_READY', {
                     version: this.version,
                     timestamp: Date.now()
