@@ -1211,9 +1211,12 @@ LawAIApp.SystemComposer = {
                     return;
                 }
                 e.preventDefault();
+                if (tab === 'notes') {                
+                    window.location.href = '/pages/academy.html?view=notes';
+                    return;
+                }
                 var tabNames = {
-                    'calendar': '📅 Calendar',
-                    'notes': '📝 Notes',
+                    'calendar': '📅 Calendar',                    
                     'settings': '⚙️ Settings'
                 };
                 var tabDisplay = tabNames[tab] || tab;
@@ -1227,7 +1230,7 @@ LawAIApp.SystemComposer = {
                     nav.classList.remove('active');
                 });
                 this.style.color = '#4a9eff';
-                this.classList.add('active');
+                this.classList.add('active');               
             });
         });
     },
