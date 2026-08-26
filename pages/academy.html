@@ -201,15 +201,38 @@
                         return;
                     }
                     e.preventDefault();
-                    var tabNames = {
-                        'calendar': '📅 Calendar',
-                        'notes': '📝 Notes',
-                        'settings': '⚙️ Settings'
-                    };
-                    if (window.LawAIApp?.Toast && typeof window.LawAIApp.Toast.info === 'function') {
-                        LawAIApp.Toast.info(tabNames[tab] + ' coming soon! 🚧');
-                    } else {
-                        alert(tabNames[tab] + ' coming soon! 🚧');
+                    if (tab === 'notes') {
+                        // 导航到 Notes 视图
+                        if (window.LawAIApp?.AcademyExperienceManager) {
+                            window.LawAIApp.AcademyExperienceManager.navigateToNotes();
+                        } else {
+                            // Fallback: 切换到 Notes 视图
+                            window.location.hash = '#notes';
+                            // 或者触发自定义事件
+                            var event = new CustomEvent('NAVIGATE_TO_NOTES', {});
+                            document.dispatchEvent(event);
+                        }
+                        return;
+                    }
+
+                    if (tab === 'calendar') {
+                        // 暂时保留 Toast，等 Calendar 实现
+                        showComingSoon('📅 Calendar');
+                        return;
+                    }
+
+                    if (tab === 'settings') {
+                        // 暂时保留 Toast，等 Settings 实现
+                        showComingSoon('⚙️ Settings');
+                        return;
+                    }
+
+                    function showComingSoon(name) {
+                        if (window.LawAIApp?.Toast && typeof window.LawAIApp.Toast.info === 'function') {
+                            LawAIApp.Toast.info(name + ' coming soon! 🚧');
+                        } else {
+                            alert(name + ' coming soon! 🚧');
+                        }
                     }
                 });
             });
