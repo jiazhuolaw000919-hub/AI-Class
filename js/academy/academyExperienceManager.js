@@ -1409,7 +1409,7 @@
                     nextLevelXp: 0,
                     xpProgress: 0
                 };
-            },
+            }
 
             return {
                 xp: motivation.xp || 0,
@@ -1449,7 +1449,7 @@
                     moduleId: null,
                     hasActiveSession: false
                 };
-            },
+            }
 
             var hasActiveSession = adapter.hasActiveSession ? adapter.hasActiveSession() : false;
 
