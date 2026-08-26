@@ -146,15 +146,6 @@
             console.log('📄 Academy page loaded (v6.2.0)');
 
             // ============================================================
-            // 🔥 检测目标视图（在一切之前执行）
-            // ============================================================
-            var targetView = 'dashboard';
-            if (window.location.hash === '#notes' || window.location.search.includes('view=notes')) {
-                targetView = 'notes';
-                console.log('📝 Direct navigation to Notes detected (targetView = notes)');
-            }
-
-            // ============================================================
             // 🔥 覆盖 app.js 的 fallback 机制
             // ============================================================
             function overrideAppFallback() {
@@ -270,15 +261,8 @@
                     // 🔥 初始化 AcademyExperienceManager 时传入 initialView
                     if (window.LawAIApp?.AcademyExperienceManager) {
                         if (!window.LawAIApp.AcademyExperienceManager.initialized) {
-                            var initOptions = {};
-                            if (targetView === 'notes') {
-                                initOptions.initialView = 'notes';
-                                console.log('📝 Passing initialView: notes to init()');
-                            }
-                            window.LawAIApp.AcademyExperienceManager.init(initOptions);
-                        }
-            
-                        // 🔥 直接渲染（不需要再 navigateToNotes，因为状态已经设置好了）
+                            window.LawAIApp.AcademyExperienceManager.init();
+                        }            
                         window.LawAIApp.AcademyExperienceManager.render();
                         console.log('✅ Academy rendered, viewMode:', window.LawAIApp.AcademyExperienceManager._state.viewMode);
                     }
