@@ -705,7 +705,7 @@
             if (!practiceModule) {
                 console.warn('[ExperienceManager] PracticeModule not available');
                 return null;
-            },
+            }
 
             var result = practiceModule.submitAnswer ? practiceModule.submitAnswer(practice, userAnswer, questionIndex) : null;
             if (result) {
