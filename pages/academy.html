@@ -274,6 +274,53 @@
 
             console.log('✅ Academy page ready');
 
+            // ============================================================
+            // 🔥 检测 URL 参数，自动导航到 Notes
+            // ============================================================
+            (function() {
+                var urlParams = new URLSearchParams(window.location.search);
+                var view = urlParams.get('view');
+    
+                if (view === 'notes') {
+                    console.log('📝 URL parameter detected: view=notes, auto-navigating to Notes...');
+        
+                    // 等待 Academy 初始化完成后再导航
+                    function waitForAcademyAndNavigate() {
+                        if (window.LawAIApp?.AcademyExperienceManager?.initialized) {
+                            console.log('✅ AcademyExperienceManager ready, navigating to Notes...');
+                            window.LawAIApp.AcademyExperienceManager.navigateToNotes();
+                            // 清除 URL 参数，避免刷新后重复导航
+                            if (window.history && window.history.replaceState) {
+                                var cleanUrl = window.location.pathname;
+                                window.history.replaceState({}, document.title, cleanUrl);
+                            }
+                            return true;
+                        }
+                        return false;
+                    }
+        
+                    // 立即尝试
+                    if (waitForAcademyAndNavigate()) {
+                        return;
+                    }
+        
+                    // 如果还没准备好，轮询等待（最多 5 秒）
+                    var attempts = 0;
+                    var maxAttempts = 25; // 5 秒 (200ms * 25)
+                    var interval = setInterval(function() {
+                        attempts++;
+                        if (waitForAcademyAndNavigate()) {
+                            clearInterval(interval);
+                            return;
+                        }
+                        if (attempts >= maxAttempts) {
+                            clearInterval(interval);
+                            console.warn('⚠️ Timeout waiting for AcademyExperienceManager');
+                        }
+                    }, 200);
+                }
+            })();
+
         })();
     </script>
 </body>
