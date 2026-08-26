@@ -1214,9 +1214,30 @@ LawAIApp.SystemComposer = {
             
                 e.preventDefault();
             
-                // 🔥 使用 #notes 保持一致性
-                if (tab === 'notes') {                
-                    window.location.href = '/pages/academy.html#notes';
+                // 🔥 Notes: 使用独立 NotesView 渲染（不跳转页面）
+                if (tab === 'notes') {
+                    var container = document.getElementById('academy-root');
+                    if (!container) {
+                        // 如果没有 academy-root，创建一个
+                        container = document.createElement('div');
+                        container.id = 'academy-root';
+                        container.style.cssText = 'min-height: 100vh; background: #0b1220; padding: 20px;';
+                        document.body.prepend(container);
+                    }
+                
+                    if (window.LawAIApp?.NotesView && typeof window.LawAIApp.NotesView.render === 'function') {
+                        window.LawAIApp.NotesView.render(container);
+                        // 更新导航高亮
+                        navItems.forEach(function(nav) {
+                            nav.style.color = '#64748b';
+                            nav.classList.remove('active');
+                        });
+                        this.style.color = '#4a9eff';
+                        this.classList.add('active');
+                    } else {
+                        // Fallback: 跳转到 Academy Notes
+                        window.location.href = '/pages/academy.html#notes';
+                    }
                     return;
                 }
             
