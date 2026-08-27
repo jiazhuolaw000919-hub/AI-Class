@@ -297,6 +297,32 @@
             return this.getAllCourses().filter((c) => c.programId === programId);
         }
 
+        /**
+         * S4: 按 School 获取 Courses
+         * @param {string} schoolId - School ID
+         * @returns {Array} Courses
+         */
+        getCoursesBySchool(schoolId) {
+            if (!schoolId) return [];
+            return this.getAllCourses().filter(function(c) {
+                // 检查 course 的 schoolId 或 _metadata.school
+                if (c.schoolId === schoolId) return true;
+                if (c._metadata && c._metadata.school === schoolId) return true;
+                // 检查是否属于该 school 的某个 subject
+                const subjectRegistry = window.LawAIApp?.SubjectRegistry;
+                if (subjectRegistry && typeof subjectRegistry.getSubjectsByCourse === 'function') {
+                    const subjects = subjectRegistry.getSubjectsByCourse(c.id);
+                    if (subjects && subjects.length > 0) {
+                        // 检查 subject 的 school
+                        for (var i = 0; i < subjects.length; i++) {
+                            if (subjects[i].schoolId === schoolId) return true;
+                        }
+                    }
+                }
+                return false;
+            });
+        }
+
         getActiveCourses() {
             return this.getAllCourses().filter((c) => c.status === 'active');
         }
