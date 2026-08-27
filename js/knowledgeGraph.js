@@ -684,6 +684,37 @@
         }
     }
 
+    /**
+     * 获取未满足的前置条件（基于 Learner Model）
+     * @param {string} nodeId - 知识节点 ID
+     * @param {Object} learnerModel - Learner Model 实例
+     * @returns {Array} 未满足的前置条件列表
+     */
+    getUnmetPrerequisites: function(nodeId, learnerModel) {
+        var prereqs = this.getPrerequisites(nodeId);
+        if (!learnerModel || !Array.isArray(prereqs) || prereqs.length === 0) {
+            return prereqs || [];
+        }
+
+        var unmet = [];
+        for (var i = 0; i < prereqs.length; i++) {
+            var prereq = prereqs[i];
+            var knowledgeState = learnerModel.getKnowledgeState ? 
+                learnerModel.getKnowledgeState(prereq.id) : null;
+
+            // 如果前置知识未掌握 (mastery < 0.6)，标记为未满足
+            if (!knowledgeState || (knowledgeState.mastery && knowledgeState.mastery.level < 0.6)) {
+                unmet.push({
+                    node: prereq,
+                    reason: 'Not mastered',
+                    currentMastery: knowledgeState ? knowledgeState.mastery.level : 0
+                });
+            }
+        }
+
+        return unmet;
+    }
+
     // ============================================================
     // CORE: Status
     // ============================================================
