@@ -1,57 +1,75 @@
-// adaptiveRecommendation.js (Phase 34 专用，不覆盖 Phase 18)
-LawAIApp.AdaptiveRecommendation = {
-  // 生成带解释的智能推荐
-  generate(limit = 3) {
-    const recs = [];
-    const gap = LawAIApp.GapDetector.getReport();
+// adaptiveRecommendation.js
+// Part 38: 薄包装层 — 委托给 RecommendationEngine
 
-    // 如果存在知识缺口，推荐补全
-    if (gap.missingPrerequisites.length > 0) {
-      recs.push({
-        type: 'review',
-        priority: 'high',
-        title: 'Fill Knowledge Gap',
-        description: `Complete prerequisite lessons: ${gap.missingPrerequisites.slice(0,2).join(', ')}`,
-        reason: 'Missing prerequisites may block your understanding of advanced topics.',
-        expectedBenefit: 'Solidify foundation',
-        estimatedTime: '10 min',
-        goalImpact: 'High'
-      });
+(function() {
+    'use strict';
+
+    window.LawAIApp = window.LawAIApp || {};
+
+    if (window.LawAIApp.AdaptiveRecommendation && window.LawAIApp.AdaptiveRecommendation._upgraded) {
+        console.log('[AdaptiveRecommendation] Already upgraded, skipping...');
+        return;
     }
 
-    // 弱项技能推荐
-    if (gap.weakSkills.length > 0) {
-      recs.push({
-        type: 'skill',
-        priority: 'high',
-        title: 'Strengthen Weak Skills',
-        description: `Focus on improving: ${gap.weakSkills.join(', ')}`,
-        reason: 'Your mastery in these areas is below expectations.',
-        expectedBenefit: 'Boost skill mastery',
-        estimatedTime: '15 min',
-        goalImpact: 'High'
-      });
-    }
+    var AdaptiveRecommendation = {
+        _upgraded: true,
+        _version: '2.0.0',
 
-    // 低保留率复习
-    if (gap.lowRetention.length > 0) {
-      recs.push({
-        type: 'review',
-        priority: 'normal',
-        title: 'Memory Reinforcement',
-        description: 'Review lessons with low memory strength.',
-        reason: 'Regular review prevents knowledge decay.',
-        expectedBenefit: 'Improve long-term retention',
-        estimatedTime: '10 min',
-        goalImpact: 'Medium'
-      });
-    }
+        /**
+         * 生成智能推荐 (带解释)
+         * 委托给 RecommendationEngine
+         */
+        generate: function(limit) {
+            limit = limit || 3;
+            var engine = window.LawAIApp.RecommendationEngine;
+            var recs = [];
 
-    return recs.slice(0, limit);
-  },
+            if (engine && typeof engine.generateRecommendations === 'function') {
+                var results = engine.generateRecommendations();
+                var top = results.slice(0, limit);
 
-  // 获取推荐解释
-  explain(recommendation) {
-    return `${recommendation.reason} Expected benefit: ${recommendation.expectedBenefit}.`;
-  }
-};
+                recs = top.map(function(r) {
+                    var reason = r.reason || 'Based on your learning progress.';
+                    return {
+                        type: r.targetType || 'knowledge',
+                        priority: r.priorityScore >= 70 ? 'high' : 'normal',
+                        title: 'Recommendation',
+                        description: reason,
+                        reason: reason,
+                        expectedBenefit: 'Improve your learning outcomes',
+                        estimatedTime: '15 min',
+                        goalImpact: r.priorityScore >= 70 ? 'High' : 'Medium',
+                        _raw: r
+                    };
+                });
+            }
+
+            return recs;
+        },
+
+        /**
+         * 获取推荐解释
+         */
+        explain: function(recommendation) {
+            if (recommendation && recommendation.reason) {
+                return recommendation.reason + ' Expected benefit: ' + (recommendation.expectedBenefit || 'Improved learning outcomes') + '.';
+            }
+            return 'Recommended based on your learning progress.';
+        },
+
+        /**
+         * 获取状态
+         */
+        getStatus: function() {
+            var engine = window.LawAIApp.RecommendationEngine;
+            if (engine && typeof engine.getStatus === 'function') {
+                return engine.getStatus();
+            }
+            return { version: this._version, upgraded: true };
+        }
+    };
+
+    window.LawAIApp.AdaptiveRecommendation = AdaptiveRecommendation;
+    console.log('[AdaptiveRecommendation] ✅ Upgraded to v2.0.0 (thin wrapper)');
+
+})();
