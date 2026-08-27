@@ -719,7 +719,7 @@ LawAIApp.AdaptiveLearning = (function() {
         getRecommendations: generateRecommendations,
         getGapReport: getGapReport,
         getBalance: calculateBalance,
-        suggestActivity: suggestActivity
+        suggestActivity: suggestActivity,
 
         // ============================================================
         // 🔥 Part 43: Adaptive Learning Foundation (新增)
