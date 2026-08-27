@@ -77,19 +77,36 @@ LawAIApp.AdaptiveLearning = (function() {
     }
 
     // ===========================================
-    // 推荐
+    // 推荐 (委托给 RecommendationEngine)
     // ===========================================
     function generateRecommendations(limit) {
         limit = limit || 5;
+    
+        // 🔥 优先使用 RecommendationEngine
+        var engine = LawAIApp.RecommendationEngine;
+        if (engine && typeof engine.getActiveRecommendations === 'function') {
+            var recs = engine.getActiveRecommendations();
+            if (recs && recs.length > 0) {
+                return recs.slice(0, limit).map(function(r) {
+                    return {
+                        id: r.id || 'rec_' + (r.targetId || 'unknown'),
+                        type: r.targetType || 'knowledge',
+                        title: r.reason || 'Recommended',
+                        description: r.reason || 'Based on your learning progress.',
+                        priority: r.priorityScore >= 70 ? 'high' : 
+                                  r.priorityScore >= 40 ? 'medium' : 'low'
+                    };
+                });
+            }
+        }
+    
+        // Fallback: 原有逻辑 (仅当 RecommendationEngine 不可用时)
         var progress = LawAIApp.ProgressEngine?.getProgress?.() || {};
         var completed = progress.completedLessons || [];
         var total = progress.totalLessons || 365;
-        var weakSkills = LawAIApp.SkillEngine?.getWeakestSkills?.(3) || [];
-        
-        var recs = LawAIApp.RecommendationEngine?.getActiveRecommendations?.() || [];
-        
-        // 1. 下一课推荐
         var nextDay = Math.min(completed.length + 1, total);
+        var recommendations = [];
+    
         recommendations.push({
             id: 'rec_next_lesson',
             type: 'lesson',
@@ -97,47 +114,10 @@ LawAIApp.AdaptiveLearning = (function() {
             description: 'Continue your learning journey',
             priority: 'high'
         });
-        
-        // 2. 弱点推荐
-        weakSkills.forEach(function(skill, index) {
-            if (skill && skill.title) {
-                recommendations.push({
-                    id: 'rec_skill_' + index,
-                    type: 'skill',
-                    title: 'Improve ' + skill.title,
-                    description: 'Focus on your weakest skill area',
-                    priority: 'medium'
-                });
-            }
-        });
-        
-        // 3. 复习推荐
-        var reviews = LawAIApp.MemoryEngine?.getTodayReviews?.() || [];
-        if (reviews.length > 0) {
-            recommendations.push({
-                id: 'rec_review',
-                type: 'review',
-                title: 'Review Session',
-                description: 'Review ' + reviews.length + ' lesson(s) today',
-                priority: 'medium'
-            });
-        }
-        
-        // 4. 项目推荐
-        var projectRec = LawAIApp.ProjectEngine?.recommend?.() || null;
-        if (projectRec) {
-            recommendations.push({
-                id: 'rec_project',
-                type: 'project',
-                title: projectRec.title || 'Start a Project',
-                description: projectRec.description || 'Apply your learning',
-                priority: 'low'
-            });
-        }
-        
+    
         return recommendations.slice(0, limit);
     }
-
+    
     // ===========================================
     // 缺口检测
     // ===========================================
