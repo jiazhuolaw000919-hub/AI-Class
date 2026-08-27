@@ -1,64 +1,57 @@
 // intelligenceRecommendations.js
-LawAIApp.IntelligenceRecommendations = {
-  generate() {
-    const recommendations = [];
-    const progress = LawAIApp.ProgressEngine.getProgress();
-    const todayReviews = LawAIApp.MemoryScheduler?.getTodayReviewList() || [];
-    const activeProjects = LawAIApp.ProjectTracker?.getActiveProjects() || [];
-    const health = LawAIApp.IntelligenceHealth.calculate();
+// Part 38: 薄包装层 — 委托给 RecommendationEngine
 
-    // 1. 继续学习
-    if (progress.currentLesson && progress.completionPercent < 100) {
-      recommendations.push({
-        type: 'lesson',
-        priority: 'high',
-        title: 'Continue Your Learning Path',
-        description: `Next: Day ${progress.currentLesson}`,
-        action: 'open_lesson'
-      });
+(function() {
+    'use strict';
+
+    window.LawAIApp = window.LawAIApp || {};
+
+    if (window.LawAIApp.IntelligenceRecommendations && window.LawAIApp.IntelligenceRecommendations._upgraded) {
+        console.log('[IntelligenceRecommendations] Already upgraded, skipping...');
+        return;
     }
 
-    // 2. 复习提醒
-    if (todayReviews.length > 0) {
-      recommendations.push({
-        type: 'review',
-        priority: 'high',
-        title: 'Memory Boost',
-        description: `${todayReviews.length} review(s) due today`,
-        action: 'open_review'
-      });
-    }
+    var IntelligenceRecommendations = {
+        _upgraded: true,
+        _version: '2.0.0',
 
-    // 3. 项目提醒
-    if (activeProjects.length > 0) {
-      recommendations.push({
-        type: 'project',
-        priority: 'normal',
-        title: 'Continue Your Project',
-        description: `${activeProjects.length} project(s) in progress`,
-        action: 'open_project'
-      });
-    }
+        /**
+         * 生成智能推荐
+         * 委托给 RecommendationEngine
+         */
+        generate: function() {
+            var engine = window.LawAIApp.RecommendationEngine;
+            var recs = [];
 
-    // 4. 基于健康度的建议
-    if (health < 50) {
-      recommendations.push({
-        type: 'break',
-        priority: 'low',
-        title: 'Take a Short Break',
-        description: 'Learning health is low. Rest improves retention.',
-        action: 'none'
-      });
-    } else if (health > 80) {
-      recommendations.push({
-        type: 'challenge',
-        priority: 'low',
-        title: 'Accept a Challenge',
-        description: 'Your learning health is excellent!',
-        action: 'open_challenge'
-      });
-    }
+            if (engine && typeof engine.getActiveRecommendations === 'function') {
+                var active = engine.getActiveRecommendations();
+                recs = active.map(function(r) {
+                    return {
+                        type: r.targetType || 'knowledge',
+                        priority: r.priorityScore >= 70 ? 'high' : 'normal',
+                        title: r.reason || 'Recommendation',
+                        description: r.reason || 'Based on your learning progress.',
+                        action: 'open_' + (r.targetType || '').toLowerCase()
+                    };
+                });
+            }
 
-    return recommendations;
-  }
-};
+            return recs;
+        },
+
+        /**
+         * 获取状态
+         */
+        getStatus: function() {
+            var engine = window.LawAIApp.RecommendationEngine;
+            if (engine && typeof engine.getStatus === 'function') {
+                return engine.getStatus();
+            }
+            return { version: this._version, upgraded: true };
+        }
+    };
+
+    window.LawAIApp.IntelligenceRecommendations = IntelligenceRecommendations;
+    console.log('[IntelligenceRecommendations] ✅ Upgraded to v2.0.0 (thin wrapper)');
+
+})();
