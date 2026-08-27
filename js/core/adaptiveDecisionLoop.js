@@ -1170,7 +1170,22 @@
         getStats: () => instance.getStats(),
 
         getExplorerData: () => instance.getExplorerData(),
-        on: (event, callback) => instance.on(event, callback)
+        on: (event, callback) => instance.on(event, callback),
+
+        // ============================================================
+        // 🔥 Part 46: Adaptive Learning Loop API
+        // ============================================================
+        startAdaptiveCycle: (context, targetId) => instance.startAdaptiveCycle(context, targetId),
+        observeLearnerState: (context) => instance.observeLearnerState(context),
+        evaluateAdaptiveState: (context, observation) => instance.evaluateAdaptiveState(context, observation),
+        generateOrReusePath: (targetId, context, evaluation) => instance.generateOrReusePath(targetId, context, evaluation),
+        produceAdaptiveDecision: (path, context) => instance.produceAdaptiveDecision(path, context),
+        recordLearningEvidence: (evidence) => instance.recordLearningEvidence(evidence),
+        pauseAdaptiveCycle: () => instance.pauseAdaptiveCycle(),
+        resumeAdaptiveCycle: () => instance.resumeAdaptiveCycle(),
+        resetAdaptiveCycle: () => instance.resetAdaptiveCycle(),
+        getLoopStatus: () => instance.getLoopStatus(),
+        getLoopState: () => instance._loopState || null
     };
 
     console.log('[AdaptiveLoop] Part 51.6 loaded ✅');
