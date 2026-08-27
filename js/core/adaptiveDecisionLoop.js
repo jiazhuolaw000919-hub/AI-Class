@@ -169,6 +169,500 @@
         }
 
         // ============================================================
+        // 🔥 Part 46: Adaptive Learning Loop - 扩展方法
+        // 添加到 AdaptiveLoop 类中
+        // ============================================================
+
+        /**
+         * 开始自适应循环
+         * @param {Object} context - 自适应上下文
+         * @param {string} targetId - 目标节点 ID
+         * @returns {Object} 循环状态
+         */
+        startAdaptiveCycle: function(context, targetId) {
+            if (!context || !targetId) {
+                return { success: false, message: 'Context and target required' };
+            }
+
+            // 重置状态
+            this._loopState = {
+                loopId: 'loop_' + Date.now(),
+                cycleId: 0,
+                state: 'IDLE',
+                contextVersion: context.contextVersion || '1.0.0',
+                pathVersion: null,
+                currentPath: null,
+                lastAction: null,
+                lastEvidence: null,
+                lastDecision: null,
+                learnerChoices: [],
+                errors: [],
+                startedAt: Date.now(),
+                updatedAt: Date.now()
+            };
+
+            // 转换到 OBSERVING
+            this._transitionTo('OBSERVING');
+            var observation = this.observeLearnerState(context);
+            this._loopState.observation = observation;
+
+            // 转换到 EVALUATING
+            this._transitionTo('EVALUATING');
+            var evaluation = this.evaluateAdaptiveState(context, observation);
+            this._loopState.evaluation = evaluation;
+
+            // 转换到 PLANNING
+            this._transitionTo('PLANNING');
+            var pathResult = this.generateOrReusePath(targetId, context, evaluation);
+            this._loopState.currentPath = pathResult.path;
+            this._loopState.pathVersion = pathResult.path.pathId;
+
+            // 转换到 AWAITING_LEARNER
+            this._transitionTo('AWAITING_LEARNER');
+            var decision = this.produceAdaptiveDecision(pathResult.path, context);
+            this._loopState.lastDecision = decision;
+
+            this._emit('ADAPTIVE_CYCLE_STARTED', {
+                loopId: this._loopState.loopId,
+                targetId: targetId,
+                pathLength: pathResult.path.nodes ? pathResult.path.nodes.length : 0
+            });
+
+            return {
+                success: true,
+                loopState: this._loopState,
+                decision: decision,
+                path: pathResult.path
+            };
+        },
+
+        /**
+         * 观察学习者状态
+         */
+        observeLearnerState: function(context) {
+            var observation = {
+                timestamp: Date.now(),
+                components: {}
+            };
+
+            // 1. Learner Model
+            try {
+                var lm = window.LawAIApp.LearnerModel;
+                if (lm) {
+                    observation.components.learnerModel = lm.getLearnerModel ? lm.getLearnerModel() : null;
+                }
+            } catch (e) {
+                observation.components.learnerModel = { error: e.message };
+            }
+
+            // 2. Mastery
+            try {
+                var mastery = window.LawAIApp.MasteryEngine;
+                if (mastery) {
+                    observation.components.mastery = mastery.getAllMastery ? mastery.getAllMastery() : [];
+                }
+            } catch (e) {
+                observation.components.mastery = { error: e.message };
+            }
+
+            // 3. Memory
+            try {
+                var memory = window.LawAIApp.MemoryEngine;
+                if (memory) {
+                    observation.components.memory = memory.getAll ? memory.getAll() : {};
+                }
+            } catch (e) {
+                observation.components.memory = { error: e.message };
+            }
+
+            // 4. Review
+            try {
+                var review = window.LawAIApp.MemoryReview;
+                if (review) {
+                    observation.components.review = review.getTodayReviews ? review.getTodayReviews() : [];
+                }
+            } catch (e) {
+                observation.components.review = { error: e.message };
+            }
+
+            // 5. Progress
+            try {
+                var progress = window.LawAIApp.ProgressEngine;
+                if (progress) {
+                    observation.components.progress = progress.getProgress ? progress.getProgress() : null;
+                }
+            } catch (e) {
+                observation.components.progress = { error: e.message };
+            }
+
+            // 6. Goals
+            try {
+                var goals = window.LawAIApp.GoalEngine;
+                if (goals) {
+                    observation.components.goals = goals.getActiveGoals ? goals.getActiveGoals() : [];
+                }
+            } catch (e) {
+                observation.components.goals = { error: e.message };
+            }
+
+            return observation;
+        },
+
+        /**
+         * 评估自适应状态
+         */
+        evaluateAdaptiveState: function(context, observation) {
+            var evaluation = {
+                readiness: {},
+                gaps: {},
+                candidates: {},
+                blockers: {},
+                nearReady: {},
+                timestamp: Date.now()
+            };
+
+            // 使用 KnowledgeGapEngine
+            try {
+                var ge = window.LawAIApp.KnowledgeGapEngine;
+                if (ge) {
+                    var allNodes = window.LawAIApp.KnowledgeGraph?.getAllNodes ? 
+                        window.LawAIApp.KnowledgeGraph.getAllNodes() : [];
+                    for (var i = 0; i < allNodes.length; i++) {
+                        var node = allNodes[i];
+                        if (!node || node.status === 'deprecated') continue;
+                        var gap = ge.getKnowledgeGap ? ge.getKnowledgeGap(node.id, window.LawAIApp.LearnerModel) : null;
+                        if (gap) {
+                            evaluation.gaps[node.id] = gap;
+                        }
+                    }
+                }
+            } catch (e) {
+                evaluation.gaps = { error: e.message };
+            }
+
+            // 使用 PrerequisiteEngine
+            try {
+                var pe = window.LawAIApp.PrerequisiteEngine;
+                if (pe && pe.evaluateReadiness) {
+                    var allNodes = window.LawAIApp.KnowledgeGraph?.getAllNodes ? 
+                        window.LawAIApp.KnowledgeGraph.getAllNodes() : [];
+                    for (var i = 0; i < allNodes.length; i++) {
+                        var node = allNodes[i];
+                        if (!node || node.status === 'deprecated') continue;
+                        var readiness = pe.evaluateReadiness(node.id, window.LawAIApp.LearnerModel);
+                        if (readiness) {
+                            evaluation.readiness[node.id] = readiness;
+                        }
+                    }
+                }
+            } catch (e) {
+                evaluation.readiness = { error: e.message };
+            }
+
+            // 使用 AdaptiveLearning (Part 43)
+            try {
+                var al = window.LawAIApp.AdaptiveLearning;
+                if (al && al.getAdaptiveCandidates) {
+                    var candidates = al.getAdaptiveCandidates(context);
+                    if (candidates) {
+                        evaluation.candidates = candidates;
+                        evaluation.blockers = candidates.blocked || [];
+                        evaluation.nearReady = candidates.nearReady || [];
+                    }
+                }
+            } catch (e) {
+                evaluation.candidates = { error: e.message };
+            }
+
+            return evaluation;
+        },
+
+        /**
+         * 生成或复用路径
+         */
+        generateOrReusePath: function(targetId, context, evaluation) {
+            var ape = window.LawAIApp.AdaptivePathEngine;
+            if (!ape) {
+                return { success: false, path: null, message: 'AdaptivePathEngine not available' };
+            }
+
+            // 检查是否有现有路径且仍然有效
+            var existingPath = this._loopState?.currentPath;
+            var shouldReuse = false;
+
+            if (existingPath && existingPath.targetId === targetId) {
+                // 检查路径是否陈旧
+                var isStale = ape.isPathStale ? ape.isPathStale(existingPath, context) : true;
+                if (!isStale) {
+                    shouldReuse = true;
+                }
+            }
+
+            var result = {
+                success: true,
+                path: null,
+                reused: false,
+                diff: null
+            };    
+
+            if (shouldReuse && existingPath) {
+                result.path = existingPath;
+                result.reused = true;
+                result.diff = { added: [], removed: [], reordered: [], unchanged: existingPath.nodes || [] };
+            } else {
+                // 生成新路径
+                var newPath = ape.generateAdaptivePath ? ape.generateAdaptivePath(targetId, context) : null;
+                if (newPath && newPath.status !== 'FAILED' && newPath.status !== 'INVALID') {
+                    result.path = newPath;
+                    result.reused = false;
+
+                    // 计算 diff
+                    if (existingPath) {
+                        result.diff = this._calculatePathDiff(existingPath, newPath);
+                    }
+                } else {
+                    result.success = false;
+                    result.message = newPath?.errors?.join(', ') || 'Path generation failed';
+                }
+            }
+
+            return result;
+        },
+
+        /**
+         * 计算路径差异 (私有)
+         */
+        _calculatePathDiff: function(oldPath, newPath) {
+            var oldIds = {};
+            var newIds = {};
+            var added = [];
+            var removed = [];
+            var unchanged = [];
+
+            if (oldPath && oldPath.nodes) {
+                for (var i = 0; i < oldPath.nodes.length; i++) {
+                    oldIds[oldPath.nodes[i].knowledgeId] = oldPath.nodes[i];
+                }
+            }
+
+            if (newPath && newPath.nodes) {
+                for (var i = 0; i < newPath.nodes.length; i++) {
+                    var id = newPath.nodes[i].knowledgeId;
+                    newIds[id] = newPath.nodes[i];
+                    if (oldIds[id]) {
+                        unchanged.push(id);
+                    } else {
+                        added.push(id);
+                    }
+                }
+            }
+
+            for (var id in oldIds) {
+                if (!newIds[id]) {
+                    removed.push(id);
+                }
+            }
+
+            return {
+                added: added,
+                removed: removed,
+                unchanged: unchanged,
+                addedCount: added.length,
+                removedCount: removed.length,
+                unchangedCount: unchanged.length
+            };
+        },
+
+        /**
+          * 生成自适应决策
+         */
+        produceAdaptiveDecision: function(path, context) {
+            if (!path || !path.nodes || path.nodes.length === 0) {
+                return {
+                    action: 'COMPLETE',
+                    targetId: null,
+                    reasons: ['NO_PATH'],
+                    confidence: 0
+                };
+            }
+
+            // 找到第一个未完成且不是 SKIPPED 的节点
+            var nextNode = null;
+            for (var i = 0; i < path.nodes.length; i++) {
+                var node = path.nodes[i];
+                if (node.state !== 'COMPLETED' && node.state !== 'MASTERED' && node.state !== 'SKIPPED') {
+                    nextNode = node;
+                    break;
+                }
+            }
+
+            if (!nextNode) {
+                return {
+                    action: 'COMPLETE',
+                    targetId: path.targetId,
+                    reasons: ['ALL_COMPLETED'],
+                    confidence: 0.9
+                };
+            }
+
+            var reasons = ['PATH_NODE_READY'];
+            if (nextNode.state === 'BLOCKED') {
+                reasons.push('BLOCKED');
+            }
+            if (nextNode.state === 'ELIGIBLE') {
+                reasons.push('ELIGIBLE');
+            }
+
+            return {
+                action: 'LEARN',
+                targetId: nextNode.knowledgeId,
+                reasons: reasons,
+                confidence: 0.8,
+                node: nextNode
+            };
+        },
+
+        /**
+         * 记录学习证据
+         */
+        recordLearningEvidence: function(evidence) {
+            if (!evidence) return;
+
+            var ev = {
+                evidenceId: 'ev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                learnerId: evidence.learnerId || 'default-learner',
+                targetId: evidence.targetId || null,
+                type: evidence.type || 'UNKNOWN',
+                source: evidence.source || 'UNKNOWN',
+                timestamp: Date.now(),
+                value: evidence.value || null,
+                confidence: evidence.confidence || null,
+                metadata: evidence.metadata || {}
+            };
+
+            this._loopState.lastEvidence = ev;
+            if (!this._loopState.evidenceHistory) {
+                this._loopState.evidenceHistory = [];
+            }
+            this._loopState.evidenceHistory.push(ev);
+
+            // 触发事件
+            this._emit('EVIDENCE_RECORDED', ev);
+    
+            // 检查是否需要重新规划
+            this._checkReplan();
+
+            return ev;
+        },
+
+        /**
+         * 检查是否需要重新规划 (私有)
+         */
+        _checkReplan: function() {
+            if (!this._loopState || !this._loopState.currentPath) return;
+
+            var shouldReplan = false;
+            var reasons = [];
+
+            // 1. 检查路径是否陈旧
+            var ape = window.LawAIApp.AdaptivePathEngine;
+            if (ape && ape.isPathStale) {
+                var context = window.LawAIApp.AdaptiveLearning?.buildAdaptiveContext?.() || {};
+                if (ape.isPathStale(this._loopState.currentPath, context)) {
+                    shouldReplan = true;
+                    reasons.push('PATH_STALE');
+                }
+            }
+
+            // 2. 检查目标是否已掌握
+            var lm = window.LawAIApp.LearnerModel;
+            if (lm) {
+                var targetId = this._loopState.currentPath.targetId;
+                var state = lm.getKnowledgeState ? lm.getKnowledgeState(targetId) : null;
+                if (state && state.mastery && state.mastery.level >= 0.85) {
+                    shouldReplan = true;
+                    reasons.push('TARGET_COMPLETED');
+                }
+            }
+
+            if (shouldReplan) {
+                this._transitionTo('REPLANNING');
+                this._emit('REPLAN_TRIGGERED', { reasons: reasons });
+                // 实际重新规划由外部调用 recalculatePath 完成
+            }
+        },
+
+        /**
+         * 状态转换 (私有)
+         */
+        _transitionTo: function(newState) {
+            var oldState = this._loopState?.state || 'IDLE';
+            this._loopState.state = newState;
+            this._loopState.updatedAt = Date.now();
+
+            this._emit('LOOP_STATE_CHANGED', {
+                from: oldState,
+                to: newState,
+                cycleId: this._loopState?.cycleId || 0
+            });
+        },
+
+        /**
+         * 暂停循环
+         */
+        pauseAdaptiveCycle: function() {
+            if (!this._loopState) {
+                return { success: false, message: 'No active cycle' };
+            }
+            this._transitionTo('PAUSED');
+            return { success: true, state: this._loopState.state };
+        },
+
+        /**
+         * 恢复循环
+         */
+        resumeAdaptiveCycle: function() {
+            if (!this._loopState) {
+                return { success: false, message: 'No active cycle' };
+            }
+            if (this._loopState.state !== 'PAUSED') {
+                return { success: false, message: 'Not paused' };
+            }
+            this._transitionTo('OBSERVING');
+            return { success: true, state: this._loopState.state };
+        },
+
+        /**
+         * 重置循环
+         */
+        resetAdaptiveCycle: function() {
+            this._loopState = null;
+            this._emit('LOOP_RESET', {});
+            return { success: true };
+        },
+
+        /**
+         * 获取循环状态
+         */
+        getLoopStatus: function() {
+            if (!this._loopState) {
+                return { active: false, state: 'IDLE' };
+            }
+            return {
+                active: true,
+                state: this._loopState.state,
+                loopId: this._loopState.loopId,
+                cycleId: this._loopState.cycleId,
+                pathVersion: this._loopState.pathVersion,
+                lastDecision: this._loopState.lastDecision,
+                lastEvidence: this._loopState.lastEvidence,
+                startedAt: this._loopState.startedAt,
+                updatedAt: this._loopState.updatedAt,
+                errors: this._loopState.errors
+            };
+        }
+
+        // ============================================================
         // Core: Record Outcome (Chapter 3-4)
         // ============================================================
 
