@@ -1,39 +1,105 @@
 // forgettingCurve.js
-LawAIApp.ForgettingCurve = {
-  // 根据时间衰减计算当前强度
-  calculateCurrentStrength(lessonId) {
-    const memory = LawAIApp.MemoryTracker.getOrCreate(lessonId);
-    const lastStudy = memory.lastStudied ? new Date(memory.lastStudied) : null;
-    if (!lastStudy) return memory.strength;
+// Part 37: 薄包装层 — 委托给 MemoryReview
 
-    const daysSinceStudy = (Date.now() - lastStudy.getTime()) / 86400000;
-    // 简化的艾宾浩斯遗忘曲线：强度每天衰减 10%（但低于30后减慢）
-    let decay = 0;
-    if (daysSinceStudy <= 1) decay = 2;
-    else if (daysSinceStudy <= 3) decay = 5 * (daysSinceStudy - 1);
-    else if (daysSinceStudy <= 7) decay = 10 + (daysSinceStudy - 3) * 8;
-    else if (daysSinceStudy <= 30) decay = 42 + (daysSinceStudy - 7) * 2;
-    else decay = 100;
+(function() {
+    'use strict';
 
-    const newStrength = Math.max(0, memory.strength - decay);
-    return newStrength;
-  },
+    window.LawAIApp = window.LawAIApp || {};
 
-  // 计算下一次建议复习时间（基于当前强度）
-  getNextReviewDate(lessonId) {
-    const strength = this.calculateCurrentStrength(lessonId);
-    if (strength >= 90) return new Date(Date.now() + 30 * 86400000); // 30天后
-    if (strength >= 70) return new Date(Date.now() + 7 * 86400000);
-    if (strength >= 50) return new Date(Date.now() + 3 * 86400000);
-    if (strength >= 30) return new Date(Date.now() + 86400000);
-    return new Date(Date.now() + 12 * 3600000); // 半天后
-  },
+    if (window.LawAIApp.ForgettingCurve && window.LawAIApp.ForgettingCurve._upgraded) {
+        console.log('[ForgettingCurve] Already upgraded, skipping...');
+        return;
+    }
 
-  // 检查是否到了复习时间
-  isReviewDue(lessonId) {
-    const memory = LawAIApp.MemoryTracker.getOrCreate(lessonId);
-    const nextDate = memory.nextReviewDate ? new Date(memory.nextReviewDate) : null;
-    if (!nextDate) return true;
-    return Date.now() >= nextDate.getTime();
-  }
-};
+    var ForgettingCurve = {
+        _upgraded: true,
+        _version: '2.0.0',
+
+        /**
+         * 根据时间衰减计算当前强度
+         * 委托给 MemoryEngine
+         */
+        calculateCurrentStrength: function(knowledgeId) {
+            var memoryEngine = window.LawAIApp.MemoryEngine;
+            if (memoryEngine && typeof memoryEngine.getMemory === 'function') {
+                var record = memoryEngine.getMemory(knowledgeId);
+                if (record) {
+                    // 获取 strength 并应用衰减
+                    var strength = record.strength || 0;
+                    var lastReviewed = record.lastReviewed || record.updatedAt || Date.now();
+                    var daysSince = (Date.now() - lastReviewed) / 86400000;
+                    
+                    // 简单衰减
+                    if (daysSince > 1) {
+                        var decay = Math.min(30, (daysSince - 1) * 2);
+                        return Math.max(0, strength - decay);
+                    }
+                    return strength;
+                }
+            }
+            return 50;
+        },
+
+        /**
+         * 计算下一次建议复习时间
+         * 委托给 MemoryReview
+         */
+        getNextReviewDate: function(knowledgeId) {
+            var review = window.LawAIApp.MemoryReview;
+            if (review && typeof review.getReview === 'function') {
+                var record = review.getReview(knowledgeId);
+                if (record && record.dueAt) {
+                    return new Date(record.dueAt);
+                }
+                // 如果没有 dueAt，安排一个
+                if (review && typeof review.scheduleReview === 'function') {
+                    review.scheduleReview(knowledgeId);
+                    var newRecord = review.getReview(knowledgeId);
+                    if (newRecord && newRecord.dueAt) {
+                        return new Date(newRecord.dueAt);
+                    }
+                }
+            }
+            // Fallback: 3 天后
+            return new Date(Date.now() + 3 * 86400000);
+        },
+
+        /**
+         * 检查是否到了复习时间
+         * 委托给 MemoryReview
+         */
+        isReviewDue: function(knowledgeId) {
+            var review = window.LawAIApp.MemoryReview;
+            if (review && typeof review.getReview === 'function') {
+                var record = review.getReview(knowledgeId);
+                if (record) {
+                    var state = record.reviewState;
+                    return state === 'DUE' || state === 'OVERDUE';
+                }
+            }
+            // Fallback: 检查 dueAt
+            var memoryEngine = window.LawAIApp.MemoryEngine;
+            if (memoryEngine && typeof memoryEngine.getMemory === 'function') {
+                var mem = memoryEngine.getMemory(knowledgeId);
+                if (mem && mem.nextReview) {
+                    return Date.now() >= mem.nextReview;
+                }
+            }
+            return false;
+        },
+
+        /**
+         * 获取状态
+         */
+        getStatus: function() {
+            return {
+                version: this._version,
+                upgraded: true
+            };
+        }
+    };
+
+    window.LawAIApp.ForgettingCurve = ForgettingCurve;
+    console.log('[ForgettingCurve] ✅ Upgraded to v2.0.0 (thin wrapper)');
+
+})();
