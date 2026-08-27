@@ -264,6 +264,27 @@
     }
 
     /**
+   * S4: 获取 School 的所有 Courses
+   * @param {string} schoolId
+   * @returns {Array} Courses
+   */
+  getSchoolCourses(schoolId) {
+      const courseRegistry = window.LawAIApp?.CourseRegistry;
+      if (!courseRegistry) {
+          console.warn('[SchoolRegistry] CourseRegistry not available');
+          return [];
+      }
+      if (typeof courseRegistry.getCoursesBySchool === 'function') {
+          return courseRegistry.getCoursesBySchool(schoolId);
+      }
+      // Fallback: 手动过滤
+      const allCourses = courseRegistry.getAllCourses ? courseRegistry.getAllCourses() : [];
+      return allCourses.filter(function(c) {
+          return c.schoolId === schoolId || (c._metadata && c._metadata.school === schoolId);
+      });
+  }
+
+    /**
      * 添加 Program 到 School
      * @param {string} schoolId
      * @param {string} programId
