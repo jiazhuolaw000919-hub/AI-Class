@@ -1,39 +1,104 @@
 // recommendationHistory.js
-LawAIApp.RecommendationHistory = {
-  _getStore() {
-    return LawAIApp.StorageEngine.get('recommendation_history', []);
-  },
-  _save(list) { LawAIApp.StorageEngine.set('recommendation_history', list); },
+// Part 38: 薄包装层 — 委托给 RecommendationEngine
 
-  add(rec) {
-    const list = this._getStore();
-    list.push({ ...rec, status: 'active', addedAt: new Date().toISOString() });
-    // 最多保留100条
-    if (list.length > 100) list.splice(0, list.length - 100);
-    this._save(list);
-  },
+(function() {
+    'use strict';
 
-  accept(id) {
-    const list = this._getStore();
-    const item = list.find(r => r.recommendationId === id);
-    if (item) item.status = 'accepted';
-    this._save(list);
-    LawAIApp.EventBus.emit('RecommendationAccepted', { id });
-  },
+    window.LawAIApp = window.LawAIApp || {};
 
-  dismiss(id) {
-    const list = this._getStore();
-    const item = list.find(r => r.recommendationId === id);
-    if (item) item.status = 'dismissed';
-    this._save(list);
-    LawAIApp.EventBus.emit('RecommendationDismissed', { id });
-  },
+    if (window.LawAIApp.RecommendationHistory && window.LawAIApp.RecommendationHistory._upgraded) {
+        console.log('[RecommendationHistory] Already upgraded, skipping...');
+        return;
+    }
 
-  getActive() {
-    return this._getStore().filter(r => r.status === 'active');
-  },
+    var RecommendationHistory = {
+        _upgraded: true,
+        _version: '2.0.0',
 
-  getHistory() {
-    return this._getStore();
-  }
-};
+        /**
+         * 添加推荐
+         * 委托给 RecommendationEngine
+         */
+        add: function(rec) {
+            var engine = window.LawAIApp.RecommendationEngine;
+            if (engine && typeof engine.generateRecommendations === 'function') {
+                // 推荐由 RecommendationEngine 统一生成
+                engine.generateRecommendations();
+            }
+        },
+
+        /**
+         * 接受推荐
+         * 委托给 RecommendationEngine
+         */
+        accept: function(id) {
+            var engine = window.LawAIApp.RecommendationEngine;
+            if (engine && typeof engine.acceptRecommendation === 'function') {
+                return engine.acceptRecommendation(id);
+            }
+        },
+
+        /**
+         * 忽略推荐
+         * 委托给 RecommendationEngine
+         */
+        dismiss: function(id) {
+            var engine = window.LawAIApp.RecommendationEngine;
+            if (engine && typeof engine.dismissRecommendation === 'function') {
+                return engine.dismissRecommendation(id);
+            }
+        },
+
+        /**
+         * 获取活跃推荐
+         * 委托给 RecommendationEngine
+         */
+        getActive: function() {
+            var engine = window.LawAIApp.RecommendationEngine;
+            if (engine && typeof engine.getActiveRecommendations === 'function') {
+                var active = engine.getActiveRecommendations();
+                return active.map(function(r) {
+                    return {
+                        recommendationId: r.id,
+                        type: r.targetType || 'knowledge',
+                        priority: r.priorityScore >= 70 ? 'high' : 'normal',
+                        title: r.reason || 'Recommendation',
+                        description: r.reason || '',
+                        reason: r.reason || '',
+                        status: r.status || 'active',
+                        expiresAt: r.expiresAt ? new Date(r.expiresAt).toISOString() : null,
+                        addedAt: new Date(r.createdAt).toISOString()
+                    };
+                });
+            }
+            return [];
+        },
+
+        /**
+         * 获取历史
+         * 委托给 RecommendationEngine
+         */
+        getHistory: function() {
+            var engine = window.LawAIApp.RecommendationEngine;
+            if (engine && typeof engine.getRecommendations === 'function') {
+                return engine.getRecommendations({});
+            }
+            return [];
+        },
+
+        /**
+         * 获取状态
+         */
+        getStatus: function() {
+            var engine = window.LawAIApp.RecommendationEngine;
+            if (engine && typeof engine.getStatus === 'function') {
+                return engine.getStatus();
+            }
+            return { version: this._version, upgraded: true };
+        }
+    };
+
+    window.LawAIApp.RecommendationHistory = RecommendationHistory;
+    console.log('[RecommendationHistory] ✅ Upgraded to v2.0.0 (thin wrapper)');
+
+})();
