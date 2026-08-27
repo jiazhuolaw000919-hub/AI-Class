@@ -121,6 +121,18 @@ window.App = {
 
         this.mountRoot();
 
+        // ============================================================
+        // 🔥 Part 35: 初始化 MemoryEngine
+        // ============================================================
+        if (window.LawAIApp?.MemoryEngine && typeof window.LawAIApp.MemoryEngine.init === 'function') {
+            try {
+                window.LawAIApp.MemoryEngine.init();
+                console.log('[App] ✅ MemoryEngine initialized');
+            } catch (e) {
+                console.warn('[App] ⚠️ MemoryEngine init failed:', e);
+            }
+        }
+
         // ════════════════════════════════════════════════════════════
         // ═══ S4 Part 10: 初始化 ContentLoader（新增） ═══
         // ════════════════════════════════════════════════════════════
