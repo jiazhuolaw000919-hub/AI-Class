@@ -86,7 +86,7 @@ LawAIApp.AdaptiveLearning = (function() {
         var total = progress.totalLessons || 365;
         var weakSkills = LawAIApp.SkillEngine?.getWeakestSkills?.(3) || [];
         
-        var recommendations = [];
+        var recs = LawAIApp.RecommendationEngine?.getActiveRecommendations?.() || [];
         
         // 1. 下一课推荐
         var nextDay = Math.min(completed.length + 1, total);
