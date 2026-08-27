@@ -432,6 +432,627 @@
     }
 
     // ============================================================
+    // 🔥 Part 45: Learner Agency & Path Flexibility
+    // ============================================================
+
+    /**
+     * 获取知识节点的访问状态
+     * @param {string} knowledgeId - 知识节点 ID
+     * @param {Object} context - 自适应上下文
+     * @param {Object} options - 配置选项
+     * @returns {Object} 访问状态
+     */
+    function getAccessState(knowledgeId, context, options) {
+        options = options || {};
+        context = context || _getDefaultContext();
+
+        var result = {
+            knowledgeId: knowledgeId,
+            accessState: 'OPEN',      // OPEN | RECOMMENDED | PREREQUISITE_WARNING | REVIEW_RECOMMENDED | ASSESSMENT_RECOMMENDED | UNAVAILABLE
+            canAccess: true,
+            warnings: [],
+            recommendations: [],
+            prerequisites: [],
+            satisfiedPrerequisites: [],
+            unsatisfiedPrerequisites: []
+        };
+
+        // 1. 检查节点是否存在
+        var kg = window.LawAIApp.KnowledgeGraph;
+        if (!kg) {
+            result.accessState = 'UNAVAILABLE';
+            result.canAccess = false;
+            result.warnings.push('Knowledge Graph not available');
+            return result;
+        }
+
+        var node = kg.getNode(knowledgeId);
+        if (!node) {
+            result.accessState = 'UNAVAILABLE';
+            result.canAccess = false;
+            result.warnings.push('Node not found');
+            return result;
+        }
+
+        if (node.status === 'deprecated') {
+            result.accessState = 'UNAVAILABLE';
+            result.canAccess = false;
+            result.warnings.push('Node is deprecated');
+            return result;
+        }
+
+        // 2. 检查是否已掌握 (MASTERED = 可访问，但可能不推荐学习)
+        var lm = window.LawAIApp.LearnerModel;
+        var isMastered = false;
+        if (lm && typeof lm.getKnowledgeState === 'function') {
+            var state = lm.getKnowledgeState(knowledgeId);
+            if (state && state.mastery && state.mastery.level >= 0.85) {
+                isMastered = true;
+            }
+        }
+
+        if (isMastered) {
+            result.accessState = 'OPEN';
+            result.canAccess = true;
+            result.recommendations.push('Already mastered');
+            return result;
+        }
+
+        // 3. 检查前置条件
+        var prereqs = kg.getPrerequisites ? kg.getPrerequisites(knowledgeId) : [];
+        var unsatisfied = [];
+        var satisfied = [];
+
+        for (var i = 0; i < prereqs.length; i++) {
+            var prereq = prereqs[i];
+            if (!prereq) continue;
+
+            var isSatisfied = false;
+            if (lm && typeof lm.getKnowledgeState === 'function') {
+                var state = lm.getKnowledgeState(prereq.id);
+                if (state && state.mastery) {
+                    isSatisfied = state.mastery.level >= 0.6;
+                }
+            }
+
+            if (isSatisfied) {
+                satisfied.push(prereq.id);
+            } else {
+                unsatisfied.push(prereq.id);
+            }
+        }
+
+        result.prerequisites = prereqs.map(function(p) { return p.id; });
+        result.satisfiedPrerequisites = satisfied;
+        result.unsatisfiedPrerequisites = unsatisfied;
+
+        // 4. 确定访问状态
+        if (unsatisfied.length === 0) {
+            // 所有前置条件已满足 -> 可访问，且推荐
+            result.accessState = 'RECOMMENDED';
+            result.canAccess = true;
+            result.recommendations.push('Prerequisites satisfied');
+        } else {
+            // 有未满足的前置条件 -> 可访问，但有警告
+            result.accessState = 'PREREQUISITE_WARNING';
+            result.canAccess = true;
+            result.warnings.push('Unsatisfied prerequisites: ' + unsatisfied.join(', '));
+            result.recommendations.push('Review prerequisites first for better understanding');
+        }
+
+        // 5. 检查是否需要复习
+        var review = window.LawAIApp.MemoryReview;
+        if (review && typeof review.getReview === 'function') {
+            var reviewRecord = review.getReview(knowledgeId);
+            if (reviewRecord && (reviewRecord.reviewState === 'DUE' || reviewRecord.reviewState === 'OVERDUE')) {
+                if (result.accessState === 'RECOMMENDED') {
+                    result.accessState = 'REVIEW_RECOMMENDED';
+                }
+                result.recommendations.push('Review recommended');
+            }
+        }
+
+        // 6. 检查是否需要评估 (如果 mastery 未知)
+        if (lm && typeof lm.getKnowledgeState === 'function') {
+            var state = lm.getKnowledgeState(knowledgeId);
+            if (!state || !state.mastery || state.mastery.level === null) {
+                if (result.accessState === 'RECOMMENDED' || result.accessState === 'PREREQUISITE_WARNING') {
+                    result.accessState = 'ASSESSMENT_RECOMMENDED';
+                    result.recommendations.push('Assessment recommended to determine readiness');
+                }
+            }
+        }
+
+        return result;
+    }    
+
+    /**
+     * 跳过路径节点
+     * @param {Object} path - 当前路径
+     * @param {string} nodeId - 要跳过的节点 ID
+     * @param {string} reason - 跳过原因
+     * @returns {Object} 更新后的路径
+     */
+    function skipPathNode(path, nodeId, reason) {
+        if (!path || !path.nodes) {
+            return { success: false, message: 'Invalid path' };
+        }
+
+        reason = reason || 'LEARNER_CHOICE';
+
+        // 找到节点
+        var found = false;
+        var updatedNodes = [];
+        var skippedNode = null;
+
+        for (var i = 0; i < path.nodes.length; i++) {
+            var node = path.nodes[i];
+            if (node.knowledgeId === nodeId) {
+                found = true;
+                skippedNode = node;
+                // 标记为跳过
+                updatedNodes.push({
+                    ...node,
+                    state: 'SKIPPED',
+                    skippedReason: reason,
+                    skippedAt: Date.now()
+                });
+            } else {
+                updatedNodes.push(node);
+            }
+        }
+
+        if (!found) {
+            return { success: false, message: 'Node not found in path' };
+        }
+
+        // 更新路径
+        var updatedPath = {
+            ...path,
+            nodes: updatedNodes,
+            status: 'STALE',
+            updatedAt: Date.now(),
+            learnerChoices: path.learnerChoices || []
+        };
+
+        // 记录选择
+        if (!updatedPath.learnerChoices) {
+            updatedPath.learnerChoices = [];
+        }
+        updatedPath.learnerChoices.push({
+            nodeId: nodeId,
+            choice: 'SKIP',
+            reason: reason,
+            timestamp: Date.now()
+        });
+
+        // 重新验证路径
+        var validation = validateAdaptivePath(updatedPath);
+        if (!validation.valid) {
+            updatedPath.status = 'INVALID';
+        } else {
+            updatedPath.status = 'VALID_WITH_WARNING';
+        }    
+
+        return {
+            success: true,
+            path: updatedPath,
+            skippedNode: skippedNode,
+            validation: validation
+        };
+    }
+
+    /**
+     * 恢复路径节点
+     * @param {Object} path - 当前路径
+     * @param {string} nodeId - 要恢复的节点 ID
+     * @returns {Object} 更新后的路径
+     */
+    function restorePathNode(path, nodeId) {
+        if (!path || !path.nodes) {
+            return { success: false, message: 'Invalid path' };
+        }
+
+        var found = false;
+        var updatedNodes = [];
+        var restoredNode = null;
+
+        for (var i = 0; i < path.nodes.length; i++) {
+            var node = path.nodes[i];
+            if (node.knowledgeId === nodeId && node.state === 'SKIPPED') {
+                found = true;
+                restoredNode = node;
+                // 恢复为之前的状态 (ELIGIBLE 或 BLOCKED)
+                updatedNodes.push({
+                    ...node,
+                    state: 'ELIGIBLE',
+                    skippedReason: null,
+                    skippedAt: null
+                });
+            } else {
+                updatedNodes.push(node);
+            }
+        }
+
+        if (!found) {
+            return { success: false, message: 'Skipped node not found' };
+        }
+
+        var updatedPath = {
+            ...path,
+            nodes: updatedNodes,
+            status: 'STALE',
+            updatedAt: Date.now()
+        };
+
+        // 记录选择
+        if (!updatedPath.learnerChoices) {
+            updatedPath.learnerChoices = [];
+        }
+        updatedPath.learnerChoices.push({
+            nodeId: nodeId,
+            choice: 'RESTORE',
+            timestamp: Date.now()
+        });
+
+        return {
+            success: true,
+            path: updatedPath,
+            restoredNode: restoredNode
+        };    
+    }
+
+    /**
+     * 请求节点评估
+     * @param {Object} path - 当前路径
+     * @param {string} nodeId - 要评估的节点 ID
+     * @returns {Object} 评估请求结果
+     */
+    function requestNodeAssessment(path, nodeId) {
+        if (!path) {
+            return { success: false, message: 'Invalid path' };
+        }
+
+        var assessmentRequest = {
+            nodeId: nodeId,
+            pathId: path.pathId,
+            requestedAt: Date.now(),
+            status: 'PENDING'
+        };
+
+        // 触发事件
+        _emit('ASSESSMENT_REQUESTED', assessmentRequest);
+
+        // 更新路径状态
+        var updatedPath = {
+            ...path,
+            status: 'REQUIRES_ASSESSMENT',
+            assessmentRequest: assessmentRequest,
+            updatedAt: Date.now()
+        };
+
+        return {
+            success: true,
+            path: updatedPath,
+            assessmentRequest: assessmentRequest
+        };
+    }
+
+    /**
+     * 开始探索模式
+     * @param {Object} path - 当前路径
+     * @param {string} explorationTarget - 探索目标节点 ID
+     * @returns {Object} 更新后的路径
+     */
+    function startExploration(path, explorationTarget) {
+        if (!path) {
+            return { success: false, message: 'Invalid path' };
+        }
+
+        var exploration = {
+            targetId: explorationTarget,
+            startedAt: Date.now(),
+            status: 'ACTIVE'
+        };
+
+        var updatedPath = {
+            ...path,
+            exploration: exploration,
+            status: 'PAUSED',  // 主路径暂停
+            updatedAt: Date.now()
+        };
+
+        // 记录选择
+        if (!updatedPath.learnerChoices) {
+            updatedPath.learnerChoices = [];
+        }
+        updatedPath.learnerChoices.push({
+            choice: 'EXPLORE',
+            target: explorationTarget,
+            timestamp: Date.now()
+        });
+
+        _emit('EXPLORATION_STARTED', { pathId: path.pathId, target: explorationTarget });
+
+        return {
+            success: true,
+            path: updatedPath,
+            exploration: exploration
+        };
+    }
+
+    /**
+     * 返回路径
+     * @param {Object} path - 当前路径
+     * @returns {Object} 更新后的路径
+     */
+    function returnToPath(path) {
+        if (!path) {
+            return { success: false, message: 'Invalid path' };
+        }
+
+        if (!path.exploration) {
+            return { success: false, message: 'No active exploration' };
+        }
+
+        var updatedPath = {
+            ...path,
+            exploration: {
+                ...path.exploration,
+                endedAt: Date.now(),
+                status: 'COMPLETED'
+            },
+            status: 'ACTIVE',
+            updatedAt: Date.now()
+        };
+
+        _emit('EXPLORATION_ENDED', { pathId: path.pathId });
+
+        return {
+            success: true,
+            path: updatedPath
+        };
+    }
+
+    /**
+     * 暂停路径
+     * @param {Object} path - 当前路径
+     * @param {string} reason - 暂停原因
+     * @returns {Object} 更新后的路径
+     */
+    function pausePath(path, reason) {
+        if (!path) {
+            return { success: false, message: 'Invalid path' };
+        }
+
+        var updatedPath = {
+            ...path,
+            status: 'PAUSED',
+            pausedReason: reason || 'LEARNER_CHOICE',
+            pausedAt: Date.now(),
+            updatedAt: Date.now()
+        };
+
+        _emit('PATH_PAUSED', { pathId: path.pathId, reason: reason });
+    
+        return {
+            success: true,
+            path: updatedPath
+        };
+    }
+
+    /**
+     * 恢复路径
+     * @param {Object} path - 当前路径
+     * @returns {Object} 更新后的路径
+     */
+    function resumePath(path) {
+        if (!path) {
+            return { success: false, message: 'Invalid path' };
+        }
+
+        if (path.status !== 'PAUSED') {
+            return { success: false, message: 'Path is not paused' };
+        }
+
+        var updatedPath = {
+            ...path,
+            status: 'ACTIVE',
+            resumedAt: Date.now(),
+            updatedAt: Date.now()
+        };
+
+        _emit('PATH_RESUMED', { pathId: path.pathId });
+
+        return {
+            success: true,
+            path: updatedPath
+        };
+    }
+
+    /**
+     * 放弃路径
+     * @param {Object} path - 当前路径
+     * @param {string} reason - 放弃原因
+     * @returns {Object} 更新后的路径
+     */
+    function abandonPath(path, reason) {
+        if (!path) {
+            return { success: false, message: 'Invalid path' };
+        }
+
+        var updatedPath = {
+            ...path,
+            status: 'ABANDONED',
+            abandonedReason: reason || 'LEARNER_CHOICE',
+            abandonedAt: Date.now(),
+            updatedAt: Date.now()
+        };
+
+        _emit('PATH_ABANDONED', { pathId: path.pathId, reason: reason });
+
+        return {
+            success: true,
+            path: updatedPath
+        };
+    }
+
+    /**
+     * 重新计算路径
+     * @param {Object} path - 当前路径
+     * @param {Object} context - 自适应上下文
+     * @param {Object} options - 配置选项
+     * @returns {Object} 更新后的路径
+     */
+    function recalculatePath(path, context, options) {
+        if (!path || !path.targetId) {
+            return { success: false, message: 'Invalid path or missing target' };
+        }
+
+        context = context || _getDefaultContext();
+        options = options || {};
+
+        // 生成新路径
+        var newPath = generateAdaptivePath(path.targetId, context, options);
+        newPath.pathId = 'recalc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+        newPath.previousPathId = path.pathId;
+        newPath.status = 'DRAFT';
+
+        // 保留学习者选择历史
+        if (path.learnerChoices) {
+            newPath.learnerChoices = path.learnerChoices.slice();
+        }
+
+        // 验证新路径
+        var validation = validateAdaptivePath(newPath);
+        if (validation.valid) {
+            newPath.status = 'VALID';
+        } else {
+            newPath.status = 'INVALID';
+            newPath.validationErrors = validation.errors;
+        }
+
+        _emit('PATH_RECALCULATED', {
+            previousPathId: path.pathId,
+            newPathId: newPath.pathId,
+            valid: validation.valid
+        });
+
+        return {
+            success: true,
+            path: newPath,
+            validation: validation
+        };
+    }
+
+    /**
+     * 获取路径替代方案
+     * @param {Object} path - 当前路径
+     * @param {Object} context - 自适应上下文
+     * @returns {Array} 替代方案列表
+     */
+    function getPathAlternatives(path, context) {
+        if (!path || !path.targetId) {
+            return [];
+        }
+
+        context = context || _getDefaultContext();
+        var alternatives = [];
+
+        // 1. 当前路径作为 PRIMARY
+        alternatives.push({
+            type: 'PRIMARY',
+            path: path,
+            description: 'Recommended path'
+        });
+
+        // 2. 如果路径中有跳过的节点，提供包含它们的替代方案
+        var skippedNodes = [];
+        for (var i = 0; i < (path.nodes || []).length; i++) {
+            if (path.nodes[i].state === 'SKIPPED') {
+                skippedNodes.push(path.nodes[i]);
+            }
+        }
+
+        if (skippedNodes.length > 0) {
+            // 尝试生成包含跳过节点的路径
+            var altOptions = { includeSkipped: true };
+            var altPath = generateAdaptivePath(path.targetId, context, altOptions);
+            if (altPath && altPath.status === 'VALID') {
+                alternatives.push({
+                    type: 'ALTERNATIVE',
+                    path: altPath,
+                    description: 'Includes previously skipped nodes'
+                });
+            }
+        }
+
+        // 3. 如果有未满足的前置条件，提供补救路径
+        var kg = window.LawAIApp.KnowledgeGraph;
+        if (kg) {
+            var prereqs = kg.getPrerequisites ? kg.getPrerequisites(path.targetId) : [];
+            var unsatisfied = [];
+    
+            for (var i = 0; i < prereqs.length; i++) {
+                var prereq = prereqs[i];
+                if (!prereq) continue;
+                // 检查是否在路径中
+                var inPath = false;
+                for (var j = 0; j < (path.nodes || []).length; j++) {
+                    if (path.nodes[j].knowledgeId === prereq.id) {
+                        inPath = true;
+                        break;
+                    }
+                }
+                if (!inPath) {
+                    unsatisfied.push(prereq.id);
+                }
+            }
+
+            if (unsatisfied.length > 0) {
+                var remediationPath = generateAdaptivePath(path.targetId, context, { focus: 'remediation' });
+                if (remediationPath && remediationPath.status === 'VALID') {
+                    alternatives.push({
+                        type: 'REMEDIATION',
+                        path: remediationPath,
+                        description: 'Fills prerequisite gaps: ' + unsatisfied.join(', ')
+                    });
+                }
+            }
+        }
+
+        return alternatives;
+    }
+
+    /**
+     * 获取学习者选择历史
+     * @param {Object} path - 当前路径
+     * @returns {Array} 选择历史
+     */
+    function getLearnerChoices(path) {
+        if (!path) {
+            return [];
+        }
+        return path.learnerChoices || [];
+    }
+
+    /**
+     * 私有事件发射
+     */
+    function _emit(eventName, data) {
+        try {
+            var event = new CustomEvent(eventName, { detail: data || {} });
+            document.dispatchEvent(event);
+            window.dispatchEvent(event);
+            if (window.LawAIApp?.EventBus && typeof window.LawAIApp.EventBus.emit === 'function') {
+                window.LawAIApp.EventBus.emit(eventName, data);
+            }
+        } catch (e) {
+            // 忽略
+        }
+    }
+
+    // ============================================================
     // HELPERS
     // ============================================================
 
@@ -564,6 +1185,22 @@
         replanAdaptivePath: replanAdaptivePath,
         getPathStatus: getPathStatus,
         isPathStale: isPathStale,
+
+        // ============================================================
+        // 🔥 Part 45: Learner Agency & Path Flexibility
+        // ============================================================
+        getAccessState: getAccessState,
+        skipPathNode: skipPathNode,
+        restorePathNode: restorePathNode,
+        requestNodeAssessment: requestNodeAssessment,
+        startExploration: startExploration,
+        returnToPath: returnToPath,
+        pausePath: pausePath,
+        resumePath: resumePath,
+        abandonPath: abandonPath,
+        recalculatePath: recalculatePath,
+        getPathAlternatives: getPathAlternatives,
+        getLearnerChoices: getLearnerChoices,
 
         // Legacy API (向后兼容)
         getNextLesson: function(userId) {
