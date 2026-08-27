@@ -160,6 +160,8 @@ window.App = {
         this._renderImmediately();
         this._setupComposerListener();
 
+        this._loadIntelligenceModules();
+
         this._state.bootTimeline.push({ event: 'init_complete', time: Date.now() });
         this._emit('APP_INITIALIZED', { version: this.version });
 
@@ -251,6 +253,41 @@ window.App = {
             }
         }.bind(this), 1000);
     },
+
+    // 🔥 Part 42: 延迟加载 Intelligence 模块（不阻塞首屏）
+    setTimeout(function() {
+        // 检查是否已存在
+        if (window.LawAIApp?.KnowledgeGapEngine) {
+            console.log('[App] ✅ KnowledgeGapEngine already loaded');
+            return;
+        }
+    
+        // 动态加载 knowledgeGapEngine.js
+        var script = document.createElement('script');
+        script.src = '/js/knowledgeGapEngine.js';
+        script.async = true;
+        script.onload = function() {
+            console.log('[App] ✅ KnowledgeGapEngine loaded');
+            // 自动初始化已内置
+        };
+        script.onerror = function() {
+            console.warn('[App] ⚠️ KnowledgeGapEngine load failed');
+        };
+        document.head.appendChild(script);
+    
+        // 同样加载 gapDetector.js
+        var script2 = document.createElement('script');
+        script2.src = '/js/gapDetector.js';
+        script2.async = true;
+        script2.onload = function() {
+            console.log('[App] ✅ GapDetector loaded');
+        };
+        script2.onerror = function() {
+            console.warn('[App] ⚠️ GapDetector load failed');
+        };
+        document.head.appendChild(script2);
+    
+    }, 2000); // 延迟 2 秒，让首屏先渲染完
 
     destroy: function() {
         if (this._state.destroyed) return;
