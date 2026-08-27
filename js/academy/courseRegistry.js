@@ -211,8 +211,9 @@
                 return null;
             }
 
-            if (!courseData.programId) {
-                console.warn('[CourseRegistry] Course: programId is required');
+            // 第 143-146 行，修改为：
+            if (!courseData.programId && !courseData.schoolId) {
+                console.warn('[CourseRegistry] Course: programId or schoolId is required');
                 return null;
             }
 
