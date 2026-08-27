@@ -379,7 +379,15 @@
           { id: 'knowledgeLinker', path: '/js/academy/knowledgeLinker.js' },
           { id: 'knowledgeCard', path: '/js/academy/knowledgeCard.js' },
           { id: 'secondBrain', path: '/js/academy/secondBrain.js' },
-          { id: 'notes', path: '/js/academy/notes.js' }
+          { id: 'notes', path: '/js/academy/notes.js' },
+          { id: 'memoryEngine', path: '/js/MemoryEngine.js' },
+          { id: 'masteryEngine', path: '/js/masteryEngine.js' },
+          { id: 'memoryReview', path: '/js/memoryReview.js' },
+          { id: 'memoryScheduler', path: '/js/memoryScheduler.js' },
+          { id: 'recommendationEngine', path: '/js/recommendationEngine.js' },
+          { id: 'learnerModel', path: '/js/learnerModel.js' },
+          { id: 'knowledgeGraph', path: '/js/knowledgeGraph.js' },
+          { id: 'prerequisiteEngine', path: '/js/prerequisiteEngine.js' }
         ]
       };
     }
