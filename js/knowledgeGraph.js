@@ -4,28 +4,6 @@
 // DOMAIN: Knowledge Graph & Relationship Management
 // VERSION: 2.0.0 — Part 40 Knowledge Graph Foundation
 // ================================================================
-//
-// PURPOSE
-// ================================================================
-//   Provide structured representation of relationships between
-//   learning objects (knowledge nodes, prerequisites, dependencies).
-//
-// RELATION TYPES (Part 40)
-// ================================================================
-//   PREREQUISITE  → A must be learned before B (hard)
-//   RELATED       → A and B are meaningfully connected (soft)
-//   PART_OF       → A belongs to B (structural)
-//   SUPPORTS      → A supports understanding B (soft)
-//   NEXT          → A logically comes before B (sequence)
-//   SIMILAR       → A and B are similar concepts
-//   EXTENDS       → A extends B (advanced)
-//   APPLIES_TO    → A applies to B (practical)
-//
-// CORE PRINCIPLE
-// ================================================================
-//   Knowledge Graph describes RELATIONSHIPS, not content.
-//   It does NOT own: Memory, Mastery, Review, Recommendation.
-// ================================================================
 
 (function() {
     'use strict';
@@ -105,18 +83,13 @@
     // CORE: Node Management
     // ============================================================
 
-    /**
-     * 注册知识节点
-     */
     function registerNode(node) {
         if (!node || !node.id) {
             console.warn('[KnowledgeGraph] Node requires id');
             return null;
         }
 
-        // 如果节点已存在，检查是否需要更新
         if (_nodes[node.id]) {
-            // 允许更新，但保留原始创建时间
             var existing = _nodes[node.id];
             _nodes[node.id] = {
                 ...existing,
@@ -143,7 +116,6 @@
 
         _nodes[node.id] = newNode;
 
-        // 更新索引
         if (!_indexes.byType[newNode.type]) {
             _indexes.byType[newNode.type] = [];
         }
@@ -154,47 +126,29 @@
         return newNode;
     }
 
-    /**
-     * 获取节点
-     */
     function getNode(id) {
         return _nodes[id] || null;
     }
 
-    /**
-     * 检查节点是否存在
-     */
     function hasNode(id) {
         return !!_nodes[id];
     }
 
-    /**
-     * 获取所有节点
-     */
     function getAllNodes() {
         return Object.values(_nodes);
     }
 
-    /**
-     * 按类型获取节点
-     */
     function getNodesByType(type) {
         var ids = _indexes.byType[type] || [];
         return ids.map(function(id) { return _nodes[id]; }).filter(function(n) { return n; });
     }
 
-    /**
-     * 获取活跃节点
-     */
     function getActiveNodes() {
         return Object.values(_nodes).filter(function(n) {
             return n.status === 'active' || n.status === 'published';
         });
     }
 
-    /**
-     * 弃用节点
-     */
     function deprecateNode(id, reason) {
         var node = _nodes[id];
         if (!node) return false;
@@ -207,14 +161,10 @@
         return true;
     }
 
-    /**
-     * 删除节点（仅当无关系时）
-     */
     function removeNode(id) {
         var node = _nodes[id];
         if (!node) return false;
 
-        // 检查是否有关系
         var hasRelations = false;
         for (var key in _relations) {
             var rel = _relations[key];
@@ -231,7 +181,6 @@
 
         delete _nodes[id];
 
-        // 更新索引
         for (var type in _indexes.byType) {
             var idx = _indexes.byType[type];
             var pos = idx.indexOf(id);
@@ -248,16 +197,12 @@
     // CORE: Relation Management
     // ============================================================
 
-    /**
-     * 注册关系
-     */
     function registerRelation(relation) {
         if (!relation || !relation.from || !relation.to || !relation.type) {
             console.warn('[KnowledgeGraph] Relation requires from, to, type');
             return null;
         }
 
-        // 检查节点是否存在
         if (!_nodes[relation.from]) {
             console.warn('[KnowledgeGraph] Source node not found:', relation.from);
             return null;
@@ -267,20 +212,17 @@
             return null;
         }
 
-        // 检查自引用
         if (relation.from === relation.to) {
             console.warn('[KnowledgeGraph] Self-relation rejected:', relation.from, '→', relation.to);
             return null;
         }
 
-        // 检查重复
         var existing = _findRelation(relation.from, relation.to, relation.type);
         if (existing) {
             console.warn('[KnowledgeGraph] Duplicate relation exists:', relation.from, '→', relation.to, relation.type);
             return existing;
         }
 
-        // 如果是 PREREQUISITE，检查循环
         if (relation.type === RELATION_TYPES.PREREQUISITE) {
             if (_wouldCreateCycle(relation.from, relation.to)) {
                 console.warn('[KnowledgeGraph] Cycle detected:', relation.from, '→', relation.to);
@@ -307,7 +249,6 @@
 
         _relations[id] = newRelation;
 
-        // 更新索引
         if (!_indexes.byNode[relation.from]) {
             _indexes.byNode[relation.from] = [];
         }
@@ -327,9 +268,6 @@
         return newRelation;
     }
 
-    /**
-     * 查找关系
-     */
     function _findRelation(from, to, type) {
         for (var key in _relations) {
             var rel = _relations[key];
@@ -340,24 +278,15 @@
         return null;
     }
 
-    /**
-     * 检查关系是否存在
-     */
     function hasRelation(from, to, type) {
         return !!_findRelation(from, to, type);
     }
 
-    /**
-     * 获取节点的所有关系
-     */
     function getRelations(nodeId) {
         var ids = _indexes.byNode[nodeId] || [];
         return ids.map(function(id) { return _relations[id]; }).filter(function(r) { return r; });
     }
 
-    /**
-     * 获取特定类型的关系
-     */
     function getRelationsByType(type) {
         var ids = _indexes.byRelationType[type] || [];
         return ids.map(function(id) { return _relations[id]; }).filter(function(r) { return r; });
@@ -367,9 +296,6 @@
     // CORE: Prerequisite Queries
     // ============================================================
 
-    /**
-     * 获取前置条件（直接依赖）
-     */
     function getPrerequisites(nodeId) {
         var relations = getRelations(nodeId);
         return relations
@@ -382,9 +308,6 @@
             .filter(function(n) { return n; });
     }
 
-    /**
-     * 获取依赖者（谁依赖这个节点）
-     */
     function getDependents(nodeId) {
         var relations = getRelations(nodeId);
         return relations
@@ -397,9 +320,6 @@
             .filter(function(n) { return n; });
     }
 
-    /**
-     * 获取前置条件链（完整的依赖路径）
-     */
     function getPrerequisiteChain(nodeId) {
         var chain = [];
         var visited = {};
@@ -416,7 +336,6 @@
                     chain.push(prereq);
                 }
             }
-            // 添加当前节点（在依赖之后）
             var node = _nodes[id];
             if (node && chain.indexOf(node) === -1) {
                 chain.push(node);
@@ -427,18 +346,11 @@
         return chain;
     }
 
-    /**
-     * 获取依赖深度（最长前置路径长度）
-     */
     function getDependencyDepth(nodeId) {
         var chain = getPrerequisiteChain(nodeId);
-        // 深度 = chain 中前置节点的数量（不包括自身）
         return chain.length - 1;
     }
 
-    /**
-     * 获取拓扑排序
-     */
     function getTopologicalOrder() {
         var nodes = Object.values(_nodes);
         var visited = {};
@@ -469,7 +381,6 @@
     // ============================================================
 
     function _wouldCreateCycle(from, to) {
-        // 检查是否已存在 to → from 的路径
         var visited = {};
 
         function hasPath(current, target) {
@@ -489,14 +400,10 @@
         return hasPath(to, from);
     }
 
-    /**
-     * 验证图谱（检测循环、孤立节点等）
-     */
     function validateGraph() {
         var errors = [];
         var warnings = [];
 
-        // 检查孤立节点
         var orphanNodes = [];
         for (var nodeId in _nodes) {
             var rels = getRelations(nodeId);
@@ -509,7 +416,6 @@
             warnings.push('Orphan nodes: ' + orphanNodes.join(', '));
         }
 
-        // 检查关系目标是否存在
         for (var relId in _relations) {
             var rel = _relations[relId];
             if (!_nodes[rel.from]) {
@@ -550,7 +456,6 @@
         }
 
         try {
-            // 清空现有数据
             _nodes = {};
             _relations = {};
             _indexes = {
@@ -559,18 +464,15 @@
                 byRelationType: {}
             };
 
-            // 导入节点
             if (data.nodes && Array.isArray(data.nodes)) {
                 for (var i = 0; i < data.nodes.length; i++) {
                     registerNode(data.nodes[i]);
                 }
             }
 
-            // 导入关系
             if (data.relations && Array.isArray(data.relations)) {
                 for (var j = 0; j < data.relations.length; j++) {
                     var rel = data.relations[j];
-                    // 跳过无效关系
                     if (!rel.from || !rel.to || !rel.type) continue;
                     registerRelation(rel);
                 }
@@ -595,7 +497,6 @@
             if (stored) {
                 if (stored._schemaVersion && stored._schemaVersion !== _schemaVersion) {
                     console.warn('[KnowledgeGraph] Schema version mismatch, migrating...');
-                    // 简单迁移：保留数据，更新版本
                     _nodes = stored.nodes || {};
                     _relations = stored.relations || {};
                     _rebuildIndexes();
@@ -673,9 +574,6 @@
         try {
             _load();
 
-            // 如果有默认测试数据，可以注册
-            // 但保持为空，由外部填充
-
             _initialized = true;
             console.log('[KnowledgeGraph] ✅ Initialized, nodes:', Object.keys(_nodes).length, 'relations:', Object.keys(_relations).length);
         } catch (e) {
@@ -684,14 +582,8 @@
         }
     }
 
-    /**
-     * 获取未满足的前置条件（基于 Learner Model）
-     * @param {string} nodeId - 知识节点 ID
-     * @param {Object} learnerModel - Learner Model 实例
-     * @returns {Array} 未满足的前置条件列表
-     */
-    getUnmetPrerequisites: function(nodeId, learnerModel) {
-        var prereqs = this.getPrerequisites(nodeId);
+    function getUnmetPrerequisites(nodeId, learnerModel) {
+        var prereqs = getPrerequisites(nodeId);
         if (!learnerModel || !Array.isArray(prereqs) || prereqs.length === 0) {
             return prereqs || [];
         }
@@ -702,7 +594,6 @@
             var knowledgeState = learnerModel.getKnowledgeState ? 
                 learnerModel.getKnowledgeState(prereq.id) : null;
 
-            // 如果前置知识未掌握 (mastery < 0.6)，标记为未满足
             if (!knowledgeState || (knowledgeState.mastery && knowledgeState.mastery.level < 0.6)) {
                 unmet.push({
                     node: prereq,
@@ -767,15 +658,12 @@
         _upgraded: true,
         _version: '2.0.0',
 
-        // Constants
         RELATION_TYPES: RELATION_TYPES,
         NODE_TYPES: NODE_TYPES,
 
-        // Lifecycle
         init: init,
         reset: reset,
 
-        // Node API
         registerNode: registerNode,
         getNode: getNode,
         hasNode: hasNode,
@@ -785,27 +673,24 @@
         deprecateNode: deprecateNode,
         removeNode: removeNode,
 
-        // Relation API
         registerRelation: registerRelation,
         hasRelation: hasRelation,
         getRelations: getRelations,
         getRelationsByType: getRelationsByType,
 
-        // Prerequisite Queries
         getPrerequisites: getPrerequisites,
         getDependents: getDependents,
         getPrerequisiteChain: getPrerequisiteChain,
         getDependencyDepth: getDependencyDepth,
         getTopologicalOrder: getTopologicalOrder,
 
-        // Validation
+        getUnmetPrerequisites: getUnmetPrerequisites,
+
         validateGraph: validateGraph,
 
-        // Serialization
         exportGraph: exportGraph,
         importGraph: importGraph,
 
-        // Status
         getStatus: getStatus
     };
 
