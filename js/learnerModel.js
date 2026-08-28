@@ -502,7 +502,7 @@
                 lastContextBuild: this._lastContextBuild || null,
                 quality: this._lastContextQuality || 'UNKNOWN'
             };    
-        }
+        },
 
         // ============================================================
         // 3. PUBLIC API — Context
