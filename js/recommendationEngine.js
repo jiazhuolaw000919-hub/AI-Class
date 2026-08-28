@@ -1013,11 +1013,7 @@
         };
 
         var description = descriptions[code] || descriptions['UNKNOWN'];
-        return {
-            code: code,
-            primary: false,
-            description: description
-        };
+        return { code: code, primary: false, description: description };
     },
 
     /**
