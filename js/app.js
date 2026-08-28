@@ -261,7 +261,7 @@ window.App = {
             console.log('[App] ✅ KnowledgeGapEngine already loaded');
             return;
         }
-    
+
         // 动态加载 knowledgeGapEngine.js
         var script = document.createElement('script');
         script.src = '/js/knowledgeGapEngine.js';
@@ -274,7 +274,7 @@ window.App = {
             console.warn('[App] ⚠️ KnowledgeGapEngine load failed');
         };
         document.head.appendChild(script);
-    
+
         // 同样加载 gapDetector.js
         var script2 = document.createElement('script');
         script2.src = '/js/gapDetector.js';
@@ -286,7 +286,6 @@ window.App = {
             console.warn('[App] ⚠️ GapDetector load failed');
         };
         document.head.appendChild(script2);
-    
     }, 2000); // 延迟 2 秒，让首屏先渲染完
 
     destroy: function() {
