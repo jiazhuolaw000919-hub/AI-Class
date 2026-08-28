@@ -437,6 +437,403 @@
     }
 
     // ============================================================
+    // 🔥 Part 48: Adaptive Recommendation Engine
+    // 添加到 LawAIApp.RecommendationEngine 中
+    // ============================================================
+
+    /**
+     * 使用自适应上下文生成推荐
+     * @param {Object} context - 自适应上下文 (来自 LearnerModel.buildAdaptiveContext)
+     * @param {Object} options - 配置选项
+     * @returns {Object} 推荐结果
+     */
+    getAdaptiveRecommendations: function(context, options) {
+        options = options || {};
+        context = context || this._getAdaptiveContext();
+    
+        var result = {
+            recommendations: [],
+            alternatives: [],
+            contextVersion: context.contextVersion || Date.now(),
+            pathVersion: context.pathVersion || null,
+            generatedAt: Date.now(),
+            summary: {
+                total: 0,
+                primary: null,
+                alternatives: 0
+            }
+        };
+    
+        // 1. 发现候选
+        var candidates = this._discoverCandidates(context, options);
+    
+        // 2. 过滤候选
+        var filtered = this._filterCandidates(candidates, context, options);
+    
+        // 3. 排名候选
+        var ranked = this._rankCandidates(filtered, context, options);
+    
+        // 4. 构建推荐
+        if (ranked.length > 0) {
+            var primary = this._buildRecommendation(ranked[0], context, options);
+            result.recommendations.push(primary);
+            result.summary.primary = primary;
+        
+            // 5. 构建替代方案 (最多 3 个)
+            for (var i = 1; i < Math.min(ranked.length, 4); i++) {
+                var alt = this._buildRecommendation(ranked[i], context, { ...options, isAlternative: true });
+                result.alternatives.push(alt);
+            }
+            result.summary.alternatives = result.alternatives.length;
+        }
+    
+        result.summary.total = result.recommendations.length + result.alternatives.length;
+    
+        return result;
+    },
+
+    /**
+     * 发现候选 (私有)
+     */
+    _discoverCandidates: function(context, options) {
+        var candidates = [];
+        var seen = {};
+    
+        // 1. 从当前路径发现
+        var ape = window.LawAIApp.AdaptivePathEngine;
+        if (ape) {
+            // 获取当前路径
+            var path = this._getActivePath();
+            if (path && path.nodes) {
+                for (var i = 0; i < path.nodes.length; i++) {
+                    var node = path.nodes[i];
+                    if (!node || node.state === 'COMPLETED' || node.state === 'MASTERED') continue;
+                    if (seen[node.knowledgeId]) continue;
+                    seen[node.knowledgeId] = true;
+                    candidates.push({
+                        targetId: node.knowledgeId,
+                        targetType: 'KNOWLEDGE',
+                        source: 'CURRENT_PATH',
+                        priority: 80 - i * 5,
+                        signals: ['PATH_CONTINUITY'],
+                        position: i
+                    });
+                }
+            }
+        }
+    
+        // 2. 从复习发现
+        var review = window.LawAIApp.MemoryReview;
+        if (review) {
+            var dueReviews = review.getTodayReviews ? review.getTodayReviews() : [];
+            for (var i = 0; i < dueReviews.length; i++) {
+                var item = dueReviews[i];
+                if (!item || !item.knowledgeId) continue;
+                if (seen[item.knowledgeId]) continue;
+                seen[item.knowledgeId] = true;
+                candidates.push({
+                    targetId: item.knowledgeId,
+                    targetType: 'REVIEW',
+                    source: 'REVIEW',
+                    priority: 70 - i * 3,
+                    signals: ['REVIEW_DUE'],
+                    reviewData: item
+                });
+            }
+        }
+    
+        // 3. 从掌握度缺口发现
+        var mastery = window.LawAIApp.MasteryEngine;
+        if (mastery) {
+            var allMastery = mastery.getAllMastery ? mastery.getAllMastery() : [];
+            for (var i = 0; i < allMastery.length; i++) {
+                var record = allMastery[i];
+                if (!record || !record.knowledgeId) continue;
+                if (seen[record.knowledgeId]) continue;
+                if (record.masteryLevel >= 0.6) continue; // 只推荐低掌握度
+                seen[record.knowledgeId] = true;
+                candidates.push({
+                    targetId: record.knowledgeId,
+                    targetType: 'KNOWLEDGE',
+                    source: 'MASTERY_GAP',
+                    priority: 60 - record.masteryLevel * 50,
+                    signals: ['KNOWLEDGE_GAP'],
+                    masteryLevel: record.masteryLevel
+                });
+            }
+        }
+    
+        // 4. 从目标发现
+        var goal = context.goal || this._getCurrentGoal();
+        if (goal && goal.targetId) {
+            if (!seen[goal.targetId]) {
+                seen[goal.targetId] = true;
+                candidates.push({
+                    targetId: goal.targetId,
+                    targetType: 'GOAL',
+                    source: 'GOAL_ALIGNMENT',
+                    priority: 90,
+                    signals: ['GOAL_ALIGNED']
+                });
+            }
+        }
+    
+        return candidates;
+    },
+
+    /**
+     * 过滤候选 (私有)
+     */
+    _filterCandidates: function(candidates, context, options) {
+        var filtered = [];
+    
+        for (var i = 0; i < candidates.length; i++) {
+            var candidate = candidates[i];
+            
+            // 1. 检查目标是否存在
+            var kg = window.LawAIApp.KnowledgeGraph;
+            if (kg) {
+                var node = kg.getNode(candidate.targetId);
+                if (!node) continue;
+                if (node.status === 'deprecated') continue;
+            }
+        
+            // 2. 检查是否已掌握 (排除)
+            var lm = window.LawAIApp.LearnerModel;
+            if (lm && candidate.source !== 'GOAL_ALIGNMENT') {
+                var state = lm.getKnowledgeState ? lm.getKnowledgeState(candidate.targetId) : null;
+                if (state && state.mastery && state.mastery.level >= 0.85) {
+                    continue; // 已掌握，不推荐
+                }
+            }
+        
+            // 3. 检查是否已在当前路径中
+            // 如果已经在路径中且不是复习，可能重复
+            if (candidate.source === 'REVIEW' || candidate.source === 'MASTERY_GAP') {
+                // 保留
+            }
+        
+            filtered.push(candidate);
+        }
+    
+        return filtered;
+    },
+
+    /**
+     * 排名候选 (私有)
+     */
+    _rankCandidates: function(candidates, context, options) {
+        // 按优先级排序
+        var ranked = candidates.slice();
+        ranked.sort(function(a, b) {
+            // 主优先级
+            var diff = (b.priority || 0) - (a.priority || 0);
+            if (diff !== 0) return diff;
+            // 稳定 ID
+            return (a.targetId || '').localeCompare(b.targetId || '');
+        });
+        return ranked;
+    },
+
+    /**
+     * 构建推荐 (私有)
+     */
+    _buildRecommendation: function(candidate, context, options) {
+        var isAlternative = options.isAlternative || false;
+        var action = this._determineAction(candidate);
+    
+        var recommendation = {
+            recommendationId: 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+            targetId: candidate.targetId,
+            targetType: candidate.targetType || 'KNOWLEDGE',
+            action: action,
+            reasonCodes: candidate.signals || ['UNKNOWN'],
+            supportingSignals: candidate,
+            priority: candidate.priority >= 70 ? 'HIGH' : 
+                      candidate.priority >= 50 ? 'MEDIUM' : 'LOW',
+            confidence: 0.7,
+            isAlternative: isAlternative,
+            explanation: this._generateExplanation(candidate, context),
+            contextVersion: context.contextVersion || Date.now(),
+            pathVersion: context.pathVersion || null,
+            generatedAt: Date.now(),
+            expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 小时
+        };
+    
+        if (candidate.reviewData) {
+            recommendation.reviewData = candidate.reviewData;
+        }    
+        if (candidate.masteryLevel !== undefined) {
+            recommendation.masteryLevel = candidate.masteryLevel;
+        }
+    
+        return recommendation;
+    },
+
+    /**
+     * 确定动作 (私有)
+     */
+    _determineAction: function(candidate) {
+        switch (candidate.source) {
+            case 'CURRENT_PATH':
+                return 'CONTINUE';
+            case 'REVIEW':
+                return 'REVIEW';
+            case 'MASTERY_GAP':
+                return 'PRACTICE';
+            case 'GOAL_ALIGNMENT':
+                return 'ADVANCE';
+            default:
+                return 'CONTINUE';
+        }
+    },
+
+    /**
+     * 生成解释 (私有)
+     */
+    _generateExplanation: function(candidate, context) {
+        switch (candidate.source) {
+            case 'CURRENT_PATH':
+                return 'Continue your current learning path.';
+            case 'REVIEW':
+                return 'Review this concept to reinforce your understanding.';
+            case 'MASTERY_GAP':
+                var level = candidate.masteryLevel || 0;
+                if (level < 0.3) {
+                    return 'This concept needs foundational practice.';
+                }
+                return 'Practice this concept to strengthen your understanding.';
+            case 'GOAL_ALIGNMENT':
+                return 'This is aligned with your current learning goal.';
+            default:
+                return 'Recommended based on your learning progress.';
+        }
+    },
+
+    /**
+     * 获取自适应上下文 (私有)
+     */
+    _getAdaptiveContext: function() {
+        try {
+            var lm = window.LawAIApp.LearnerModel;
+            if (lm && typeof lm.buildAdaptiveContext === 'function') {
+                return lm.buildAdaptiveContext();
+            }
+        } catch (e) {}
+        return { contextVersion: Date.now(), quality: 'UNKNOWN' };
+    },
+
+    /**
+     * 获取当前路径 (私有)
+     */
+    _getActivePath: function() {
+        try {
+            var ape = window.LawAIApp.AdaptivePathEngine;
+            if (ape && ape.getActivePath) {
+                return ape.getActivePath();
+            }
+            // 尝试从 Loop 获取
+            var loop = window.LawAIApp.AdaptiveLoop;
+            if (loop && loop.getLoopStatus) {
+                var status = loop.getLoopStatus();
+                if (status && status.lastDecision) {
+                    // 返回一个虚拟路径
+                    return {
+                        targetId: status.lastDecision.targetId,
+                        nodes: [{ knowledgeId: status.lastDecision.targetId, state: 'ELIGIBLE' }]
+                    };
+                }
+            }
+        } catch (e) {}
+        return null;
+    },
+
+    /**
+     * 获取当前目标 (私有)
+     */
+    _getCurrentGoal: function() {
+        try {
+            var goals = window.LawAIApp.GoalEngine;
+            if (goals && goals.getActiveGoals) {
+                var active = goals.getActiveGoals();
+                if (active && active.length > 0) {
+                    return active[0];
+                }
+            }
+        } catch (e) {}
+        return null;
+    },
+
+    /**
+     * 接受推荐
+     */
+    acceptAdaptiveRecommendation: function(recommendationId) {
+        console.log('[RecommendationEngine] Accepted:', recommendationId);
+        // 触发事件
+        this._emit('RECOMMENDATION_ACCEPTED', {
+            recommendationId: recommendationId,
+            timestamp: Date.now()
+        });
+        return true;
+    },
+
+    /**
+     * 忽略推荐
+     */
+    dismissAdaptiveRecommendation: function(recommendationId, reason) {
+        console.log('[RecommendationEngine] Dismissed:', recommendationId, reason || '');
+        this._emit('RECOMMENDATION_DISMISSED', {
+            recommendationId: recommendationId,
+            reason: reason || 'LEARNER_CHOICE',
+            timestamp: Date.now()
+        });
+        return true;
+    },
+
+    /**
+     * 跳过推荐
+     */
+    skipAdaptiveRecommendation: function(recommendationId) {
+        console.log('[RecommendationEngine] Skipped:', recommendationId);
+        this._emit('RECOMMENDATION_SKIPPED', {
+            recommendationId: recommendationId,
+            timestamp: Date.now()
+        });
+        return true;
+    },
+
+    /**
+     * 选择替代方案
+     */
+    selectAdaptiveAlternative: function(recommendationId, alternativeId) {
+        console.log('[RecommendationEngine] Alternative selected:', recommendationId, '->', alternativeId);
+        this._emit('RECOMMENDATION_ALTERNATIVE_SELECTED', {
+            recommendationId: recommendationId,
+            alternativeId: alternativeId,
+            timestamp: Date.now()
+        });
+        return true;
+    },
+
+    /**
+     * 检查推荐是否过期
+     */
+    isRecommendationStale: function(recommendation, currentContext) {
+        if (!recommendation) return true;
+        if (!currentContext) return true;
+    
+        if (recommendation.contextVersion !== currentContext.contextVersion) {
+            return true;
+        }
+    
+        if (recommendation.expiresAt && Date.now() > recommendation.expiresAt) {
+            return true;
+        }
+    
+        return false;
+    }
+
+    // ============================================================
     // REASON GENERATION
     // ============================================================
 
@@ -756,6 +1153,16 @@
                 dismissRecommendation: dismissRecommendation,
                 skipRecommendation: skipRecommendation,
                 expireRecommendation: expireRecommendation,
+
+                refresh: refresh,
+
+                // 🔥 Part 48: Adaptive Recommendation Engine
+                getAdaptiveRecommendations: getAdaptiveRecommendations,
+                acceptAdaptiveRecommendation: acceptAdaptiveRecommendation,
+                dismissAdaptiveRecommendation: dismissAdaptiveRecommendation,
+                skipAdaptiveRecommendation: skipAdaptiveRecommendation,
+                selectAdaptiveAlternative: selectAdaptiveAlternative,
+                isRecommendationStale: isRecommendationStale
 
                 // Status
                 getStatus: getStatus,
