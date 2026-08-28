@@ -1162,7 +1162,7 @@
                 dismissAdaptiveRecommendation: dismissAdaptiveRecommendation,
                 skipAdaptiveRecommendation: skipAdaptiveRecommendation,
                 selectAdaptiveAlternative: selectAdaptiveAlternative,
-                isRecommendationStale: isRecommendationStale
+                isRecommendationStale: isRecommendationStale,
 
                 // Status
                 getStatus: getStatus,
