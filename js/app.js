@@ -664,6 +664,81 @@ window.App = {
     },
 
     // ============================================================
+    // 🔥 Part 42: 延迟加载 Intelligence 模块（不阻塞首屏）
+    // ============================================================
+    _loadIntelligenceModules: function() {
+        setTimeout(function() {
+            // 1. KnowledgeGapEngine
+            if (window.LawAIApp?.KnowledgeGapEngine) {
+                console.log('[App] ✅ KnowledgeGapEngine already loaded');
+            } else {
+                var script = document.createElement('script');
+                script.src = '/js/knowledgeGapEngine.js';
+                script.async = true;
+                script.onload = function() {
+                    console.log('[App] ✅ KnowledgeGapEngine loaded');
+                    if (window.LawAIApp?.KnowledgeGapEngine &&
+                        typeof window.LawAIApp.KnowledgeGapEngine.init === 'function') {
+                        window.LawAIApp.KnowledgeGapEngine.init();
+                    }
+                };
+                script.onerror = function() {
+                    console.warn('[App] ⚠️ KnowledgeGapEngine load failed');
+                };
+                document.head.appendChild(script);
+            }
+
+            // 2. GapDetector
+            if (window.LawAIApp?.GapDetector) {
+                console.log('[App] ✅ GapDetector already loaded');
+            } else {
+                var script2 = document.createElement('script');
+                script2.src = '/js/gapDetector.js';
+                script2.async = true;
+                script2.onload = function() {
+                    console.log('[App] ✅ GapDetector loaded');
+                };
+                script2.onerror = function() {
+                    console.warn('[App] ⚠️ GapDetector load failed');
+                };
+                document.head.appendChild(script2);
+            }
+
+            // 3. KnowledgeGraph (Part 40)
+            if (!window.LawAIApp?.KnowledgeGraph) {
+                var script3 = document.createElement('script');
+                script3.src = '/js/knowledgeGraph.js';
+                script3.async = true;
+                script3.onload = function() {
+                    console.log('[App] ✅ KnowledgeGraph loaded');
+                };
+                script3.onerror = function() {
+                    console.warn('[App] ⚠️ KnowledgeGraph load failed');
+                };
+                document.head.appendChild(script3);
+            }
+
+            // 4. PrerequisiteEngine (Part 41)
+            if (!window.LawAIApp?.PrerequisiteEngine) {
+                var script4 = document.createElement('script');
+                script4.src = '/js/prerequisiteEngine.js';
+                script4.async = true;
+                script4.onload = function() {
+                    console.log('[App] ✅ PrerequisiteEngine loaded');
+                };
+                script4.onerror = function() {
+                    console.warn('[App] ⚠️ PrerequisiteEngine load failed');
+                };
+                document.head.appendChild(script4);
+            }
+    
+            // 5. KnowledgeGapEngine (Part 42) - 已经加载了，这里不再重复
+
+            console.log('[App] ✅ Intelligence modules loading initiated');
+        }.bind(this), 2000);
+    },
+
+    // ============================================================
     // 10. Events
     // ============================================================
 
