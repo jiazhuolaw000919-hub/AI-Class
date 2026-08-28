@@ -380,7 +380,7 @@
           { id: 'knowledgeCard', path: '/js/academy/knowledgeCard.js' },
           { id: 'secondBrain', path: '/js/academy/secondBrain.js' },
           { id: 'notes', path: '/js/academy/notes.js' },
-          { id: 'memoryEngine', path: '/js/MemoryEngine.js' },
+          { id: 'memoryEngine', path: '/js/memoryEngine.js' },
           { id: 'masteryEngine', path: '/js/masteryEngine.js' },
           { id: 'memoryReview', path: '/js/memoryReview.js' },
           { id: 'memoryScheduler', path: '/js/memoryScheduler.js' },
