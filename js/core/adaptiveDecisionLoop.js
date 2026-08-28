@@ -151,16 +151,13 @@
 
             console.log('[AdaptiveLoop] Initializing...');
 
-            // Connect to modules (Chapter 7)
             this._connectToDecisionEngine();
             this._connectToRecommendationEngine();
             this._connectToHistoricalMemory();
             this._connectToConfidenceSystem();
 
-            // Register with Explorer (Chapter 10)
             this._registerWithExplorer();
 
-            // Load historical data
             this._loadHistoricalData();
 
             this._initialized = true;
@@ -169,22 +166,14 @@
         }
 
         // ============================================================
-        // 🔥 Part 46: Adaptive Learning Loop - 扩展方法
-        // 添加到 AdaptiveLoop 类中
+        // 🔥 Part 46: Adaptive Learning Loop
         // ============================================================
 
-        /**
-         * 开始自适应循环
-         * @param {Object} context - 自适应上下文
-         * @param {string} targetId - 目标节点 ID
-         * @returns {Object} 循环状态
-         */
-        startAdaptiveCycle: function(context, targetId) {
+        startAdaptiveCycle(context, targetId) {
             if (!context || !targetId) {
                 return { success: false, message: 'Context and target required' };
             }
 
-            // 重置状态
             this._loopState = {
                 loopId: 'loop_' + Date.now(),
                 cycleId: 0,
@@ -201,23 +190,19 @@
                 updatedAt: Date.now()
             };
 
-            // 转换到 OBSERVING
             this._transitionTo('OBSERVING');
             var observation = this.observeLearnerState(context);
             this._loopState.observation = observation;
 
-            // 转换到 EVALUATING
             this._transitionTo('EVALUATING');
             var evaluation = this.evaluateAdaptiveState(context, observation);
             this._loopState.evaluation = evaluation;
 
-            // 转换到 PLANNING
             this._transitionTo('PLANNING');
             var pathResult = this.generateOrReusePath(targetId, context, evaluation);
             this._loopState.currentPath = pathResult.path;
             this._loopState.pathVersion = pathResult.path.pathId;
 
-            // 转换到 AWAITING_LEARNER
             this._transitionTo('AWAITING_LEARNER');
             var decision = this.produceAdaptiveDecision(pathResult.path, context);
             this._loopState.lastDecision = decision;
@@ -234,18 +219,14 @@
                 decision: decision,
                 path: pathResult.path
             };
-        },
+        }
 
-        /**
-         * 观察学习者状态
-         */
-        observeLearnerState: function(context) {
+        observeLearnerState(context) {
             var observation = {
                 timestamp: Date.now(),
                 components: {}
             };
 
-            // 1. Learner Model
             try {
                 var lm = window.LawAIApp.LearnerModel;
                 if (lm) {
@@ -255,7 +236,6 @@
                 observation.components.learnerModel = { error: e.message };
             }
 
-            // 2. Mastery
             try {
                 var mastery = window.LawAIApp.MasteryEngine;
                 if (mastery) {
@@ -265,7 +245,6 @@
                 observation.components.mastery = { error: e.message };
             }
 
-            // 3. Memory
             try {
                 var memory = window.LawAIApp.MemoryEngine;
                 if (memory) {
@@ -275,7 +254,6 @@
                 observation.components.memory = { error: e.message };
             }
 
-            // 4. Review
             try {
                 var review = window.LawAIApp.MemoryReview;
                 if (review) {
@@ -285,7 +263,6 @@
                 observation.components.review = { error: e.message };
             }
 
-            // 5. Progress
             try {
                 var progress = window.LawAIApp.ProgressEngine;
                 if (progress) {
@@ -295,7 +272,6 @@
                 observation.components.progress = { error: e.message };
             }
 
-            // 6. Goals
             try {
                 var goals = window.LawAIApp.GoalEngine;
                 if (goals) {
@@ -306,12 +282,9 @@
             }
 
             return observation;
-        },
+        }
 
-        /**
-         * 评估自适应状态
-         */
-        evaluateAdaptiveState: function(context, observation) {
+        evaluateAdaptiveState(context, observation) {
             var evaluation = {
                 readiness: {},
                 gaps: {},
@@ -321,7 +294,6 @@
                 timestamp: Date.now()
             };
 
-            // 使用 KnowledgeGapEngine
             try {
                 var ge = window.LawAIApp.KnowledgeGapEngine;
                 if (ge) {
@@ -340,7 +312,6 @@
                 evaluation.gaps = { error: e.message };
             }
 
-            // 使用 PrerequisiteEngine
             try {
                 var pe = window.LawAIApp.PrerequisiteEngine;
                 if (pe && pe.evaluateReadiness) {
@@ -359,7 +330,6 @@
                 evaluation.readiness = { error: e.message };
             }
 
-            // 使用 AdaptiveLearning (Part 43)
             try {
                 var al = window.LawAIApp.AdaptiveLearning;
                 if (al && al.getAdaptiveCandidates) {
@@ -375,23 +345,18 @@
             }
 
             return evaluation;
-        },
+        }
 
-        /**
-         * 生成或复用路径
-         */
-        generateOrReusePath: function(targetId, context, evaluation) {
+        generateOrReusePath(targetId, context, evaluation) {
             var ape = window.LawAIApp.AdaptivePathEngine;
             if (!ape) {
                 return { success: false, path: null, message: 'AdaptivePathEngine not available' };
             }
 
-            // 检查是否有现有路径且仍然有效
             var existingPath = this._loopState?.currentPath;
             var shouldReuse = false;
 
             if (existingPath && existingPath.targetId === targetId) {
-                // 检查路径是否陈旧
                 var isStale = ape.isPathStale ? ape.isPathStale(existingPath, context) : true;
                 if (!isStale) {
                     shouldReuse = true;
@@ -410,13 +375,11 @@
                 result.reused = true;
                 result.diff = { added: [], removed: [], reordered: [], unchanged: existingPath.nodes || [] };
             } else {
-                // 生成新路径
                 var newPath = ape.generateAdaptivePath ? ape.generateAdaptivePath(targetId, context) : null;
                 if (newPath && newPath.status !== 'FAILED' && newPath.status !== 'INVALID') {
                     result.path = newPath;
                     result.reused = false;
 
-                    // 计算 diff
                     if (existingPath) {
                         result.diff = this._calculatePathDiff(existingPath, newPath);
                     }
@@ -427,12 +390,9 @@
             }
 
             return result;
-        },
+        }
 
-        /**
-         * 计算路径差异 (私有)
-         */
-        _calculatePathDiff: function(oldPath, newPath) {
+        _calculatePathDiff(oldPath, newPath) {
             var oldIds = {};
             var newIds = {};
             var added = [];
@@ -471,12 +431,9 @@
                 removedCount: removed.length,
                 unchangedCount: unchanged.length
             };
-        },
+        }
 
-        /**
-          * 生成自适应决策
-         */
-        produceAdaptiveDecision: function(path, context) {
+        produceAdaptiveDecision(path, context) {
             if (!path || !path.nodes || path.nodes.length === 0) {
                 return {
                     action: 'COMPLETE',
@@ -486,7 +443,6 @@
                 };
             }
 
-            // 找到第一个未完成且不是 SKIPPED 的节点
             var nextNode = null;
             for (var i = 0; i < path.nodes.length; i++) {
                 var node = path.nodes[i];
@@ -520,12 +476,9 @@
                 confidence: 0.8,
                 node: nextNode
             };
-        },
+        }
 
-        /**
-         * 记录学习证据
-         */
-        recordLearningEvidence: function(evidence) {
+        recordLearningEvidence(evidence) {
             if (!evidence) return;
 
             var ev = {
@@ -546,25 +499,19 @@
             }
             this._loopState.evidenceHistory.push(ev);
 
-            // 触发事件
             this._emit('EVIDENCE_RECORDED', ev);
     
-            // 检查是否需要重新规划
             this._checkReplan();
 
             return ev;
-        },
+        }
 
-        /**
-         * 检查是否需要重新规划 (私有)
-         */
-        _checkReplan: function() {
+        _checkReplan() {
             if (!this._loopState || !this._loopState.currentPath) return;
 
             var shouldReplan = false;
             var reasons = [];
 
-            // 1. 检查路径是否陈旧
             var ape = window.LawAIApp.AdaptivePathEngine;
             if (ape && ape.isPathStale) {
                 var context = window.LawAIApp.AdaptiveLearning?.buildAdaptiveContext?.() || {};
@@ -574,7 +521,6 @@
                 }
             }
 
-            // 2. 检查目标是否已掌握
             var lm = window.LawAIApp.LearnerModel;
             if (lm) {
                 var targetId = this._loopState.currentPath.targetId;
@@ -588,14 +534,10 @@
             if (shouldReplan) {
                 this._transitionTo('REPLANNING');
                 this._emit('REPLAN_TRIGGERED', { reasons: reasons });
-                // 实际重新规划由外部调用 recalculatePath 完成
             }
-        },
+        }
 
-        /**
-         * 状态转换 (私有)
-         */
-        _transitionTo: function(newState) {
+        _transitionTo(newState) {
             var oldState = this._loopState?.state || 'IDLE';
             this._loopState.state = newState;
             this._loopState.updatedAt = Date.now();
@@ -605,23 +547,17 @@
                 to: newState,
                 cycleId: this._loopState?.cycleId || 0
             });
-        },
+        }
 
-        /**
-         * 暂停循环
-         */
-        pauseAdaptiveCycle: function() {
+        pauseAdaptiveCycle() {
             if (!this._loopState) {
                 return { success: false, message: 'No active cycle' };
             }
             this._transitionTo('PAUSED');
             return { success: true, state: this._loopState.state };
-        },
+        }
 
-        /**
-         * 恢复循环
-         */
-        resumeAdaptiveCycle: function() {
+        resumeAdaptiveCycle() {
             if (!this._loopState) {
                 return { success: false, message: 'No active cycle' };
             }
@@ -630,21 +566,15 @@
             }
             this._transitionTo('OBSERVING');
             return { success: true, state: this._loopState.state };
-        },
+        }
 
-        /**
-         * 重置循环
-         */
-        resetAdaptiveCycle: function() {
+        resetAdaptiveCycle() {
             this._loopState = null;
             this._emit('LOOP_RESET', {});
             return { success: true };
-        },
+        }
 
-        /**
-         * 获取循环状态
-         */
-        getLoopStatus: function() {
+        getLoopStatus() {
             if (!this._loopState) {
                 return { active: false, state: 'IDLE' };
             }
@@ -669,10 +599,8 @@
         recordOutcome(decisionId, result, impact) {
             console.log(`[AdaptiveLoop] Recording outcome for decision: ${decisionId}`);
 
-            // Determine outcome
             const outcome = this._determineOutcome(result, impact);
 
-            // Create feedback
             const feedback = new Feedback({
                 decisionId: decisionId,
                 result: result,
@@ -689,20 +617,16 @@
 
             this._feedback.push(feedback);
 
-            // Update decision record
             const decisionRecord = this._decisions.find(d => d.decisionId === decisionId);
             if (decisionRecord) {
                 decisionRecord.addFeedback(feedback);
                 decisionRecord.outcome = outcome;
             }
 
-            // Generate learning signal (Chapter 6)
             const learningSignal = this._generateLearningSignal(feedback);
 
-            // Update memory (Chapter 7)
             this._updateMemory(feedback, learningSignal);
 
-            // Improve confidence (Chapter 8)
             this._improveConfidence(feedback);
 
             this._emit('outcomeRecorded', {
@@ -721,17 +645,14 @@
         _determineOutcome(result, impact) {
             if (!result) return OUTCOME.UNKNOWN;
 
-            // Check success
             if (result.success === true || result.status === 'success') {
                 return impact && impact > 0.8 ? OUTCOME.SUCCESS : OUTCOME.PARTIAL_SUCCESS;
             }
 
-            // Check failure
             if (result.success === false || result.status === 'failure' || result.error) {
                 return OUTCOME.FAILED;
             }
 
-            // Check impact
             if (impact !== undefined && impact !== null) {
                 if (impact > 0.7) return OUTCOME.SUCCESS;
                 if (impact > 0.3) return OUTCOME.PARTIAL_SUCCESS;
@@ -802,7 +723,6 @@
         // ============================================================
 
         _updateMemory(feedback, learningSignal) {
-            // Update Historical Memory
             if (window.LawAIApp && window.LawAIApp.HistoricalMemory) {
                 try {
                     window.LawAIApp.HistoricalMemory.remember({
@@ -823,7 +743,6 @@
                 }
             }
 
-            // Update Decision Confidence (Chapter 8)
             if (window.LawAIApp && window.LawAIApp.DecisionConfidence) {
                 try {
                     // Confidence will be improved via _improveConfidence
@@ -838,12 +757,10 @@
         // ============================================================
 
         _improveConfidence(feedback) {
-            // Calculate improvement factor
             const successRate = this._calculateSuccessRate(feedback.decisionId);
             const similarCases = this._findSimilarDecisions(feedback.decisionId);
             const similarSuccessRate = this._calculateSimilarSuccessRate(similarCases);
 
-            // Combined improvement
             const improvement = {
                 decisionId: feedback.decisionId,
                 successRate: successRate,
@@ -867,7 +784,6 @@
             const decision = this._decisions.find(d => d.decisionId === decisionId);
             if (!decision) return [];
 
-            // Find decisions with similar trigger
             return this._decisions.filter(d => 
                 d.decisionId !== decisionId && 
                 d.trigger === decision.trigger
@@ -887,7 +803,6 @@
         getImprovedDecision(trigger, context) {
             console.log(`[AdaptiveLoop] Generating improved decision for: ${trigger}`);
 
-            // Find similar past decisions
             const similar = this._decisions.filter(d => d.trigger === trigger);
             
             if (similar.length === 0) {
@@ -899,15 +814,12 @@
                 };
             }
 
-            // Calculate success rate
             const successRate = similar.reduce((sum, d) => sum + d.getSuccessRate(), 0) / similar.length;
 
-            // Find best recommendation
             const successful = similar.filter(d => d.outcome === OUTCOME.SUCCESS);
             const bestRecommendation = successful.length > 0 ? 
                 successful[successful.length - 1].recommendation : null;
 
-            // Calculate improved confidence
             const baseConfidence = 50;
             const confidenceBoost = Math.min(successRate * 0.5, 30);
             const improvedConfidence = Math.min(baseConfidence + confidenceBoost, 95);
@@ -1098,7 +1010,6 @@
 
         _connectToDecisionEngine() {
             if (window.LawAIApp && window.LawAIApp.DecisionEngine) {
-                // Track decisions when they're made
                 window.LawAIApp.DecisionEngine.on('decisionMade', (decision) => {
                     this.trackDecision(decision);
                 });
@@ -1157,7 +1068,6 @@
         OUTCOME: OUTCOME,
         SIGNAL: SIGNAL,
 
-        // Public API
         initialize: (config) => instance.initialize(config),
         recordOutcome: (decisionId, result, impact) => instance.recordOutcome(decisionId, result, impact),
         trackDecision: (decision) => instance.trackDecision(decision),
@@ -1172,9 +1082,6 @@
         getExplorerData: () => instance.getExplorerData(),
         on: (event, callback) => instance.on(event, callback),
 
-        // ============================================================
-        // 🔥 Part 46: Adaptive Learning Loop API
-        // ============================================================
         startAdaptiveCycle: (context, targetId) => instance.startAdaptiveCycle(context, targetId),
         observeLearnerState: (context) => instance.observeLearnerState(context),
         evaluateAdaptiveState: (context, observation) => instance.evaluateAdaptiveState(context, observation),
