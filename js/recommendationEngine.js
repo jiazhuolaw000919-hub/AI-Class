@@ -1261,6 +1261,400 @@
     }
 
     // ============================================================
+    // 🔥 Part 50: Adaptive Feedback & Recommendation Outcome Loop
+    // ============================================================
+
+    /**
+     * 记录推荐结果
+     * @param {string} recommendationId - 推荐 ID
+     * @param {string} status - 结果状态 (SHOWN, ACCEPTED, SKIPPED, DISMISSED, ALTERNATIVE_SELECTED, STARTED, COMPLETED, ABANDONED, EXPIRED, FAILED, DEFERRED)
+     * @param {Object} metadata - 额外元数据
+     * @returns {Object} 结果记录
+     */
+    function recordRecommendationOutcome(recommendationId, status, metadata) {
+        metadata = metadata || {};
+    
+        var rec = getRecommendation(recommendationId);
+        if (!rec) {
+            return { success: false, message: 'Recommendation not found' };
+        }
+    
+        var outcome = {
+            outcomeId: 'out_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            recommendationId: recommendationId,
+            targetId: rec.targetId,
+            targetType: rec.targetType,
+            action: rec.action || 'UNKNOWN',
+            status: status || 'UNKNOWN',
+            evidenceRefs: metadata.evidenceRefs || [],
+            learnerFeedbackRefs: metadata.feedbackRefs || [],
+            contextVersion: metadata.contextVersion || null,
+            timestamp: Date.now(),
+            metadata: metadata
+        };
+    
+        // 存储结果
+        var store = _getStore();
+        if (!store._outcomes) {
+            store._outcomes = [];
+        }
+        store._outcomes.push(outcome);
+        _saveStore(store);
+    
+        // 更新推荐状态
+        if (status === 'ACCEPTED') {
+            acceptRecommendation(recommendationId);
+        } else if (status === 'COMPLETED') {
+            completeRecommendation(recommendationId);
+        } else if (status === 'DISMISSED') {
+            dismissRecommendation(recommendationId);
+        } else if (status === 'SKIPPED') {
+            skipRecommendation(recommendationId);
+        } else if (status === 'EXPIRED') {
+            expireRecommendation(recommendationId);
+        }
+    
+        // 触发事件
+        _emit('RECOMMENDATION_OUTCOME_RECORDED', {
+            outcomeId: outcome.outcomeId,
+            recommendationId: recommendationId,
+            status: status,
+            timestamp: outcome.timestamp
+        });
+    
+        // 如果是完成或接受，触发上下文刷新
+        if (status === 'COMPLETED' || status === 'ACCEPTED' || status === 'STARTED') {
+            _triggerContextRefresh(recommendationId);
+        }
+    
+        return {
+            success: true,
+            outcome: outcome
+        };
+    }
+
+    /**
+     * 获取推荐结果
+     * @param {string} recommendationId - 推荐 ID
+     * @returns {Object} 结果
+     */
+    function getRecommendationOutcome(recommendationId) {
+        var store = _getStore();
+        if (!store._outcomes) return null;
+    
+        // 获取最新的结果
+        var outcomes = store._outcomes.filter(function(o) {
+            return o.recommendationId === recommendationId;
+        });
+    
+        if (outcomes.length === 0) return null;
+    
+        // 按时间降序排序，返回最新的
+        outcomes.sort(function(a, b) {
+            return b.timestamp - a.timestamp;
+        });
+    
+        return outcomes[0];
+    }
+
+    /**
+     * 处理结果反馈
+     * @param {string} recommendationId - 推荐 ID
+     * @param {string} feedbackType - 反馈类型
+     * @param {string} comment - 可选评论
+     * @returns {Object} 反馈结果
+     */
+    function processOutcomeFeedback(recommendationId, feedbackType, comment) {
+        var outcome = getRecommendationOutcome(recommendationId);
+        if (!outcome) {
+            return { success: false, message: 'Outcome not found' };
+        }
+    
+        // 先记录反馈
+        var feedbackResult = recordRecommendationFeedback(recommendationId, feedbackType, comment);
+        if (!feedbackResult.success) {
+            return feedbackResult;
+        }
+    
+        // 更新结果的反馈引用
+        var store = _getStore();
+        if (!store._outcomes) {
+            return { success: false, message: 'Outcomes not found' };
+        }
+    
+        for (var i = 0; i < store._outcomes.length; i++) {
+            if (store._outcomes[i].outcomeId === outcome.outcomeId) {
+                if (!store._outcomes[i].learnerFeedbackRefs) {
+                    store._outcomes[i].learnerFeedbackRefs = [];
+                }
+                store._outcomes[i].learnerFeedbackRefs.push({
+                    feedbackId: feedbackResult.feedback.feedbackId || feedbackResult.feedback,
+                    type: feedbackType,
+                    comment: comment || null,
+                    timestamp: Date.now()
+                });
+                break;
+            }
+        }
+        _saveStore(store);
+    
+        // 触发反馈处理
+        _processFeedbackSignals(recommendationId, feedbackType);
+    
+        return {
+            success: true,
+            message: 'Feedback processed',
+            feedbackType: feedbackType
+        };
+    }
+
+    /**
+     * 处理反馈信号 (私有)
+     */
+    function _processFeedbackSignals(recommendationId, feedbackType) {
+        // 如果是 TOO_HARD 或 NOT_RELEVANT，记录到推荐质量信号
+        var signal = null;
+    
+        if (feedbackType === 'TOO_HARD') {
+            signal = 'DIFFICULTY_SIGNAL';
+        } else if (feedbackType === 'NOT_HELPFUL' || feedbackType === 'NOT_RELEVANT') {
+            signal = 'RELEVANCE_SIGNAL';
+        } else if (feedbackType === 'HELPFUL') {
+            signal = 'HELPFUL_SIGNAL';
+        }
+    
+        if (signal) {
+            var store = _getStore();
+            if (!store._feedbackSignals) {
+                store._feedbackSignals = {};
+            }
+            if (!store._feedbackSignals[recommendationId]) {
+                store._feedbackSignals[recommendationId] = [];
+            }
+            store._feedbackSignals[recommendationId].push({
+                type: signal,
+                feedbackType: feedbackType,
+                timestamp: Date.now()
+            });
+            _saveStore(store);
+        }
+    }
+
+    /**
+     * 触发上下文刷新 (私有)
+     */
+    function _triggerContextRefresh(recommendationId) {
+        try {
+            var lm = window.LawAIApp.LearnerModel;
+            if (lm && typeof lm.invalidateContext === 'function') {
+                lm.invalidateContext('Recommendation outcome: ' + recommendationId);
+            }
+        
+            var loop = window.LawAIApp.AdaptiveLoop;
+            if (loop && typeof loop.getLoopStatus === 'function') {
+                // 触发重新评估
+                _emit('CONTEXT_REFRESH_REQUESTED', {
+                    recommendationId: recommendationId,
+                    timestamp: Date.now()
+                });
+            }
+        
+            var ape = window.LawAIApp.AdaptivePathEngine;
+            if (ape && typeof ape.replanAdaptivePath === 'function') {
+                // 检查路径是否需要重新规划
+                var path = ape.getActivePath ? ape.getActivePath() : null;
+                if (path && path.targetId) {
+                    // 延迟重新规划
+                    setTimeout(function() {
+                        var context = lm && typeof lm.buildAdaptiveContext === 'function' ? 
+                            lm.buildAdaptiveContext() : null;
+                        if (context && ape.isPathStale && ape.isPathStale(path, context)) {
+                            var result = ape.replanAdaptivePath(path, context);
+                            if (result && result.success) {
+                                _emit('PATH_REPLANNED', {
+                                    recommendationId: recommendationId,
+                                    newPathId: result.path.pathId
+                                });
+                            }
+                        }
+                    }, 500);
+                }
+            }
+        } catch (e) {
+            // 忽略上下文刷新失败
+        }
+    }    
+
+    /**
+     * 获取结果历史
+     * @param {Object} filter - 过滤条件
+     * @returns {Array} 结果历史
+     */
+    function getOutcomeHistory(filter) {
+        filter = filter || {};
+        var store = _getStore();
+        if (!store._outcomes) return [];
+    
+        var outcomes = store._outcomes;
+    
+        if (filter.recommendationId) {
+            outcomes = outcomes.filter(function(o) {
+                return o.recommendationId === filter.recommendationId;
+            });
+        }
+        if (filter.targetId) {
+            outcomes = outcomes.filter(function(o) {
+                return o.targetId === filter.targetId;
+            });
+        }
+        if (filter.status) {
+            outcomes = outcomes.filter(function(o) {
+                return o.status === filter.status;
+            });
+        }
+        if (filter.fromDate) {
+            outcomes = outcomes.filter(function(o) {
+                return o.timestamp >= filter.fromDate;
+            });
+        }
+        if (filter.toDate) {
+            outcomes = outcomes.filter(function(o) {
+                return o.timestamp <= filter.toDate;
+            });
+        }
+    
+        // 按时间降序排序
+        outcomes.sort(function(a, b) {
+            return b.timestamp - a.timestamp;
+        });
+    
+        if (filter.limit) {
+            outcomes = outcomes.slice(0, filter.limit);
+        }
+    
+        return outcomes;
+    }
+
+    /**
+     * 获取推荐质量指标
+     * @param {Object} options - 配置选项
+     * @returns {Object} 质量指标
+     */
+    function getRecommendationQualityMetrics(options) {
+        options = options || {};
+        var store = _getStore();
+        var outcomes = store._outcomes || [];
+        var feedbackSignals = store._feedbackSignals || {};
+    
+        var metrics = {
+            total: outcomes.length,
+            byStatus: {
+                shown: 0,
+                accepted: 0,
+                skipped: 0,
+                dismissed: 0,
+                alternativeSelected: 0,
+                started: 0,
+                completed: 0,
+                abandoned: 0,
+                expired: 0,
+                failed: 0,
+                deferred: 0,
+                unknown: 0
+            },
+            feedback: {
+                helpful: 0,
+                notHelpful: 0,
+                unclear: 0,
+                wrong: 0,
+                notRelevant: 0,
+                tooEasy: 0,
+                tooHard: 0,
+                goodTiming: 0,
+                badTiming: 0
+            },
+            signals: {},
+            acceptanceRate: 0,
+            completionRate: 0,
+            helpfulRate: 0
+        };
+    
+        // 统计状态
+        for (var i = 0; i < outcomes.length; i++) {
+            var o = outcomes[i];
+            var status = o.status || 'UNKNOWN';
+            switch (status) {
+                case 'SHOWN': metrics.byStatus.shown++; break;
+                case 'ACCEPTED': metrics.byStatus.accepted++; break;
+                case 'SKIPPED': metrics.byStatus.skipped++; break;
+                case 'DISMISSED': metrics.byStatus.dismissed++; break;
+                case 'ALTERNATIVE_SELECTED': metrics.byStatus.alternativeSelected++; break;
+                case 'STARTED': metrics.byStatus.started++; break;
+                case 'COMPLETED': metrics.byStatus.completed++; break;
+                case 'ABANDONED': metrics.byStatus.abandoned++; break;
+                case 'EXPIRED': metrics.byStatus.expired++; break;
+                case 'FAILED': metrics.byStatus.failed++; break;
+                case 'DEFERRED': metrics.byStatus.deferred++; break;
+                default: metrics.byStatus.unknown++;
+            }
+        }
+    
+        // 统计反馈
+        for (var recId in feedbackSignals) {
+            var signals = feedbackSignals[recId];
+            for (var j = 0; j < signals.length; j++) {
+                var fbType = signals[j].feedbackType || 'UNKNOWN';
+                switch (fbType) {
+                    case 'HELPFUL': metrics.feedback.helpful++; break;
+                    case 'NOT_HELPFUL': metrics.feedback.notHelpful++; break;
+                    case 'UNCLEAR': metrics.feedback.unclear++; break;
+                    case 'WRONG': metrics.feedback.wrong++; break;
+                    case 'NOT_RELEVANT': metrics.feedback.notRelevant++; break;
+                    case 'TOO_EASY': metrics.feedback.tooEasy++; break;
+                    case 'TOO_HARD': metrics.feedback.tooHard++; break;
+                    case 'GOOD_TIMING': metrics.feedback.goodTiming++; break;
+                    case 'BAD_TIMING': metrics.feedback.badTiming++; break;
+                    default: break;
+                }
+            }
+        }
+    
+        // 计算比率
+        var total = metrics.total || 1;
+        metrics.acceptanceRate = Math.round((metrics.byStatus.accepted / total) * 100);
+        metrics.completionRate = Math.round((metrics.byStatus.completed / total) * 100);
+        var helpfulTotal = metrics.feedback.helpful + metrics.feedback.notHelpful || 1;
+        metrics.helpfulRate = Math.round((metrics.feedback.helpful / helpfulTotal) * 100);
+    
+        return metrics;
+    }
+
+    /**
+     * 应用推荐冷却
+     * @param {string} targetId - 目标 ID
+     * @param {number} cooldownMs - 冷却时间（毫秒）
+     * @returns {boolean} 是否在冷却中
+     */
+    function isRecommendationCooldown(targetId, cooldownMs) {
+        cooldownMs = cooldownMs || 3600000; // 默认 1 小时
+    
+        var outcomes = getOutcomeHistory({ targetId: targetId });
+        if (outcomes.length === 0) return false;
+    
+        // 检查最近的 DISMISSED 或 SKIPPED
+        var recent = outcomes.filter(function(o) {
+            return o.status === 'DISMISSED' || o.status === 'SKIPPED' || o.status === 'NOT_RELEVANT';
+        });
+    
+        if (recent.length === 0) return false;
+    
+        var latest = recent[0];
+        var timeSince = Date.now() - latest.timestamp;
+    
+        return timeSince < cooldownMs;
+    }
+
+    // ============================================================
     // REASON GENERATION
     // ============================================================
 
@@ -1591,7 +1985,6 @@
                 selectAdaptiveAlternative: selectAdaptiveAlternative,
                 isRecommendationStale: isRecommendationStale,
 
-                // 在 return 对象的 Part 48 方法后面添加
                 // 🔥 Part 49: Recommendation Explainability & Decision Transparency
                 explainRecommendation: explainRecommendation,
                 getExplanationLevels: getExplanationLevels,
@@ -1599,6 +1992,14 @@
                 getDecisionTrace: getDecisionTrace,
                 getRecommendationFeedback: getRecommendationFeedback,
                 recordRecommendationFeedback: recordRecommendationFeedback,
+
+                // 🔥 Part 50: Adaptive Feedback & Recommendation Outcome Loop
+                recordRecommendationOutcome: recordRecommendationOutcome,
+                getRecommendationOutcome: getRecommendationOutcome,
+                processOutcomeFeedback: processOutcomeFeedback,
+                getOutcomeHistory: getOutcomeHistory,
+                getRecommendationQualityMetrics: getRecommendationQualityMetrics,
+                isRecommendationCooldown: isRecommendationCooldown,
 
                 // Status
                 getStatus: getStatus,
