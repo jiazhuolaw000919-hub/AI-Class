@@ -834,6 +834,433 @@
     }
 
     // ============================================================
+    // 🔥 Part 49: Recommendation Explainability & Decision Transparency
+    // ============================================================
+
+    /**
+     * 生成推荐解释
+     * @param {string|Object} recommendation - 推荐 ID 或推荐对象
+     * @param {string} level - 'summary' | 'detail' | 'audit'
+     * @param {Object} context - 自适应上下文
+     * @returns {Object} 解释对象
+     */
+    function explainRecommendation(recommendation, level, context) {
+        level = level || 'summary';
+        context = context || _getAdaptiveContext();
+
+        // 如果传入的是 ID，获取推荐
+        if (typeof recommendation === 'string') {
+            recommendation = getRecommendation(recommendation);
+            if (!recommendation) {
+                return {
+                    error: 'Recommendation not found',
+                    recommendationId: recommendation
+                };
+            }
+        }
+
+        if (!recommendation) {
+            return { error: 'Invalid recommendation' };
+        }
+
+        var explanation = {
+            recommendationId: recommendation.id || recommendation.recommendationId,
+            level: level,
+            summary: '',
+            reasons: [],
+            supportingSignals: [],
+            evidence: [],
+            alternatives: [],
+            tradeoffs: [],
+            uncertainty: 'UNKNOWN',
+            constraints: [],
+            learnerControls: ['ACCEPT', 'SKIP', 'DISMISS', 'EXPLORE', 'CHOOSE_ALTERNATIVE'],
+            sourceVersions: {
+                contextVersion: context.contextVersion || null,
+                pathVersion: context.pathVersion || null,
+                policyVersion: '1.0.0'
+            },
+            generatedAt: Date.now(),
+            stale: false
+        };
+
+        // 1. 构建 Reasons
+        var reasonCodes = recommendation.reasonCodes || recommendation.reasons || [];
+        for (var i = 0; i < reasonCodes.length; i++) {
+            var code = reasonCodes[i];
+            var reason = _mapReason(code, recommendation, context);
+            if (reason) {
+                explanation.reasons.push(reason);
+            }
+        }
+
+        // 如果 reasonCodes 为空，添加默认
+        if (explanation.reasons.length === 0) {
+            explanation.reasons.push({
+                code: 'UNKNOWN',
+                primary: true,
+                description: 'Recommended based on available learning signals.'
+            });
+        }
+
+        // 标记 Primary Reason (第一个)
+        if (explanation.reasons.length > 0) {
+            explanation.reasons[0].primary = true;
+        }    
+
+        // 2. 构建 Supporting Signals
+        var signals = recommendation.supportingSignals || {};
+        for (var key in signals) {
+            if (signals.hasOwnProperty(key)) {
+                explanation.supportingSignals.push({
+                    signalId: key,
+                    type: typeof signals[key],
+                    source: 'recommendation_engine',
+                    value: signals[key],
+                    timestamp: Date.now(),
+                    relevance: 'supporting'
+                });
+            }
+        }
+
+        // 3. 构建 Evidence (从 signals 提取)
+        if (signals.masteryLevel !== undefined) {
+            explanation.evidence.push({
+                evidenceId: 'ev_mastery_' + Date.now(),
+                source: 'MasteryEngine',
+                type: 'MASTERY_LEVEL',
+                timestamp: Date.now(),
+                targetId: recommendation.targetId,
+                summary: 'Mastery level: ' + Math.round(signals.masteryLevel * 100) + '%'
+            });
+        }
+        if (signals.reviewData) {
+            explanation.evidence.push({
+                evidenceId: 'ev_review_' + Date.now(),
+                source: 'MemoryReview',
+                type: 'REVIEW_DUE',
+                timestamp: Date.now(),
+                targetId: recommendation.targetId,
+                summary: 'Review due'
+            });
+        }
+
+        // 4. 构建 Alternatives
+        if (recommendation.alternatives && recommendation.alternatives.length > 0) {
+            explanation.alternatives = recommendation.alternatives.map(function(alt) {
+                return {
+                    targetId: alt.targetId || alt,
+                    targetType: alt.targetType || 'UNKNOWN',
+                    action: alt.action || 'CONTINUE',
+                    reason: alt.reason || 'Alternative option'
+                };
+            });
+        }
+
+        // 5. 构建 Tradeoffs
+        var tradeoff = _deriveTradeoff(recommendation, context);
+        if (tradeoff) {
+            explanation.tradeoffs.push(tradeoff);
+        }
+
+        // 6. 构建 Uncertainty
+        if (recommendation.confidence !== undefined) {
+            explanation.uncertainty = recommendation.confidence >= 0.8 ? 'LOW' :
+                                       recommendation.confidence >= 0.5 ? 'MEDIUM' : 'HIGH';
+        } else {
+            explanation.uncertainty = 'UNKNOWN';
+        }
+
+        // 7. 构建 Summary (根据 level)
+        explanation.summary = _buildExplanationSummary(explanation, level);
+
+        // 8. 构建 Constraints
+        var constraint = _deriveConstraint(recommendation, context);
+        if (constraint) {
+            explanation.constraints.push(constraint);
+        }
+
+        // 9. 检查是否过期
+        explanation.stale = isRecommendationStale ? isRecommendationStale(recommendation, context) : false;
+
+        return explanation;
+    }
+
+    /**
+     * 映射 Reason Code 到人类可读描述
+     */
+    function _mapReason(code, recommendation, context) {
+        var descriptions = {
+            'GOAL_ALIGNED': 'Aligned with your current learning goal',
+            'GOAL_ALIGNMENT': 'Aligned with your current learning goal',
+            'PATH_CONTINUITY': 'Continues your current learning path',
+            'PATH_CONTINUITY': 'Continues your current learning path',
+            'MASTERY_GAP': 'Addresses a knowledge gap',
+            'KNOWLEDGE_GAP': 'Addresses a knowledge gap',
+            'LOW_MASTERY': 'This area needs more practice',
+            'REVIEW_DUE': 'Due for review',
+            'CURRENT_COURSE': 'Part of your current course',
+            'PREREQUISITE_BLOCKED': 'Required before continuing',
+            'PREREQUISITE_SIGNAL': 'Builds on prerequisite knowledge',
+            'ASSESSMENT_UNCERTAINTY': 'Assessment showed uncertainty',
+            'RECENT_DIFFICULTY': 'Recent practice was difficult',
+            'RECENT_SUCCESS': 'Recent practice was successful',
+            'LEARNER_REQUEST': 'You requested this',
+            'LEARNER_EXPLORATION': 'You are exploring this topic',
+            'PATH_STALE': 'Path has changed',
+            'FALLBACK': 'Starting point for learning',
+            'UNKNOWN': 'Based on available learning signals'
+        };
+
+        var description = descriptions[code] || descriptions['UNKNOWN'];
+        return {
+            code: code,
+            primary: false,
+            description: description
+        };
+    }
+
+    /**
+     * 推导 Tradeoff
+     */
+    function _deriveTradeoff(recommendation, context) {
+        if (!recommendation || !context) return null;
+    
+        var tradeoff = {
+            benefit: 'Progress toward learning goal',
+            risk: 'May require additional time',
+            description: 'Standard learning path'
+        };
+
+        if (recommendation.action === 'REVIEW') {
+            tradeoff.benefit = 'Strengthens retention and understanding';
+            tradeoff.risk = 'Slows progress on new content';
+            tradeoff.description = 'Reviewing strengthens long-term retention';
+        } else if (recommendation.action === 'PRACTICE') {
+            tradeoff.benefit = 'Builds confidence and mastery';
+            tradeoff.risk = 'Requires focused effort';
+            tradeoff.description = 'Practice helps solidify skills';
+        } else if (recommendation.action === 'ADVANCE') {
+            tradeoff.benefit = 'Progresses toward your goals';
+            tradeoff.risk = 'May encounter unfamiliar concepts';
+            tradeoff.description = 'Advancing keeps momentum';
+        }
+
+        return tradeoff;
+    }
+
+    /**
+     * 推导约束
+     */
+    function _deriveConstraint(recommendation, context) {
+        if (!recommendation) return null;
+
+        // 检查是否有硬约束
+        if (recommendation.targetType === 'REQUIRED' || recommendation.priority === 'CRITICAL') {
+            return {
+                type: 'REQUIRED',
+                description: 'This recommendation follows an authoritative rule',
+                source: 'system_policy'
+            };
+        }
+
+        return null;
+    }
+
+    /**
+     * 构建解释摘要
+     */
+    function _buildExplanationSummary(explanation, level) {
+        var summary = '';
+
+        var primaryReason = null;
+        for (var i = 0; i < explanation.reasons.length; i++) {
+            if (explanation.reasons[i].primary) {
+                primaryReason = explanation.reasons[i];
+                break;
+            }
+        }
+
+        if (primaryReason) {
+            summary = primaryReason.description;
+        } else if (explanation.reasons.length > 0) {
+            summary = explanation.reasons[0].description;
+        } else {
+            summary = 'Recommended based on your learning progress.';
+        }
+
+        // Detail level: 添加更多信息
+        if (level === 'detail' || level === 'audit') {
+            if (explanation.evidence.length > 0) {
+                summary += ' Based on ' + explanation.evidence.length + ' evidence item(s).';
+            }
+            if (explanation.alternatives.length > 0) {
+                summary += ' ' + explanation.alternatives.length + ' alternative(s) available.';
+            }
+            if (explanation.uncertainty !== 'UNKNOWN') {
+                summary += ' Uncertainty: ' + explanation.uncertainty.toLowerCase() + '.';
+            }
+        }
+
+        // Audit level: 添加版本信息
+        if (level === 'audit') {
+            summary += ' [Context: ' + (explanation.sourceVersions.contextVersion || 'N/A') + ']';
+            summary += ' [Path: ' + (explanation.sourceVersions.pathVersion || 'N/A') + ']';
+        }
+
+        return summary;
+    }
+
+    /**
+     * 获取解释层级列表
+     */
+    function getExplanationLevels() {
+        return ['summary', 'detail', 'audit'];
+    }    
+
+    /**
+     * 比较两个推荐
+     */
+    function compareRecommendations(rec1, rec2, context) {
+        context = context || _getAdaptiveContext();
+
+        var comparison = {
+            recommendations: [],
+            differences: [],
+            recommendation: null
+        };
+
+        // 获取两个推荐的解释
+        var exp1 = explainRecommendation(rec1, 'detail', context);
+        var exp2 = explainRecommendation(rec2, 'detail', context);
+
+        comparison.recommendations = [exp1, exp2];
+
+        // 比较差异
+        if (exp1.reasons.length > 0 && exp2.reasons.length > 0) {
+            var r1 = exp1.reasons[0].code || 'UNKNOWN';
+            var r2 = exp2.reasons[0].code || 'UNKNOWN';
+            if (r1 !== r2) {
+                comparison.differences.push({
+                    aspect: 'primaryReason',
+                    value1: r1,
+                    value2: r2
+                });
+            }
+        }
+
+        if (exp1.uncertainty !== exp2.uncertainty) {
+            comparison.differences.push({
+                aspect: 'uncertainty',
+                value1: exp1.uncertainty,
+                value2: exp2.uncertainty
+            });
+        }
+
+        if (exp1.alternatives.length !== exp2.alternatives.length) {
+            comparison.differences.push({
+                aspect: 'alternativeCount',
+                value1: exp1.alternatives.length,
+                value2: exp2.alternatives.length
+            });
+        }
+
+        return comparison;
+    }
+
+    /**
+     * 获取决策追踪
+     */
+    function getDecisionTrace(recommendationId) {
+        var rec = getRecommendation(recommendationId);
+        if (!rec) {
+            return { error: 'Recommendation not found', recommendationId: recommendationId };
+        }
+
+        var trace = {
+            recommendationId: recommendationId,
+            targetId: rec.targetId,
+            targetType: rec.targetType,
+            status: rec.status,
+            priorityScore: rec.priorityScore,
+            confidence: rec.confidence,
+            source: rec.source,
+            sourceSignals: rec.sourceSignals,
+            createdAt: rec.createdAt,
+            updatedAt: rec.updatedAt,
+            expiresAt: rec.expiresAt,
+            contextVersion: rec.metadata?.context?.contextVersion || null,
+            path: rec.metadata?.context?.path || null,
+            events: []
+        };
+
+        // 从事件系统获取相关事件
+        try {
+            var eventBus = window.LawAIApp?.EventBus || window.EventBus;
+            if (eventBus && typeof eventBus.getEvents === 'function') {
+                var events = eventBus.getEvents({
+                    filter: function(e) {
+                        return e.detail && e.detail.recommendationId === recommendationId;
+                    }
+                });
+                trace.events = events || [];
+            }
+        } catch (e) {
+            // 忽略
+        }    
+
+        return trace;
+    }
+
+    /**
+     * 获取推荐反馈
+     */
+    function getRecommendationFeedback(recommendationId) {
+        var rec = getRecommendation(recommendationId);
+        if (!rec) {
+            return { error: 'Recommendation not found' };
+        }
+
+        var feedback = {
+            recommendationId: recommendationId,
+            status: rec.status,
+            accepted: rec.status === STATES.ACCEPTED,
+            completed: rec.status === STATES.COMPLETED,
+            dismissed: rec.status === STATES.DISMISSED,
+            skipped: rec.status === STATES.SKIPPED,
+            expired: rec.status === STATES.EXPIRED,
+            pending: rec.status === STATES.PENDING,
+            timestamp: rec.updatedAt || rec.createdAt
+        };
+
+        return feedback;
+    }
+
+    /**
+     * 记录推荐反馈
+     */
+    function recordRecommendationFeedback(recommendationId, feedbackType, comment) {
+        var rec = getRecommendation(recommendationId);
+        if (!rec) {
+            return { success: false, message: 'Recommendation not found' };
+        }
+
+        var feedbackEvent = {
+            recommendationId: recommendationId,
+            feedbackType: feedbackType, // HELPFUL | NOT_HELPFUL | UNCLEAR | WRONG | NOT_RELEVANT
+            comment: comment || null,
+            timestamp: Date.now()
+        };
+
+        _emit('RECOMMENDATION_FEEDBACK_RECORDED', feedbackEvent);
+
+        return {
+            success: true,
+            feedback: feedbackEvent
+        };
+    }
+
+    // ============================================================
     // REASON GENERATION
     // ============================================================
 
@@ -1163,6 +1590,15 @@
                 skipAdaptiveRecommendation: skipAdaptiveRecommendation,
                 selectAdaptiveAlternative: selectAdaptiveAlternative,
                 isRecommendationStale: isRecommendationStale,
+
+                // 在 return 对象的 Part 48 方法后面添加
+                // 🔥 Part 49: Recommendation Explainability & Decision Transparency
+                explainRecommendation: explainRecommendation,
+                getExplanationLevels: getExplanationLevels,
+                compareRecommendations: compareRecommendations,
+                getDecisionTrace: getDecisionTrace,
+                getRecommendationFeedback: getRecommendationFeedback,
+                recordRecommendationFeedback: recordRecommendationFeedback,
 
                 // Status
                 getStatus: getStatus,
