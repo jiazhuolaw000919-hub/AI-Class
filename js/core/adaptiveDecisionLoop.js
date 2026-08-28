@@ -166,7 +166,7 @@
             this._initialized = true;
             console.log('[AdaptiveLoop] Initialized ✅');
             return this;
-        }
+        },
 
         // ============================================================
         // 🔥 Part 46: Adaptive Learning Loop - 扩展方法
