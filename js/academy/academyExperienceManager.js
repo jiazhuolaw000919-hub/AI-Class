@@ -1172,7 +1172,7 @@
             }        
     
             return schools;
-        }
+        },
 
         prepareLessonExperience: async function(lessonId) {
             var loader = window.LawAIApp && (window.LawAIApp.S4ContentLoader || window.LawAIApp.ContentLoader);
