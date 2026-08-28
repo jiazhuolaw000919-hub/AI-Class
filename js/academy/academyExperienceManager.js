@@ -614,10 +614,570 @@
             return this;
         },
 
+        // ============================================================
+        // 🔥 Part 51: Learning Experience Intelligence Bridge
+        // ============================================================
+
+        /**
+         * 构建学习者体验视图模型
+         * @param {Object} options - 配置选项
+         * @returns {Object} 体验视图模型
+         */
+        buildExperienceViewModel: function(options) {
+            options = options || {};
+    
+            var vm = {
+                learner: this._getLearnerIdentity(),
+                currentLearning: this._getCurrentLearning(),
+                progress: this._getProgressExperience(),
+                recommendations: this._getRecommendationExperience(),
+                insights: this._getInsightExperience(),
+                recentActivity: this._getRecentActivityExperience(),
+                upcoming: this._getUpcomingExperience(),
+                notes: this._getNotesExperience(),
+                achievements: this._getAchievementsExperience(),
+                schools: this._getSchoolsExperience(),
+                context: this._getExperienceContext(),
+                _meta: {
+                    generatedAt: Date.now(),
+                    version: '1.0.0',
+                    quality: 'FULL'
+                }
+            };
+    
+            // 计算质量
+            var qualityScore = 0;
+            var totalComponents = 0;
+            for (var key in vm) {
+                if (key === '_meta') continue;
+                totalComponents++;
+                if (vm[key] && (typeof vm[key] !== 'object' || Object.keys(vm[key]).length > 0)) {
+                    qualityScore++;
+                }
+            }
+            var ratio = totalComponents > 0 ? qualityScore / totalComponents : 0;
+            vm._meta.quality = ratio >= 0.7 ? 'FULL' : ratio >= 0.4 ? 'PARTIAL' : 'DEGRADED';
+    
+            return vm;
+        },
+
+        /**
+         * 获取体验上下文
+         * @returns {Object} 体验上下文
+         */
+        _getExperienceContext: function() {
+            var context = {
+                currentSchoolId: this._state.currentSchoolId,
+                currentCourseId: this._state.currentCourseId,
+                currentSubjectId: this._state.currentSubjectId,
+                currentLessonId: this._state.currentLessonId,
+                viewMode: this._state.viewMode,
+                hasActiveSession: !!this._state.currentSessionId
+            };    
+    
+            // 从 LearningJourneyAdapter 补充
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            if (adapter && typeof adapter.getState === 'function') {
+                var state = adapter.getState();
+                context.currentSchoolId = context.currentSchoolId || state.currentSchoolId;
+                context.currentCourseId = context.currentCourseId || state.currentCourseId;
+                context.currentSubjectId = context.currentSubjectId || state.currentSubjectId;
+                context.currentLessonId = context.currentLessonId || state.currentLessonId;
+                context.progress = state.progress || 0;
+                context.lastActivity = state.lastActivity || null;
+            }
+    
+            return context;
+        },
+
+        /**
+         * 获取学习者身份
+         * @returns {Object} 学习者身份信息
+         */
+        _getLearnerIdentity: function() {
+            var identity = {
+                id: 'default-learner',
+                name: 'Learner',
+                avatar: null
+            };
+    
+            try {
+                var profile = window.LawAIApp?.ProfileEngine;
+                if (profile && typeof profile.get === 'function') {
+                    var p = profile.get();
+                    if (p) {
+                        identity.id = p.userId || 'default-learner';
+                        identity.name = p.name || 'Learner';
+                        identity.avatar = p.avatar || null;
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }
+    
+            return identity;
+        },
+
+        /**
+         * 获取当前学习内容
+         * @returns {Object} 当前学习信息
+         */
+        _getCurrentLearning: function() {
+            var result = {
+                hasCurrentLearning: false,
+                type: null,
+                id: null,
+                title: null,
+                description: null,
+                progress: 0
+            };
+    
+                // 1. 检查当前 Lesson
+            var lessonId = this._state.currentLessonId;
+            if (lessonId) {
+                var adapter = window.LawAIApp?.LearningJourneyAdapter;
+                if (adapter && typeof adapter.getLessonDetail === 'function') {
+                    var lesson = adapter.getLessonDetail(lessonId);
+                    if (lesson) {
+                        result.hasCurrentLearning = true;
+                        result.type = 'lesson';
+                        result.id = lessonId;
+                        result.title = lesson.name || 'Current Lesson';
+                        result.description = lesson.description || '';
+                        result.progress = lesson.isCompleted ? 100 : 50;
+                        return result;
+                    }
+                }
+            }
+    
+            // 2. 检查 Continue Learning
+            var continueData = this._getContinueLearning();
+            if (continueData && continueData.courseId) {
+                result.hasCurrentLearning = true;
+                result.type = continueData.isCompleted ? 'course' : 'course';
+                result.id = continueData.courseId;
+                result.title = continueData.title || 'Current Course';
+                result.description = continueData.isCompleted ? 'Completed' : 'In progress';
+                result.progress = continueData.progress || 0;
+                return result;
+            }
+    
+            return result;
+        },
+
+        /**
+         * 获取推荐体验数据
+         * @param {number} limit - 推荐数量限制
+         * @returns {Array} 推荐体验列表
+         */
+        _getRecommendationExperience: function(limit) {
+            limit = limit || 3;
+            var recs = [];
+    
+            try {
+                var engine = window.LawAIApp?.RecommendationEngine;
+                if (engine && typeof engine.getActiveRecommendations === 'function') {
+                    var active = engine.getActiveRecommendations();
+                    if (active && active.length > 0) {
+                        var top = active.slice(0, limit);
+                        for (var i = 0; i < top.length; i++) {
+                            var r = top[i];
+                            recs.push({
+                                id: r.id || r.recommendationId,
+                                title: r.reason || 'Recommended',
+                                description: r.reason || 'Based on your learning progress',
+                                targetId: r.targetId,
+                                targetType: r.targetType || 'KNOWLEDGE',
+                                priority: r.priorityScore >= 70 ? 'HIGH' : 
+                                          r.priorityScore >= 40 ? 'MEDIUM' : 'LOW',
+                                explanation: this._getRecommendationExplanation(r)
+                            });
+                        }
+                        return recs;
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }
+    
+            // Fallback: 从 AdaptiveLearning 获取
+            try {
+                var al = window.LawAIApp?.AdaptiveLearning;
+                if (al && typeof al.getRecommendations === 'function') {
+                    var fallbackRecs = al.getRecommendations(limit);
+                    if (fallbackRecs && fallbackRecs.length > 0) {
+                        for (var i = 0; i < fallbackRecs.length; i++) {
+                            var r = fallbackRecs[i];
+                            recs.push({
+                                id: r.id || 'rec_fallback_' + i,
+                                title: r.title || 'Continue Learning',
+                                description: r.description || 'Continue your learning journey',
+                                targetId: r.id || null,
+                                targetType: r.type || 'LESSON',
+                                priority: r.priority === 'high' ? 'HIGH' : 'MEDIUM',
+                                explanation: 'Recommended based on your current progress'
+                            });
+                        }
+                        return recs;
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }
+    
+            return recs;
+        },
+
+        /**
+         * 获取推荐解释
+         * @param {Object} recommendation - 推荐对象
+         * @returns {string} 解释文本
+         */
+        _getRecommendationExplanation: function(recommendation) {
+            if (!recommendation) return null;
+    
+            // 如果推荐本身有解释
+            if (recommendation.explanation) {
+                return recommendation.explanation;
+            }
+    
+            // 尝试从 Reason 生成
+            if (recommendation.reason) {
+                return recommendation.reason;
+            }
+    
+            // 使用 Part 49 的解释引擎
+            try {
+                var engine = window.LawAIApp?.RecommendationEngine;
+                if (engine && typeof engine.explainRecommendation === 'function') {
+                    var explanation = engine.explainRecommendation(recommendation.id || recommendation.recommendationId);
+                    if (explanation && explanation.summary) {
+                        return explanation.summary;
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }
+    
+            return 'Recommended based on your learning progress';
+        },
+
+        /**
+         * 获取进度体验数据
+         * @returns {Object} 进度体验数据
+         */
+        _getProgressExperience: function() {
+            var result = {
+                courses: [],
+                totalLessons: 0,
+                completedLessons: 0,
+                completionPercent: 0,
+                currentStage: 'Foundation',
+                xp: 0,
+                level: 1,
+                streak: 0
+            };
+    
+            try {
+                var progress = window.LawAIApp?.ProgressEngine;
+                if (progress && typeof progress.getProgress === 'function') {
+                    var p = progress.getProgress();
+                    if (p) {
+                        result.totalLessons = p.totalLessons || 365;
+                        result.completedLessons = (p.completedLessons || []).length;
+                        result.completionPercent = p.completionPercent || 0;
+                        result.currentStage = p.currentStage || 'Foundation';
+                        result.xp = p.xp || 0;
+                        result.level = p.level || 1;
+                        result.streak = p.streak || 0;
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }
+    
+            return result;
+        },
+
+        /**
+         * 获取洞察体验数据
+         * @returns {Array} 洞察列表
+         */
+        _getInsightExperience: function() {
+            var insights = [];
+        
+            // 1. 复习洞察
+            try {
+                var review = window.LawAIApp?.MemoryReview;
+                if (review && typeof review.getTodayReviews === 'function') {
+                    var due = review.getTodayReviews();
+                    if (due && due.length > 0) {
+                        insights.push({
+                            type: 'REVIEW',
+                            title: due.length + ' review(s) due today',
+                            description: 'Review helps reinforce your learning',
+                            priority: due.length > 3 ? 'HIGH' : 'MEDIUM'
+                        });        
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }
+    
+            // 2. 掌握度洞察
+            try {
+                var mastery = window.LawAIApp?.MasteryEngine;
+                if (mastery && typeof mastery.getStatus === 'function') {
+                    var status = mastery.getStatus();
+                    if (status) {
+                        var distribution = status.distribution || {};
+                        if (distribution.MASTERED && distribution.MASTERED > 0) {
+                            insights.push({
+                                type: 'MASTERY',
+                                title: distribution.MASTERED + ' concept(s) mastered',
+                                description: 'You\'ve demonstrated strong understanding',
+                                priority: 'LOW'
+                            });        
+                        }
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }
+    
+            // 3. 学习势头洞察
+            try {
+                var lm = window.LawAIApp?.LearnerModel;
+                if (lm && typeof lm.getLearningMomentum === 'function') {
+                    var momentum = lm.getLearningMomentum();
+                    if (momentum) {
+                        var level = momentum.level || 'medium';
+                        if (level === 'high') {
+                            insights.push({
+                                type: 'MOMENTUM',
+                                title: 'Great momentum!',
+                                description: momentum.description || 'Keep going',
+                                priority: 'LOW'
+                            });
+                        } else if (level === 'low') {
+                            insights.push({
+                                type: 'MOMENTUM',
+                                title: 'Building momentum',
+                                description: momentum.description || 'Every step counts',
+                                priority: 'MEDIUM'
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }        
+    
+            return insights;
+        },
+
+        /**
+         * 获取最近活动体验
+         * @param {number} days - 天数范围
+         * @returns {Object} 最近活动数据
+         */
+        _getRecentActivityExperience: function(days) {
+            days = days || 7;
+            var result = {
+                hasActivity: false,
+                lastActivityAt: null,
+                daysSinceLastActivity: null,
+                recentItems: []
+            };    
+    
+            try {
+                var lm = window.LawAIApp?.LearnerModel;
+                if (lm && typeof lm.getRecentActivity === 'function') {
+                    var activity = lm.getRecentActivity(days);
+                    if (activity) {
+                        result.hasActivity = activity.hasRecentActivity || false;
+                        result.lastActivityAt = activity.lastActivityAt || null;
+                        result.daysSinceLastActivity = activity.daysSinceLastActivity || null;
+                    }
+                }
+        
+                // 从 LearningJourneyAdapter 获取更详细的活动
+                var adapter = window.LawAIApp?.LearningJourneyAdapter;
+                if (adapter && typeof adapter.getState === 'function') {
+                    var state = adapter.getState();
+                    if (state && state.lastActivity) {
+                        result.lastActivityAt = state.lastActivity;
+                        var daysSince = (Date.now() - new Date(state.lastActivity).getTime()) / (24 * 60 * 60 * 1000);
+                        result.daysSinceLastActivity = Math.round(daysSince);
+                        result.hasActivity = daysSince < days;
+                    }        
+                }
+            } catch (e) {
+                // 忽略
+            }
+    
+            return result;
+        },
+
+        /**
+         * 获取即将到来的事件
+         * @returns {Object} 即将到来的事件
+         */
+        _getUpcomingExperience: function() {
+            var upcoming = {
+                reviews: [],
+                lessons: [],
+                courses: []
+            };
+    
+            // 获取即将到来的复习
+            try {
+                var review = window.LawAIApp?.MemoryReview;
+                if (review && typeof review.getUpcomingReviews === 'function') {
+                    var upcomingReviews = review.getUpcomingReviews(7);
+                    if (upcomingReviews && upcomingReviews.length > 0) {
+                        for (var i = 0; i < upcomingReviews.length; i++) {
+                            var r = upcomingReviews[i];
+                            upcoming.reviews.push({
+                                id: r.knowledgeId || r.lessonId,
+                                date: r.date || r.dueAt,
+                                title: 'Review: ' + (r.knowledgeId || r.lessonId)
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }
+    
+            return upcoming;
+        },
+
+        /**
+         * 获取 Notes 体验
+         * @param {number} limit - 笔记数量限制
+         * @returns {Array} Notes 体验列表
+         */
+        _getNotesExperience: function(limit) {
+            limit = limit || 5;
+            var notes = [];
+    
+            try {
+                var notesView = window.LawAIApp?.NotesView;
+                if (notesView && typeof notesView._getNotesData === 'function') {
+                    var allNotes = notesView._getNotesData();
+                    if (allNotes && allNotes.length > 0) {
+                        var top = allNotes.slice(0, limit);
+                        for (var i = 0; i < top.length; i++) {
+                            var n = top[i];
+                            notes.push({
+                                id: n.id || n.lessonId,
+                                title: n.title || 'Note',
+                                content: n.content || '',
+                                lessonId: n.lessonId,
+                                createdAt: n.createdAt || n.created || Date.now()
+                            });
+                        }
+                        return notes;
+                    }
+                }
+        
+                // Fallback: 从 StorageEngine 获取
+                var storage = window.LawAIApp?.StorageEngine;
+                if (storage && typeof storage.get === 'function') {
+                    var storedNotes = storage.get('user_notes', []);
+                    if (storedNotes && storedNotes.length > 0) {
+                        var top = storedNotes.slice(0, limit);
+                        for (var i = 0; i < top.length; i++) {
+                            var n = top[i];
+                            notes.push({
+                                id: n.id || n.lessonId,
+                                title: n.title || 'Note',
+                                content: n.content || '',
+                                lessonId: n.lessonId,
+                                createdAt: n.createdAt || n.created || Date.now()
+                            });    
+                        }
+                    }
+                }    
+            } catch (e) {
+                // 忽略
+            }
+    
+            return notes;
+        },
+
+        /**
+         * 获取成就体验
+         * @param {number} limit - 成就数量限制
+         * @returns {Array} 成就体验列表
+         */
+        _getAchievementsExperience: function(limit) {
+            limit = limit || 5;
+            var achievements = [];
+    
+            try {
+                var ae = window.LawAIApp?.AchievementEngine;
+                if (ae) {
+                    if (typeof ae.getAchievements === 'function') {
+                        var all = ae.getAchievements();
+                        if (all && all.length > 0) {
+                            var top = all.slice(0, limit);
+                            for (var i = 0; i < top.length; i++) {
+                                var a = top[i];
+                                achievements.push({
+                                    id: a.id || 'achievement_' + i,
+                                    title: a.name || a.title || 'Achievement',
+                                    description: a.description || '',
+                                    icon: a.icon || '🏆',
+                                    earnedAt: a.earnedAt || a.createdAt || Date.now()
+                                });
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }
+    
+            return achievements;
+        },
+
+        /**
+         * 获取 Schools 体验
+         * @returns {Array} Schools 体验列表
+         */
+        _getSchoolsExperience: function() {
+            var schools = [];
+    
+            try {
+                var sr = window.LawAIApp?.SchoolRegistry;
+                if (sr && typeof sr.getAll === 'function') {
+                    var all = sr.getAll();
+                    if (all && all.length > 0) {
+                        for (var i = 0; i < all.length; i++) {
+                            var s = all[i];
+                            schools.push({
+                                id: s.id,
+                                name: s.name || s.displayName || s.title,
+                                icon: s.icon || '🏛️',
+                                description: s.description || '',
+                                isCurrent: s.id === this._state.currentSchoolId
+                            });        
+                        }
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }        
+    
+            return schools;
+        }
+
         prepareLessonExperience: async function(lessonId) {
             var loader = window.LawAIApp && (window.LawAIApp.S4ContentLoader || window.LawAIApp.ContentLoader);
             var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
-
+    
             var lessonMeta = loader && loader.getLessonManifest ? await loader.getLessonManifest(lessonId) : null;
             if (!lessonMeta) {
                 return {
@@ -664,7 +1224,7 @@
             }
 
             var lessonData = fullLesson || lessonMeta;
-
+        
             return {
                 lesson: lessonData,
                 intro: lessonData.intro || null,
