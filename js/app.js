@@ -124,12 +124,12 @@ window.App = {
         // ============================================================
         // 🔥 Part 35: 初始化 MemoryEngine
         // ============================================================
-        if (window.LawAIApp?.MemoryEngine && typeof window.LawAIApp.MemoryEngine.init === 'function') {
+        if (window.LawAIApp?.memoryEngine && typeof window.LawAIApp.memoryEngine.init === 'function') {
             try {
-                window.LawAIApp.MemoryEngine.init();
-                console.log('[App] ✅ MemoryEngine initialized');
+                window.LawAIApp.memoryEngine.init();
+                console.log('[App] ✅ memoryEngine initialized');
             } catch (e) {
-                console.warn('[App] ⚠️ MemoryEngine init failed:', e);
+                console.warn('[App] ⚠️ memoryEngine init failed:', e);
             }
         }
 
