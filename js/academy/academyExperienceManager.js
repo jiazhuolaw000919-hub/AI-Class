@@ -1174,6 +1174,413 @@
             return schools;
         },
 
+        // ============================================================
+        // 🔥 Part 52: Learner Experience Context & Continuation
+        // ============================================================
+
+        /**
+         * 获取当前体验上下文
+         * @param {Object} options - 配置选项
+         * @returns {Object} 当前学习上下文
+         */
+        getCurrentExperienceContext: function(options) {
+            options = options || {};
+            var result = {
+                hasCurrent: false,
+                type: null,
+                id: null,
+                title: null,
+                description: null,
+                progress: 0,
+                status: 'unknown',
+                startedAt: null,
+                updatedAt: null,
+                source: null,
+                actions: []
+            };
+
+            // 1. 优先：显式的当前 Lesson
+            var lessonId = this._state.currentLessonId;
+            if (lessonId) {
+                var adapter = window.LawAIApp?.LearningJourneyAdapter;
+                if (adapter && typeof adapter.getLessonDetail === 'function') {
+                    var lesson = adapter.getLessonDetail(lessonId);
+                    if (lesson) {
+                        result.hasCurrent = true;
+                        result.type = 'lesson';
+                        result.id = lessonId;
+                        result.title = lesson.name || 'Current Lesson';
+                        result.description = lesson.description || '';
+                        result.progress = lesson.isCompleted ? 100 : 50;
+                        result.status = lesson.isCompleted ? 'completed' : 'in_progress';
+                        result.source = 'explicit';
+                        result.actions = ['continue', 'view_course'];
+                        return result;
+                    }
+                }
+            }
+
+            // 2. 显式的当前 Course (无 Lesson)
+            var courseId = this._state.currentCourseId;
+            if (courseId) {
+                var courseRegistry = window.LawAIApp?.CourseRegistry;
+                if (courseRegistry && typeof courseRegistry.getCourse === 'function') {
+                    var course = courseRegistry.getCourse(courseId);
+                    if (course) {
+                        result.hasCurrent = true;
+                        result.type = 'course';
+                        result.id = courseId;
+                        result.title = course.title || 'Current Course';
+                        result.description = course.description || '';
+                        result.progress = this._state.progress || 0;
+                        result.status = result.progress >= 100 ? 'completed' : 'in_progress';
+                        result.source = 'explicit';
+                        result.actions = ['view_course', 'continue'];
+                        return result;
+                    }
+                }
+            }
+
+            // 3. Continue Learning (从 Journey Adapter)
+            var continueData = this._getContinueLearning();
+            if (continueData && continueData.courseId) {
+                result.hasCurrent = true;
+                result.type = continueData.isCompleted ? 'completed_course' : 'course';
+                result.id = continueData.courseId;
+                result.title = continueData.title || 'Continue Learning';
+                result.description = continueData.isCompleted ? 'Course completed' : 'In progress';
+                result.progress = continueData.progress || 0;
+                result.status = continueData.isCompleted ? 'completed' : 'in_progress';
+                result.source = 'continuation';
+                result.actions = continueData.isCompleted ? ['review'] : ['continue'];
+                if (continueData.lessonId) {
+                    result.currentLessonId = continueData.lessonId;
+                }
+                return result;
+            }
+
+            // 4. 无活动
+            return result;
+        },
+
+        /**
+         * 获取续学上下文
+         * @param {Object} options - 配置选项
+         * @returns {Object} 续学上下文
+         */
+        getContinuationContext: function(options) {
+            options = options || {};
+            var result = {
+                hasContinuation: false,
+                items: [],
+                primary: null
+            };
+
+            var candidates = [];
+
+            // 1. 当前活动 (如果有)
+            var current = this.getCurrentExperienceContext();
+            if (current.hasCurrent && current.status !== 'completed') {
+                candidates.push({
+                    type: 'current',
+                    priority: 100,
+                    data: current,
+                    reason: 'Current learning activity'
+                });
+            }
+
+            // 2. Continue Learning
+            var continueData = this._getContinueLearning();
+            if (continueData && continueData.courseId) {
+                var exists = candidates.some(function(c) {
+                    return c.data && c.data.id === continueData.courseId;
+                });
+                if (!exists) {
+                    candidates.push({
+                        type: 'continuation',
+                        priority: 80,
+                        data: {
+                            hasCurrent: true,
+                            type: 'course',
+                            id: continueData.courseId,
+                            title: continueData.title || 'Continue Learning',
+                            progress: continueData.progress || 0,
+                            status: continueData.isCompleted ? 'completed' : 'in_progress',
+                            source: 'continuation',
+                            actions: continueData.isCompleted ? ['review'] : ['continue']
+                        },
+                        reason: 'Previously active course'
+                    });    
+                }
+            }
+
+            // 3. 最近完成的课程 (如果有)
+            try {
+                var progress = window.LawAIApp?.ProgressEngine;
+                if (progress && typeof progress.getProgress === 'function') {
+                    var p = progress.getProgress();
+                    var completed = p.completedLessons || [];
+                    if (completed.length > 0) {
+                        var lastLesson = completed[completed.length - 1];
+                        candidates.push({
+                            type: 'recent',
+                            priority: 60,
+                            data: {
+                                hasCurrent: true,
+                                type: 'lesson',
+                                id: lastLesson,
+                                title: 'Recent Lesson',
+                                progress: 100,
+                                status: 'completed',
+                                source: 'history',
+                                actions: ['review']
+                            },
+                            reason: 'Recently completed'
+                        });
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }
+
+            // 4. 推荐 (如果有)
+            try {
+                var engine = window.LawAIApp?.RecommendationEngine;
+                if (engine && typeof engine.getActiveRecommendations === 'function') {
+                    var recs = engine.getActiveRecommendations();
+                    if (recs && recs.length > 0) {
+                        for (var i = 0; i < Math.min(recs.length, 2); i++) {
+                            var rec = recs[i];
+                            candidates.push({
+                                type: 'recommendation',
+                                priority: 50 - i * 10,
+                                data: {
+                                    hasCurrent: true,
+                                    type: rec.targetType || 'recommendation',
+                                    id: rec.targetId || rec.id,
+                                    title: rec.reason || 'Recommended',
+                                    description: rec.reason || 'Based on your learning progress',
+                                    progress: 0,
+                                    status: 'recommended',
+                                    source: 'recommendation',
+                                    actions: ['explore'],
+                                    recommendationId: rec.id || rec.recommendationId
+                                },
+                                reason: 'Recommended based on your progress'
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }
+
+            // 排序
+            candidates.sort(function(a, b) {
+                return b.priority - a.priority;
+            });    
+
+            result.items = candidates;
+            result.hasContinuation = candidates.length > 0;
+            if (candidates.length > 0) {
+                result.primary = candidates[0].data;
+            }
+
+            return result;
+        },
+
+        /**
+         * 获取最近活动上下文
+         * @param {Object} options - 配置选项
+         * @returns {Object} 最近活动
+         */
+        getRecentActivityContext: function(options) {
+            options = options || {};
+            var limit = options.limit || 5;
+
+            var result = {
+                hasActivity: false,
+                items: [],
+                lastActivityAt: null
+            };    
+
+            try {
+                var adapter = window.LawAIApp?.LearningJourneyAdapter;
+                if (adapter && typeof adapter.getState === 'function') {
+                    var state = adapter.getState();
+                    var lastActivity = state.lastActivity;
+                    if (lastActivity) {
+                        result.lastActivityAt = lastActivity;
+                        result.hasActivity = true;
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }    
+
+            // 如果有 Continue Learning，作为活动项
+            var continueData = this._getContinueLearning();
+            if (continueData && continueData.courseId) {
+                result.items.push({
+                    type: 'course',
+                    id: continueData.courseId,
+                    title: continueData.title || 'Current Course',
+                    timestamp: continueData.lastActivity || Date.now(),
+                    status: continueData.isCompleted ? 'completed' : 'in_progress'
+                });
+            }
+
+            // 如果当前有 Lesson，作为活动项
+            var current = this.getCurrentExperienceContext();
+            if (current.hasCurrent) {
+                result.items.push({
+                    type: current.type,
+                    id: current.id,
+                    title: current.title,
+                    timestamp: Date.now(),
+                    status: current.status
+                });
+            }
+
+            // 限制数量
+            if (result.items.length > limit) {
+                result.items = result.items.slice(0, limit);
+            }
+
+            result.hasActivity = result.items.length > 0 || !!result.lastActivityAt;
+
+            return result;
+        },
+
+        /**
+         * 获取恢复状态
+         * @param {string} lessonId - 可选的 Lesson ID
+         * @returns {Object} 恢复状态
+         */
+        getResumeState: function(lessonId) {
+            var result = {
+                canResume: false,
+                resumeType: null,
+                position: null,
+                lessonId: null,
+                action: 'start'
+            };    
+
+            // 如果指定了 lessonId
+            if (lessonId) {
+                // 检查是否有该 lesson 的进度
+                try {
+                    var adapter = window.LawAIApp?.LearningJourneyAdapter;
+                    if (adapter && typeof adapter.getLessonDetail === 'function') {
+                        var lesson = adapter.getLessonDetail(lessonId);
+                        if (lesson) {
+                            result.lessonId = lessonId;
+                            if (lesson.isCompleted) {
+                                result.canResume = false;
+                                result.action = 'review';
+                                return result;
+                            }
+                            // 如果有进度 > 0 且 < 100，可以继续
+                            if (lesson.progress && lesson.progress > 0 && lesson.progress < 100) {
+                                result.canResume = true;
+                                result.resumeType = 'lesson';
+                                result.position = lesson.progress;
+                                result.action = 'continue';
+                                return result;
+                            }
+                            result.canResume = true;
+                            result.resumeType = 'lesson';
+                            result.action = 'start';
+                            return result;
+                        }
+                    }
+                } catch (e) {
+                    // 忽略
+                }
+                return result;
+            }
+
+            // 否则从当前上下文获取
+            var current = this.getCurrentExperienceContext();
+            if (current.hasCurrent && current.type === 'lesson' && current.progress > 0 && current.progress < 100) {
+                result.canResume = true;
+                result.resumeType = 'lesson';
+                result.lessonId = current.id;
+                result.position = current.progress;
+                result.action = 'continue';
+            } else if (current.hasCurrent && current.type === 'lesson') {
+                result.lessonId = current.id;
+                result.action = 'start';
+                result.canResume = true;
+                result.resumeType = 'lesson';
+            }
+
+            return result;
+        },
+
+        /**
+         * 构建完整体验视图模型 (Part 51 + 52 整合)
+         * @param {Object} options - 配置选项
+         * @returns {Object} 完整体验视图模型
+         */
+        buildExperienceViewModel: function(options) {
+            options = options || {};
+
+            var current = this.getCurrentExperienceContext(options);
+            var continuation = this.getContinuationContext(options);
+            var recent = this.getRecentActivityContext(options);
+            var resumeState = this.getResumeState(options.lessonId);
+
+            // 获取 Learner 身份
+            var learner = this._getLearnerIdentity ? this._getLearnerIdentity() : { id: 'default-learner', name: 'Learner' };
+
+            // 获取进度
+            var progress = this._getProgressExperience ? this._getProgressExperience() : { completedLessons: 0, completionPercent: 0 };
+
+            // 获取推荐
+            var recommendations = this._getRecommendationExperience ? this._getRecommendationExperience(3) : [];
+
+            // 获取洞察
+            var insights = this._getInsightExperience ? this._getInsightExperience() : [];
+
+            // 获取 Notes
+            var notes = this._getNotesExperience ? this._getNotesExperience(3) : [];
+
+            var viewModel = {
+                // 身份
+                learner: learner,
+
+                // Part 52: 上下文
+                current: current,
+                continuation: continuation,
+                recentActivity: recent,
+                resumeState: resumeState,
+
+                // 进度
+                progress: progress,
+
+                // 推荐 (Part 48)
+                recommendations: recommendations,
+
+                // 洞察 (Part 47)
+                insights: insights,
+
+                // Notes (Part 34)
+                notes: notes,
+
+                // 元数据
+                _meta: {
+                    generatedAt: Date.now(),
+                    version: '1.0.0',
+                    hasCurrent: current.hasCurrent,
+                    hasContinuation: continuation.hasContinuation,
+                    hasActivity: recent.hasActivity
+                }
+            };
+
+            return viewModel;
+        }
+
         prepareLessonExperience: async function(lessonId) {
             var loader = window.LawAIApp && (window.LawAIApp.S4ContentLoader || window.LawAIApp.ContentLoader);
             var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
