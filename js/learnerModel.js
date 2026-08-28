@@ -4,26 +4,6 @@
 // DOMAIN: Learner State Aggregation
 // VERSION: 1.0.0 — Part 39 Learner Model Foundation
 // ================================================================
-//
-// PURPOSE
-// ================================================================
-//   Provide a single, authoritative view of the learner's current
-//   learning state. Aggregates from authoritative domain systems
-//   without duplicating persistence.
-//
-// LAYERS
-// ================================================================
-//   A. IDENTITY        → learnerId (from profile)
-//   B. CONTEXT         → current school/course/subject/lesson
-//   C. PROGRESS        → derived from ProgressEngine
-//   D. KNOWLEDGE       → derived from Memory + Mastery
-//   E. ACTIVITY        → derived from event history
-//   F. GOALS           → from GoalEngine
-//   G. PREFERENCES     → from Profile/Preferences
-//   H. CAPACITY        → placeholder for future Calendar
-//   I. DERIVED         → computed insights
-//
-// ================================================================
 
 (function() {
     'use strict';
@@ -50,7 +30,7 @@
         // 1. INITIALIZATION
         // ============================================================
 
-        function init() {
+        init: function() {
             if (this._initialized) {
                 console.log('[LearnerModel] Already initialized');
                 return this;
@@ -74,9 +54,6 @@
         // 2. PUBLIC API — Full Model
         // ============================================================
 
-        /**
-         * 获取完整学习者模型
-         */
         getLearnerModel: function() {
             if (this._cacheInvalidated) {
                 this._rebuildCache();
@@ -97,9 +74,6 @@
             };
         },
 
-        /**
-         * 获取学习者上下文快照（用于 AI Mentor 等）
-         */
         getLearnerContextSnapshot: function() {
             var context = this.getCurrentLearningContext();
             var progress = this.getLearningProgress();
@@ -121,11 +95,6 @@
         // 🔥 Part 47: Learner State & Context Intelligence
         // ============================================================
 
-        /**
-         * 构建只读学习者快照
-         * @param {Object} options - 配置选项
-         * @returns {Object} 只读学习者快照
-         */
         buildLearnerSnapshot: function(options) {
             options = options || {};
     
@@ -250,7 +219,7 @@
                 snapshot.errors.push('Activity error: ' + e.message);
             }
 
-            // 7. Path Context (from AdaptivePathEngine)
+            // 7. Path Context
             try {
                 var ape = window.LawAIApp.AdaptivePathEngine;
                 if (ape) {
@@ -267,11 +236,11 @@
                 snapshot.components.path = { available: false, error: e.message };
             }
 
-            // 8. Agency Context (from AdaptivePathEngine Part 45)
+            // 8. Agency Context
             try {
-                var ape = window.LawAIApp.AdaptivePathEngine;
-                if (ape && ape.getLearnerChoices) {
-                    var choices = ape.getLearnerChoices ? ape.getLearnerChoices(null) : [];
+                var ape2 = window.LawAIApp.AdaptivePathEngine;
+                if (ape2 && ape2.getLearnerChoices) {
+                    var choices = ape2.getLearnerChoices ? ape2.getLearnerChoices(null) : [];
                     snapshot.components.agency = {
                         available: true,
                         choices: choices,
@@ -284,7 +253,7 @@
                 snapshot.components.agency = { available: false, error: e.message };
             }    
 
-            // 9. Evidence (from AdaptiveLoop)
+            // 9. Evidence
             try {
                 var loop = window.LawAIApp.AdaptiveLoop;
                 if (loop && loop.getLoopStatus) {
@@ -301,7 +270,7 @@
                 snapshot.components.evidence = { available: false, error: e.message };
             }
 
-            // 10. 计算整体质量
+            // 10. Calculate overall quality
             var availableComponents = 0;
             var totalComponents = 0;
             for (var key in snapshot.components) {
@@ -327,15 +296,9 @@
             return snapshot;
         },
 
-        /**
-         * 构建增强版自适应上下文
-         * @param {Object} options - 配置选项
-         * @returns {Object} 自适应上下文
-         */
         buildAdaptiveContext: function(options) {
             options = options || {};
     
-            // 先构建快照
             var snapshot = this.buildLearnerSnapshot(options);
     
             var context = {
@@ -345,11 +308,9 @@
                 quality: snapshot.quality,
                 timestamp: Date.now(),
         
-                // 核心上下文
                 target: options.targetId || this._getCurrentTarget(),
                 goal: this._getCurrentGoal(),
         
-                // 知识上下文
                 knowledge: {
                     mastered: this.getMasteredKnowledge ? this.getMasteredKnowledge() : [],
                     weak: this.getWeakKnowledge ? this.getWeakKnowledge() : [],
@@ -357,7 +318,6 @@
                     unstable: this.getUnstableKnowledge ? this.getUnstableKnowledge() : []
                 },
         
-                // 摘要
                 summary: {
                     masteryCoverage: this.getMasteryCoverage ? this.getMasteryCoverage() : { total: 0, mastered: 0, percent: 0 },
                     reviewLoad: this.getReviewLoad ? this.getReviewLoad() : { dueCount: 0 },
@@ -366,14 +326,11 @@
                     activity: this.getRecentActivity ? this.getRecentActivity(7) : { hasRecentActivity: false }
                 },
         
-                // 信号
                 signals: this._extractSignals(snapshot),
         
-                // 警告
                 warnings: snapshot.warnings || [],
                 errors: snapshot.errors || [],
         
-                // 诊断
                 diagnostics: {
                     components: snapshot.components,
                     completeness: snapshot.completeness
@@ -383,9 +340,6 @@
             return context;
         },
 
-        /**
-         * 获取当前目标 (私有)
-         */
         _getCurrentTarget: function() {
             try {
                 var loop = window.LawAIApp.AdaptiveLoop;
@@ -410,9 +364,6 @@
             return null;
         },
 
-        /**
-         * 获取当前目标 (私有)
-         */
         _getCurrentGoal: function() {
             try {
                 var goals = window.LawAIApp.GoalEngine;
@@ -426,13 +377,9 @@
             return null;
         },
 
-        /**
-         * 提取信号 (私有)
-         */
         _extractSignals: function(snapshot) {
             var signals = {};
     
-            // Mastery signals
             if (snapshot.components.mastery && snapshot.components.mastery.available) {
                 signals.masteryAvailable = true;
                 var overall = snapshot.components.mastery.overall;
@@ -444,7 +391,6 @@
                 signals.masteryAvailable = false;
             }
     
-            // Review signals
             if (snapshot.components.review && snapshot.components.review.available) {
                 var todayReviews = snapshot.components.review.todayReviews || [];
                 signals.reviewDue = todayReviews.length;
@@ -453,49 +399,38 @@
                 signals.reviewAvailable = false;
             }
     
-            // Activity signals
             if (snapshot.components.activity && snapshot.components.activity.available) {
                 var momentum = snapshot.components.activity.momentum || {};
                 signals.momentum = momentum.score || 0;
                 signals.hasRecentActivity = snapshot.components.activity.recent?.hasRecentActivity || false;
             }
     
-            // Goal signals
             if (snapshot.components.goals && snapshot.components.goals.available) {
                 signals.activeGoalCount = (snapshot.components.goals.active || []).length;
                 signals.hasActiveGoal = signals.activeGoalCount > 0;
             }
     
-            // Agency signals
             if (snapshot.components.agency && snapshot.components.agency.available) {
                 signals.agencyChoices = snapshot.components.agency.choiceCount || 0;
                 signals.hasAgencyChoices = signals.agencyChoices > 0;
             }
     
-            // Path signals
             if (snapshot.components.path && snapshot.components.path.available) {
                 signals.pathStatus = snapshot.components.path.status || 'UNKNOWN';
                 signals.hasActivePath = signals.pathStatus === 'ACTIVE' || signals.pathStatus === 'VALID';
             }
     
-            // Quality signals
             signals.contextQuality = snapshot.quality || 'UNKNOWN';
             signals.completeness = snapshot.completeness?.ratio || 0;
     
             return signals;
         },
 
-        /**
-         * 使上下文失效 (外部调用)
-         */
         invalidateContext: function(reason) {
             this._cacheInvalidated = true;
             console.log('[LearnerModel] Context invalidated:', reason || 'manual');
         },
 
-        /**
-         * 获取上下文状态
-         */
         getContextStatus: function() {
             return {
                 cacheValid: !this._cacheInvalidated,
@@ -522,7 +457,6 @@
                 };
             }
 
-            // Fallback
             return {
                 currentSchoolId: null,
                 currentCourseId: null,
@@ -633,9 +567,6 @@
             return result;
         },
 
-        /**
-         * 获取所有知识的聚合状态
-         */
         getAllKnowledgeState: function() {
             var mastery = window.LawAIApp?.MasteryEngine;
             if (mastery && typeof mastery.getAllMastery === 'function') {
@@ -652,9 +583,6 @@
             return [];
         },
 
-        /**
-         * 获取弱知识（mastery < threshold）
-         */
         getWeakKnowledge: function(threshold) {
             threshold = threshold || 0.4;
             var all = this.getAllKnowledgeState();
@@ -663,9 +591,6 @@
             });
         },
 
-        /**
-         * 获取强知识（mastery >= threshold）
-         */
         getStrongKnowledge: function(threshold) {
             threshold = threshold || 0.7;
             var all = this.getAllKnowledgeState();
@@ -674,9 +599,6 @@
             });
         },
 
-        /**
-         * 获取已掌握知识（state === MASTERED）
-         */
         getMasteredKnowledge: function() {
             var all = this.getAllKnowledgeState();
             return all.filter(function(k) {
@@ -684,9 +606,6 @@
             });
         },
 
-        /**
-         * 获取需要复习的知识
-         */
         getReviewDueKnowledge: function() {
             var review = window.LawAIApp?.MemoryReview;
             if (review && typeof review.getTodayReviews === 'function') {
@@ -695,9 +614,6 @@
             return [];
         },
 
-        /**
-         * 获取不稳定知识
-         */
         getUnstableKnowledge: function() {
             var all = this.getAllKnowledgeState();
             return all.filter(function(k) {
@@ -786,7 +702,6 @@
                 };
             }
 
-            // 默认偏好
             return {
                 preferredSessionLength: 30,
                 preferredDifficulty: 'intermediate',
@@ -800,7 +715,6 @@
         // ============================================================
 
         getLearningCapacity: function() {
-            // 未来从 Calendar 获取
             return {
                 availableMinutesPerDay: null,
                 preferredStudyDays: null,
@@ -819,9 +733,6 @@
             return this._cache.insights;
         },
 
-        /**
-         * 获取当前焦点（主课程/主题）
-         */
         getCurrentFocus: function() {
             var context = this.getCurrentLearningContext();
             if (context.currentCourseId) {
@@ -845,9 +756,6 @@
             return null;
         },
 
-        /**
-         * 获取学习势头
-         */
         getLearningMomentum: function() {
             var progress = this.getLearningProgress();
             var recent = this.getRecentActivity(7);
@@ -867,9 +775,6 @@
             };
         },
 
-        /**
-         * 获取掌握度覆盖率
-         */
         getMasteryCoverage: function() {
             var all = this.getAllKnowledgeState();
             if (all.length === 0) {
@@ -887,9 +792,6 @@
             };
         },
 
-        /**
-         * 获取复习负载
-         */
         getReviewLoad: function() {
             var due = this.getReviewDueKnowledge();
             return {
@@ -900,9 +802,6 @@
             };
         },
 
-        /**
-         * 获取目标对齐度
-         */
         getGoalAlignment: function() {
             var goals = this.getActiveGoals();
             var progress = this.getLearningProgress();
@@ -1036,9 +935,6 @@
             console.log('[LearnerModel] ✅ Listening to ' + events.length + ' events');
         },
 
-        /**
-         * 手动使缓存失效（外部调用）
-         */
         invalidateCache: function() {
             this._cacheInvalidated = true;
         }
@@ -1049,44 +945,6 @@
     // ============================================================
 
     window.LawAIApp.LearnerModel = LearnerModel;
-
-    return {
-        init: init,
-        getLearnerModel: getLearnerModel,
-        getLearnerContextSnapshot: getLearnerContextSnapshot,
-        getCurrentLearningContext: getCurrentLearningContext,
-        setCurrentContext: setCurrentContext,
-        getLearningProgress: getLearningProgress,
-        getKnowledgeState: getKnowledgeState,
-        getAllKnowledgeState: getAllKnowledgeState,
-        getWeakKnowledge: getWeakKnowledge,
-        getStrongKnowledge: getStrongKnowledge,
-        getMasteredKnowledge: getMasteredKnowledge,
-        getReviewDueKnowledge: getReviewDueKnowledge,
-        getUnstableKnowledge: getUnstableKnowledge,
-        getRecentActivity: getRecentActivity,
-        getActivitySummary: getActivitySummary,
-        getActiveGoals: getActiveGoals,
-        getGoalSummary: getGoalSummary,
-        getLearningPreferences: getLearningPreferences,
-        getLearningCapacity: getLearningCapacity,
-        getDerivedInsights: getDerivedInsights,
-        getCurrentFocus: getCurrentFocus,
-        getLearningMomentum: getLearningMomentum,
-        getMasteryCoverage: getMasteryCoverage,
-        getReviewLoad: getReviewLoad,
-        getGoalAlignment: getGoalAlignment,
-        getStatus: getStatus,
-        invalidateCache: invalidateCache,
-
-        // ============================================================
-        // 🔥 Part 47: Learner State & Context Intelligence
-        // ============================================================
-        buildLearnerSnapshot: buildLearnerSnapshot,
-        buildAdaptiveContext: buildAdaptiveContext,
-        invalidateContext: invalidateContext,
-        getContextStatus: getContextStatus
-    };
 
     // ============================================================
     // 16. AUTO-INIT
