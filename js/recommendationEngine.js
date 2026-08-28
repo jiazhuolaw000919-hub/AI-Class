@@ -984,7 +984,7 @@
         explanation.stale = isRecommendationStale ? isRecommendationStale(recommendation, context) : false;
 
         return explanation;
-    }
+    },
 
     /**
      * 映射 Reason Code 到人类可读描述
@@ -1018,7 +1018,7 @@
             primary: false,
             description: description
         };
-    }
+    },
 
     /**
      * 推导 Tradeoff
@@ -1047,7 +1047,7 @@
         }
 
         return tradeoff;
-    }
+    },
 
     /**
      * 推导约束
@@ -1065,7 +1065,7 @@
         }
 
         return null;
-    }
+    },
 
     /**
      * 构建解释摘要
@@ -1109,14 +1109,14 @@
         }
 
         return summary;
-    }
+    },
 
     /**
      * 获取解释层级列表
      */
     function getExplanationLevels() {
         return ['summary', 'detail', 'audit'];
-    }    
+    },    
 
     /**
      * 比较两个推荐
@@ -1166,7 +1166,7 @@
         }
 
         return comparison;
-    }
+    },
 
     /**
      * 获取决策追踪
@@ -1210,7 +1210,7 @@
         }    
 
         return trace;
-    }
+    },
 
     /**
      * 获取推荐反馈
@@ -1234,7 +1234,7 @@
         };
 
         return feedback;
-    }
+    },
 
     /**
      * 记录推荐反馈
@@ -1258,7 +1258,7 @@
             success: true,
             feedback: feedbackEvent
         };
-    }
+    },
 
     // ============================================================
     // 🔥 Part 50: Adaptive Feedback & Recommendation Outcome Loop
@@ -1331,7 +1331,7 @@
             success: true,
             outcome: outcome
         };
-    }
+    },
 
     /**
      * 获取推荐结果
@@ -1355,7 +1355,7 @@
         });
     
         return outcomes[0];
-    }
+    },
 
     /**
      * 处理结果反馈
@@ -1406,7 +1406,7 @@
             message: 'Feedback processed',
             feedbackType: feedbackType
         };
-    }
+    },
 
     /**
      * 处理反馈信号 (私有)
@@ -1438,7 +1438,7 @@
             });
             _saveStore(store);
         }
-    }
+    },
 
     /**
      * 触发上下文刷新 (私有)
@@ -1483,7 +1483,7 @@
         } catch (e) {
             // 忽略上下文刷新失败
         }
-    }    
+    },    
 
     /**
      * 获取结果历史
@@ -1533,7 +1533,7 @@
         }
     
         return outcomes;
-    }
+    },
 
     /**
      * 获取推荐质量指标
@@ -1627,7 +1627,7 @@
         metrics.helpfulRate = Math.round((metrics.feedback.helpful / helpfulTotal) * 100);
     
         return metrics;
-    }
+    },
 
     /**
      * 应用推荐冷却
@@ -1652,7 +1652,7 @@
         var timeSince = Date.now() - latest.timestamp;
     
         return timeSince < cooldownMs;
-    }
+    },
 
     // ============================================================
     // REASON GENERATION
@@ -1686,7 +1686,7 @@
         }
 
         return 'Recommended based on your learning progress.';
-    }
+    },
 
     // ============================================================
     // RECOMMENDATION ACTIONS
@@ -1694,23 +1694,23 @@
 
     function acceptRecommendation(id) {
         return _updateStatus(id, STATES.ACCEPTED);
-    }
+    },
 
     function completeRecommendation(id) {
         return _updateStatus(id, STATES.COMPLETED);
-    }
+    },
 
     function dismissRecommendation(id) {
         return _updateStatus(id, STATES.DISMISSED);
-    }
+    },
 
     function skipRecommendation(id) {
         return _updateStatus(id, STATES.SKIPPED);
-    }
+    },
 
     function expireRecommendation(id) {
         return _updateStatus(id, STATES.EXPIRED);
-    }
+    },
 
     function _updateStatus(id, status) {
         if (!id) return null;
@@ -1730,7 +1730,7 @@
         });
 
         return rec;
-    }
+    },
 
     // ============================================================
     // REFRESH
@@ -1742,7 +1742,7 @@
 
         // 生成新推荐
         return generateRecommendations(context);
-    }
+    },
 
     function _cleanupExpired() {
         var store = _getStore();
@@ -1764,7 +1764,7 @@
             _saveStore(store);
             console.log('[RecommendationEngine] 🧹 Expired ' + count + ' recommendations');
         }
-    }
+    },
 
     // ============================================================
     // HELPERS: Context
@@ -1777,7 +1777,7 @@
             return state.currentCourseId || null;
         }
         return null;
-    }
+    },
 
     function _findNextLesson(courseId) {
         var adapter = window.LawAIApp?.LearningJourneyAdapter;
@@ -1788,7 +1788,7 @@
             }
         }
         return null;
-    }
+    },
 
     function _getActiveGoals() {
         var goalEngine = window.LawAIApp?.GoalEngine;
@@ -1796,7 +1796,7 @@
             return goalEngine.getActiveGoals();
         }
         return [];
-    }
+    },
 
     function _extractGoalTopics(goals) {
         var topics = [];
@@ -1813,7 +1813,7 @@
             }
         }
         return topics.slice(0, 10);
-    }
+    },
 
     function _getFallbackRecommendation() {
         var schoolRegistry = window.LawAIApp?.SchoolRegistry;
@@ -1830,7 +1830,7 @@
             targetId: 'school-science',
             targetType: TARGET_TYPES.COURSE
         };
-    }
+    },
 
     // ============================================================
     // PUBLIC: Status
@@ -1866,7 +1866,7 @@
             },
             storageAvailable: !!(LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.get === 'function')
         };
-    }
+    },
 
     // ============================================================
     // PUBLIC: Reset / Export / Import
@@ -1878,11 +1878,11 @@
             LawAIApp.StorageEngine?.set?.(_storageKey, { _schemaVersion: _schemaVersion });
             console.log('[RecommendationEngine] Reset complete');
         } catch (e) {}
-    }
+    },
 
     function exportData() {
         return _getStore();
-    }
+    },
 
     function importData(data) {
         if (data && typeof data === 'object') {
@@ -1891,7 +1891,7 @@
             return true;
         }
         return false;
-    }
+    },
 
     // ============================================================
     // PRIVATE: Event Helpers
@@ -1907,7 +1907,7 @@
                 window.LawAIApp.EventBus.emit(eventName, data);
             }
         } catch (err) {}
-    }
+    },
 
     // ============================================================
     // INITIALIZATION
@@ -2032,7 +2032,7 @@
                 }
             };
         }
-    }
+    },
 
     // ============================================================
     // AUTO-INIT
