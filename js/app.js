@@ -3,16 +3,6 @@
 // 渲染优先：立即显示 Dashboard，不等待任何引擎初始化完成
 // ================================================================
 
-// ============================================================
-// 🔥 安全访问辅助函数（与 academyView.js 保持一致）
-// ============================================================
-
-/**
- * 安全获取对象属性（替代 ?.）
- * @param {Object} obj - 目标对象
- * @param {string} path - 属性路径，用 '.' 分隔
- * @returns {*} 属性值或 undefined
- */
 function safeGet(obj, path) {
     if (!obj || typeof obj !== 'object') {
         return undefined;
@@ -30,17 +20,10 @@ function safeGet(obj, path) {
 
 window.LawAIApp = window.LawAIApp || {};
 
-// ============================================================
-// 🔥 同时暴露到 window.App 和 LawAIApp.app
-// ============================================================
-
 window.App = {
 
     version: "5.1.2",
 
-    // ============================================================
-    // 1. Runtime State
-    // ============================================================
     _state: {
         initialized: false,
         started: false,
@@ -79,13 +62,7 @@ window.App = {
     _composerHandler: null,
     _fallbackTimer: null,
     _renderAttempted: false,
-
-    // ═══ S4 Part 10: 缓存清理定时器 ═══
     _cacheCleanupTimer: null,
-
-    // ============================================================
-    // 2. Runtime Lifecycle
-    // ============================================================
 
     init: function(payload) {
         if (this._state.destroyed) {
@@ -110,7 +87,6 @@ window.App = {
 
         this._boot = payload?.boot || window.LawAIApp.bootStatus || {};
 
-        // 🔥 Part 45.9.1: Auto-trigger BootManager from App.init()
         var bm = LawAIApp.BootManager || window.bootManager;
         if (bm && typeof bm.start === 'function' && !bm._booted) {
             console.log('🔥 App.init → Auto-starting BootManager...');
@@ -121,9 +97,6 @@ window.App = {
 
         this.mountRoot();
 
-        // ============================================================
-        // 🔥 Part 35: 初始化 MemoryEngine
-        // ============================================================
         if (window.LawAIApp?.memoryEngine && typeof window.LawAIApp.memoryEngine.init === 'function') {
             try {
                 window.LawAIApp.memoryEngine.init();
@@ -133,9 +106,6 @@ window.App = {
             }
         }
 
-        // ════════════════════════════════════════════════════════════
-        // ═══ S4 Part 10: 初始化 ContentLoader（新增） ═══
-        // ════════════════════════════════════════════════════════════
         var loader = safeGet(window, 'LawAIApp.S4ContentLoader') || safeGet(window, 'LawAIApp.ContentLoader');
         if (loader && typeof loader.loadCourseIndex === 'function') {
             console.log('[App] 📚 Preloading Content Index...');
@@ -148,12 +118,8 @@ window.App = {
             console.warn('[App] ⚠️ ContentLoader not available, skipping S4 content preload');
         }
 
-        // ═══ S4 Part 10: 启动缓存清理定时器（新增） ═══
         this._startCacheCleanup();
 
-        // ════════════════════════════════════════════════════════════
-        // ═══ Part 33: 初始化 Practice 模块 ═══
-        // ════════════════════════════════════════════════════════════
         this._initPracticeModules();
         this._initNotesModule();
 
@@ -165,7 +131,6 @@ window.App = {
         this._state.bootTimeline.push({ event: 'init_complete', time: Date.now() });
         this._emit('APP_INITIALIZED', { version: this.version });
 
-        // 🔥 Profiler + Dependency
         if (
             LawAIApp.DevTools &&
             LawAIApp.DevTools.RuntimeProfiler
@@ -254,44 +219,9 @@ window.App = {
         }.bind(this), 1000);
     },
 
-    // 🔥 Part 42: 延迟加载 Intelligence 模块（不阻塞首屏）
-    setTimeout(function() {
-        // 检查是否已存在
-        if (window.LawAIApp?.KnowledgeGapEngine) {
-            console.log('[App] ✅ KnowledgeGapEngine already loaded');
-            return;
-        }
-
-        // 动态加载 knowledgeGapEngine.js
-        var script = document.createElement('script');
-        script.src = '/js/knowledgeGapEngine.js';
-        script.async = true;
-        script.onload = function() {
-            console.log('[App] ✅ KnowledgeGapEngine loaded');
-            // 自动初始化已内置
-        };
-        script.onerror = function() {
-            console.warn('[App] ⚠️ KnowledgeGapEngine load failed');
-        };
-        document.head.appendChild(script);
-
-        // 同样加载 gapDetector.js
-        var script2 = document.createElement('script');
-        script2.src = '/js/gapDetector.js';
-        script2.async = true;
-        script2.onload = function() {
-            console.log('[App] ✅ GapDetector loaded');
-        };
-        script2.onerror = function() {
-            console.warn('[App] ⚠️ GapDetector load failed');
-        };
-        document.head.appendChild(script2);
-    }, 2000); // 延迟 2 秒，让首屏先渲染完
-
     destroy: function() {
         if (this._state.destroyed) return;
 
-        // ═══ S4 Part 10: 清理缓存清理定时器 ═══
         if (this._cacheCleanupTimer) {
             clearInterval(this._cacheCleanupTimer);
             this._cacheCleanupTimer = null;
@@ -322,14 +252,12 @@ window.App = {
         console.log("🧹 App Runtime destroyed");
     },
 
-    // ═══ S4 Part 10: 启动缓存清理定时器 ═══
     _startCacheCleanup: function() {
         if (this._cacheCleanupTimer) {
             clearInterval(this._cacheCleanupTimer);
             this._cacheCleanupTimer = null;
         }
 
-        // 每 5 分钟清理一次旧缓存（最多保留 50 条，10 分钟以上过期）
         this._cacheCleanupTimer = setInterval(function() {
             var loader = safeGet(window, 'LawAIApp.S4ContentLoader') || safeGet(window, 'LawAIApp.ContentLoader');
             if (loader && typeof loader.evictOldCache === 'function') {
@@ -342,23 +270,18 @@ window.App = {
                     console.warn('[App] ⚠️ Cache cleanup error:', e);
                 }
             }
-        }, 300000); // 5 分钟
+        }, 300000);
 
         console.log('[App] 🧹 Cache cleanup timer started (every 5 minutes)');
     },
 
-    // ════════════════════════════════════════════════════════════
-    // ═══ Part 33: 初始化 Practice 模块 ═══
-    // ════════════════════════════════════════════════════════════
     _initPracticeModules: function() {
-        // 检查 PracticeEngine 是否已加载
         var engine = safeGet(window, 'LawAIApp.PracticeEngine');
         if (engine && typeof engine.init === 'function') {
             engine.init();
             console.log('[App] ✅ PracticeEngine initialized');
         } else {
             console.log('[App] ⚠️ PracticeEngine not available yet, will retry...');
-            // 如果还没加载，延迟重试
             setTimeout(function() {
                 var engine2 = safeGet(window, 'LawAIApp.PracticeEngine');
                 if (engine2 && typeof engine2.init === 'function') {
@@ -368,20 +291,17 @@ window.App = {
             }, 1000);
         }
 
-        // 检查 PracticeModule
         var module = safeGet(window, 'LawAIApp.PracticeModule');
         if (module) {
             console.log('[App] ✅ PracticeModule available');
         }
 
-        // 检查 PracticeProgress
         var progress = safeGet(window, 'LawAIApp.PracticeProgress');
         if (progress) {
             console.log('[App] ✅ PracticeProgress available');
         }
     },
 
-    // ═══ Part 34: 初始化 Notes 模块 ═══
     _initNotesModule: function() {
         var notes = window.LawAIApp?.Notes || window.LawAIApp?.KnowledgeCapture;
         if (notes && typeof notes.init === 'function') {
@@ -391,10 +311,6 @@ window.App = {
             console.log('[App] ⚠️ Notes module not available');
         }
     },
-
-    // ============================================================
-    // 3. Runtime Health
-    // ============================================================
 
     getHealth: function() {
         var composer = safeGet(window, 'LawAIApp.SystemComposer');
@@ -434,10 +350,6 @@ window.App = {
         console.warn('⚠️ App unhealthy:', reason);
     },
 
-    // ============================================================
-    // 4. Root Management
-    // ============================================================
-
     mountRoot: function() {
         var root = document.getElementById("law-runtime-root");
         if (!root) {
@@ -456,19 +368,11 @@ window.App = {
         return this._root || document.getElementById('law-runtime-root') || document.getElementById('app');
     },
 
-    // ============================================================
-    // 5. Render Pipeline
-    // ============================================================
-
     render: function() {
         if (!this._renderAttempted) {
             this._renderImmediately();
         }
     },
-
-    // ============================================================
-    // 6. Recovery
-    // ============================================================
 
     recover: function() {
         if (this._state.destroyed) return;
@@ -516,10 +420,6 @@ window.App = {
         console.log("🔄 Runtime restarted");
     },
 
-    // ============================================================
-    // 7. Refresh
-    // ============================================================
-
     _refreshLock: false,
 
     refresh: function(payload) {
@@ -555,10 +455,6 @@ window.App = {
             this._emit('RUNTIME_REFRESH_COMPLETE', {});
         }.bind(this), 500);
     },
-
-    // ============================================================
-    // 8. Loading / Error States
-    // ============================================================
 
     _showLoadingState: function() {},
 
@@ -605,10 +501,6 @@ window.App = {
             </div>
         `;
     },
-
-    // ============================================================
-    // 9. Event Listeners
-    // ============================================================
 
     _setupComposerListener: function() {
         if (this._composerHandler) {
@@ -663,12 +555,8 @@ window.App = {
         }.bind(this), 3000);
     },
 
-    // ============================================================
-    // 🔥 Part 42: 延迟加载 Intelligence 模块（不阻塞首屏）
-    // ============================================================
     _loadIntelligenceModules: function() {
         setTimeout(function() {
-            // 1. KnowledgeGapEngine
             if (window.LawAIApp?.KnowledgeGapEngine) {
                 console.log('[App] ✅ KnowledgeGapEngine already loaded');
             } else {
@@ -688,7 +576,6 @@ window.App = {
                 document.head.appendChild(script);
             }
 
-            // 2. GapDetector
             if (window.LawAIApp?.GapDetector) {
                 console.log('[App] ✅ GapDetector already loaded');
             } else {
@@ -704,7 +591,6 @@ window.App = {
                 document.head.appendChild(script2);
             }
 
-            // 3. KnowledgeGraph (Part 40)
             if (!window.LawAIApp?.KnowledgeGraph) {
                 var script3 = document.createElement('script');
                 script3.src = '/js/knowledgeGraph.js';
@@ -718,7 +604,6 @@ window.App = {
                 document.head.appendChild(script3);
             }
 
-            // 4. PrerequisiteEngine (Part 41)
             if (!window.LawAIApp?.PrerequisiteEngine) {
                 var script4 = document.createElement('script');
                 script4.src = '/js/prerequisiteEngine.js';
@@ -731,16 +616,10 @@ window.App = {
                 };
                 document.head.appendChild(script4);
             }
-    
-            // 5. KnowledgeGapEngine (Part 42) - 已经加载了，这里不再重复
 
             console.log('[App] ✅ Intelligence modules loading initiated');
         }.bind(this), 2000);
     },
-
-    // ============================================================
-    // 10. Events
-    // ============================================================
 
     _emit: function(eventName, data) {
         try {
@@ -754,14 +633,7 @@ window.App = {
 
 };
 
-// ============================================================
-// 🔥 暴露到 LawAIApp.app（让 DevPanel 和系统能检测到）
-// ============================================================
 LawAIApp.app = window.App;
-
-// ============================================================
-// Global Event Listeners
-// ============================================================
 
 window.addEventListener("SYSTEM_READY", function(e) {
     console.log("⚡ SYSTEM_READY");
