@@ -250,6 +250,13 @@
             // 🔥 唯一的  函数（合并所有逻辑）
             // ============================================================
             function initAcademy() {
+                // 🔥 在函数开头定义 targetView
+                var targetView = 'dashboard';
+                if (window.location.hash === '#notes' || window.location.search.includes('view=notes')) {
+                    targetView = 'notes';
+                    console.log('📝 Direct navigation to Notes detected (targetView = notes)');
+                }
+                
                 console.log('🔥 Initializing Academy, targetView:', targetView);
 
                 try {
