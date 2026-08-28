@@ -13,9 +13,6 @@
     <link rel="stylesheet" href="/css/responsive.css">
     <link rel="stylesheet" href="/css/theme.css">
     <style>
-        /* ==========================================================
-           Academy 页面样式
-           ========================================================== */
         body { 
             margin: 0; 
             background: #0b1220; 
@@ -23,9 +20,6 @@
             font-family: 'Inter', -apple-system, sans-serif; 
         }
 
-        /* ==========================================================
-           🔥 强制消除 Academy 页面顶部空白
-           ========================================================== */
         html, body {
             margin: 0 !important;
             padding: 0 !important;
@@ -44,7 +38,6 @@
             padding-top: 0 !important;
         }
 
-        /* 🔥 隐藏 Dashboard 根容器，消除顶部空白 */
         #law-runtime-root {
             display: none !important;
             height: 0 !important;
@@ -57,14 +50,10 @@
             pointer-events: none !important;
         }
 
-        /* 🔥 隐藏任何非 Academy 的顶部元素 */
         body > *:not(#academy-root):not(.bottom-nav):not(style):not(script) {
             display: none !important;
         }
 
-        /* ==========================================================
-           底部导航
-           ========================================================== */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -97,14 +86,8 @@
     </style>
 </head>
 <body>
-    <!-- ========================================================== -->
-    <!-- 🔥 Academy 容器                                          -->
-    <!-- ========================================================== -->
     <div id="academy-root"></div>
 
-    <!-- ========================================================== -->
-    <!-- 底部导航                                                  -->
-    <!-- ========================================================== -->
     <nav class="bottom-nav">
         <a href="/" class="nav-item" data-tab="home">
             <span>🏠</span><span>Home</span>
@@ -123,9 +106,6 @@
         </a>
     </nav>
 
-    <!-- ========================================================== -->
-    <!-- 脚本加载                                                  -->
-    <!-- ========================================================== -->
     <script src="/js/storageEngine.js"></script>
     <script src="/js/eventBus.js"></script>
     <script src="/js/profileEngine.js"></script>
@@ -138,7 +118,6 @@
     <script src="/js/academy/notesView.js"></script>
     <script src="/js/academy/academyView.js"></script>
     <script src="/js/academy/learningJourneyAdapter.js"></script>
-    <!-- Memory Engine -->
     <script src="/js/memoryEngine.js"></script>
     <script src="/js/memoryTracker.js"></script>
     <script src="/js/memoryScheduler.js"></script>
@@ -154,9 +133,6 @@
 
             console.log('📄 Academy page loaded (v6.2.0)');
 
-            // ============================================================
-            // 🔥 覆盖 app.js 的 fallback 机制
-            // ============================================================
             function overrideAppFallback() {
                 if (window.App) {
                     if (window.App._state) {
@@ -198,9 +174,6 @@
                 }, 3000);
             }
 
-            // ============================================================
-            // 🔥 底部导航
-            // ============================================================
             document.querySelectorAll('.nav-item').forEach(function(item) {
                 item.addEventListener('click', function(e) {
                     var tab = this.dataset.tab;
@@ -215,7 +188,6 @@
                     e.preventDefault();
                     
                     if (tab === 'notes') {
-                        // 导航到 Notes 视图
                         if (window.LawAIApp?.AcademyExperienceManager) {
                             window.LawAIApp.AcademyExperienceManager.navigateToNotes();
                         } else {
@@ -246,9 +218,6 @@
                 });
             });
 
-            // ============================================================
-            // 🔥 唯一的  函数（合并所有逻辑）
-            // ============================================================
             function initAcademy() {
                 var targetView = 'dashboard';
                 if (window.location.hash === '#notes' || window.location.search.includes('view=notes')) {
@@ -258,7 +227,6 @@
                 console.log('🔥 Initializing Academy, targetView:', targetView);
 
                 try {
-                    // 初始化 Registries
                     if (window.LawAIApp?.SchoolRegistry && !window.LawAIApp.SchoolRegistry.initialized) {
                         window.LawAIApp.SchoolRegistry.initialize();
                     }
@@ -272,7 +240,6 @@
                         window.LawAIApp.CurriculumSeed.load();
                     }
 
-                    // 🔥 初始化 AcademyExperienceManager 时传入 initialView
                     if (window.LawAIApp?.AcademyExperienceManager) {
                         if (!window.LawAIApp.AcademyExperienceManager.initialized) {
                             window.LawAIApp.AcademyExperienceManager.init();
@@ -285,9 +252,6 @@
                 }
             }
                     
-            // ============================================================
-            // 🔥 启动 Academy
-            // ============================================================
             if (document.readyState === 'complete') {
                 setTimeout(initAcademy, 200);
             } else {
@@ -296,7 +260,7 @@
                 });
             }
 
-            console.log('✅ Academy page ready, targetView:', targetView);
+            console.log('✅ Academy page ready');
         })();
     </script>
 </body>
