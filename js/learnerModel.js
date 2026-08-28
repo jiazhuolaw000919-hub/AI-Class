@@ -1048,6 +1048,8 @@
     // 15. EXPORT
     // ============================================================
 
+    window.LawAIApp.LearnerModel = LearnerModel;
+
     return {
         init: init,
         getLearnerModel: getLearnerModel,
@@ -1085,8 +1087,6 @@
         invalidateContext: invalidateContext,
         getContextStatus: getContextStatus
     };
-
-    window.LawAIApp.LearnerModel = LearnerModel;
 
     // ============================================================
     // 16. AUTO-INIT
