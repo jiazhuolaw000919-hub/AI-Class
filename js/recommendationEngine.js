@@ -1634,6 +1634,15 @@
         } catch (e) {}
     }
 
+    function refresh() {
+        _cleanupExpired();
+        return generateRecommendations({});
+    }
+
+    function exportData() {
+        return _getStore();
+    }
+
     function exportData() {
         return _getStore();
     }
