@@ -50,7 +50,7 @@
         // 1. INITIALIZATION
         // ============================================================
 
-        init: function() {
+        function init() {
             if (this._initialized) {
                 console.log('[LearnerModel] Already initialized');
                 return this;
