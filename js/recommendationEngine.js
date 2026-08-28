@@ -4,26 +4,6 @@
 // DOMAIN: Recommendation & Decision Support
 // VERSION: 2.0.0 — Part 38 Recommendation Foundation
 // ================================================================
-//
-// PURPOSE
-// ================================================================
-//   Generate explainable, deterministic recommendations for
-//   learners based on their state, goals, and content.
-//
-// RECOMMENDATION STATES (Part 38)
-// ================================================================
-//   PENDING    → Available but not yet acted upon
-//   ACCEPTED   → Learner chose this recommendation
-//   COMPLETED  → Learner completed the recommended action
-//   DISMISSED  → Learner explicitly rejected it
-//   EXPIRED    → No longer relevant
-//   SKIPPED    → Passed without explicit rejection
-//
-// CORE PRINCIPLE
-// ================================================================
-//   Recommendation is a suggestion, not a command.
-//   Learner retains agency.
-// ================================================================
 
 (function() {
     'use strict';
@@ -72,11 +52,8 @@
     // RECOMMENDATION POLICY (中央配置)
     // ============================================================
     var POLICY = {
-        // 最大推荐数量
         maxRecommendations: 5,
-        // 推荐过期时间（天）
         expirationDays: 7,
-        // 各信号权重
         signalWeights: {
             PREREQUISITE_BLOCKED: 100,
             OVERDUE_CRITICAL: 90,
@@ -87,10 +64,9 @@
             REVIEW_DUE: 40,
             ENRICHMENT: 20
         },
-        // 信号阈值
         thresholds: {
             masteryLow: 0.4,
-            reviewOverdue: 2, // 天
+            reviewOverdue: 2,
             confidenceRequired: 0.3
         }
     };
@@ -134,19 +110,15 @@
         for (var key in stored) {
             if (key === '_schemaVersion') continue;
             var entry = stored[key];
-            // 如果旧数据没有 targetId，使用 key
             if (!entry.targetId) {
                 entry.targetId = key;
             }
-            // 如果旧数据没有 targetType，推断
             if (!entry.targetType) {
                 entry.targetType = TARGET_TYPES.KNOWLEDGE;
             }
-            // 如果旧数据没有 status，推断
             if (!entry.status) {
                 entry.status = STATES.PENDING;
             }
-            // 如果旧数据没有 reason，生成默认
             if (!entry.reason) {
                 entry.reason = 'Recommended based on your learning progress.';
             }
@@ -168,7 +140,6 @@
         var rec = store[id];
         if (!rec) return null;
 
-        // 检查是否过期
         if (rec.status === STATES.PENDING && rec.expiresAt && Date.now() > rec.expiresAt) {
             rec.status = STATES.EXPIRED;
             rec.updatedAt = Date.now();
@@ -188,17 +159,13 @@
             if (key === '_schemaVersion') continue;
             var rec = store[key];
 
-            // 状态过滤
             if (filter.status && rec.status !== filter.status) continue;
-            // 类型过滤
             if (filter.targetType && rec.targetType !== filter.targetType) continue;
-            // 目标 ID 过滤
             if (filter.targetId && rec.targetId !== filter.targetId) continue;
 
             result.push(rec);
         }
 
-        // 按优先级排序
         if (filter.sortBy !== 'createdAt') {
             result.sort(function(a, b) {
                 return (b.priorityScore || 0) - (a.priorityScore || 0);
@@ -234,9 +201,7 @@
         var candidates = [];
         var seenIds = new Set();
 
-        // ============================================================
-        // 1. 从 Review 系统获取候选
-        // ============================================================
+        // 1. From Review system
         var review = window.LawAIApp.MemoryReview;
         if (review && typeof review.getTodayReviews === 'function') {
             var dueReviews = review.getTodayReviews();
@@ -255,9 +220,7 @@
             }
         }
 
-        // ============================================================
-        // 2. 从 Mastery 系统获取候选 (低掌握度)
-        // ============================================================
+        // 2. From Mastery system
         var mastery = window.LawAIApp.MasteryEngine;
         if (mastery && typeof mastery.getAllMastery === 'function') {
             var allMastery = mastery.getAllMastery();
@@ -282,16 +245,13 @@
             }
         }
 
-        // ============================================================
-        // 3. 从当前课程获取候选
-        // ============================================================
+        // 3. From current course
         var currentCourseId = context.currentCourseId || _getCurrentCourseId();
         if (currentCourseId) {
             var courseRegistry = window.LawAIApp?.CourseRegistry;
             if (courseRegistry && typeof courseRegistry.getCourse === 'function') {
                 var course = courseRegistry.getCourse(currentCourseId);
                 if (course) {
-                    // 获取下一个未完成的 Lesson
                     var nextLesson = _findNextLesson(currentCourseId);
                     if (nextLesson && !seenIds.has(nextLesson)) {
                         seenIds.add(nextLesson);
@@ -307,9 +267,7 @@
             }
         }
 
-        // ============================================================
-        // 4. 从目标获取候选 (Goal-aligned)
-        // ============================================================
+        // 4. From goals
         var goals = _getActiveGoals();
         if (goals && goals.length > 0) {
             var goalTopics = _extractGoalTopics(goals);
@@ -328,9 +286,7 @@
             }
         }
 
-        // ============================================================
-        // 5. Fallback: 当前 School 的第一个 Course
-        // ============================================================
+        // 5. Fallback
         if (candidates.length === 0) {
             var fallback = _getFallbackRecommendation();
             if (fallback && !seenIds.has(fallback.targetId)) {
@@ -344,18 +300,14 @@
             }
         }
 
-        // ============================================================
-        // 6. 排序和裁剪
-        // ============================================================
+        // 6. Sort and trim
         candidates.sort(function(a, b) {
             return (b.priority || 0) - (a.priority || 0);
         });
 
         var topCandidates = candidates.slice(0, POLICY.maxRecommendations);
 
-        // ============================================================
-        // 7. 转换为 Recommendation 记录
-        // ============================================================
+        // 7. Convert to Recommendation records
         var created = [];
         for (var l = 0; l < topCandidates.length; l++) {
             var cand = topCandidates[l];
@@ -365,7 +317,6 @@
             }
         }
 
-        // 触发事件
         _emit('RECOMMENDATIONS_GENERATED', {
             count: created.length,
             recommendations: created
@@ -379,14 +330,11 @@
         var store = _getStore();
         var id = 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
 
-        // 检查是否已存在相同的推荐
         var existing = _findExisting(candidate.targetId, candidate.targetType);
         if (existing) {
-            // 如果已存在且仍然有效，不重复创建
             if (existing.status === STATES.PENDING || existing.status === STATES.ACCEPTED) {
                 return null;
             }
-            // 如果已过期或已完成，创建新的
         }
 
         var reason = _generateReason(candidate, context);
@@ -438,18 +386,11 @@
 
     // ============================================================
     // 🔥 Part 48: Adaptive Recommendation Engine
-    // 添加到 LawAIApp.RecommendationEngine 中
     // ============================================================
 
-    /**
-     * 使用自适应上下文生成推荐
-     * @param {Object} context - 自适应上下文 (来自 LearnerModel.buildAdaptiveContext)
-     * @param {Object} options - 配置选项
-     * @returns {Object} 推荐结果
-     */
-    getAdaptiveRecommendations: function(context, options) {
+    function getAdaptiveRecommendations(context, options) {
         options = options || {};
-        context = context || this._getAdaptiveContext();
+        context = context || _getAdaptiveContext();
     
         var result = {
             recommendations: [],
@@ -464,24 +405,17 @@
             }
         };
     
-        // 1. 发现候选
-        var candidates = this._discoverCandidates(context, options);
+        var candidates = _discoverCandidates(context, options);
+        var filtered = _filterCandidates(candidates, context, options);
+        var ranked = _rankCandidates(filtered, context, options);
     
-        // 2. 过滤候选
-        var filtered = this._filterCandidates(candidates, context, options);
-    
-        // 3. 排名候选
-        var ranked = this._rankCandidates(filtered, context, options);
-    
-        // 4. 构建推荐
         if (ranked.length > 0) {
-            var primary = this._buildRecommendation(ranked[0], context, options);
+            var primary = _buildRecommendation(ranked[0], context, options);
             result.recommendations.push(primary);
             result.summary.primary = primary;
         
-            // 5. 构建替代方案 (最多 3 个)
             for (var i = 1; i < Math.min(ranked.length, 4); i++) {
-                var alt = this._buildRecommendation(ranked[i], context, { ...options, isAlternative: true });
+                var alt = _buildRecommendation(ranked[i], context, { ...options, isAlternative: true });
                 result.alternatives.push(alt);
             }
             result.summary.alternatives = result.alternatives.length;
@@ -490,20 +424,15 @@
         result.summary.total = result.recommendations.length + result.alternatives.length;
     
         return result;
-    },
+    }
 
-    /**
-     * 发现候选 (私有)
-     */
-    _discoverCandidates: function(context, options) {
+    function _discoverCandidates(context, options) {
         var candidates = [];
         var seen = {};
     
-        // 1. 从当前路径发现
         var ape = window.LawAIApp.AdaptivePathEngine;
         if (ape) {
-            // 获取当前路径
-            var path = this._getActivePath();
+            var path = _getActivePath();
             if (path && path.nodes) {
                 for (var i = 0; i < path.nodes.length; i++) {
                     var node = path.nodes[i];
@@ -522,7 +451,6 @@
             }
         }
     
-        // 2. 从复习发现
         var review = window.LawAIApp.MemoryReview;
         if (review) {
             var dueReviews = review.getTodayReviews ? review.getTodayReviews() : [];
@@ -542,7 +470,6 @@
             }
         }
     
-        // 3. 从掌握度缺口发现
         var mastery = window.LawAIApp.MasteryEngine;
         if (mastery) {
             var allMastery = mastery.getAllMastery ? mastery.getAllMastery() : [];
@@ -550,7 +477,7 @@
                 var record = allMastery[i];
                 if (!record || !record.knowledgeId) continue;
                 if (seen[record.knowledgeId]) continue;
-                if (record.masteryLevel >= 0.6) continue; // 只推荐低掌握度
+                if (record.masteryLevel >= 0.6) continue;
                 seen[record.knowledgeId] = true;
                 candidates.push({
                     targetId: record.knowledgeId,
@@ -563,8 +490,7 @@
             }
         }
     
-        // 4. 从目标发现
-        var goal = context.goal || this._getCurrentGoal();
+        var goal = context.goal || _getCurrentGoal();
         if (goal && goal.targetId) {
             if (!seen[goal.targetId]) {
                 seen[goal.targetId] = true;
@@ -579,18 +505,14 @@
         }
     
         return candidates;
-    },
+    }
 
-    /**
-     * 过滤候选 (私有)
-     */
-    _filterCandidates: function(candidates, context, options) {
+    function _filterCandidates(candidates, context, options) {
         var filtered = [];
     
         for (var i = 0; i < candidates.length; i++) {
             var candidate = candidates[i];
             
-            // 1. 检查目标是否存在
             var kg = window.LawAIApp.KnowledgeGraph;
             if (kg) {
                 var node = kg.getNode(candidate.targetId);
@@ -598,49 +520,33 @@
                 if (node.status === 'deprecated') continue;
             }
         
-            // 2. 检查是否已掌握 (排除)
             var lm = window.LawAIApp.LearnerModel;
             if (lm && candidate.source !== 'GOAL_ALIGNMENT') {
                 var state = lm.getKnowledgeState ? lm.getKnowledgeState(candidate.targetId) : null;
                 if (state && state.mastery && state.mastery.level >= 0.85) {
-                    continue; // 已掌握，不推荐
+                    continue;
                 }
-            }
-        
-            // 3. 检查是否已在当前路径中
-            // 如果已经在路径中且不是复习，可能重复
-            if (candidate.source === 'REVIEW' || candidate.source === 'MASTERY_GAP') {
-                // 保留
             }
         
             filtered.push(candidate);
         }
     
         return filtered;
-    },
+    }
 
-    /**
-     * 排名候选 (私有)
-     */
-    _rankCandidates: function(candidates, context, options) {
-        // 按优先级排序
+    function _rankCandidates(candidates, context, options) {
         var ranked = candidates.slice();
         ranked.sort(function(a, b) {
-            // 主优先级
             var diff = (b.priority || 0) - (a.priority || 0);
             if (diff !== 0) return diff;
-            // 稳定 ID
             return (a.targetId || '').localeCompare(b.targetId || '');
         });
         return ranked;
-    },
+    }
 
-    /**
-     * 构建推荐 (私有)
-     */
-    _buildRecommendation: function(candidate, context, options) {
+    function _buildRecommendation(candidate, context, options) {
         var isAlternative = options.isAlternative || false;
-        var action = this._determineAction(candidate);
+        var action = _determineAction(candidate);
     
         var recommendation = {
             recommendationId: 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
@@ -653,11 +559,11 @@
                       candidate.priority >= 50 ? 'MEDIUM' : 'LOW',
             confidence: 0.7,
             isAlternative: isAlternative,
-            explanation: this._generateExplanation(candidate, context),
+            explanation: _generateExplanation(candidate, context),
             contextVersion: context.contextVersion || Date.now(),
             pathVersion: context.pathVersion || null,
             generatedAt: Date.now(),
-            expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 小时
+            expiresAt: Date.now() + (24 * 60 * 60 * 1000)
         };
     
         if (candidate.reviewData) {
@@ -668,12 +574,9 @@
         }
     
         return recommendation;
-    },
+    }
 
-    /**
-     * 确定动作 (私有)
-     */
-    _determineAction: function(candidate) {
+    function _determineAction(candidate) {
         switch (candidate.source) {
             case 'CURRENT_PATH':
                 return 'CONTINUE';
@@ -686,12 +589,9 @@
             default:
                 return 'CONTINUE';
         }
-    },
+    }
 
-    /**
-     * 生成解释 (私有)
-     */
-    _generateExplanation: function(candidate, context) {
+    function _generateExplanation(candidate, context) {
         switch (candidate.source) {
             case 'CURRENT_PATH':
                 return 'Continue your current learning path.';
@@ -708,12 +608,9 @@
             default:
                 return 'Recommended based on your learning progress.';
         }
-    },
+    }
 
-    /**
-     * 获取自适应上下文 (私有)
-     */
-    _getAdaptiveContext: function() {
+    function _getAdaptiveContext() {
         try {
             var lm = window.LawAIApp.LearnerModel;
             if (lm && typeof lm.buildAdaptiveContext === 'function') {
@@ -721,23 +618,18 @@
             }
         } catch (e) {}
         return { contextVersion: Date.now(), quality: 'UNKNOWN' };
-    },
+    }
 
-    /**
-     * 获取当前路径 (私有)
-     */
-    _getActivePath: function() {
+    function _getActivePath() {
         try {
             var ape = window.LawAIApp.AdaptivePathEngine;
             if (ape && ape.getActivePath) {
                 return ape.getActivePath();
             }
-            // 尝试从 Loop 获取
             var loop = window.LawAIApp.AdaptiveLoop;
             if (loop && loop.getLoopStatus) {
                 var status = loop.getLoopStatus();
                 if (status && status.lastDecision) {
-                    // 返回一个虚拟路径
                     return {
                         targetId: status.lastDecision.targetId,
                         nodes: [{ knowledgeId: status.lastDecision.targetId, state: 'ELIGIBLE' }]
@@ -746,12 +638,9 @@
             }
         } catch (e) {}
         return null;
-    },
+    }
 
-    /**
-     * 获取当前目标 (私有)
-     */
-    _getCurrentGoal: function() {
+    function _getCurrentGoal() {
         try {
             var goals = window.LawAIApp.GoalEngine;
             if (goals && goals.getActiveGoals) {
@@ -762,63 +651,47 @@
             }
         } catch (e) {}
         return null;
-    },
+    }
 
-    /**
-     * 接受推荐
-     */
-    acceptAdaptiveRecommendation: function(recommendationId) {
+    function acceptAdaptiveRecommendation(recommendationId) {
         console.log('[RecommendationEngine] Accepted:', recommendationId);
-        // 触发事件
-        this._emit('RECOMMENDATION_ACCEPTED', {
+        _emit('RECOMMENDATION_ACCEPTED', {
             recommendationId: recommendationId,
             timestamp: Date.now()
         });
         return true;
-    },
+    }
 
-    /**
-     * 忽略推荐
-     */
-    dismissAdaptiveRecommendation: function(recommendationId, reason) {
+    function dismissAdaptiveRecommendation(recommendationId, reason) {
         console.log('[RecommendationEngine] Dismissed:', recommendationId, reason || '');
-        this._emit('RECOMMENDATION_DISMISSED', {
+        _emit('RECOMMENDATION_DISMISSED', {
             recommendationId: recommendationId,
             reason: reason || 'LEARNER_CHOICE',
             timestamp: Date.now()
         });
         return true;
-    },
+    }
 
-    /**
-     * 跳过推荐
-     */
-    skipAdaptiveRecommendation: function(recommendationId) {
+    function skipAdaptiveRecommendation(recommendationId) {
         console.log('[RecommendationEngine] Skipped:', recommendationId);
-        this._emit('RECOMMENDATION_SKIPPED', {
+        _emit('RECOMMENDATION_SKIPPED', {
             recommendationId: recommendationId,
             timestamp: Date.now()
         });
         return true;
-    },
+    }
 
-    /**
-     * 选择替代方案
-     */
-    selectAdaptiveAlternative: function(recommendationId, alternativeId) {
+    function selectAdaptiveAlternative(recommendationId, alternativeId) {
         console.log('[RecommendationEngine] Alternative selected:', recommendationId, '->', alternativeId);
-        this._emit('RECOMMENDATION_ALTERNATIVE_SELECTED', {
+        _emit('RECOMMENDATION_ALTERNATIVE_SELECTED', {
             recommendationId: recommendationId,
             alternativeId: alternativeId,
             timestamp: Date.now()
         });
         return true;
-    },
+    }
 
-    /**
-     * 检查推荐是否过期
-     */
-    isRecommendationStale: function(recommendation, currentContext) {
+    function isRecommendationStale(recommendation, currentContext) {
         if (!recommendation) return true;
         if (!currentContext) return true;
     
@@ -837,18 +710,10 @@
     // 🔥 Part 49: Recommendation Explainability & Decision Transparency
     // ============================================================
 
-    /**
-     * 生成推荐解释
-     * @param {string|Object} recommendation - 推荐 ID 或推荐对象
-     * @param {string} level - 'summary' | 'detail' | 'audit'
-     * @param {Object} context - 自适应上下文
-     * @returns {Object} 解释对象
-     */
     function explainRecommendation(recommendation, level, context) {
         level = level || 'summary';
         context = context || _getAdaptiveContext();
 
-        // 如果传入的是 ID，获取推荐
         if (typeof recommendation === 'string') {
             recommendation = getRecommendation(recommendation);
             if (!recommendation) {
@@ -884,7 +749,6 @@
             stale: false
         };
 
-        // 1. 构建 Reasons
         var reasonCodes = recommendation.reasonCodes || recommendation.reasons || [];
         for (var i = 0; i < reasonCodes.length; i++) {
             var code = reasonCodes[i];
@@ -894,7 +758,6 @@
             }
         }
 
-        // 如果 reasonCodes 为空，添加默认
         if (explanation.reasons.length === 0) {
             explanation.reasons.push({
                 code: 'UNKNOWN',
@@ -903,12 +766,10 @@
             });
         }
 
-        // 标记 Primary Reason (第一个)
         if (explanation.reasons.length > 0) {
             explanation.reasons[0].primary = true;
         }    
 
-        // 2. 构建 Supporting Signals
         var signals = recommendation.supportingSignals || {};
         for (var key in signals) {
             if (signals.hasOwnProperty(key)) {
@@ -923,7 +784,6 @@
             }
         }
 
-        // 3. 构建 Evidence (从 signals 提取)
         if (signals.masteryLevel !== undefined) {
             explanation.evidence.push({
                 evidenceId: 'ev_mastery_' + Date.now(),
@@ -945,7 +805,6 @@
             });
         }
 
-        // 4. 构建 Alternatives
         if (recommendation.alternatives && recommendation.alternatives.length > 0) {
             explanation.alternatives = recommendation.alternatives.map(function(alt) {
                 return {
@@ -957,13 +816,11 @@
             });
         }
 
-        // 5. 构建 Tradeoffs
         var tradeoff = _deriveTradeoff(recommendation, context);
         if (tradeoff) {
             explanation.tradeoffs.push(tradeoff);
         }
 
-        // 6. 构建 Uncertainty
         if (recommendation.confidence !== undefined) {
             explanation.uncertainty = recommendation.confidence >= 0.8 ? 'LOW' :
                                        recommendation.confidence >= 0.5 ? 'MEDIUM' : 'HIGH';
@@ -971,29 +828,22 @@
             explanation.uncertainty = 'UNKNOWN';
         }
 
-        // 7. 构建 Summary (根据 level)
         explanation.summary = _buildExplanationSummary(explanation, level);
 
-        // 8. 构建 Constraints
         var constraint = _deriveConstraint(recommendation, context);
         if (constraint) {
             explanation.constraints.push(constraint);
         }
 
-        // 9. 检查是否过期
         explanation.stale = isRecommendationStale ? isRecommendationStale(recommendation, context) : false;
 
         return explanation;
-    },
+    }
 
-    /**
-     * 映射 Reason Code 到人类可读描述
-     */
     function _mapReason(code, recommendation, context) {
         var descriptions = {
             'GOAL_ALIGNED': 'Aligned with your current learning goal',
             'GOAL_ALIGNMENT': 'Aligned with your current learning goal',
-            'PATH_CONTINUITY': 'Continues your current learning path',
             'PATH_CONTINUITY': 'Continues your current learning path',
             'MASTERY_GAP': 'Addresses a knowledge gap',
             'KNOWLEDGE_GAP': 'Addresses a knowledge gap',
@@ -1014,11 +864,8 @@
 
         var description = descriptions[code] || descriptions['UNKNOWN'];
         return { code: code, primary: false, description: description };
-    },
+    }
 
-    /**
-     * 推导 Tradeoff
-     */
     function _deriveTradeoff(recommendation, context) {
         if (!recommendation || !context) return null;
     
@@ -1043,15 +890,11 @@
         }
 
         return tradeoff;
-    },
+    }
 
-    /**
-     * 推导约束
-     */
     function _deriveConstraint(recommendation, context) {
         if (!recommendation) return null;
 
-        // 检查是否有硬约束
         if (recommendation.targetType === 'REQUIRED' || recommendation.priority === 'CRITICAL') {
             return {
                 type: 'REQUIRED',
@@ -1061,11 +904,8 @@
         }
 
         return null;
-    },
+    }
 
-    /**
-     * 构建解释摘要
-     */
     function _buildExplanationSummary(explanation, level) {
         var summary = '';
 
@@ -1085,7 +925,6 @@
             summary = 'Recommended based on your learning progress.';
         }
 
-        // Detail level: 添加更多信息
         if (level === 'detail' || level === 'audit') {
             if (explanation.evidence.length > 0) {
                 summary += ' Based on ' + explanation.evidence.length + ' evidence item(s).';
@@ -1098,25 +937,18 @@
             }
         }
 
-        // Audit level: 添加版本信息
         if (level === 'audit') {
             summary += ' [Context: ' + (explanation.sourceVersions.contextVersion || 'N/A') + ']';
             summary += ' [Path: ' + (explanation.sourceVersions.pathVersion || 'N/A') + ']';
         }
 
         return summary;
-    },
+    }
 
-    /**
-     * 获取解释层级列表
-     */
     function getExplanationLevels() {
         return ['summary', 'detail', 'audit'];
-    },    
+    }
 
-    /**
-     * 比较两个推荐
-     */
     function compareRecommendations(rec1, rec2, context) {
         context = context || _getAdaptiveContext();
 
@@ -1126,13 +958,11 @@
             recommendation: null
         };
 
-        // 获取两个推荐的解释
         var exp1 = explainRecommendation(rec1, 'detail', context);
         var exp2 = explainRecommendation(rec2, 'detail', context);
 
         comparison.recommendations = [exp1, exp2];
 
-        // 比较差异
         if (exp1.reasons.length > 0 && exp2.reasons.length > 0) {
             var r1 = exp1.reasons[0].code || 'UNKNOWN';
             var r2 = exp2.reasons[0].code || 'UNKNOWN';
@@ -1162,11 +992,8 @@
         }
 
         return comparison;
-    },
+    }
 
-    /**
-     * 获取决策追踪
-     */
     function getDecisionTrace(recommendationId) {
         var rec = getRecommendation(recommendationId);
         if (!rec) {
@@ -1190,7 +1017,6 @@
             events: []
         };
 
-        // 从事件系统获取相关事件
         try {
             var eventBus = window.LawAIApp?.EventBus || window.EventBus;
             if (eventBus && typeof eventBus.getEvents === 'function') {
@@ -1202,15 +1028,12 @@
                 trace.events = events || [];
             }
         } catch (e) {
-            // 忽略
+            // ignore
         }    
 
         return trace;
-    },
+    }
 
-    /**
-     * 获取推荐反馈
-     */
     function getRecommendationFeedback(recommendationId) {
         var rec = getRecommendation(recommendationId);
         if (!rec) {
@@ -1230,11 +1053,8 @@
         };
 
         return feedback;
-    },
+    }
 
-    /**
-     * 记录推荐反馈
-     */
     function recordRecommendationFeedback(recommendationId, feedbackType, comment) {
         var rec = getRecommendation(recommendationId);
         if (!rec) {
@@ -1243,7 +1063,7 @@
 
         var feedbackEvent = {
             recommendationId: recommendationId,
-            feedbackType: feedbackType, // HELPFUL | NOT_HELPFUL | UNCLEAR | WRONG | NOT_RELEVANT
+            feedbackType: feedbackType,
             comment: comment || null,
             timestamp: Date.now()
         };
@@ -1254,19 +1074,12 @@
             success: true,
             feedback: feedbackEvent
         };
-    },
+    }
 
     // ============================================================
     // 🔥 Part 50: Adaptive Feedback & Recommendation Outcome Loop
     // ============================================================
 
-    /**
-     * 记录推荐结果
-     * @param {string} recommendationId - 推荐 ID
-     * @param {string} status - 结果状态 (SHOWN, ACCEPTED, SKIPPED, DISMISSED, ALTERNATIVE_SELECTED, STARTED, COMPLETED, ABANDONED, EXPIRED, FAILED, DEFERRED)
-     * @param {Object} metadata - 额外元数据
-     * @returns {Object} 结果记录
-     */
     function recordRecommendationOutcome(recommendationId, status, metadata) {
         metadata = metadata || {};
     
@@ -1289,7 +1102,6 @@
             metadata: metadata
         };
     
-        // 存储结果
         var store = _getStore();
         if (!store._outcomes) {
             store._outcomes = [];
@@ -1297,7 +1109,6 @@
         store._outcomes.push(outcome);
         _saveStore(store);
     
-        // 更新推荐状态
         if (status === 'ACCEPTED') {
             acceptRecommendation(recommendationId);
         } else if (status === 'COMPLETED') {
@@ -1310,7 +1121,6 @@
             expireRecommendation(recommendationId);
         }
     
-        // 触发事件
         _emit('RECOMMENDATION_OUTCOME_RECORDED', {
             outcomeId: outcome.outcomeId,
             recommendationId: recommendationId,
@@ -1318,7 +1128,6 @@
             timestamp: outcome.timestamp
         });
     
-        // 如果是完成或接受，触发上下文刷新
         if (status === 'COMPLETED' || status === 'ACCEPTED' || status === 'STARTED') {
             _triggerContextRefresh(recommendationId);
         }
@@ -1327,52 +1136,36 @@
             success: true,
             outcome: outcome
         };
-    },
+    }
 
-    /**
-     * 获取推荐结果
-     * @param {string} recommendationId - 推荐 ID
-     * @returns {Object} 结果
-     */
     function getRecommendationOutcome(recommendationId) {
         var store = _getStore();
         if (!store._outcomes) return null;
     
-        // 获取最新的结果
         var outcomes = store._outcomes.filter(function(o) {
             return o.recommendationId === recommendationId;
         });
     
         if (outcomes.length === 0) return null;
     
-        // 按时间降序排序，返回最新的
         outcomes.sort(function(a, b) {
             return b.timestamp - a.timestamp;
         });
     
         return outcomes[0];
-    },
+    }
 
-    /**
-     * 处理结果反馈
-     * @param {string} recommendationId - 推荐 ID
-     * @param {string} feedbackType - 反馈类型
-     * @param {string} comment - 可选评论
-     * @returns {Object} 反馈结果
-     */
     function processOutcomeFeedback(recommendationId, feedbackType, comment) {
         var outcome = getRecommendationOutcome(recommendationId);
         if (!outcome) {
             return { success: false, message: 'Outcome not found' };
         }
     
-        // 先记录反馈
         var feedbackResult = recordRecommendationFeedback(recommendationId, feedbackType, comment);
         if (!feedbackResult.success) {
             return feedbackResult;
         }
     
-        // 更新结果的反馈引用
         var store = _getStore();
         if (!store._outcomes) {
             return { success: false, message: 'Outcomes not found' };
@@ -1394,7 +1187,6 @@
         }
         _saveStore(store);
     
-        // 触发反馈处理
         _processFeedbackSignals(recommendationId, feedbackType);
     
         return {
@@ -1402,13 +1194,9 @@
             message: 'Feedback processed',
             feedbackType: feedbackType
         };
-    },
+    }
 
-    /**
-     * 处理反馈信号 (私有)
-     */
     function _processFeedbackSignals(recommendationId, feedbackType) {
-        // 如果是 TOO_HARD 或 NOT_RELEVANT，记录到推荐质量信号
         var signal = null;
     
         if (feedbackType === 'TOO_HARD') {
@@ -1434,11 +1222,8 @@
             });
             _saveStore(store);
         }
-    },
+    }
 
-    /**
-     * 触发上下文刷新 (私有)
-     */
     function _triggerContextRefresh(recommendationId) {
         try {
             var lm = window.LawAIApp.LearnerModel;
@@ -1448,7 +1233,6 @@
         
             var loop = window.LawAIApp.AdaptiveLoop;
             if (loop && typeof loop.getLoopStatus === 'function') {
-                // 触发重新评估
                 _emit('CONTEXT_REFRESH_REQUESTED', {
                     recommendationId: recommendationId,
                     timestamp: Date.now()
@@ -1457,10 +1241,8 @@
         
             var ape = window.LawAIApp.AdaptivePathEngine;
             if (ape && typeof ape.replanAdaptivePath === 'function') {
-                // 检查路径是否需要重新规划
                 var path = ape.getActivePath ? ape.getActivePath() : null;
                 if (path && path.targetId) {
-                    // 延迟重新规划
                     setTimeout(function() {
                         var context = lm && typeof lm.buildAdaptiveContext === 'function' ? 
                             lm.buildAdaptiveContext() : null;
@@ -1477,15 +1259,10 @@
                 }
             }
         } catch (e) {
-            // 忽略上下文刷新失败
+            // ignore
         }
-    },    
+    }
 
-    /**
-     * 获取结果历史
-     * @param {Object} filter - 过滤条件
-     * @returns {Array} 结果历史
-     */
     function getOutcomeHistory(filter) {
         filter = filter || {};
         var store = _getStore();
@@ -1519,7 +1296,6 @@
             });
         }
     
-        // 按时间降序排序
         outcomes.sort(function(a, b) {
             return b.timestamp - a.timestamp;
         });
@@ -1529,13 +1305,8 @@
         }
     
         return outcomes;
-    },
+    }
 
-    /**
-     * 获取推荐质量指标
-     * @param {Object} options - 配置选项
-     * @returns {Object} 质量指标
-     */
     function getRecommendationQualityMetrics(options) {
         options = options || {};
         var store = _getStore();
@@ -1575,7 +1346,6 @@
             helpfulRate: 0
         };
     
-        // 统计状态
         for (var i = 0; i < outcomes.length; i++) {
             var o = outcomes[i];
             var status = o.status || 'UNKNOWN';
@@ -1595,7 +1365,6 @@
             }
         }
     
-        // 统计反馈
         for (var recId in feedbackSignals) {
             var signals = feedbackSignals[recId];
             for (var j = 0; j < signals.length; j++) {
@@ -1615,7 +1384,6 @@
             }
         }
     
-        // 计算比率
         var total = metrics.total || 1;
         metrics.acceptanceRate = Math.round((metrics.byStatus.accepted / total) * 100);
         metrics.completionRate = Math.round((metrics.byStatus.completed / total) * 100);
@@ -1623,21 +1391,14 @@
         metrics.helpfulRate = Math.round((metrics.feedback.helpful / helpfulTotal) * 100);
     
         return metrics;
-    },
+    }
 
-    /**
-     * 应用推荐冷却
-     * @param {string} targetId - 目标 ID
-     * @param {number} cooldownMs - 冷却时间（毫秒）
-     * @returns {boolean} 是否在冷却中
-     */
     function isRecommendationCooldown(targetId, cooldownMs) {
-        cooldownMs = cooldownMs || 3600000; // 默认 1 小时
+        cooldownMs = cooldownMs || 3600000;
     
         var outcomes = getOutcomeHistory({ targetId: targetId });
         if (outcomes.length === 0) return false;
     
-        // 检查最近的 DISMISSED 或 SKIPPED
         var recent = outcomes.filter(function(o) {
             return o.status === 'DISMISSED' || o.status === 'SKIPPED' || o.status === 'NOT_RELEVANT';
         });
@@ -1648,7 +1409,7 @@
         var timeSince = Date.now() - latest.timestamp;
     
         return timeSince < cooldownMs;
-    },
+    }
 
     // ============================================================
     // REASON GENERATION
@@ -1682,7 +1443,7 @@
         }
 
         return 'Recommended based on your learning progress.';
-    },
+    }
 
     // ============================================================
     // RECOMMENDATION ACTIONS
@@ -1690,23 +1451,23 @@
 
     function acceptRecommendation(id) {
         return _updateStatus(id, STATES.ACCEPTED);
-    },
+    }
 
     function completeRecommendation(id) {
         return _updateStatus(id, STATES.COMPLETED);
-    },
+    }
 
     function dismissRecommendation(id) {
         return _updateStatus(id, STATES.DISMISSED);
-    },
+    }
 
     function skipRecommendation(id) {
         return _updateStatus(id, STATES.SKIPPED);
-    },
+    }
 
     function expireRecommendation(id) {
         return _updateStatus(id, STATES.EXPIRED);
-    },
+    }
 
     function _updateStatus(id, status) {
         if (!id) return null;
@@ -1726,19 +1487,16 @@
         });
 
         return rec;
-    },
+    }
 
     // ============================================================
     // REFRESH
     // ============================================================
 
     function refreshRecommendations(context) {
-        // 清理过期推荐
         _cleanupExpired();
-
-        // 生成新推荐
         return generateRecommendations(context);
-    },
+    }
 
     function _cleanupExpired() {
         var store = _getStore();
@@ -1760,7 +1518,7 @@
             _saveStore(store);
             console.log('[RecommendationEngine] 🧹 Expired ' + count + ' recommendations');
         }
-    },
+    }
 
     // ============================================================
     // HELPERS: Context
@@ -1773,7 +1531,7 @@
             return state.currentCourseId || null;
         }
         return null;
-    },
+    }
 
     function _findNextLesson(courseId) {
         var adapter = window.LawAIApp?.LearningJourneyAdapter;
@@ -1784,7 +1542,7 @@
             }
         }
         return null;
-    },
+    }
 
     function _getActiveGoals() {
         var goalEngine = window.LawAIApp?.GoalEngine;
@@ -1792,7 +1550,7 @@
             return goalEngine.getActiveGoals();
         }
         return [];
-    },
+    }
 
     function _extractGoalTopics(goals) {
         var topics = [];
@@ -1809,7 +1567,7 @@
             }
         }
         return topics.slice(0, 10);
-    },
+    }
 
     function _getFallbackRecommendation() {
         var schoolRegistry = window.LawAIApp?.SchoolRegistry;
@@ -1826,7 +1584,7 @@
             targetId: 'school-science',
             targetType: TARGET_TYPES.COURSE
         };
-    },
+    }
 
     // ============================================================
     // PUBLIC: Status
@@ -1862,7 +1620,7 @@
             },
             storageAvailable: !!(LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.get === 'function')
         };
-    },
+    }
 
     // ============================================================
     // PUBLIC: Reset / Export / Import
@@ -1874,11 +1632,11 @@
             LawAIApp.StorageEngine?.set?.(_storageKey, { _schemaVersion: _schemaVersion });
             console.log('[RecommendationEngine] Reset complete');
         } catch (e) {}
-    },
+    }
 
     function exportData() {
         return _getStore();
-    },
+    }
 
     function importData(data) {
         if (data && typeof data === 'object') {
@@ -1887,7 +1645,7 @@
             return true;
         }
         return false;
-    },
+    }
 
     // ============================================================
     // PRIVATE: Event Helpers
@@ -1903,7 +1661,7 @@
                 window.LawAIApp.EventBus.emit(eventName, data);
             }
         } catch (err) {}
-    },
+    }
 
     // ============================================================
     // INITIALIZATION
@@ -1918,16 +1676,11 @@
         console.log('[RecommendationEngine] 🚀 Initializing v2.0.0...');
 
         try {
-            // 加载数据
             _getStore();
-
-            // 清理过期推荐
             _cleanupExpired();
 
-            // 注册事件监听（可选）
             var eventBus = window.LawAIApp.EventBus || window.EventBus;
             if (eventBus && typeof eventBus.on === 'function') {
-                // 当学习状态更新时，自动刷新推荐
                 eventBus.on('LEARNING_STATE_UPDATED', function() {
                     setTimeout(function() {
                         refreshRecommendations();
@@ -1954,17 +1707,14 @@
                 _upgraded: true,
                 _version: '2.0.0',
 
-                // Core
                 getRecommendation: getRecommendation,
                 getRecommendations: getRecommendations,
                 getPendingRecommendations: getPendingRecommendations,
                 getActiveRecommendations: getActiveRecommendations,
 
-                // Generation
                 generateRecommendations: generateRecommendations,
                 refreshRecommendations: refreshRecommendations,
 
-                // Actions
                 acceptRecommendation: acceptRecommendation,
                 completeRecommendation: completeRecommendation,
                 dismissRecommendation: dismissRecommendation,
@@ -1973,7 +1723,6 @@
 
                 refresh: refresh,
 
-                // 🔥 Part 48: Adaptive Recommendation Engine
                 getAdaptiveRecommendations: getAdaptiveRecommendations,
                 acceptAdaptiveRecommendation: acceptAdaptiveRecommendation,
                 dismissAdaptiveRecommendation: dismissAdaptiveRecommendation,
@@ -1981,7 +1730,6 @@
                 selectAdaptiveAlternative: selectAdaptiveAlternative,
                 isRecommendationStale: isRecommendationStale,
 
-                // 🔥 Part 49: Recommendation Explainability & Decision Transparency
                 explainRecommendation: explainRecommendation,
                 getExplanationLevels: getExplanationLevels,
                 compareRecommendations: compareRecommendations,
@@ -1989,7 +1737,6 @@
                 getRecommendationFeedback: getRecommendationFeedback,
                 recordRecommendationFeedback: recordRecommendationFeedback,
 
-                // 🔥 Part 50: Adaptive Feedback & Recommendation Outcome Loop
                 recordRecommendationOutcome: recordRecommendationOutcome,
                 getRecommendationOutcome: getRecommendationOutcome,
                 processOutcomeFeedback: processOutcomeFeedback,
@@ -1997,15 +1744,12 @@
                 getRecommendationQualityMetrics: getRecommendationQualityMetrics,
                 isRecommendationCooldown: isRecommendationCooldown,
 
-                // Status
                 getStatus: getStatus,
 
-                // Reset / Export / Import
                 reset: reset,
                 exportData: exportData,
                 importData: importData,
 
-                // Constants
                 STATES: STATES,
                 TARGET_TYPES: TARGET_TYPES,
                 POLICY: POLICY
@@ -2015,7 +1759,6 @@
 
         } catch (error) {
             console.error('[RecommendationEngine] ❌ Init failed:', error);
-            // 即使失败，也暴露一个安全的空对象
             window.LawAIApp.RecommendationEngine = {
                 _initialized: false,
                 _upgraded: true,
@@ -2028,7 +1771,7 @@
                 }
             };
         }
-    },
+    }
 
     // ============================================================
     // AUTO-INIT
