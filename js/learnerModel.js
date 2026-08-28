@@ -118,6 +118,393 @@
         },
 
         // ============================================================
+        // 🔥 Part 47: Learner State & Context Intelligence
+        // ============================================================
+
+        /**
+         * 构建只读学习者快照
+         * @param {Object} options - 配置选项
+         * @returns {Object} 只读学习者快照
+         */
+        buildLearnerSnapshot: function(options) {
+            options = options || {};
+    
+            var snapshot = {
+                learnerId: this._getLearnerId(),
+                stateVersion: Date.now(),
+                timestamp: Date.now(),
+                quality: 'FULL',
+                components: {},
+                warnings: [],
+                errors: []
+            };
+
+            // 1. Mastery
+            try {
+                var mastery = window.LawAIApp.MasteryEngine;
+                if (mastery) {
+                    snapshot.components.mastery = {
+                        available: true,
+                        summary: mastery.getAllMastery ? mastery.getAllMastery() : [],
+                        overall: mastery.calculateOverallMastery ? mastery.calculateOverallMastery() : null
+                    };
+                } else {
+                    snapshot.components.mastery = { available: false, reason: 'MasteryEngine not found' };
+                    snapshot.quality = 'DEGRADED';
+                    snapshot.warnings.push('Mastery unavailable');
+                }
+            } catch (e) {
+                snapshot.components.mastery = { available: false, error: e.message };
+                snapshot.quality = 'DEGRADED';
+                snapshot.errors.push('Mastery error: ' + e.message);
+            }
+
+            // 2. Memory
+            try {
+                var memory = window.LawAIApp.MemoryEngine;
+                if (memory) {
+                    snapshot.components.memory = {
+                        available: true,
+                        stats: memory.getStats ? memory.getStats() : null,
+                        todayReviews: memory.getTodayReviews ? memory.getTodayReviews() : []
+                    };
+                } else {
+                    snapshot.components.memory = { available: false, reason: 'MemoryEngine not found' };
+                    snapshot.quality = 'DEGRADED';
+                    snapshot.warnings.push('Memory unavailable');
+                }
+            } catch (e) {
+                snapshot.components.memory = { available: false, error: e.message };
+                snapshot.quality = 'DEGRADED';
+                snapshot.errors.push('Memory error: ' + e.message);
+            }
+
+            // 3. Review
+            try {
+                var review = window.LawAIApp.MemoryReview;
+                if (review) {
+                    var todayReviews = review.getTodayReviews ? review.getTodayReviews() : [];
+                    snapshot.components.review = {
+                        available: true,
+                        todayReviews: todayReviews,
+                        status: review.getStatus ? review.getStatus() : null
+                    };
+                } else {
+                    snapshot.components.review = { available: false, reason: 'MemoryReview not found' };
+                    snapshot.warnings.push('Review unavailable');
+                }
+            } catch (e) {
+                snapshot.components.review = { available: false, error: e.message };
+                snapshot.errors.push('Review error: ' + e.message);
+            }
+
+            // 4. Progress
+            try {
+                var progress = window.LawAIApp.ProgressEngine;
+                if (progress) {
+                    var progData = progress.getProgress ? progress.getProgress() : null;
+                    snapshot.components.progress = {
+                        available: true,
+                        data: progData,
+                        state: progress.getState ? progress.getState() : null
+                    };
+                } else {
+                    snapshot.components.progress = { available: false, reason: 'ProgressEngine not found' };
+                    snapshot.warnings.push('Progress unavailable');
+                }
+            } catch (e) {
+                snapshot.components.progress = { available: false, error: e.message };
+                snapshot.errors.push('Progress error: ' + e.message);
+            }
+
+            // 5. Goals
+            try {
+                var goals = window.LawAIApp.GoalEngine;
+                if (goals) {
+                    snapshot.components.goals = {
+                        available: true,
+                        active: goals.getActiveGoals ? goals.getActiveGoals() : [],
+                        all: goals.getAllGoals ? goals.getAllGoals() : []
+                    };
+                } else {
+                    snapshot.components.goals = { available: false, reason: 'GoalEngine not found' };
+                    snapshot.warnings.push('Goals unavailable');
+                }
+            } catch (e) {
+                snapshot.components.goals = { available: false, error: e.message };
+                snapshot.errors.push('Goals error: ' + e.message);
+            }
+
+            // 6. Activity
+            try {
+                var activity = this.getRecentActivity ? this.getRecentActivity(7) : { hasRecentActivity: false };
+                var momentum = this.getLearningMomentum ? this.getLearningMomentum() : { score: 0 };
+                snapshot.components.activity = {
+                    available: true,
+                    recent: activity,
+                    momentum: momentum
+                };
+            } catch (e) {
+                snapshot.components.activity = { available: false, error: e.message };
+                snapshot.quality = 'DEGRADED';
+                snapshot.errors.push('Activity error: ' + e.message);
+            }
+
+            // 7. Path Context (from AdaptivePathEngine)
+            try {
+                var ape = window.LawAIApp.AdaptivePathEngine;
+                if (ape) {
+                    var pathStatus = ape.getPathStatus ? ape.getPathStatus(null) : null;
+                    snapshot.components.path = {
+                        available: true,
+                        status: pathStatus,
+                        activePath: ape.getActivePath ? ape.getActivePath() : null
+                    };
+                } else {
+                    snapshot.components.path = { available: false, reason: 'AdaptivePathEngine not found' };
+                }
+            } catch (e) {
+                snapshot.components.path = { available: false, error: e.message };
+            }
+
+            // 8. Agency Context (from AdaptivePathEngine Part 45)
+            try {
+                var ape = window.LawAIApp.AdaptivePathEngine;
+                if (ape && ape.getLearnerChoices) {
+                    var choices = ape.getLearnerChoices ? ape.getLearnerChoices(null) : [];
+                    snapshot.components.agency = {
+                        available: true,
+                        choices: choices,
+                        choiceCount: choices.length
+                    };
+                } else {
+                    snapshot.components.agency = { available: false, reason: 'Agency info not available' };
+                }
+            } catch (e) {
+                snapshot.components.agency = { available: false, error: e.message };
+            }    
+
+            // 9. Evidence (from AdaptiveLoop)
+            try {
+                var loop = window.LawAIApp.AdaptiveLoop;
+                if (loop && loop.getLoopStatus) {
+                    var status = loop.getLoopStatus();
+                    snapshot.components.evidence = {
+                        available: true,
+                        lastEvidence: status.lastEvidence || null,
+                        loopState: status
+                    };
+                } else {
+                    snapshot.components.evidence = { available: false, reason: 'AdaptiveLoop not available' };
+                }
+            } catch (e) {
+                snapshot.components.evidence = { available: false, error: e.message };
+            }
+
+            // 10. 计算整体质量
+            var availableComponents = 0;
+            var totalComponents = 0;
+            for (var key in snapshot.components) {
+                totalComponents++;
+                if (snapshot.components[key].available) {
+                    availableComponents++;
+                }
+            }
+
+            var ratio = totalComponents > 0 ? availableComponents / totalComponents : 0;
+            if (ratio >= 0.8) snapshot.quality = 'FULL';
+            else if (ratio >= 0.5) snapshot.quality = 'PARTIAL';
+            else if (ratio >= 0.2) snapshot.quality = 'DEGRADED';
+            else snapshot.quality = 'UNAVAILABLE';
+
+            snapshot.completeness = {
+                ratio: ratio,
+                available: availableComponents,
+                total: totalComponents,
+                quality: snapshot.quality
+            };
+
+            return snapshot;
+        },
+
+        /**
+         * 构建增强版自适应上下文
+         * @param {Object} options - 配置选项
+         * @returns {Object} 自适应上下文
+         */
+        buildAdaptiveContext: function(options) {
+            options = options || {};
+    
+            // 先构建快照
+            var snapshot = this.buildLearnerSnapshot(options);
+    
+            var context = {
+                contextVersion: Date.now(),
+                snapshotVersion: snapshot.stateVersion,
+                learnerId: snapshot.learnerId,
+                quality: snapshot.quality,
+                timestamp: Date.now(),
+        
+                // 核心上下文
+                target: options.targetId || this._getCurrentTarget(),
+                goal: this._getCurrentGoal(),
+        
+                // 知识上下文
+                knowledge: {
+                    mastered: this.getMasteredKnowledge ? this.getMasteredKnowledge() : [],
+                    weak: this.getWeakKnowledge ? this.getWeakKnowledge() : [],
+                    reviewDue: this.getReviewDueKnowledge ? this.getReviewDueKnowledge() : [],
+                    unstable: this.getUnstableKnowledge ? this.getUnstableKnowledge() : []
+                },
+        
+                // 摘要
+                summary: {
+                    masteryCoverage: this.getMasteryCoverage ? this.getMasteryCoverage() : { total: 0, mastered: 0, percent: 0 },
+                    reviewLoad: this.getReviewLoad ? this.getReviewLoad() : { dueCount: 0 },
+                    goalAlignment: this.getGoalAlignment ? this.getGoalAlignment() : { aligned: false, score: 0 },
+                    momentum: this.getLearningMomentum ? this.getLearningMomentum() : { score: 0 },
+                    activity: this.getRecentActivity ? this.getRecentActivity(7) : { hasRecentActivity: false }
+                },
+        
+                // 信号
+                signals: this._extractSignals(snapshot),
+        
+                // 警告
+                warnings: snapshot.warnings || [],
+                errors: snapshot.errors || [],
+        
+                // 诊断
+                diagnostics: {
+                    components: snapshot.components,
+                    completeness: snapshot.completeness
+                }
+            };
+    
+            return context;
+        },
+
+        /**
+         * 获取当前目标 (私有)
+         */
+        _getCurrentTarget: function() {
+            try {
+                var loop = window.LawAIApp.AdaptiveLoop;
+                if (loop && loop.getLoopStatus) {
+                    var status = loop.getLoopStatus();
+                    if (status && status.lastDecision && status.lastDecision.targetId) {
+                        return status.lastDecision.targetId;
+                    }        
+                }
+            } catch (e) {}
+    
+            try {
+                var ape = window.LawAIApp.AdaptivePathEngine;
+                if (ape && ape.getActivePath) {
+                    var path = ape.getActivePath();
+                    if (path && path.targetId) {
+                        return path.targetId;
+                    }
+                }
+            } catch (e) {}
+    
+            return null;
+        },
+
+        /**
+         * 获取当前目标 (私有)
+         */
+        _getCurrentGoal: function() {
+            try {
+                var goals = window.LawAIApp.GoalEngine;
+                if (goals && goals.getActiveGoals) {
+                    var active = goals.getActiveGoals();
+                    if (active && active.length > 0) {
+                        return active[0];
+                    }
+                }
+            } catch (e) {}
+            return null;
+        },
+
+        /**
+         * 提取信号 (私有)
+         */
+        _extractSignals: function(snapshot) {
+            var signals = {};
+    
+            // Mastery signals
+            if (snapshot.components.mastery && snapshot.components.mastery.available) {
+                signals.masteryAvailable = true;
+                var overall = snapshot.components.mastery.overall;
+                if (overall) {
+                    signals.overallMastery = overall.overall || 0;
+                    signals.overallLevel = overall.level || 'Beginner';
+                }
+            } else {
+                signals.masteryAvailable = false;
+            }
+    
+            // Review signals
+            if (snapshot.components.review && snapshot.components.review.available) {
+                var todayReviews = snapshot.components.review.todayReviews || [];
+                signals.reviewDue = todayReviews.length;
+                signals.hasReviewsDue = todayReviews.length > 0;
+            } else {
+                signals.reviewAvailable = false;
+            }
+    
+            // Activity signals
+            if (snapshot.components.activity && snapshot.components.activity.available) {
+                var momentum = snapshot.components.activity.momentum || {};
+                signals.momentum = momentum.score || 0;
+                signals.hasRecentActivity = snapshot.components.activity.recent?.hasRecentActivity || false;
+            }
+    
+            // Goal signals
+            if (snapshot.components.goals && snapshot.components.goals.available) {
+                signals.activeGoalCount = (snapshot.components.goals.active || []).length;
+                signals.hasActiveGoal = signals.activeGoalCount > 0;
+            }
+    
+            // Agency signals
+            if (snapshot.components.agency && snapshot.components.agency.available) {
+                signals.agencyChoices = snapshot.components.agency.choiceCount || 0;
+                signals.hasAgencyChoices = signals.agencyChoices > 0;
+            }
+    
+            // Path signals
+            if (snapshot.components.path && snapshot.components.path.available) {
+                signals.pathStatus = snapshot.components.path.status || 'UNKNOWN';
+                signals.hasActivePath = signals.pathStatus === 'ACTIVE' || signals.pathStatus === 'VALID';
+            }
+    
+            // Quality signals
+            signals.contextQuality = snapshot.quality || 'UNKNOWN';
+            signals.completeness = snapshot.completeness?.ratio || 0;
+    
+            return signals;
+        },
+
+        /**
+         * 使上下文失效 (外部调用)
+         */
+        invalidateContext: function(reason) {
+            this._cacheInvalidated = true;
+            console.log('[LearnerModel] Context invalidated:', reason || 'manual');
+        },
+
+        /**
+         * 获取上下文状态
+         */
+        getContextStatus: function() {
+            return {
+                cacheValid: !this._cacheInvalidated,
+                lastContextBuild: this._lastContextBuild || null,
+                quality: this._lastContextQuality || 'UNKNOWN'
+            };    
+        }
+
+        // ============================================================
         // 3. PUBLIC API — Context
         // ============================================================
 
@@ -660,6 +1047,44 @@
     // ============================================================
     // 15. EXPORT
     // ============================================================
+
+    return {
+        init: init,
+        getLearnerModel: getLearnerModel,
+        getLearnerContextSnapshot: getLearnerContextSnapshot,
+        getCurrentLearningContext: getCurrentLearningContext,
+        setCurrentContext: setCurrentContext,
+        getLearningProgress: getLearningProgress,
+        getKnowledgeState: getKnowledgeState,
+        getAllKnowledgeState: getAllKnowledgeState,
+        getWeakKnowledge: getWeakKnowledge,
+        getStrongKnowledge: getStrongKnowledge,
+        getMasteredKnowledge: getMasteredKnowledge,
+        getReviewDueKnowledge: getReviewDueKnowledge,
+        getUnstableKnowledge: getUnstableKnowledge,
+        getRecentActivity: getRecentActivity,
+        getActivitySummary: getActivitySummary,
+        getActiveGoals: getActiveGoals,
+        getGoalSummary: getGoalSummary,
+        getLearningPreferences: getLearningPreferences,
+        getLearningCapacity: getLearningCapacity,
+        getDerivedInsights: getDerivedInsights,
+        getCurrentFocus: getCurrentFocus,
+        getLearningMomentum: getLearningMomentum,
+        getMasteryCoverage: getMasteryCoverage,
+        getReviewLoad: getReviewLoad,
+        getGoalAlignment: getGoalAlignment,
+        getStatus: getStatus,
+        invalidateCache: invalidateCache,
+
+        // ============================================================
+        // 🔥 Part 47: Learner State & Context Intelligence
+        // ============================================================
+        buildLearnerSnapshot: buildLearnerSnapshot,
+        buildAdaptiveContext: buildAdaptiveContext,
+        invalidateContext: invalidateContext,
+        getContextStatus: getContextStatus
+    };
 
     window.LawAIApp.LearnerModel = LearnerModel;
 
