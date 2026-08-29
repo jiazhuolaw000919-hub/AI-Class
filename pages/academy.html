@@ -364,6 +364,20 @@
                     }
 
                     // ============================================================
+                    // 6. PART 57 — LEARNING LOOP VALIDATOR
+                    // ============================================================
+                    if (window.LawAIApp?.LearningLoopValidator && !window.LawAIApp.LearningLoopValidator.initialized) {
+                        try {
+                            window.LawAIApp.LearningLoopValidator.init();
+                            console.log('[Academy] ✅ LearningLoopValidator initialized (Part 57)');
+                        } catch (e) {
+                            console.warn('[Academy] ⚠️ LearningLoopValidator init failed:', e);
+                        }
+                    } else if (window.LawAIApp?.LearningLoopValidator && window.LawAIApp.LearningLoopValidator.initialized) {
+                        console.log('[Academy] ✅ LearningLoopValidator already initialized');
+                    }
+
+                    // ============================================================
                     // 5. LEGACY — Learning Journey Adapter
                     // ============================================================
                     if (window.LawAIApp?.LearningJourneyAdapter && !window.LawAIApp.LearningJourneyAdapter.initialized) {
