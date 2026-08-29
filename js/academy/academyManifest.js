@@ -327,6 +327,31 @@
                 description: 'Metacognitive Panel (DevPanel)',
                 required: false
             },
+            // ── Part 59: Learning Patterns & Self-Awareness ──
+            {
+                id: 'learningPatternModel',
+                path: '/js/academy/learningPatternModel.js',
+                description: 'Learning Pattern Model (Data Contract)',
+                required: false
+            },
+            {
+                id: 'patternDetector',
+                path: '/js/academy/patternDetector.js',
+                description: 'Pattern Detector (Evidence-based)',
+                required: false
+            },
+            {
+                id: 'patternExplainer',
+                path: '/js/academy/patternExplainer.js',
+                description: 'Pattern Explainer (Human-readable)',
+                required: false
+            },
+            {
+                id: 'patternPanel',
+                path: '/js/debug/panels/patternPanel.js',
+                description: 'Pattern Panel (DevPanel)',
+                required: false
+            },
         ],
 
         // ============================================================
@@ -391,7 +416,7 @@
             learnerControl: ['decisionExperience', 'adaptationExplainer'],
             metacognitiveExperience: ['learnerControl', 'notes'],
             metacognitivePanel: ['metacognitiveExperience', 'learnerControl'],
-           // ── Part 57: Learning Loop Validator ──
+        // ── Part 57: Learning Loop Validator ──
             learningLoopValidator: [
                 'learningContext',
                 'experienceIntelligence',
@@ -403,7 +428,12 @@
                 'adaptationRecord',
                 'adaptationExplainer',
                 'adaptationGovernance'
-            ]
+            ],
+        // ── Part 59: Learning Patterns & Self-Awareness ──
+            learningPatternModel: [],
+            patternDetector: ['learningPatternModel', 'actionTracker', 'outcomeNormalizer', 'learningContext'],
+            patternExplainer: ['learningPatternModel', 'patternDetector'],
+            patternPanel: ['patternDetector', 'patternExplainer']
         },
 
         // ============================================================
