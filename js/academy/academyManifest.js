@@ -301,6 +301,13 @@
                 description: 'Adaptation Panel (DevPanel)',
                 required: false
             },
+            // ── Part 57: Learning Loop Validator ──
+            {
+                id: 'learningLoopValidator',
+                path: '/js/academy/learningLoopValidator.js',
+                description: 'Learning Loop Validator (System Integrity)',
+                required: false
+            },
         ],
 
         // ============================================================
