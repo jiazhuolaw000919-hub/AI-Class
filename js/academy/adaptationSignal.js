@@ -107,6 +107,32 @@
             console.log('[AdaptationSignal] 📡 Signal generated:', signal.levelLabel, signal.target);
 
             return signal;
+
+            // ── Part 56: Create AdaptationRecord ──
+            try {
+                var record = window.LawAIApp?.AdaptationRecord;
+                if (record && typeof record.create === 'function') {
+                    record.create({
+                        trigger: 'LEARNING_OUTCOME',
+                        evidence: outcome.evidence || ['Outcome recorded'],
+                        previousState: null,
+                        newState: { signal: signal },
+                        scope: 'signal',
+                        reason: 'Adaptation signal generated from outcome',
+                        level: signal.level || 1,
+                        authority: 'AdaptationSignal',
+                        reversible: true,
+                        metadata: {
+                            outcomeId: outcome.id,
+                            target: outcome.target,
+                            signalId: signal.id
+                        },
+                        causationId: outcome.id
+                    });
+                }
+            } catch (e) {
+                console.warn('[AdaptationSignal] Could not create record:', e);
+            }
         },
 
         /**
