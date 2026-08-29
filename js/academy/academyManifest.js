@@ -313,7 +313,7 @@
             // ==========================================================
             contentLoader: ['courseRegistry'],
             contentRegistry: ['contentLoader'],
-            contentAdapter: ['contentRegistry']
+            contentAdapter: ['contentRegistry'],
 
             // Decision Experience (Part 54)
             decisionOptionModel: [],
@@ -328,7 +328,7 @@
             outcomeNormalizer: ['actionTracker'],
             outcomeLinker: ['actionTracker', 'outcomeNormalizer'],
             adaptationSignal: ['outcomeNormalizer', 'outcomeLinker'],
-            outcomePanel: ['adaptationSignal'],
+            outcomePanel: ['adaptationSignal']
         },
 
         // ============================================================
