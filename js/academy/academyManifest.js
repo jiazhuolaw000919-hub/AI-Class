@@ -377,6 +377,31 @@
                 description: 'Epistemic Panel (DevPanel)',
                 required: false
             },
+            // ── Part 61: Learning Transfer & Independence ──
+            {
+                id: 'transferModel',
+                path: '/js/academy/transferModel.js',
+                description: 'Transfer Model (Concept States)',
+                required: false
+            },
+            {
+                id: 'transferObserver',
+                path: '/js/academy/transferObserver.js',
+                description: 'Transfer Observer (Evidence-based)',
+                required: false
+            },
+            {
+                id: 'transferRecommender',
+                path: '/js/academy/transferRecommender.js',
+                description: 'Transfer Recommender (Optional/Explainable)',
+                required: false
+            },
+            {
+                id: 'transferPanel',
+                path: '/js/debug/panels/transferPanel.js',
+                description: 'Transfer Panel (DevPanel)',
+                required: false
+            },
         ],
 
         // ============================================================
@@ -466,6 +491,12 @@
             sourceDistinguisher: ['epistemicStatus', 'courseRegistry'],
             aiLiteracyHelper: ['epistemicStatus', 'sourceDistinguisher'],
             epistemicPanel: ['epistemicStatus', 'sourceDistinguisher', 'aiLiteracyHelper'],
+
+        // ── Part 61: Learning Transfer & Independence ──
+            transferModel: [],
+            transferObserver: ['transferModel', 'actionTracker', 'learningContext', 'knowledgeGraph'],
+            transferRecommender: ['transferObserver', 'transferModel', 'courseRegistry'],
+            transferPanel: ['transferObserver', 'transferRecommender'],
 
         // ============================================================
         // 3. LEGACY — Core Dependencies (Preserved)
