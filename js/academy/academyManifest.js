@@ -308,6 +308,25 @@
                 description: 'Learning Loop Validator (System Integrity)',
                 required: false
             },
+            // ── Part 58: Learner Control & Metacognitive Experience ──
+            {
+                id: 'learnerControl',
+                path: '/js/academy/learnerControl.js',
+                description: 'Learner Control (Reject/Override/Alternative)',
+                required: false
+            },
+            {
+                id: 'metacognitiveExperience',
+                path: '/js/academy/metacognitiveExperience.js',
+                description: 'Metacognitive Experience (Reflection/Self-Assessment)',
+                required: false
+            },
+            {
+                id: 'metacognitivePanel',
+                path: '/js/debug/panels/metacognitivePanel.js',
+                description: 'Metacognitive Panel (DevPanel)',
+                required: false
+            },
         ],
 
         // ============================================================
@@ -366,7 +385,25 @@
             adaptationRecord: ['adaptationSignal', 'outcomeNormalizer'],
             adaptationExplainer: ['adaptationRecord'],
             adaptationGovernance: ['adaptationRecord'],
-            adaptationPanel: ['adaptationRecord', 'adaptationExplainer', 'adaptationGovernance']
+            adaptationPanel: ['adaptationRecord', 'adaptationExplainer', 'adaptationGovernance'],
+
+        // ── Part 58: Learner Control & Metacognitive Experience ──
+            learnerControl: ['decisionExperience', 'adaptationExplainer'],
+            metacognitiveExperience: ['learnerControl', 'notes'],
+            metacognitivePanel: ['metacognitiveExperience', 'learnerControl'],
+           // ── Part 57: Learning Loop Validator ──
+            learningLoopValidator: [
+                'learningContext',
+                'experienceIntelligence',
+                'decisionExperience',
+                'actionTracker',
+                'outcomeNormalizer',
+                'outcomeLinker',
+                'adaptationSignal',
+                'adaptationRecord',
+                'adaptationExplainer',
+                'adaptationGovernance'
+            ]
         },
 
         // ============================================================
