@@ -129,6 +129,11 @@ LawAIApp.Debug.DevPanel = {
             if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.EpistemicPanel) {
                 this.registerPanel('epistemic', LawAIApp.Debug.Panels.EpistemicPanel, 'epistemic-panel-placeholder', 750);
         }
+
+        // ── Part 61: Transfer Panel ──
+            if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.TransferPanel) {
+                this.registerPanel('transfer', LawAIApp.Debug.Panels.TransferPanel, 'transfer-panel-placeholder', 800);
+        }
     },
 
     // ============================================================
