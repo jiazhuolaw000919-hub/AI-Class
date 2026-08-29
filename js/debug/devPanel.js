@@ -124,6 +124,11 @@ LawAIApp.Debug.DevPanel = {
             if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.PatternPanel) {
                 this.registerPanel('pattern', LawAIApp.Debug.Panels.PatternPanel, 'pattern-panel-placeholder', 700);
         }
+
+        // ── Part 60: Epistemic Judgment Panel ──
+            if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.EpistemicPanel) {
+                this.registerPanel('epistemic', LawAIApp.Debug.Panels.EpistemicPanel, 'epistemic-panel-placeholder', 750);
+        }
     },
 
     // ============================================================
