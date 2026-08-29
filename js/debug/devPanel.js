@@ -109,6 +109,11 @@ LawAIApp.Debug.DevPanel = {
             if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.OutcomePanel) {
                 this.registerPanel('outcome', LawAIApp.Debug.Panels.OutcomePanel, 'outcome-panel-placeholder', 550);
         }
+
+        // ── Part 56: Adaptation Panel ──
+            if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.AdaptationPanel) {
+                this.registerPanel('adaptation', LawAIApp.Debug.Panels.AdaptationPanel, 'adaptation-panel-placeholder', 600);
+        }
     },
 
     // ============================================================
