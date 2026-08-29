@@ -324,6 +324,46 @@
                     }
 
                     // ============================================================
+                    // 5. PART 56 — ADAPTATION TRANSPARENCY
+                    // ============================================================
+    
+                    // 5a. AdaptationRecord
+                    if (window.LawAIApp?.AdaptationRecord && !window.LawAIApp.AdaptationRecord.initialized) {
+                        try {
+                            window.LawAIApp.AdaptationRecord.init();
+                            console.log('[Academy] ✅ AdaptationRecord initialized (Part 56)');
+                        } catch (e) {
+                            console.warn('[Academy] ⚠️ AdaptationRecord init failed:', e);
+                        }
+                    } else if (window.LawAIApp?.AdaptationRecord && window.LawAIApp.AdaptationRecord.initialized) {
+                        console.log('[Academy] ✅ AdaptationRecord already initialized');
+                    }
+
+                    // 5b. AdaptationExplainer
+                    if (window.LawAIApp?.AdaptationExplainer && !window.LawAIApp.AdaptationExplainer.initialized) {
+                        try {
+                            window.LawAIApp.AdaptationExplainer.init();
+                            console.log('[Academy] ✅ AdaptationExplainer initialized (Part 56)');
+                        } catch (e) {
+                            console.warn('[Academy] ⚠️ AdaptationExplainer init failed:', e);
+                        }
+                    } else if (window.LawAIApp?.AdaptationExplainer && window.LawAIApp.AdaptationExplainer.initialized) {
+                        console.log('[Academy] ✅ AdaptationExplainer already initialized');
+                    }
+
+                    // 5c. AdaptationGovernance
+                    if (window.LawAIApp?.AdaptationGovernance && !window.LawAIApp.AdaptationGovernance.initialized) {
+                        try {
+                            window.LawAIApp.AdaptationGovernance.init();
+                            console.log('[Academy] ✅ AdaptationGovernance initialized (Part 56)');
+                        } catch (e) {
+                            console.warn('[Academy] ⚠️ AdaptationGovernance init failed:', e);
+                        }
+                    } else if (window.LawAIApp?.AdaptationGovernance && window.LawAIApp.AdaptationGovernance.initialized) {
+                        console.log('[Academy] ✅ AdaptationGovernance already initialized');
+                    }
+
+                    // ============================================================
                     // 5. LEGACY — Learning Journey Adapter
                     // ============================================================
                     if (window.LawAIApp?.LearningJourneyAdapter && !window.LawAIApp.LearningJourneyAdapter.initialized) {
