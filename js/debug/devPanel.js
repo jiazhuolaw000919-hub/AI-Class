@@ -99,6 +99,11 @@ LawAIApp.Debug.DevPanel = {
             if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.RuntimeOSPanel) {
                 this.registerPanel('runtimeos', LawAIApp.Debug.Panels.RuntimeOSPanel, 'runtimeos-panel-placeholder', 475);
         }
+
+        // ── Part 54: Decision Panel ──
+            if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.DecisionPanel) {
+                this.registerPanel('decision', LawAIApp.Debug.Panels.DecisionPanel, 'decision-panel-placeholder', 500);
+        }
     },
 
     // ============================================================
