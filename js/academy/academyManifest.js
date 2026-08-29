@@ -353,7 +353,13 @@
             outcomeNormalizer: ['actionTracker'],
             outcomeLinker: ['actionTracker', 'outcomeNormalizer'],
             adaptationSignal: ['outcomeNormalizer', 'outcomeLinker'],
-            outcomePanel: ['adaptationSignal']
+            outcomePanel: ['adaptationSignal'],
+
+        // ── Part 56: Adaptation Transparency ──
+            adaptationRecord: ['adaptationSignal', 'outcomeNormalizer'],
+            adaptationExplainer: ['adaptationRecord'],
+            adaptationGovernance: ['adaptationRecord'],
+            adaptationPanel: ['adaptationRecord', 'adaptationExplainer', 'adaptationGovernance']
         },
 
         // ============================================================
