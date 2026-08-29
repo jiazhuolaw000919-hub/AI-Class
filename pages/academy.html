@@ -435,6 +435,35 @@
                     }
 
                     // ============================================================
+                    // 9. PART 60 — EPISTEMIC JUDGMENT & AI LITERACY
+                    // ============================================================
+
+                    // 9a. EpistemicStatus (纯数据模型，不需要 init)
+                    // 9b. SourceDistinguisher
+                    if (window.LawAIApp?.SourceDistinguisher && !window.LawAIApp.SourceDistinguisher.initialized) {
+                        try {
+                            window.LawAIApp.SourceDistinguisher.init();
+                            console.log('[Academy] ✅ SourceDistinguisher initialized (Part 60)');
+                        } catch (e) {
+                            console.warn('[Academy] ⚠️ SourceDistinguisher init failed:', e);
+                        }
+                    } else if (window.LawAIApp?.SourceDistinguisher && window.LawAIApp.SourceDistinguisher.initialized) {
+                        console.log('[Academy] ✅ SourceDistinguisher already initialized');
+                    }
+
+                    // 9c. AILiteracyHelper
+                    if (window.LawAIApp?.AILiteracyHelper && !window.LawAIApp.AILiteracyHelper.initialized) {
+                        try {
+                            window.LawAIApp.AILiteracyHelper.init();
+                            console.log('[Academy] ✅ AILiteracyHelper initialized (Part 60)');
+                        } catch (e) {
+                            console.warn('[Academy] ⚠️ AILiteracyHelper init failed:', e);
+                        }
+                    } else if (window.LawAIApp?.AILiteracyHelper && window.LawAIApp.AILiteracyHelper.initialized) {
+                        console.log('[Academy] ✅ AILiteracyHelper already initialized');
+                    }
+
+                    // ============================================================
                     // 5. LEGACY — Learning Journey Adapter
                     // ============================================================
                     if (window.LawAIApp?.LearningJourneyAdapter && !window.LawAIApp.LearningJourneyAdapter.initialized) {
