@@ -406,7 +406,10 @@
           { id: 'adaptationExplainer', path: '/js/academy/adaptationExplainer.js' },
           { id: 'adaptationGovernance', path: '/js/academy/adaptationGovernance.js' },
           { id: 'adaptationPanel', path: '/js/debug/panels/adaptationPanel.js' },
-          { id: 'learningLoopValidator', path: '/js/academy/learningLoopValidator.js' }
+          { id: 'learningLoopValidator', path: '/js/academy/learningLoopValidator.js' },
+          { id: 'learnerControl', path: '/js/academy/learnerControl.js' },
+          { id: 'metacognitiveExperience', path: '/js/academy/metacognitiveExperience.js' },
+          { id: 'metacognitivePanel', path: '/js/debug/panels/metacognitivePanel.js' }
         ]
       };
     }
