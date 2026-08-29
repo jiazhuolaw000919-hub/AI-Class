@@ -387,7 +387,13 @@
           { id: 'recommendationEngine', path: '/js/recommendationEngine.js' },
           { id: 'learnerModel', path: '/js/learnerModel.js' },
           { id: 'knowledgeGraph', path: '/js/knowledgeGraph.js' },
-          { id: 'prerequisiteEngine', path: '/js/prerequisiteEngine.js' }
+          { id: 'prerequisiteEngine', path: '/js/prerequisiteEngine.js' },
+        { id: 'decisionOptionModel', path: '/js/academy/decisionOptionModel.js' },
+        { id: 'decisionAuthority', path: '/js/academy/decisionAuthority.js' },
+        { id: 'decisionPrimacy', path: '/js/academy/decisionPrimacy.js' },
+        { id: 'optionNormalizer', path: '/js/academy/optionNormalizer.js' },
+        { id: 'decisionExperience', path: '/js/academy/decisionExperience.js' },
+        { id: 'decisionPanel', path: '/js/debug/panels/decisionPanel.js' }
         ]
       };
     }
