@@ -417,7 +417,11 @@
           { id: 'epistemicStatus', path: '/js/academy/epistemicStatus.js' },
           { id: 'sourceDistinguisher', path: '/js/academy/sourceDistinguisher.js' },
           { id: 'aiLiteracyHelper', path: '/js/academy/aiLiteracyHelper.js' },
-          { id: 'epistemicPanel', path: '/js/debug/panels/epistemicPanel.js' }
+          { id: 'epistemicPanel', path: '/js/debug/panels/epistemicPanel.js' },
+          { id: 'transferModel', path: '/js/academy/transferModel.js' },
+          { id: 'transferObserver', path: '/js/academy/transferObserver.js' },
+          { id: 'transferRecommender', path: '/js/academy/transferRecommender.js' },
+          { id: 'transferPanel', path: '/js/debug/panels/transferPanel.js' }
         ]
       };
     }
