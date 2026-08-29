@@ -1,25 +1,15 @@
 // js/academy/academyLoader.js
 // Part 57.4-57.6 REBUILD — AcademyLoader Architecture Reset
 // Law AI Academy Developer Bible
-//
-// PURPOSE: Academy Runtime Loading Layer
-// RESPONSIBILITY: Load modules, initialize runtime, broadcast events
-// BOUNDARY: NO UI, NO course management, NO school creation
 
 (function() {
   'use strict';
 
-  // ============================================================
-  // 防止重复加载
-  // ============================================================
   if (window.LawAIApp && window.LawAIApp.AcademyLoader) {
     console.warn('[AcademyLoader] Already exists, skipping...');
     return;
   }
 
-  // ============================================================
-  // ES6 Class — AcademyLoader
-  // ============================================================
   class AcademyLoader {
     constructor() {
       this.version = '2.0.0';
@@ -59,7 +49,6 @@
         curriculumSeed: function() {
           return !!(window.LawAIApp && window.LawAIApp.CurriculumSeed);
         },
-        // ═══ S4 新增模块检查 ═══
         contentLoader: function() {
           return !!(window.LawAIApp && window.LawAIApp.ContentLoader);
         },
@@ -75,7 +64,6 @@
         contentValidator: function() {
           return !!(window.LawAIApp && window.LawAIApp.ContentValidator);
         },
-        
         practiceEngine: function() {
             return !!(window.LawAIApp && window.LawAIApp.PracticeEngine);
         },
@@ -241,6 +229,13 @@
 
       for (let i = 0; i < modules.length; i++) {
         const module = modules[i];
+        
+        // 🔥 修复：检查 module 是否有效
+        if (!module || !module.id) {
+          console.warn('[AcademyLoader] ⚠️ Invalid module definition at index', i, ':', module);
+          continue;
+        }
+        
         const result = await this._loadSingleModule(module);
 
         if (result.success) {
@@ -260,7 +255,6 @@
 
       console.log('[AcademyLoader] 📦 Module loading complete:', this.loadedModules.length + ' loaded, ' + this.failedModules.length + ' failed');
 
-      // ═══ S4: 检查 S4 模块是否加载成功 ═══
       var s4Modules = ['contentLoader', 'contentRegistry', 'contentAdapter', 'subjectRegistry', 'contentValidator'];
       var loadedS4 = s4Modules.filter(function(id) { return this.loadedModules.indexOf(id) !== -1; }.bind(this));
       if (loadedS4.length > 0) {
@@ -273,6 +267,11 @@
     // ============================================================
 
     async _loadSingleModule(module) {
+      // 🔥 修复：确保 module.id 存在
+      if (!module || !module.id) {
+        return { success: false, error: 'Invalid module: missing id' };
+      }
+
       const exists = this._checkModuleExists(module.id);
       if (exists) {
         console.log('[AcademyLoader] ⏭️ Module already exists:', module.id);
@@ -304,7 +303,6 @@
 
           const existsAfter = this._checkModuleExists(module.id);
           if (existsAfter) {
-            // ═══ S4: 记录加载的模块 ═══
             if (module.id === 'contentLoader' || module.id === 'contentRegistry' || 
                 module.id === 'subjectRegistry' || module.id === 'contentValidator') {
               console.log('[AcademyLoader] ✅ S4 module loaded:', module.id);
@@ -333,6 +331,12 @@
     // ============================================================
 
     _checkModuleExists(moduleId) {
+      // 🔥 修复：检查 moduleId 是否为有效字符串
+      if (!moduleId || typeof moduleId !== 'string') {
+        console.warn('[AcademyLoader] ⚠️ Invalid moduleId:', moduleId);
+        return false;
+      }
+
       if (this.loadedModules.includes(moduleId)) {
         return true;
       }
@@ -351,7 +355,7 @@
     }
 
     // ============================================================
-    // 🔥 新增 — 默认 Manifest
+    // 7. PRIVATE — 默认 Manifest
     // ============================================================
 
     _getDefaultManifest() {
@@ -365,7 +369,6 @@
           { id: 'curriculumSeed', path: '/js/academy/curriculumSeed.js' },
           { id: 'academyView', path: '/js/academy/academyView.js' },
           { id: 'academyExperienceManager', path: '/js/academy/academyExperienceManager.js' },
-          // ═══ S4 新增模块 ═══
           { id: 'contentLoader', path: '/js/academy/contentLoader.js' },
           { id: 'contentRegistry', path: '/js/academy/contentRegistry.js' },
           { id: 'contentAdapter', path: '/js/academy/contentAdapter.js' },
@@ -394,18 +397,17 @@
           { id: 'optionNormalizer', path: '/js/academy/optionNormalizer.js' },
           { id: 'decisionExperience', path: '/js/academy/decisionExperience.js' },
           { id: 'decisionPanel', path: '/js/debug/panels/decisionPanel.js' },
-          // ── Part 55: Action → Outcome → Adaptation ──
           { id: 'actionTracker', path: '/js/academy/actionTracker.js' },
           { id: 'outcomeNormalizer', path: '/js/academy/outcomeNormalizer.js' },
           { id: 'outcomeLinker', path: '/js/academy/outcomeLinker.js' },
           { id: 'adaptationSignal', path: '/js/academy/adaptationSignal.js' },
-          { id: 'outcomePanel', path: '/js/debug/panels/outcomePanel.js' },
+          { id: 'outcomePanel', path: '/js/debug/panels/outcomePanel.js' }
         ]
       };
     }
 
     // ============================================================
-    // 7. PRIVATE — Event Helpers
+    // 8. PRIVATE — Event Helpers
     // ============================================================
 
     _broadcast(event, data) {
@@ -429,7 +431,7 @@
     }
 
     // ============================================================
-    // 8. PRIVATE — Health Check
+    // 9. PRIVATE — Health Check
     // ============================================================
 
     healthCheck() {
