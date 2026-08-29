@@ -1707,6 +1707,385 @@
         },
 
         // ============================================================
+        // 🔥 Part 53: Learner Insight & Explainable Recommendation Experience
+        // ============================================================
+
+        /**
+         * 获取学习者洞察
+         * @param {Object} options - 配置选项
+         * @returns {Array} 洞察列表
+         */
+        getLearnerInsights: function(options) {
+            options = options || {};
+            var limit = options.limit || 3;
+            var insights = [];
+
+            // 1. 当前学习洞察
+            var current = this.getCurrentExperienceContext();
+            if (current && current.hasCurrent) {
+                insights.push({
+                    id: 'insight_current_' + Date.now(),
+                    type: 'CURRENT_CONTEXT',
+                    title: 'Current Learning',
+                    summary: 'You are currently studying: ' + current.title,
+                    reason: 'Based on your active learning session',
+                    action: 'continue',
+                    targetId: current.id,
+                    targetType: current.type,
+                    source: 'current_context',
+                    timestamp: Date.now(),
+                    confidence: 0.9,
+                    dismissible: false
+                });
+            }
+
+            // 2. 进度洞察
+            try {
+                var progress = window.LawAIApp?.ProgressEngine;
+                if (progress && typeof progress.getProgress === 'function') {
+                    var p = progress.getProgress();
+                    var completed = (p.completedLessons || []).length;
+                    var total = p.totalLessons || 365;
+                    var percent = p.completionPercent || 0;
+
+                    if (percent > 0 && percent < 100) {
+                        insights.push({
+                            id: 'insight_progress_' + Date.now(),
+                            type: 'PROGRESS',
+                            title: 'Progress Update',
+                            summary: 'You have completed ' + completed + ' of ' + total + ' lessons (' + percent + '%)',
+                            reason: 'Based on your learning progress',
+                            action: null,
+                            targetId: null,
+                            targetType: null,
+                            source: 'progress',
+                            timestamp: Date.now(),
+                            confidence: 1.0,
+                            dismissible: true
+                        });
+                    } else if (percent >= 100) {
+                        insights.push({
+                            id: 'insight_complete_' + Date.now(),
+                            type: 'MILESTONE',
+                            title: '🎉 All Lessons Complete!',
+                            summary: 'You have completed all ' + total + ' lessons',
+                            reason: 'Based on your learning progress',
+                            action: 'review',
+                            targetId: null,
+                            targetType: null,
+                            source: 'progress',
+                            timestamp: Date.now(),
+                            confidence: 1.0,
+                            dismissible: true
+                        });
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }
+
+            // 3. 复习洞察
+            try {
+                var review = window.LawAIApp?.MemoryReview;
+                if (review && typeof review.getTodayReviews === 'function') {
+                    var due = review.getTodayReviews();
+                    if (due && due.length > 0) {
+                        insights.push({
+                            id: 'insight_review_' + Date.now(),
+                            type: 'REVIEW',
+                            title: 'Review Due',
+                            summary: 'You have ' + due.length + ' item(s) due for review today',
+                            reason: 'Based on your review schedule',
+                            action: 'review',
+                            targetId: due[0]?.knowledgeId || null,
+                            targetType: 'REVIEW',
+                            source: 'memory_review',
+                            timestamp: Date.now(),
+                            confidence: 0.9,
+                            dismissible: true
+                        });
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }
+
+            // 4. 学习势头洞察
+            try {
+                var lm = window.LawAIApp?.LearnerModel;
+                if (lm && typeof lm.getLearningMomentum === 'function') {
+                    var momentum = lm.getLearningMomentum();
+                    if (momentum) {
+                        var score = momentum.score || 0;
+                        var level = momentum.level || 'medium';
+                        if (score > 70) {
+                            insights.push({
+                                id: 'insight_momentum_' + Date.now(),
+                                type: 'PATTERN',
+                                title: 'Great Momentum! 🔥',
+                                summary: momentum.description || 'You\'re making consistent progress',
+                                reason: 'Based on your recent learning activity',
+                                action: null,
+                                targetId: null,
+                                targetType: null,
+                                source: 'learner_model',
+                                timestamp: Date.now(),
+                                confidence: 0.85,
+                                dismissible: true
+                            });
+                        } else if (score < 30) {
+                            insights.push({
+                                id: 'insight_momentum_low_' + Date.now(),
+                                type: 'PATTERN',
+                                title: 'Building Momentum',
+                                summary: 'Try completing a lesson to build your learning streak',
+                                reason: 'Based on your recent learning activity',
+                                action: 'start',
+                                targetId: null,
+                                targetType: null,
+                                source: 'learner_model',
+                                timestamp: Date.now(),
+                                confidence: 0.7,
+                                dismissible: true
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }
+
+            // 5. 目标洞察
+            try {
+                var goals = window.LawAIApp?.GoalEngine;
+                if (goals && typeof goals.getActiveGoals === 'function') {
+                    var active = goals.getActiveGoals();
+                    if (active && active.length > 0) {
+                        var goal = active[0];
+                        insights.push({
+                            id: 'insight_goal_' + Date.now(),
+                            type: 'GOAL',
+                            title: 'Active Goal: ' + (goal.title || 'Learning Goal'),
+                            summary: (goal.progress || 0) + '% complete',
+                            reason: 'Based on your current learning goal',
+                            action: 'continue',
+                            targetId: goal.targetId || null,
+                            targetType: 'GOAL',
+                            source: 'goal_engine',
+                            timestamp: Date.now(),
+                            confidence: 0.9,
+                            dismissible: true
+                        });
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }
+
+            // 6. 笔记洞察
+            try {
+                var notes = this._getNotesExperience ? this._getNotesExperience(3) : [];
+                if (notes && notes.length > 0) {
+                    insights.push({
+                        id: 'insight_notes_' + Date.now(),
+                        type: 'KNOWLEDGE',
+                        title: 'You have ' + notes.length + ' note(s)',
+                        summary: 'Your notes capture important learning insights',
+                        reason: 'Based on your personal notes',
+                        action: 'view_notes',
+                        targetId: null,
+                        targetType: null,
+                        source: 'notes',
+                        timestamp: Date.now(),
+                        confidence: 1.0,
+                        dismissible: true
+                    });
+                }
+            } catch (e) {
+                // 忽略
+            }
+
+            // 排序：按信心和重要性
+            insights.sort(function(a, b) {
+                var priority = { 'CURRENT_CONTEXT': 100, 'MILESTONE': 90, 'PROGRESS': 80, 'GOAL': 70, 'REVIEW': 60, 'PATTERN': 50, 'KNOWLEDGE': 40 };
+                var pa = priority[a.type] || 50;
+                var pb = priority[b.type] || 50;
+                return pb - pa;
+            });
+
+            // 限制数量
+            if (insights.length > limit) {
+                insights = insights.slice(0, limit);
+            }    
+
+            return insights;
+        },
+
+        /**
+         * 获取可解释推荐
+         * @param {Object} options - 配置选项
+         * @returns {Array} 可解释推荐列表
+         */
+        getExplainableRecommendations: function(options) {
+            options = options || {};
+            var limit = options.limit || 3;
+            var recommendations = [];
+
+            try {
+                var engine = window.LawAIApp?.RecommendationEngine;
+                if (engine && typeof engine.getActiveRecommendations === 'function') {
+                    var recs = engine.getActiveRecommendations();
+                    if (recs && recs.length > 0) {
+                        var top = recs.slice(0, limit);
+                        for (var i = 0; i < top.length; i++) {
+                            var rec = top[i];
+                            var explanation = this._getRecommendationExplanation(rec);
+                            recommendations.push({
+                                id: rec.id || rec.recommendationId,
+                                title: rec.reason || 'Recommended',
+                                summary: rec.reason || 'Based on your learning progress',
+                                explanation: explanation,
+                                reason: rec.reason || 'Recommended based on your learning progress',
+                                targetId: rec.targetId,
+                                targetType: rec.targetType || 'KNOWLEDGE',
+                                priority: rec.priorityScore >= 70 ? 'HIGH' : rec.priorityScore >= 40 ? 'MEDIUM' : 'LOW',
+                                action: 'explore',
+                                alternatives: [],
+                                source: 'recommendation_engine',
+                                timestamp: rec.createdAt || Date.now(),
+                                confidence: rec.confidence || 0.7,
+                                dismissible: true,
+                                _raw: rec
+                            });
+                        }
+
+                        // 如果推荐数量 > 1，生成替代选项
+                        if (recommendations.length > 1) {
+                            for (var i = 1; i < recommendations.length; i++) {
+                                recommendations[0].alternatives.push({
+                                    id: recommendations[i].id,
+                                    title: recommendations[i].title,
+                                    summary: recommendations[i].summary
+                                });    
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                // 忽略
+            }
+
+            // 如果没有推荐，生成默认
+            if (recommendations.length === 0) {
+                var current = this.getCurrentExperienceContext();
+                if (current && current.hasCurrent) {
+                    recommendations.push({
+                        id: 'rec_continue_' + Date.now(),
+                        title: 'Continue Learning',
+                        summary: 'Continue your current learning activity',
+                        explanation: 'You were recently studying this topic',
+                        reason: 'Based on your current activity',
+                        targetId: current.id,
+                        targetType: current.type || 'LESSON',
+                        priority: 'HIGH',
+                        action: 'continue',
+                        alternatives: [],
+                        source: 'experience_bridge',
+                        timestamp: Date.now(),
+                        confidence: 0.9,
+                        dismissible: true
+                    });
+                } else {
+                    recommendations.push({
+                        id: 'rec_explore_' + Date.now(),
+                        title: 'Explore Learning',
+                        summary: 'Choose a course to begin your learning journey',
+                        explanation: 'Explore available courses and find your interest',
+                        reason: 'Start your learning journey',
+                        targetId: null,
+                        targetType: 'COURSE',
+                        priority: 'MEDIUM',
+                        action: 'explore',
+                        alternatives: [],
+                        source: 'experience_bridge',
+                        timestamp: Date.now(),
+                        confidence: 0.7,
+                        dismissible: true
+                    });
+                }
+            }
+
+            return recommendations;
+        },
+
+        /**
+         * 获取洞察摘要
+         * @param {Object} options - 配置选项
+         * @returns {Object} 洞察摘要
+         */
+        getInsightSummary: function(options) {
+            options = options || {};
+
+            var insights = this.getLearnerInsights(options);
+            var recommendations = this.getExplainableRecommendations(options);
+
+            return {
+                insights: insights,
+                recommendations: recommendations,
+                hasInsights: insights.length > 0,
+                hasRecommendations: recommendations.length > 0,
+                insightCount: insights.length,
+                recommendationCount: recommendations.length,
+                timestamp: Date.now()
+            };
+        },
+
+        /**
+         * 构建完整洞察体验
+         * @param {Object} options - 配置选项
+         * @returns {Object} 完整体验
+         */
+        buildInsightExperience: function(options) {
+            options = options || {};
+
+            var current = this.getCurrentExperienceContext(options);
+            var continuation = this.getContinuationContext(options);
+            var recent = this.getRecentActivityContext(options);
+            var insights = this.getLearnerInsights(options);
+            var recommendations = this.getExplainableRecommendations(options);
+            var resumeState = this.getResumeState(options.lessonId);
+
+            return {
+                // 上下文 (Part 52)
+                current: current,
+                continuation: continuation,
+                recentActivity: recent,
+                resumeState: resumeState,
+
+                // 洞察 (Part 53)
+                insights: insights,
+                recommendations: recommendations,
+
+                // 摘要
+                summary: {
+                    hasCurrent: current.hasCurrent,
+                    hasContinuation: continuation.hasContinuation,
+                    hasInsights: insights.length > 0,
+                    hasRecommendations: recommendations.length > 0,
+                    insightCount: insights.length,
+                    recommendationCount: recommendations.length
+                },
+
+                // 元数据
+                _meta: {
+                    generatedAt: Date.now(),
+                    version: '1.0.0',
+                    quality: 'FULL'
+                }
+            };
+        }
+
+        // ============================================================
         // 2. PRIVATE — Layer Initialization
         // ============================================================
 
