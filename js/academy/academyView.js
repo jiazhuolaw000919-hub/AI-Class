@@ -406,6 +406,12 @@ function __safeCall(pathOrObj) {
                 html += this._renderRecentOutcomes(outcomes);
             }
 
+            // ── Part 56: Adaptation Explanation ──
+            var adaptationExplanation = this._getAdaptationExplanation();
+            if (adaptationExplanation) {
+                html += this._renderAdaptationExplanation(adaptationExplanation);
+            }
+
             // ============================================================
             // 5. Quick Navigation (如果活跃)
             // ============================================================
@@ -643,6 +649,75 @@ function __safeCall(pathOrObj) {
 
             html += `
                     </div>
+                </div>
+            `;
+
+            return html;
+        },
+
+        /**
+         * Part 56: 获取适应解释
+         * @private
+         */
+        _getAdaptationExplanation: function() {
+            var record = safeGet(window, 'LawAIApp.AdaptationRecord');
+            var explainer = safeGet(window, 'LawAIApp.AdaptationExplainer');
+
+            if (!record || !explainer) return null;
+
+            try {
+                var records = record.getRecords(3);
+                if (!records || records.length === 0) return null;
+
+                // 获取最近的有效适应
+                var latest = records[0];
+                if (!latest) return null;
+
+                var explanation = explainer.explainStandard(latest);
+                return {
+                    record: latest,
+                    explanation: explanation
+                };
+            } catch (e) {
+                console.warn('[AcademyView] Adaptation explanation error:', e);
+                return null;
+            }
+        },
+
+        /**
+         * Part 56: 渲染适应解释
+         * @private
+         */
+        _renderAdaptationExplanation: function(adaptationData) {
+            if (!adaptationData) return '';
+
+            var record = adaptationData.record;
+            var explanation = adaptationData.explanation;
+
+            var statusColor = record.status === 'APPLIED' ? '#4a9eff' :
+                              record.status === 'OVERRIDDEN' ? '#f59e0b' :
+                              record.status === 'DISMISSED' ? '#64748b' : '#94a3b8';
+
+            var statusLabel = record.status || 'APPLIED';
+
+            var html = '';
+            html += `
+                <div style="margin: 8px 0 16px 0; background: rgba(139,92,246,0.03); border-radius: 10px; padding: 12px 16px; border: 1px solid rgba(139,92,246,0.08);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                        <div>
+                            <span style="font-size: 11px; color: ${statusColor}; font-weight: 500;">🔹 Adaptation</span>
+                            <span style="font-size: 10px; color: #64748b; margin-left: 8px;">${statusLabel}</span>
+                        </div>
+                        <span style="font-size: 9px; color: #475569;">${record.levelLabel || 'Level ' + record.level}</span>
+                    </div>
+                    <div style="font-size: 13px; color: #e2e8f0; margin-top: 4px;">
+                        ${explanation ? explanation.text : (record.reason || 'Adaptation applied')}
+                    </div>
+                    ${record.evidence && record.evidence.length > 0 ? `
+                        <div style="font-size: 10px; color: #64748b; margin-top: 4px;">
+                            📎 ${record.evidence.slice(0, 2).join('; ')}${record.evidence.length > 2 ? '...' : ''}
+                        </div>
+                    ` : ''}
                 </div>
             `;
 
