@@ -413,7 +413,11 @@
           { id: 'learningPatternModel', path: '/js/academy/learningPatternModel.js' },
           { id: 'patternDetector', path: '/js/academy/patternDetector.js' },
           { id: 'patternExplainer', path: '/js/academy/patternExplainer.js' },
-          { id: 'patternPanel', path: '/js/debug/panels/patternPanel.js' }
+          { id: 'patternPanel', path: '/js/debug/panels/patternPanel.js' },
+          { id: 'epistemicStatus', path: '/js/academy/epistemicStatus.js' },
+          { id: 'sourceDistinguisher', path: '/js/academy/sourceDistinguisher.js' },
+          { id: 'aiLiteracyHelper', path: '/js/academy/aiLiteracyHelper.js' },
+          { id: 'epistemicPanel', path: '/js/debug/panels/epistemicPanel.js' }
         ]
       };
     }
