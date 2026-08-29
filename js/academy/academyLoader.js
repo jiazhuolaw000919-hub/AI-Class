@@ -409,7 +409,11 @@
           { id: 'learningLoopValidator', path: '/js/academy/learningLoopValidator.js' },
           { id: 'learnerControl', path: '/js/academy/learnerControl.js' },
           { id: 'metacognitiveExperience', path: '/js/academy/metacognitiveExperience.js' },
-          { id: 'metacognitivePanel', path: '/js/debug/panels/metacognitivePanel.js' }
+          { id: 'metacognitivePanel', path: '/js/debug/panels/metacognitivePanel.js' },
+          { id: 'learningPatternModel', path: '/js/academy/learningPatternModel.js' },
+          { id: 'patternDetector', path: '/js/academy/patternDetector.js' },
+          { id: 'patternExplainer', path: '/js/academy/patternExplainer.js' },
+          { id: 'patternPanel', path: '/js/debug/panels/patternPanel.js' }
         ]
       };
     }
