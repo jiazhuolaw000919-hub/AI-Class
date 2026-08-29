@@ -276,6 +276,31 @@
                 description: 'Outcome Panel (DevPanel Integration)',
                 required: false
             },
+            // ── Part 56: Adaptation Transparency ──
+            {
+                id: 'adaptationRecord',
+                path: '/js/academy/adaptationRecord.js',
+                description: 'Adaptation Record (Traceable)',
+                required: false
+            },
+            {
+                id: 'adaptationExplainer',
+                path: '/js/academy/adaptationExplainer.js',
+                description: 'Adaptation Explainer (Why?)',
+                required: false
+            },
+            {
+                id: 'adaptationGovernance',
+                path: '/js/academy/adaptationGovernance.js',
+                description: 'Adaptation Governance (Authority Check)',
+                required: false
+            },
+            {
+                id: 'adaptationPanel',
+                path: '/js/debug/panels/adaptationPanel.js',
+                description: 'Adaptation Panel (DevPanel)',
+                required: false
+            },
         ],
 
         // ============================================================
