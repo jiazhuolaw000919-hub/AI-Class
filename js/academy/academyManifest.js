@@ -283,6 +283,14 @@
             contentLoader: ['courseRegistry'],
             contentRegistry: ['contentLoader'],
             contentAdapter: ['contentRegistry']
+
+            // Decision Experience (Part 54)
+            decisionOptionModel: [],
+            decisionAuthority: ['decisionOptionModel'],
+            decisionPrimacy: ['decisionOptionModel'],
+            optionNormalizer: ['decisionOptionModel', 'learningContext'],
+            decisionExperience: ['decisionOptionModel', 'decisionAuthority', 'decisionPrimacy', 'optionNormalizer', 'learningContext', 'experienceIntelligence'],
+            decisionPanel: ['decisionExperience'],
         },
 
         // ============================================================
