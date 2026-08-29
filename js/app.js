@@ -128,6 +128,8 @@ window.App = {
 
         this._loadIntelligenceModules();
 
+        this._initDecisionExperience();
+
         this._state.bootTimeline.push({ event: 'init_complete', time: Date.now() });
         this._emit('APP_INITIALIZED', { version: this.version });
 
@@ -619,6 +621,34 @@ window.App = {
 
             console.log('[App] ✅ Intelligence modules loading initiated');
         }.bind(this), 2000);
+    },
+
+    _initDecisionExperience: function() {
+        // 检查 DecisionExperience 是否已通过 AcademyLoader 加载
+        var de = safeGet(window, 'LawAIApp.DecisionExperience');
+        if (de && typeof de.init === 'function' && !de.initialized) {
+            try {
+                de.init();
+                console.log('[App] ✅ DecisionExperience initialized');
+            } catch (e) {
+                console.warn('[App] ⚠️ DecisionExperience init failed:', e);
+            }
+        } else if (de && de.initialized) {
+            console.log('[App] ✅ DecisionExperience already initialized');
+        } else {
+            // 延迟重试（等待 AcademyLoader 加载完成）
+            setTimeout(function() {
+                var de2 = safeGet(window, 'LawAIApp.DecisionExperience');
+                if (de2 && typeof de2.init === 'function' && !de2.initialized) {
+                    try {
+                        de2.init();
+                        console.log('[App] ✅ DecisionExperience initialized (delayed)');
+                    } catch (e) {
+                        console.warn('[App] ⚠️ DecisionExperience delayed init failed:', e);
+                    }
+                }
+            }, 2000);
+        }
     },
 
     _emit: function(eventName, data) {
