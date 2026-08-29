@@ -2088,7 +2088,6 @@
         // ============================================================
         // 2. PRIVATE — Layer Initialization
         // ============================================================
-
         _initLayers: function() {
             console.log('[AcademyExperienceManager] Initializing layers...');
 
