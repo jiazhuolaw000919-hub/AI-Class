@@ -400,6 +400,12 @@ function __safeCall(pathOrObj) {
                 html += this._renderDecisionOptions(decisionContext);
             }
 
+            // ── Part 55: Recent Outcomes ──
+            var outcomes = this._getRecentOutcomes();
+            if (outcomes && outcomes.length > 0) {
+                html += this._renderRecentOutcomes(outcomes);
+            }
+
             // ============================================================
             // 5. Quick Navigation (如果活跃)
             // ============================================================
@@ -575,6 +581,63 @@ function __safeCall(pathOrObj) {
                             </button>
                         </div>
                     </div>
+                `;
+            }
+
+            html += `
+                    </div>
+                </div>
+            `;
+
+            return html;
+        },
+
+        /**
+         * Part 55: 获取最近结果
+         * @private
+         */
+        _getRecentOutcomes: function() {
+            var actionTracker = safeGet(window, 'LawAIApp.ActionTracker');
+            if (!actionTracker) return null;
+
+            try {
+                var history = actionTracker.getHistory(5);
+                if (!history || history.length === 0) return null;
+
+                return history;
+            } catch (e) {
+                console.warn('[AcademyView] Outcome error:', e);
+                return null;
+            }
+        },
+
+        /**
+         * Part 55: 渲染最近结果
+         * @private
+         */
+        _renderRecentOutcomes: function(outcomes) {
+            if (!outcomes || outcomes.length === 0) return '';
+
+            var html = '';
+            html += `
+                <div style="margin: 8px 0 16px 0; background: rgba(34,197,94,0.03); border-radius: 10px; padding: 12px 16px; border: 1px solid rgba(34,197,94,0.06);">
+                    <div style="font-size: 12px; color: #94a3b8; margin-bottom: 8px;">📊 Recent Activity</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            `;
+
+            for (var i = 0; i < Math.min(outcomes.length, 4); i++) {
+                var action = outcomes[i];
+                var typeColor = action.type === 'COMPLETE' ? '#10b981' : 
+                                action.type === 'START' ? '#4a9eff' : 
+                                action.type === 'DISMISS' ? '#64748b' : '#94a3b8';
+                var typeEmoji = action.type === 'COMPLETE' ? '✅' : 
+                                action.type === 'START' ? '▶️' : 
+                                action.type === 'DISMISS' ? '✕' : '📌';
+        
+                html += `
+                    <span style="font-size: 11px; background: rgba(255,255,255,0.04); padding: 3px 12px; border-radius: 12px; color: ${typeColor};">
+                        ${typeEmoji} ${action.type} ${action.target ? '— ' + action.target : ''}
+                    </span>
                 `;
             }
 
