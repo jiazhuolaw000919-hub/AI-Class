@@ -219,6 +219,31 @@
                 path: '/js/academy/contentAdapter.js',
                 description: 'S4 Content Adapter (Bridge Legacy/S4)',
                 required: false
+            },
+            {
+                name: 'DecisionOptionModel',
+                path: 'js/academy/decisionOptionModel.js',
+                required: true
+            },
+            {
+                name: 'DecisionAuthority',
+                path: 'js/academy/decisionAuthority.js',
+                required: true
+            },
+            {
+                name: 'DecisionPrimacy',
+                path: 'js/academy/decisionPrimacy.js',
+                required: true
+            },
+            {
+                name: 'OptionNormalizer',
+                path: 'js/academy/optionNormalizer.js',
+                required: true
+            },
+            {
+                name: 'DecisionExperience',
+                path: 'js/academy/decisionExperience.js',
+                required: true
             }
         ],
 
