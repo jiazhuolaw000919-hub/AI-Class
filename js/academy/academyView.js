@@ -393,6 +393,14 @@ function __safeCall(pathOrObj) {
             }
 
             // ============================================================
+            // 🔥 Part 54: Decision Experience
+            // ============================================================
+            var decisionContext = this._getDecisionContext();
+            if (decisionContext && decisionContext.hasOptions) {
+                html += this._renderDecisionOptions(decisionContext);
+            }
+
+            // ============================================================
             // 5. Quick Navigation (如果活跃)
             // ============================================================
             var guidance = this._getLearningGuidance();
@@ -488,6 +496,90 @@ function __safeCall(pathOrObj) {
                             ${achievements.length > 3 ? `<span style="font-size:11px;color:#64748b;">+${achievements.length - 3} more</span>` : ''}
                         </div>
                     ` : ''}
+                </div>
+            `;
+
+            return html;
+        },
+
+        /**
+         * Part 54: 获取决策上下文
+         * @private
+         */
+        _getDecisionContext: function() {
+            var de = safeGet(window, 'LawAIApp.DecisionExperience');
+            if (!de || !de.initialized) return null;
+
+            try {
+                var context = de.getDecisionContext();
+                var options = de.getOptions({ includeDismissed: false, maxCount: 5 });
+                var primary = de.getPrimaryOption();
+
+                if (!options || options.length === 0) {
+                    return null;
+                }
+
+                return {
+                    context: context,
+                    options: options,
+                    primary: primary,
+                    hasOptions: options.length > 0
+                };
+            } catch (e) {
+                console.warn('[AcademyView] Decision context error:', e);
+                return null;
+            }
+        },
+
+        /**
+         * Part 54: 渲染决策选项
+         * @private
+         */
+        _renderDecisionOptions: function(decisionContext) {
+            if (!decisionContext || !decisionContext.options) return '';
+
+            var options = decisionContext.options;
+            var primary = decisionContext.primary;
+
+            var html = '';
+            html += `
+                <div style="margin: 16px 0 20px 0; background: rgba(74,158,255,0.03); border-radius: 12px; padding: 16px 20px; border: 1px solid rgba(74,158,255,0.08);">
+                    <div style="font-size: 13px; font-weight: 600; color: #94a3b8; margin-bottom: 12px;">🎯 Your Options</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+            `;
+
+            for (var i = 0; i < Math.min(options.length, 5); i++) {
+                var opt = options[i];
+                var isPrimary = primary && primary.id === opt.id;
+                var bgColor = isPrimary ? 'rgba(74,158,255,0.08)' : 'rgba(255,255,255,0.02)';
+                var borderColor = isPrimary ? 'rgba(74,158,255,0.2)' : 'rgba(255,255,255,0.04)';
+
+                var typeLabel = opt.type || 'OPTION';
+                var actionId = opt.id;
+
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: ${bgColor}; border-radius: 8px; padding: 10px 14px; border: 1px solid ${borderColor}; flex-wrap: wrap; gap: 8px;">
+                        <div style="flex: 1; min-width: 120px;">
+                            <div style="font-size: 14px; font-weight: 500; color: ${isPrimary ? '#4a9eff' : '#e2e8f0'};">
+                                ${isPrimary ? '⭐ ' : ''}${opt.title || 'Option'}
+                            </div>
+                            ${opt.summary ? `<div style="font-size: 12px; color: #94a3b8;">${opt.summary}</div>` : ''}
+                            ${opt.reason ? `<div style="font-size: 11px; color: #64748b; margin-top: 2px;">💡 ${opt.reason}</div>` : ''}
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                            <span style="font-size: 10px; color: #64748b; background: rgba(255,255,255,0.04); padding: 2px 10px; border-radius: 12px;">${typeLabel}</span>
+                            <button onclick="__safeCall('LawAIApp.DecisionExperience.selectOption', '${actionId}')" 
+                                    style="padding: 6px 16px; background: ${isPrimary ? '#4a9eff' : 'rgba(255,255,255,0.06)'}; border: 1px solid ${isPrimary ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.06)'}; border-radius: 6px; color: ${isPrimary ? 'white' : '#94a3b8'}; font-size: 12px; cursor: pointer; font-family: inherit; transition: all 0.2s;"
+                                    onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
+                                ${isPrimary ? 'Continue →' : 'Select'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += `
+                    </div>
                 </div>
             `;
 
