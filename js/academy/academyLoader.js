@@ -401,7 +401,11 @@
           { id: 'outcomeNormalizer', path: '/js/academy/outcomeNormalizer.js' },
           { id: 'outcomeLinker', path: '/js/academy/outcomeLinker.js' },
           { id: 'adaptationSignal', path: '/js/academy/adaptationSignal.js' },
-          { id: 'outcomePanel', path: '/js/debug/panels/outcomePanel.js' }
+          { id: 'outcomePanel', path: '/js/debug/panels/outcomePanel.js' },
+          { id: 'adaptationRecord', path: '/js/academy/adaptationRecord.js' },
+          { id: 'adaptationExplainer', path: '/js/academy/adaptationExplainer.js' },
+          { id: 'adaptationGovernance', path: '/js/academy/adaptationGovernance.js' },
+          { id: 'adaptationPanel', path: '/js/debug/panels/adaptationPanel.js' }
         ]
       };
     }
