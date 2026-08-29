@@ -275,4 +275,100 @@
             return this._model.create({
                 type: this._model.TYPES.EXPLORE,
                 id: 'kg_' + (concept.id || Date.now()),
-                title: 'Explore: ' + (concept.label || concept.name
+                title: 'Explore: ' + (concept.label || concept.name || 'Related Concept'),
+                summary: concept.description || 'Connected to your current learning',
+                reason: 'Related to what you\'re learning',
+                evidence: ['Connection: ' + (connectionType || 'related')],
+                action: { type: 'explore', target: concept.id },
+                source: this._model.SOURCES.KNOWLEDGE_GRAPH,
+                priority: 6,
+                metadata: {
+                    conceptId: concept.id,
+                    connectionType: connectionType,
+                    confidence: concept.confidence
+                }
+            });
+        },
+
+        // ============================================================
+        // PRIVATE — Helpers
+        // ============================================================
+
+        /**
+         * 构建推荐理由
+         * @private
+         */
+        _buildReason: function(recommendation) {
+            if (!recommendation) return 'Recommended action';
+
+            var parts = [];
+            if (recommendation.type) {
+                parts.push('Based on ' + recommendation.type + ' analysis');
+            }
+            if (recommendation.priority) {
+                parts.push('Priority: ' + recommendation.priority);
+            }
+            if (recommendation.confidence && recommendation.confidence > 0.6) {
+                parts.push('Confidence: ' + Math.round(recommendation.confidence * 100) + '%');
+            }
+            return parts.join(' · ') || 'AI Recommendation';
+        },
+
+        /**
+         * 构建复习理由
+         * @private
+         */
+        _buildReviewReason: function(reviewItem) {
+            if (!reviewItem) return 'Review needed';
+
+            if (reviewItem.dueIn !== undefined) {
+                if (reviewItem.dueIn < 24) {
+                    return '⚠️ Due within 24 hours';
+                } else if (reviewItem.dueIn < 72) {
+                    return 'Due within 3 days';
+                } else {
+                    return 'Review recommended';
+                }
+            }
+            return 'Review recommended to strengthen retention';
+        },
+
+        /**
+         * 从置信度计算优先级
+         * @private
+         */
+        _priorityFromConfidence: function(confidenceLabel, isTentative) {
+            if (isTentative) return 8;
+            if (confidenceLabel === 'high') return 5;
+            if (confidenceLabel === 'medium') return 6;
+            return 7;
+        }
+    };
+
+    // ============================================================
+    // EXPORT
+    // ============================================================
+
+    if (!window.LawAIApp) {
+        window.LawAIApp = {};
+    }
+
+    window.LawAIApp.OptionNormalizer = OptionNormalizer;
+
+    function autoInit() {
+        if (!OptionNormalizer._model) {
+            OptionNormalizer.init();
+        }
+    }
+
+    if (document.readyState === 'complete') {
+        setTimeout(autoInit, 300);
+    } else {
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(autoInit, 300);
+        });
+    }
+
+    console.log('[OptionNormalizer] Module loaded (Part 54)');
+
+})();
