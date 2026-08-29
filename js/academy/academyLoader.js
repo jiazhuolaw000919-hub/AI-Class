@@ -388,12 +388,18 @@
           { id: 'learnerModel', path: '/js/learnerModel.js' },
           { id: 'knowledgeGraph', path: '/js/knowledgeGraph.js' },
           { id: 'prerequisiteEngine', path: '/js/prerequisiteEngine.js' },
-        { id: 'decisionOptionModel', path: '/js/academy/decisionOptionModel.js' },
-        { id: 'decisionAuthority', path: '/js/academy/decisionAuthority.js' },
-        { id: 'decisionPrimacy', path: '/js/academy/decisionPrimacy.js' },
-        { id: 'optionNormalizer', path: '/js/academy/optionNormalizer.js' },
-        { id: 'decisionExperience', path: '/js/academy/decisionExperience.js' },
-        { id: 'decisionPanel', path: '/js/debug/panels/decisionPanel.js' }
+          { id: 'decisionOptionModel', path: '/js/academy/decisionOptionModel.js' },
+          { id: 'decisionAuthority', path: '/js/academy/decisionAuthority.js' },
+          { id: 'decisionPrimacy', path: '/js/academy/decisionPrimacy.js' },
+          { id: 'optionNormalizer', path: '/js/academy/optionNormalizer.js' },
+          { id: 'decisionExperience', path: '/js/academy/decisionExperience.js' },
+          { id: 'decisionPanel', path: '/js/debug/panels/decisionPanel.js' },
+          // ── Part 55: Action → Outcome → Adaptation ──
+          { id: 'actionTracker', path: '/js/academy/actionTracker.js' },
+          { id: 'outcomeNormalizer', path: '/js/academy/outcomeNormalizer.js' },
+          { id: 'outcomeLinker', path: '/js/academy/outcomeLinker.js' },
+          { id: 'adaptationSignal', path: '/js/academy/adaptationSignal.js' },
+          { id: 'outcomePanel', path: '/js/debug/panels/outcomePanel.js' },
         ]
       };
     }
