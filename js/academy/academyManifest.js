@@ -244,7 +244,38 @@
                 name: 'DecisionExperience',
                 path: 'js/academy/decisionExperience.js',
                 required: true
-            }
+            },
+            // ── Part 55: Action → Outcome → Adaptation ──
+            {
+                id: 'actionTracker',
+                path: '/js/academy/actionTracker.js',
+                description: 'Action Tracker (ACTION ≠ OUTCOME)',
+                required: false
+            },
+            {
+                id: 'outcomeNormalizer',
+                path: '/js/academy/outcomeNormalizer.js',
+                description: 'Outcome Normalizer (Normalize outcomes)',
+                required: false
+            },
+            {
+                id: 'outcomeLinker',
+                path: '/js/academy/outcomeLinker.js',
+                description: 'Outcome Linker (Recommendation → Action → Outcome)',
+                required: false
+            },
+            {
+                id: 'adaptationSignal',
+                path: '/js/academy/adaptationSignal.js',
+                description: 'Adaptation Signal (Level 1-4)',
+                required: false
+            },
+            {
+                id: 'outcomePanel',
+                path: '/js/debug/panels/outcomePanel.js',
+                description: 'Outcome Panel (DevPanel Integration)',
+                required: false
+            },
         ],
 
         // ============================================================
@@ -291,6 +322,13 @@
             optionNormalizer: ['decisionOptionModel', 'learningContext'],
             decisionExperience: ['decisionOptionModel', 'decisionAuthority', 'decisionPrimacy', 'optionNormalizer', 'learningContext', 'experienceIntelligence'],
             decisionPanel: ['decisionExperience'],
+
+        // ── Part 55: Action → Outcome → Adaptation ──
+            actionTracker: ['decisionExperience'],
+            outcomeNormalizer: ['actionTracker'],
+            outcomeLinker: ['actionTracker', 'outcomeNormalizer'],
+            adaptationSignal: ['outcomeNormalizer', 'outcomeLinker'],
+            outcomePanel: ['adaptationSignal'],
         },
 
         // ============================================================
