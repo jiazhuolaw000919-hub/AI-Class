@@ -119,6 +119,11 @@ LawAIApp.Debug.DevPanel = {
             if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.MetacognitivePanel) {
                 this.registerPanel('metacognitive', LawAIApp.Debug.Panels.MetacognitivePanel, 'metacognitive-panel-placeholder', 650);
         }
+
+        // ── Part 59: Learning Patterns Panel ──
+            if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.PatternPanel) {
+                this.registerPanel('pattern', LawAIApp.Debug.Panels.PatternPanel, 'pattern-panel-placeholder', 700);
+        }
     },
 
     // ============================================================
