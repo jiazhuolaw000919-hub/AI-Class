@@ -464,6 +464,34 @@
                     }
 
                     // ============================================================
+                    // 10. PART 61 — LEARNING TRANSFER & INDEPENDENCE
+                    // ============================================================
+
+                    // 10a. TransferObserver
+                    if (window.LawAIApp?.TransferObserver && !window.LawAIApp.TransferObserver.initialized) {
+                        try {
+                            window.LawAIApp.TransferObserver.init();
+                            console.log('[Academy] ✅ TransferObserver initialized (Part 61)');
+                        } catch (e) {
+                            console.warn('[Academy] ⚠️ TransferObserver init failed:', e);
+                        }
+                    } else if (window.LawAIApp?.TransferObserver && window.LawAIApp.TransferObserver.initialized) {
+                        console.log('[Academy] ✅ TransferObserver already initialized');
+                    }
+
+                    // 10b. TransferRecommender
+                    if (window.LawAIApp?.TransferRecommender && !window.LawAIApp.TransferRecommender.initialized) {
+                        try {
+                            window.LawAIApp.TransferRecommender.init();
+                            console.log('[Academy] ✅ TransferRecommender initialized (Part 61)');
+                        } catch (e) {
+                            console.warn('[Academy] ⚠️ TransferRecommender init failed:', e);
+                        }
+                    } else if (window.LawAIApp?.TransferRecommender && window.LawAIApp.TransferRecommender.initialized) {
+                        console.log('[Academy] ✅ TransferRecommender already initialized');
+                    }
+
+                    // ============================================================
                     // 5. LEGACY — Learning Journey Adapter
                     // ============================================================
                     if (window.LawAIApp?.LearningJourneyAdapter && !window.LawAIApp.LearningJourneyAdapter.initialized) {
