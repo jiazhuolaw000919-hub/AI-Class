@@ -406,6 +406,35 @@
                     }
 
                     // ============================================================
+                    // 8. PART 59 — LEARNING PATTERNS & SELF-AWARENESS
+                    // ============================================================
+
+                    // 8a. LearningPatternModel (纯数据契约，不需要 init)
+                    // 8b. PatternDetector
+                    if (window.LawAIApp?.PatternDetector && !window.LawAIApp.PatternDetector.initialized) {
+                        try {
+                            window.LawAIApp.PatternDetector.init();
+                            console.log('[Academy] ✅ PatternDetector initialized (Part 59)');
+                        } catch (e) {
+                            console.warn('[Academy] ⚠️ PatternDetector init failed:', e);
+                        }
+                    } else if (window.LawAIApp?.PatternDetector && window.LawAIApp.PatternDetector.initialized) {
+                        console.log('[Academy] ✅ PatternDetector already initialized');
+                    }
+
+                    // 8c. PatternExplainer
+                    if (window.LawAIApp?.PatternExplainer && !window.LawAIApp.PatternExplainer.initialized) {
+                        try {
+                            window.LawAIApp.PatternExplainer.init();
+                            console.log('[Academy] ✅ PatternExplainer initialized (Part 59)');
+                        } catch (e) {
+                            console.warn('[Academy] ⚠️ PatternExplainer init failed:', e);
+                        }
+                    } else if (window.LawAIApp?.PatternExplainer && window.LawAIApp.PatternExplainer.initialized) {
+                        console.log('[Academy] ✅ PatternExplainer already initialized');
+                    }
+
+                    // ============================================================
                     // 5. LEGACY — Learning Journey Adapter
                     // ============================================================
                     if (window.LawAIApp?.LearningJourneyAdapter && !window.LawAIApp.LearningJourneyAdapter.initialized) {
