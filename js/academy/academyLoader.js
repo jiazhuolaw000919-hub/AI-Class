@@ -405,7 +405,8 @@
           { id: 'adaptationRecord', path: '/js/academy/adaptationRecord.js' },
           { id: 'adaptationExplainer', path: '/js/academy/adaptationExplainer.js' },
           { id: 'adaptationGovernance', path: '/js/academy/adaptationGovernance.js' },
-          { id: 'adaptationPanel', path: '/js/debug/panels/adaptationPanel.js' }
+          { id: 'adaptationPanel', path: '/js/debug/panels/adaptationPanel.js' },
+          { id: 'learningLoopValidator', path: '/js/academy/learningLoopValidator.js' }
         ]
       };
     }
