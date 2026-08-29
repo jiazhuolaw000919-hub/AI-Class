@@ -378,6 +378,34 @@
                     }
 
                     // ============================================================
+                    // 7. PART 58 — LEARNER CONTROL & METACOGNITIVE EXPERIENCE
+                    // ============================================================
+
+                    // 7a. LearnerControl
+                    if (window.LawAIApp?.LearnerControl && !window.LawAIApp.LearnerControl.initialized) {
+                        try {
+                            window.LawAIApp.LearnerControl.init();
+                            console.log('[Academy] ✅ LearnerControl initialized (Part 58)');
+                        } catch (e) {
+                            console.warn('[Academy] ⚠️ LearnerControl init failed:', e);
+                        }
+                    } else if (window.LawAIApp?.LearnerControl && window.LawAIApp.LearnerControl.initialized) {
+                        console.log('[Academy] ✅ LearnerControl already initialized');
+                    }
+
+                    // 7b. MetacognitiveExperience
+                    if (window.LawAIApp?.MetacognitiveExperience && !window.LawAIApp.MetacognitiveExperience.initialized) {
+                        try {
+                            window.LawAIApp.MetacognitiveExperience.init();
+                            console.log('[Academy] ✅ MetacognitiveExperience initialized (Part 58)');
+                        } catch (e) {
+                            console.warn('[Academy] ⚠️ MetacognitiveExperience init failed:', e);
+                        }
+                    } else if (window.LawAIApp?.MetacognitiveExperience && window.LawAIApp.MetacognitiveExperience.initialized) {
+                        console.log('[Academy] ✅ MetacognitiveExperience already initialized');
+                    }
+
+                    // ============================================================
                     // 5. LEGACY — Learning Journey Adapter
                     // ============================================================
                     if (window.LawAIApp?.LearningJourneyAdapter && !window.LawAIApp.LearningJourneyAdapter.initialized) {
