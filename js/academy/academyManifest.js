@@ -352,6 +352,31 @@
                 description: 'Pattern Panel (DevPanel)',
                 required: false
             },
+            // ── Part 60: Epistemic Judgment & AI Literacy ──
+            {
+                id: 'epistemicStatus',
+                path: '/js/academy/epistemicStatus.js',
+                description: 'Epistemic Status Model (AI/Inference/Unknown)',
+                required: false
+            },
+            {
+                id: 'sourceDistinguisher',
+                path: '/js/academy/sourceDistinguisher.js',
+                description: 'Source Distinguisher (AI vs Course)',
+                required: false
+            },
+            {
+                id: 'aiLiteracyHelper',
+                path: '/js/academy/aiLiteracyHelper.js',
+                description: 'AI Literacy Helper (Prompts/Tips)',
+                required: false
+            },
+            {
+                id: 'epistemicPanel',
+                path: '/js/debug/panels/epistemicPanel.js',
+                description: 'Epistemic Panel (DevPanel)',
+                required: false
+            },
         ],
 
         // ============================================================
@@ -435,6 +460,12 @@
             patternExplainer: ['learningPatternModel', 'patternDetector'],
             patternPanel: ['patternDetector', 'patternExplainer']
         },
+
+        // ── Part 60: Epistemic Judgment & AI Literacy ──
+            epistemicStatus: [],
+            sourceDistinguisher: ['epistemicStatus', 'courseRegistry'],
+            aiLiteracyHelper: ['epistemicStatus', 'sourceDistinguisher'],
+            epistemicPanel: ['epistemicStatus', 'sourceDistinguisher', 'aiLiteracyHelper'],
 
         // ============================================================
         // 3. LEGACY — Core Dependencies (Preserved)
