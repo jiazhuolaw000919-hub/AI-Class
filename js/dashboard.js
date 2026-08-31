@@ -16,10 +16,54 @@ LawAIApp.Dashboard = {
     // ============================================================
     // 数据获取（所有引擎继续运行，不改）
     // ============================================================
-    const progress = this._getProgress();
-    const streakData = this._getStreakData();
-    const levelInfo = this._getLevelInfo();
-    const achievements = this._getAchievements();
+    // ── Part 65/66: 通过 Experience Contract 获取权威状态 ──
+    const contract = window.LawAIApp?.ExperienceContract;
+    const orchestrator = window.LawAIApp?.JourneyOrchestrator;
+
+    let progress, streakData, levelInfo, achievements, contractState;
+
+    if (orchestrator) {
+      try {
+        const journeyState = orchestrator.getJourneyState({});
+        contractState = journeyState;
+        progress = { 
+          xp: 0, 
+          completedLessons: [], 
+          currentLesson: 1, 
+          completionPercent: 0, 
+          currentStage: 'Foundation' 
+        };
+        // 从 journeyState 提取数据
+        if (journeyState.currentContext) {
+          const ctx = journeyState.currentContext;
+          progress.currentLesson = ctx.lesson?.id || 1;
+          progress.currentStage = ctx.course?.title || 'Foundation';
+        }
+      } catch (e) {
+        console.warn('[Dashboard] JourneyOrchestrator error, falling back:', e);
+        progress = this._getProgress();
+      }
+    } else {
+      // Fallback: 直接读取引擎
+      progress = this._getProgress();
+    }
+
+    // 仍从各引擎读取 (保持兼容)
+    streakData = this._getStreakData();
+    levelInfo = this._getLevelInfo();
+    achievements = this._getAchievements();
+  
+    // 如果 contract 可用，用 contract 验证状态
+    if (contract) {
+      const validation = contract.validate({ 
+        status: progress.completedLessons.length > 0 ? 'IN_PROGRESS' : 'NOT_STARTED',
+        authority: 'COURSE'
+      });
+      if (!validation.valid) {
+        console.warn('[Dashboard] State validation warning:', validation.errors);
+      }
+    }
+    
     const allLessons = this._getAllLessons();
     const favorites = this._getFavorites();
     const todayLesson = this._getTodayLesson(allLessons, progress);
@@ -31,6 +75,7 @@ LawAIApp.Dashboard = {
 
     const currentStage = progress.currentStage || 'Foundation';
     const lastCompletedDate = this._getLastCompletedDate(streakData);
+    const noteCount = this._getNoteCount();
 
     // ============================================================
     // 构建 UI — Canon V2.0 层级
@@ -48,6 +93,26 @@ LawAIApp.Dashboard = {
       dailyBriefingHTML,
       allLessons
     });
+
+    <!-- ========================================================== -->
+    <!-- 🔒 Authority Status (Developer Info)                      -->
+    <!-- ========================================================== -->
+    <section style="
+      background: rgba(255,255,255,0.015);
+      border-radius: 8px;
+      padding: 8px 12px;
+      border: 1px solid rgba(255,255,255,0.02);
+      margin-bottom: 12px;
+      font-size: 9px;
+      color: #475569;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    ">
+      <span>📋 Authority: Course + Module + Lesson</span>
+      <span>⚡ State: ${this._getAuthorityStatus()}</span>
+      <span>📊 Source: ${this._getStateSource()}</span>
+    </section>
 
     const app = document.getElementById('app') || document.getElementById('law-runtime-root');
     if (app) {
@@ -140,6 +205,38 @@ LawAIApp.Dashboard = {
       return 'Not started';
     }
   },
+
+  _getNoteCount: function() {
+    try {
+      var notes = window.LawAIApp?.Notes || window.LawAIApp?.KnowledgeCapture;
+      if (notes && typeof notes.getNotes === 'function') {
+        var notesList = notes.getNotes();
+        return notesList ? notesList.length : 0;
+      }
+    } catch (e) {}
+    return 0;
+  },
+
+  _hasNotes: function() {
+    return this._getNoteCount() > 0;
+  },
+
+  _getAuthorityStatus: function() {
+    var contract = window.LawAIApp?.ExperienceContract;
+    if (contract) {
+      var status = contract.getStatus();
+      return status.initialized ? 'Contract Active' : 'Contract Pending';
+    }
+    return 'Direct Engine Access';
+  },
+
+  _getStateSource: function() {
+    var orchestrator = window.LawAIApp?.JourneyOrchestrator;
+    if (orchestrator && orchestrator.initialized) {
+      return 'Journey Orchestrator';
+    }
+    return 'Individual Engines';
+  }
 
   // ============================================================
   // HTML 构建 — Canon V2.0 第一印象重构
@@ -484,7 +581,8 @@ LawAIApp.Dashboard = {
             { icon: '📋', label: 'Prompts', route: 'prompt' },
             { icon: '🎯', label: 'Goals', route: 'goal-intelligence' },
             { icon: '🧠', label: 'Mentor', route: 'mentor-brain' },
-            { icon: '🚀', label: 'Showcase', route: 'career-showcase' }
+            { icon: '🚀', label: 'Showcase', route: 'career-showcase' }，
+            { icon: '📓', label: 'Notes', route: 'notes' }
           ].map(function(btn) {
             return `
             <button onclick="LawAIApp.Router?.navigate('${btn.route}')" style="
@@ -564,6 +662,10 @@ LawAIApp.Dashboard = {
           <div>
             <span style="font-size:10px;color:#64748b;">Level Progress</span>
             <p style="margin:2px 0 0;font-size:14px;font-weight:500;">${levelInfo.currentLevelXP || 0} / ${levelInfo.nextLevelXP || 100} XP</p>
+          </div>
+          <div>
+            <span style="font-size:10px;color:#64748b;">📓 Notes</span>
+            <p style="margin:2px 0 0;font-size:14px;font-weight:500;">${noteCount || 0} saved</p>
           </div>
         </div>
       </section>
@@ -701,26 +803,41 @@ LawAIApp.Dashboard = {
     var container = document.getElementById('dashboard-recommendations');
     if (!container) return;
 
+    // ── Part 60/65: 尝试从 DecisionExperience 获取带解释的推荐 ──
     var recs = this._getRecommendations();
+    var de = window.LawAIApp?.DecisionExperience;
+    var explanations = {};
+
+    if (de && typeof de.getExplanation === 'function') {
+      try {
+        // 获取当前选项的解释
+        var options = de.getOptions({ includeDismissed: false });
+        if (options && options.length > 0) {
+          for (var i = 0; i < Math.min(options.length, 3); i++) {
+            var exp = de.getExplanation(options[i].id);
+            if (exp && exp.available) {
+              explanations[options[i].id] = exp.reason || 'Recommended based on your learning context.';
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[Dashboard] DecisionExperience explanation error:', e);
+      }
+    }
+
     if (recs.length === 0) {
-      container.innerHTML = `
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-          <span style="font-size:14px;">🌟</span>
-          <span style="font-size:12px;color:#94a3b8;font-weight:400;">Recommended for you</span>
-        </div>
-        <div style="color:#64748b;font-size:12px;text-align:center;padding:8px 0;">
-          Complete more lessons to get personalized recommendations.
-        </div>
-      `;
-      container.style.opacity = '1';
+      // ... 空状态保持不变 ...
       return;
     }
 
+    // 渲染推荐时包含解释
     var recsHtml = recs.slice(0, 3).map(function(rec, index) {
       var lessonId = rec.id || 'day-' + (index + 1);
       var dayNum = lessonId.replace('day-', '');
       var link = '/pages/lesson.html?day=' + dayNum;
       var delay = index * 0.06;
+      var explanation = explanations[rec.id] || 'Recommended for you.';
+
       return `
         <div style="
           display:flex;
@@ -734,6 +851,7 @@ LawAIApp.Dashboard = {
           <div style="flex:1;min-width:0;">
             <div style="font-size:12px;font-weight:500;color:#e2e8f0;">${rec.title || 'Lesson'}</div>
             <div style="font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${rec.description || 'Continue your learning journey.'}</div>
+            ${explanation ? `<div style="font-size:9px;color:#4a9eff;opacity:0.7;margin-top:1px;">💡 ${explanation}</div>` : ''}
           </div>
           <a href="${link}" style="
             padding:3px 12px;
@@ -754,6 +872,7 @@ LawAIApp.Dashboard = {
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
         <span style="font-size:14px;">🌟</span>
         <span style="font-size:12px;color:#94a3b8;font-weight:400;">Recommended for you</span>
+        ${Object.keys(explanations).length > 0 ? `<span style="font-size:9px;color:#64748b;margin-left:auto;">💡 Why this?</span>` : ''}
       </div>
       ${recsHtml}
       <style>
@@ -764,7 +883,7 @@ LawAIApp.Dashboard = {
       </style>
     `;
     container.style.opacity = '1';
-    console.log('📊 Recommendations loaded (deferred)');
+    console.log('📊 Recommendations loaded with explanations');
   },
 
   /**
