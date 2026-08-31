@@ -293,6 +293,60 @@ LawAIApp.Router = {
         this.goHome();
     },
 
+    // ============================================================
+    // Academy Navigation Helpers (Part 69)
+    // ============================================================
+
+    navigateToSchool: function(schoolId) {
+        console.log('📌 Router → School:', schoolId);
+        var manager = window.LawAIApp?.AcademyExperienceManager;
+        if (manager && typeof manager.navigateToSchool === 'function') {
+            manager.navigateToSchool(schoolId);
+        } else {
+            this.navigate('academy', { schoolId: schoolId });
+        }
+    },
+
+    navigateToCourse: function(courseId) {
+        console.log('📌 Router → Course:', courseId);
+        var manager = window.LawAIApp?.AcademyExperienceManager;
+        if (manager && typeof manager.navigateToCourse === 'function') {
+            manager.navigateToCourse(courseId);
+        } else {
+            this.navigate('academy', { courseId: courseId });
+        }
+    },
+
+    navigateToModule: function(moduleId) {
+        console.log('📌 Router → Module:', moduleId);
+        var manager = window.LawAIApp?.AcademyExperienceManager;
+        if (manager && typeof manager.selectModule === 'function') {
+            manager.selectModule(moduleId);
+        } else {
+            this.navigate('module', { moduleId: moduleId });
+        }
+    },
+
+    navigateToLesson: function(lessonId) {
+        console.log('📌 Router → Lesson:', lessonId);
+        var manager = window.LawAIApp?.AcademyExperienceManager;
+        if (manager && typeof manager.selectLesson === 'function') {
+            manager.selectLesson(lessonId);
+        } else {
+            this.navigate('lesson', { lessonId: lessonId });
+        }
+    },
+
+    navigateToNotes: function() {
+        console.log('📌 Router → Notes');
+        var manager = window.LawAIApp?.AcademyExperienceManager;
+        if (manager && typeof manager.navigateToNotes === 'function') {
+            manager.navigateToNotes();
+        } else {
+            this.navigate('notes');
+        }
+    },
+
     goHome: function() {
         console.log('🏠 goHome called');
         if (window.location.pathname.includes('/pages/')) {
