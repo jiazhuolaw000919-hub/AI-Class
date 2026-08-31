@@ -453,6 +453,13 @@
                 description: 'Agency Panel (DevPanel)',
                 required: false
             },
+            // ── Part 65: Learning Journey Experience Contract ──
+            {
+                id: 'experienceContract',
+                path: '/js/academy/experienceContract.js',
+                description: 'Experience Contract (Integration Layer)',
+                required: false
+            },
         ],
 
         // ============================================================
@@ -571,6 +578,15 @@
         // ── Part 64: Agency Capability & Decision Quality ──
             agencySupport: ['decisionExperience', 'learnerControl', 'metacognitiveExperience', 'calibrationObserver', 'journeyOrchestrator'],
             agencyPanel: ['agencySupport'],
+
+        // ── Part 65: Learning Journey Experience Contract ──
+            experienceContract: [
+                'journeyOrchestrator',
+                'decisionExperience',
+                'learningContext',
+                'experienceIntelligence',
+                'agencySupport'
+            ],
 
         // ============================================================
         // 3. LEGACY — Core Dependencies (Preserved)
