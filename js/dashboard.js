@@ -191,219 +191,219 @@ LawAIApp.Dashboard = {
     return states[state] || states['not_started'];
   },
 
-    // ============================================================
-    // Part 74: Learning Loop — INSIGHT → CHOICE → OUTCOME → CONTEXT
-    // ============================================================
+  // ============================================================
+  // Part 74: Learning Loop — INSIGHT → CHOICE → OUTCOME → CONTEXT
+  // ============================================================
 
-    _getLearningLoopData: function() {
-      var loopData = {
-        insight: null,
-        choices: [],
-        outcome: null,
-        context: null,
-        hasActiveLoop: false
-      };
+  _getLearningLoopData: function() {
+    var loopData = {
+      insight: null,
+      choices: [],
+      outcome: null,
+      context: null,
+      hasActiveLoop: false
+    };
 
-      // 1. INSIGHT: 从 ExperienceIntelligence 获取
-      var ei = window.LawAIApp?.ExperienceIntelligence;
-      if (ei && ei.initialized) {
-        try {
-          var signals = ei.getSignals();
-          if (signals && signals.learningState) {
-            loopData.insight = {
-              message: this._buildInsightMessage(signals.learningState, signals.momentum, signals),
-              state: signals.learningState,
-              momentum: signals.momentum || 'steady',
-              confidence: signals.confidence || 'medium'
+    // 1. INSIGHT: 从 ExperienceIntelligence 获取
+    var ei = window.LawAIApp?.ExperienceIntelligence;
+    if (ei && ei.initialized) {
+      try {
+        var signals = ei.getSignals();
+        if (signals && signals.learningState) {
+          loopData.insight = {
+            message: this._buildInsightMessage(signals.learningState, signals.momentum, signals),
+            state: signals.learningState,
+            momentum: signals.momentum || 'steady',
+            confidence: signals.confidence || 'medium'
+          };
+          loopData.hasActiveLoop = true;
+        }
+      } catch (e) {
+        console.warn('[Dashboard][Part74] Insight error:', e);
+      }
+    }
+
+    // 2. CHOICES: 从 DecisionExperience 获取
+    var de = window.LawAIApp?.DecisionExperience;
+    if (de && de.initialized) {
+      try {
+        var options = de.getOptions({ includeDismissed: false, maxCount: 4 });
+        if (options && options.length > 0) {
+          loopData.choices = options.map(function(opt) {
+            return {
+              id: opt.id,
+              title: opt.title || 'Option',
+              summary: opt.summary || '',
+              type: opt.type || 'ACTION',
+              isPrimary: opt.isPrimary || false,
+              reason: opt.reason || null
             };
-            loopData.hasActiveLoop = true;
-          }
-        } catch (e) {
-          console.warn('[Dashboard][Part74] Insight error:', e);
+          });
+          loopData.hasActiveLoop = true;
         }
+      } catch (e) {
+        console.warn('[Dashboard][Part74] Choices error:', e);
       }
+    }
 
-      // 2. CHOICES: 从 DecisionExperience 获取
-      var de = window.LawAIApp?.DecisionExperience;
-      if (de && de.initialized) {
-        try {
-          var options = de.getOptions({ includeDismissed: false, maxCount: 4 });
-          if (options && options.length > 0) {
-            loopData.choices = options.map(function(opt) {
-              return {
-                id: opt.id,
-                title: opt.title || 'Option',
-                summary: opt.summary || '',
-                type: opt.type || 'ACTION',
-                isPrimary: opt.isPrimary || false,
-                reason: opt.reason || null
-              };
-            });
-            loopData.hasActiveLoop = true;
-          }
-        } catch (e) {
-          console.warn('[Dashboard][Part74] Choices error:', e);
-        }
-      }
-
-      // 3. OUTCOME: 从 ActionTracker 获取最近的完成动作
-      var at = window.LawAIApp?.ActionTracker;
-      if (at && at.initialized) {
-        try {
-          var history = at.getHistory(3);
-          if (history && history.length > 0) {
-            var recent = history[0];
-            if (recent && recent.type === 'COMPLETE') {
-              loopData.outcome = {
-                type: recent.type,
-                target: recent.target || 'Learning activity',
-                timestamp: recent.timestamp || Date.now(),
-                status: 'completed',
-                displayText: this._formatOutcomeDisplay(recent)
-              };
-            } else if (recent && recent.type === 'START') {
-              loopData.outcome = {
-                type: recent.type,
-                target: recent.target || 'Learning activity',
-                timestamp: recent.timestamp || Date.now(),
-                status: 'in_progress',
-                displayText: this._formatOutcomeDisplay(recent)
-              };
-            } else {
-              loopData.outcome = {
-                type: 'pending',
-                target: null,
-                status: 'waiting',
-                displayText: 'Waiting for your next action...'
-              };  
-            }
+    // 3. OUTCOME: 从 ActionTracker 获取最近的完成动作
+    var at = window.LawAIApp?.ActionTracker;
+    if (at && at.initialized) {
+      try {
+        var history = at.getHistory(3);
+        if (history && history.length > 0) {
+          var recent = history[0];
+          if (recent && recent.type === 'COMPLETE') {
+            loopData.outcome = {
+              type: recent.type,
+              target: recent.target || 'Learning activity',
+              timestamp: recent.timestamp || Date.now(),
+              status: 'completed',
+              displayText: this._formatOutcomeDisplay(recent)
+            };
+          } else if (recent && recent.type === 'START') {
+            loopData.outcome = {
+              type: recent.type,
+              target: recent.target || 'Learning activity',
+              timestamp: recent.timestamp || Date.now(),
+              status: 'in_progress',
+              displayText: this._formatOutcomeDisplay(recent)
+            };
           } else {
             loopData.outcome = {
-              type: 'none',
+              type: 'pending',
               target: null,
-              status: 'idle',
-              displayText: 'Complete an action to see outcomes here.'
+              status: 'waiting',
+              displayText: 'Waiting for your next action...'
             };  
           }
-        } catch (e) {
-          console.warn('[Dashboard][Part74] Outcome error:', e);
+        } else {
+          loopData.outcome = {
+            type: 'none',
+            target: null,
+            status: 'idle',
+            displayText: 'Complete an action to see outcomes here.'
+          };  
         }
-      } else {
-        loopData.outcome = {
-          type: 'none',
-          target: null,
-          status: 'unavailable',
-          displayText: 'Action tracking is initializing...'
-        };
+      } catch (e) {
+        console.warn('[Dashboard][Part74] Outcome error:', e);
       }
-
-      // 4. CONTEXT: 从 LearningContext 获取
-      var lc = window.LawAIApp?.LearningContext;
-      if (lc && lc.initialized) {
-        try {
-          var ctx = lc.getContext();
-          if (ctx) {
-            var contextParts = [];
-            if (ctx.course) contextParts.push(ctx.course.title || 'Current Course');
-            if (ctx.module) contextParts.push(ctx.module.name || 'Current Module');
-            if (ctx.lesson) contextParts.push(ctx.lesson.name || 'Current Lesson');
-            
-            loopData.context = {
-              course: ctx.course || null,
-              module: ctx.module || null,
-              lesson: ctx.lesson || null,
-              breadcrumb: contextParts.join(' → ') || 'Explore the Academy',
-              lastActivity: ctx.lastActivity || null,
-              hasActiveSession: ctx.status?.hasActiveSession || false
-            };
-            if (ctx.course || ctx.module || ctx.lesson) {
-              loopData.hasActiveLoop = true;
-            }
-          }
-        } catch (e) {
-          console.warn('[Dashboard][Part74] Context error:', e);
-        }
-      }
-
-      return loopData;
-    },
-
-    /**
-     * 格式化 Outcome 显示
-     */
-    _formatOutcomeDisplay: function(action) {
-      if (!action) return 'Action recorded';
-      var emoji = action.type === 'COMPLETE' ? '✅' : 
-                  action.type === 'START' ? '▶️' : 
-                  action.type === 'DISMISS' ? '✕' : '📌';
-      var target = action.target || 'Learning activity';
-      var timeAgo = this._getTimeAgo(action.timestamp);
-      return emoji + ' ' + target + (timeAgo ? ' (' + timeAgo + ')' : '');
-    },
-
-    /**
-     * 获取相对时间（复用 AcademyView 的逻辑）
-     */
-    _getTimeAgo: function(timestamp) {
-      if (!timestamp) return '';
-      try {
-        var now = Date.now();
-        var then = new Date(timestamp).getTime();
-        var diff = now - then;
-        if (diff < 0) return '';
-        var minutes = Math.floor(diff / 60000);
-        var hours = Math.floor(diff / 3600000);
-        var days = Math.floor(diff / 86400000);
-        if (minutes < 1) return 'Just now';
-        if (minutes < 60) return minutes + 'm ago';
-        if (hours < 24) return hours + 'h ago';
-        if (days < 7) return days + 'd ago';
-        if (days < 30) return Math.floor(days / 7) + 'w ago';
-        return new Date(timestamp).toLocaleDateString();
-      } catch (e) { return ''; }
-    },
-
-    /**
-     * 构建洞察消息（从 _buildInsightMessage 复用或简化）
-     */
-    _buildInsightMessage: function(state, momentum, signals) {
-      var messages = {
-        'active': {
-          'strong': '🔥 You\'re on a roll! Keep the momentum going.',
-          'steady': '📊 Steady progress. Consistency is key.',
-          'slowing': '⏳ You\'ve started something great. Keep showing up.'
-        },
-        'near_completion': {
-          'strong': '🎯 Almost there! You\'re close to finishing this module.',
-          'steady': '📊 You\'re making solid progress toward completion.',
-          'slowing': '⏳ The finish line is near. One more push!'
-        },
-        'idle': {
-          'strong': '💪 You\'ve built great momentum. Ready to continue?',
-          'steady': '📊 You\'ve made good progress. What\'s next?',
-          'slowing': '🌱 Your learning journey is waiting. Take the next step.'
-        },
-        'learning': {
-          'strong': '🚀 You\'re building knowledge actively.',
-          'steady': '📚 You\'re making steady progress.',
-          'slowing': '🌱 Every step counts. Keep going.'
-        },
-        'returning': {
-          'strong': '👋 Welcome back! Your learning is waiting.',
-          'steady': '📖 Ready to continue where you left off?',
-          'slowing': '🌱 Welcome back. Take the next step.'
-        },
-        'exploring': {
-          'strong': '🔍 You\'re exploring. Find something that clicks.',
-          'steady': '🧭 Exploring is part of the journey.',
-          'slowing': '🌱 Take your time exploring.'
-        }
+    } else {
+      loopData.outcome = {
+        type: 'none',
+        target: null,
+        status: 'unavailable',
+        displayText: 'Action tracking is initializing...'
       };
-      var stateMessages = messages[state];
-      if (!stateMessages) return 'Your learning journey is unfolding.';
-      var momentumKey = momentum || 'steady';
-      return stateMessages[momentumKey] || stateMessages['steady'];
-    },
+    }
+
+    // 4. CONTEXT: 从 LearningContext 获取
+    var lc = window.LawAIApp?.LearningContext;
+    if (lc && lc.initialized) {
+      try {
+        var ctx = lc.getContext();
+        if (ctx) {
+          var contextParts = [];
+          if (ctx.course) contextParts.push(ctx.course.title || 'Current Course');
+          if (ctx.module) contextParts.push(ctx.module.name || 'Current Module');
+          if (ctx.lesson) contextParts.push(ctx.lesson.name || 'Current Lesson');
+            
+          loopData.context = {
+            course: ctx.course || null,
+            module: ctx.module || null,
+            lesson: ctx.lesson || null,
+            breadcrumb: contextParts.join(' → ') || 'Explore the Academy',
+            lastActivity: ctx.lastActivity || null,
+            hasActiveSession: ctx.status?.hasActiveSession || false
+          };
+          if (ctx.course || ctx.module || ctx.lesson) {
+            loopData.hasActiveLoop = true;
+          }
+        }
+      } catch (e) {
+        console.warn('[Dashboard][Part74] Context error:', e);
+      }
+    }
+
+    return loopData;
+  },
+
+  /**
+  * 格式化 Outcome 显示
+  */
+  _formatOutcomeDisplay: function(action) {
+    if (!action) return 'Action recorded';
+    var emoji = action.type === 'COMPLETE' ? '✅' : 
+                action.type === 'START' ? '▶️' : 
+                action.type === 'DISMISS' ? '✕' : '📌';
+    var target = action.target || 'Learning activity';
+    var timeAgo = this._getTimeAgo(action.timestamp);
+    return emoji + ' ' + target + (timeAgo ? ' (' + timeAgo + ')' : '');
+  },
+
+  /**
+  * 获取相对时间（复用 AcademyView 的逻辑）
+  */
+  _getTimeAgo: function(timestamp) {
+    if (!timestamp) return '';
+    try {
+      var now = Date.now();
+      var then = new Date(timestamp).getTime();
+      var diff = now - then;
+      if (diff < 0) return '';
+      var minutes = Math.floor(diff / 60000);
+      var hours = Math.floor(diff / 3600000);
+      var days = Math.floor(diff / 86400000);
+      if (minutes < 1) return 'Just now';
+      if (minutes < 60) return minutes + 'm ago';
+      if (hours < 24) return hours + 'h ago';
+      if (days < 7) return days + 'd ago';
+      if (days < 30) return Math.floor(days / 7) + 'w ago';
+      return new Date(timestamp).toLocaleDateString();
+    } catch (e) { return ''; }
+  },
+
+  /**
+  * 构建洞察消息（从 _buildInsightMessage 复用或简化）
+  */
+  _buildInsightMessage: function(state, momentum, signals) {
+    var messages = {
+      'active': {
+        'strong': '🔥 You\'re on a roll! Keep the momentum going.',
+        'steady': '📊 Steady progress. Consistency is key.',
+        'slowing': '⏳ You\'ve started something great. Keep showing up.'
+      },
+      'near_completion': {
+        'strong': '🎯 Almost there! You\'re close to finishing this module.',
+        'steady': '📊 You\'re making solid progress toward completion.',
+        'slowing': '⏳ The finish line is near. One more push!'
+      },
+      'idle': {
+        'strong': '💪 You\'ve built great momentum. Ready to continue?',
+        'steady': '📊 You\'ve made good progress. What\'s next?',
+        'slowing': '🌱 Your learning journey is waiting. Take the next step.'
+      },
+      'learning': {
+        'strong': '🚀 You\'re building knowledge actively.',
+        'steady': '📚 You\'re making steady progress.',
+        'slowing': '🌱 Every step counts. Keep going.'
+      },
+      'returning': {
+        'strong': '👋 Welcome back! Your learning is waiting.',
+        'steady': '📖 Ready to continue where you left off?',
+        'slowing': '🌱 Welcome back. Take the next step.'
+      },
+      'exploring': {
+        'strong': '🔍 You\'re exploring. Find something that clicks.',
+        'steady': '🧭 Exploring is part of the journey.',
+        'slowing': '🌱 Take your time exploring.'
+      }
+    };
+    var stateMessages = messages[state];
+    if (!stateMessages) return 'Your learning journey is unfolding.';
+    var momentumKey = momentum || 'steady';
+    return stateMessages[momentumKey] || stateMessages['steady'];
+  },
 
   // ============================================================
   // 数据获取方法
@@ -650,6 +650,165 @@ LawAIApp.Dashboard = {
       if (window.LawAIApp?.Toast && typeof window.LawAIApp.Toast.success === 'function') {
         window.LawAIApp.Toast.success('✅ Assessment recorded');
       }
+    } catch (e) {}
+  },
+
+  // ============================================================
+  // Part 74: Learning Loop — Choice Handler
+  // ============================================================
+
+  /**
+   * 处理 Learning Loop 中的学习者选择
+   * 不新建任何引擎，只调用现有的权威系统
+   */
+  _handleLoopChoice: function(choiceId, actionType) {
+    console.log('[Dashboard][Part74] Choice made:', choiceId, actionType);
+
+    // 1. 调用 DecisionExperience.selectOption（如果存在）
+    var de = window.LawAIApp?.DecisionExperience;
+    if (de && de.initialized && typeof de.selectOption === 'function') {
+      try {
+        de.selectOption(choiceId);
+        console.log('[Dashboard][Part74] ✅ DecisionExperience.selectOption called');
+      } catch (e) {
+        console.warn('[Dashboard][Part74] DecisionExperience.selectOption error:', e);
+      }
+    }
+
+    // 2. 调用 ActionTracker.record（如果存在）
+    var at = window.LawAIApp?.ActionTracker;
+    if (at && at.initialized && typeof at.record === 'function') {
+      try {
+        at.record({
+          type: actionType || 'SELECT',
+          target: choiceId,
+          source: 'dashboard-learning-loop',
+          timestamp: Date.now()
+        });
+        console.log('[Dashboard][Part74] ✅ ActionTracker.record called');
+      } catch (e) {
+        console.warn('[Dashboard][Part74] ActionTracker.record error:', e);
+      }
+    }
+
+    // 3. 根据选择类型执行具体操作
+    var actionMap = {
+      'continue': function() {
+        var lc = window.LawAIApp?.LearningContext;
+        if (lc && lc.initialized) {
+          var ctx = lc.getContext();
+          if (ctx && ctx.lesson) {
+            window.location.href = '/pages/academy.html?view=lesson&id=' + ctx.lesson.id;
+          } else {
+            window.location.href = '/pages/academy.html';
+          }
+        } else {
+          window.location.href = '/pages/academy.html';
+        }
+      },
+      'review': function() {
+        // 跳转到当前课程的复习模式
+        var lc = window.LawAIApp?.LearningContext;
+        if (lc && lc.initialized) {
+          var ctx = lc.getContext();
+          if (ctx && ctx.course) {
+            window.location.href = '/pages/academy.html?view=course&id=' + ctx.course.id + '&mode=review';
+          } else {
+            window.location.href = '/pages/academy.html';
+          }
+        } else {
+          window.location.href = '/pages/academy.html';
+        }
+      },
+      'save': function() {
+        // 触发反思保存
+        var insightId = 'loop_' + Date.now();
+        var reflectionText = 'I chose to save this learning moment.';
+        var notes = window.LawAIApp?.Notes || window.LawAIApp?.KnowledgeCapture;
+        if (notes && typeof notes.create === 'function') {
+          var note = notes.create({
+            title: 'Learning Loop Save',
+            content: reflectionText,
+            type: 'REFLECTION',
+            source: 'dashboard-learning-loop',
+            tags: ['learning-loop', 'save']
+          });
+          if (note && window.LawAIApp?.Toast) {
+            LawAIApp.Toast.success('✅ Saved to Notes');
+          }
+        } else {
+          if (window.LawAIApp?.Toast) {
+            LawAIApp.Toast.info('📝 Notes will be available soon');
+          }
+        }
+        // 刷新 Dashboard 以更新状态
+        setTimeout(function() { LawAIApp.Dashboard.render(); }, 300);
+      },
+      'schedule': function() {
+        var cal = window.LawAIApp?.CalendarEngine;
+        if (cal && cal.initialized && typeof cal.createEvent === 'function') {
+          try {
+            var lc = window.LawAIApp?.LearningContext;
+            var ctx = lc ? lc.getContext() : null;
+            cal.createEvent({
+              title: 'Review: ' + (ctx?.lesson?.name || 'Learning'),
+              description: 'Scheduled from Dashboard Learning Loop',
+              type: 'review',
+              date: new Date(Date.now() + 86400000).toISOString() // tomorrow
+            });
+            if (window.LawAIApp?.Toast) {
+              LawAIApp.Toast.success('📅 Scheduled for tomorrow');
+            }
+          } catch (e) {
+            console.warn('[Dashboard][Part74] Calendar error:', e);
+            if (window.LawAIApp?.Toast) {
+              LawAIApp.Toast.info('📅 Calendar coming soon');
+            }
+          }
+        } else {
+          if (window.LawAIApp?.Toast) {
+            LawAIApp.Toast.info('📅 Calendar coming soon');
+          }
+        }
+        // 刷新 Dashboard
+        setTimeout(function() { LawAIApp.Dashboard.render(); }, 300);
+      },
+      'dismiss': function() {
+        // 记录 dismiss 但不惩罚
+        if (window.LawAIApp?.Toast) {
+          LawAIApp.Toast.info('✕ Dismissed');
+        }
+        // 刷新 Dashboard
+        setTimeout(function() { LawAIApp.Dashboard.render(); }, 300);
+      },
+      'ask_mentor': function() {
+        // 打开 Mentor（如果存在）
+        if (window.LawAIApp?.MentorEngine && window.LawAIApp.MentorEngine.initialized) {
+          window.LawAIApp.MentorEngine.open();
+        } else {
+          if (window.LawAIApp?.Toast) {
+            LawAIApp.Toast.info('🧠 Mentor coming soon');
+          }
+        }
+      }
+    };
+
+    // 执行对应的操作
+    var action = actionMap[choiceId] || actionMap['continue'];
+    try {
+      action();
+    } catch (e) {
+      console.warn('[Dashboard][Part74] Action execution error:', e);
+      // 安全 fallback
+      window.location.href = '/pages/academy.html';
+    }
+
+    // 触发事件通知其他系统
+    try {
+      var event = new CustomEvent('LEARNING_LOOP_CHOICE', {
+        detail: { choiceId: choiceId, actionType: actionType, timestamp: Date.now() }
+      });
+      document.dispatchEvent(event);
     } catch (e) {}
   },
 
@@ -1426,6 +1585,9 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
+      <!-- 🔄 LEARNING LOOP (Part 74: Choice → Outcome) -->
+      ${this._renderLearningLoop()}
+
       <!-- 📚 LEARNING CONTINUITY (Part 73) -->
       ${continuityHTML}
 
@@ -1871,6 +2033,226 @@ LawAIApp.Dashboard = {
       `;
 
       return html;
+  },
+
+  // ============================================================
+  // Part 74: Learning Loop Renderer
+  // ============================================================
+
+  /**
+   * 渲染 Learning Loop 因果链
+   */
+  _renderLearningLoop: function() {
+    var loopData = this._getLearningLoopData();
+
+    // 如果没有活跃的 Loop，显示空状态
+    if (!loopData.hasActiveLoop) {
+      return `
+        <div style="
+          background: rgba(255,255,255,0.02);
+          border-radius: 12px;
+          padding: 20px 24px;
+          border: 1px solid rgba(255,255,255,0.04);
+          margin-bottom: 16px;
+        ">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span style="font-size: 14px;">🔄</span>
+            <span style="font-size: 11px; color: #64748b; font-weight: 500; letter-spacing: 0.6px;">LEARNING LOOP</span>
+          </div>
+          <div style="font-size: 13px; color: #64748b; text-align: center; padding: 12px 0;">
+            Start learning to see your choices and outcomes here.
+          </div>
+        </div>
+      `;
+    }
+
+    var html = '';
+    var insight = loopData.insight;
+    var choices = loopData.choices;
+    var outcome = loopData.outcome;
+    var context = loopData.context;
+
+    // ── 卡片容器 ──
+    html += `
+      <div style="
+        background: rgba(255,255,255,0.02);
+        border-radius: 12px;
+        padding: 16px 20px 20px;
+        border: 1px solid rgba(255,255,255,0.04);
+        margin-bottom: 16px;
+      ">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <span style="font-size: 14px;">🔄</span>
+          <span style="font-size: 11px; color: #64748b; font-weight: 500; letter-spacing: 0.6px;">LEARNING LOOP</span>
+          ${context && context.hasActiveSession ? '<span style="font-size: 9px; color: #10b981; background: rgba(16,185,129,0.12); padding: 2px 10px; border-radius: 100px;">● Active</span>' : ''}
+        </div>
+    `;
+
+    // ── 1. INSIGHT ──
+    if (insight && insight.message) {
+      var confidenceColor = insight.confidence === 'high' ? '#4a9eff' : 
+                           insight.confidence === 'medium' ? '#f59e0b' : '#64748b';
+      html += `
+        <div style="
+          background: rgba(74,158,255,0.04);
+          border-radius: 8px;
+          padding: 10px 14px;
+          margin-bottom: 10px;
+          border-left: 3px solid ${confidenceColor};
+        ">
+          <div style="font-size: 10px; color: #64748b; font-weight: 500; letter-spacing: 0.5px;">💡 INSIGHT</div>
+          <div style="font-size: 14px; color: #e2e8f0; margin-top: 2px;">${insight.message}</div>
+        </div>
+      `;
+    }
+
+    // ── 箭头（Insight → Choice） ──
+    if (insight && choices.length > 0) {
+      html += `
+        <div style="text-align: center; color: #475569; font-size: 14px; line-height: 1; padding: 2px 0;">↓</div>
+      `;
+    }
+
+    // ── 2. CHOICE ──
+    if (choices && choices.length > 0) {
+      html += `
+        <div style="
+          background: rgba(255,255,255,0.02);
+          border-radius: 8px;
+          padding: 10px 14px;
+          margin-bottom: 10px;
+          border: 1px solid rgba(255,255,255,0.04);
+        ">
+          <div style="font-size: 10px; color: #64748b; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 6px;">👆 YOUR CHOICE</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+      `;
+
+      for (var i = 0; i < choices.length; i++) {
+        var choice = choices[i];
+        var isPrimary = choice.isPrimary || false;
+        var bgColor = isPrimary ? 'rgba(74,158,255,0.12)' : 'rgba(255,255,255,0.04)';
+        var borderColor = isPrimary ? 'rgba(74,158,255,0.2)' : 'rgba(255,255,255,0.06)';
+        var textColor = isPrimary ? '#4a9eff' : '#94a3b8';
+        var actionId = choice.id;
+
+        html += `
+          <button onclick="LawAIApp.Dashboard._handleLoopChoice('${actionId}', 'SELECT')"
+                  style="
+                    padding: 5px 16px;
+                    background: ${bgColor};
+                    border: 1px solid ${borderColor};
+                    border-radius: 100px;
+                    color: ${textColor};
+                    font-size: 12px;
+                    cursor: pointer;
+                    font-family: inherit;
+                    transition: all 0.2s;
+                  "
+                  onmouseover="this.style.background='rgba(74,158,255,0.12)'; this.style.color='#4a9eff';"
+                  onmouseout="this.style.background='${bgColor}'; this.style.color='${textColor}';">
+            ${isPrimary ? '⭐ ' : ''}${choice.title}
+          </button>
+        `;
+      }
+
+      html += `
+          </div>
+          ${choices.length > 0 && choices[0].reason ? `<div style="font-size: 10px; color: #64748b; margin-top: 4px;">💡 ${choices[0].reason}</div>` : ''}
+        </div>
+      `;
+    }
+
+    // ── 箭头（Choice → Outcome） ──
+    if (choices.length > 0 && outcome) {
+      html += `
+        <div style="text-align: center; color: #475569; font-size: 14px; line-height: 1; padding: 2px 0;">↓</div>
+      `;
+    }
+
+    // ── 3. OUTCOME ──
+    if (outcome) {
+      var outcomeColor = outcome.status === 'completed' ? '#10b981' : 
+                         outcome.status === 'in_progress' ? '#4a9eff' : 
+                         outcome.status === 'waiting' ? '#f59e0b' : '#64748b';
+      var outcomeEmoji = outcome.status === 'completed' ? '✅' : 
+                         outcome.status === 'in_progress' ? '▶️' : 
+                         outcome.status === 'waiting' ? '⏳' : '📌';
+
+      html += `
+        <div style="
+          background: rgba(16,185,129,0.04);
+          border-radius: 8px;
+          padding: 10px 14px;
+          margin-bottom: 10px;
+          border-left: 3px solid ${outcomeColor};
+        ">
+          <div style="font-size: 10px; color: #64748b; font-weight: 500; letter-spacing: 0.5px;">📊 OUTCOME</div>
+          <div style="font-size: 14px; color: ${outcomeColor}; margin-top: 2px;">${outcomeEmoji} ${outcome.displayText}</div>
+        </div>
+      `;
+    }
+
+    // ── 箭头（Outcome → Context） ──
+    if (outcome && context) {
+      html += `
+        <div style="text-align: center; color: #475569; font-size: 14px; line-height: 1; padding: 2px 0;">↓</div>
+      `;
+    }
+
+    // ── 4. CONTEXT ──
+    if (context) {
+      var contextText = context.breadcrumb || 'Explore the Academy';
+      var lastActivityText = context.lastActivity ? this._getTimeAgo(context.lastActivity) : '';
+
+      html += `
+        <div style="
+          background: rgba(139,92,246,0.04);
+          border-radius: 8px;
+          padding: 10px 14px;
+          border-left: 3px solid #8b5cf6;
+        ">
+          <div style="font-size: 10px; color: #64748b; font-weight: 500; letter-spacing: 0.5px;">🔗 CONTEXT</div>
+          <div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">${contextText}</div>
+          ${lastActivityText ? `<div style="font-size: 10px; color: #64748b; margin-top: 2px;">📅 ${lastActivityText}</div>` : ''}
+        </div>
+      `;
+    }
+
+    // ── 底部：刷新和更多操作 ──
+    html += `
+        <div style="
+          margin-top: 12px;
+          padding-top: 10px;
+          border-top: 1px solid rgba(255,255,255,0.04);
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        ">
+          <button onclick="LawAIApp.Dashboard.render()" style="
+            padding: 4px 14px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 100px;
+            color: #64748b;
+            font-size: 10px;
+            cursor: pointer;
+            font-family: inherit;
+          ">🔄 Refresh</button>
+          <button onclick="window.location.href='/pages/academy.html'" style="
+            padding: 4px 14px;
+            background: rgba(74,158,255,0.06);
+            border: 1px solid rgba(74,158,255,0.08);
+            border-radius: 100px;
+            color: #4a9eff;
+            font-size: 10px;
+            cursor: pointer;
+            font-family: inherit;
+          ">📚 Go to Academy</button>
+        </div>
+      </div>
+    `;
+
+    return html;
   },
 
   refresh: function() {
