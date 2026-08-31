@@ -421,7 +421,11 @@
           { id: 'transferModel', path: '/js/academy/transferModel.js' },
           { id: 'transferObserver', path: '/js/academy/transferObserver.js' },
           { id: 'transferRecommender', path: '/js/academy/transferRecommender.js' },
-          { id: 'transferPanel', path: '/js/debug/panels/transferPanel.js' }
+          { id: 'transferPanel', path: '/js/debug/panels/transferPanel.js' },
+          { id: 'calibrationModel', path: '/js/academy/calibrationModel.js' },
+          { id: 'calibrationObserver', path: '/js/academy/calibrationObserver.js' },
+          { id: 'calibrationRecommender', path: '/js/academy/calibrationRecommender.js' },
+          { id: 'calibrationPanel', path: '/js/debug/panels/calibrationPanel.js' }
         ]
       };
     }
