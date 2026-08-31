@@ -440,6 +440,19 @@
                 description: 'Journey Panel (DevPanel)',
                 required: false
             },
+            // ── Part 64: Agency Capability & Decision Quality ──
+            {
+                id: 'agencySupport',
+                path: '/js/academy/agencySupport.js',
+                description: 'Agency Support (Choice + Capability + Action + Reflection)',
+                required: false
+            },
+            {
+                id: 'agencyPanel',
+                path: '/js/debug/panels/agencyPanel.js',
+                description: 'Agency Panel (DevPanel)',
+                required: false
+            },
         ],
 
         // ============================================================
@@ -554,6 +567,10 @@
                 'lessonEngine'
             ],
             journeyPanel: ['journeyOrchestrator'],
+
+        // ── Part 64: Agency Capability & Decision Quality ──
+            agencySupport: ['decisionExperience', 'learnerControl', 'metacognitiveExperience', 'calibrationObserver', 'journeyOrchestrator'],
+            agencyPanel: ['agencySupport'],
 
         // ============================================================
         // 3. LEGACY — Core Dependencies (Preserved)
