@@ -317,7 +317,7 @@ LawAIApp.SystemComposer = {
     },
 
     // ============================================================
-    // 11. 🔥 MAIN UI RENDER — 优先使用 S4 Dashboard
+    // MAIN UI RENDER — 优先使用 S4 Dashboard
     // ============================================================
 
     _renderMainUI: function() {
@@ -331,52 +331,60 @@ LawAIApp.SystemComposer = {
 
         // 🔥 优先使用真正的 S4 Dashboard
         if (window.LawAIApp && window.LawAIApp.Dashboard && typeof window.LawAIApp.Dashboard.render === 'function') {
-            // 创建容器
             var container = document.createElement('div');
             container.id = 'systemComposerRoot';
             this.root.appendChild(container);
-            
-            // 调用真正的 Dashboard
             window.LawAIApp.Dashboard.render();
-            
-            // 隐藏 loader
             this._hideLoader();
             console.log("✅ S4 Dashboard rendered");
             return;
         }
 
-        // ⚠️ Fallback: 如果 Dashboard 不可用，显示 minimal skeleton
+        // ⚠️ Fallback: 如果 Dashboard 不可用
         console.warn("⚠️ Dashboard not available, using minimal skeleton");
         this._showMinimalSkeleton();
     },
 
     // ============================================================
-    // 12. 🔥 Minimal Skeleton — 当 Dashboard 不可用时
+    // MINIMAL SKELETON — 当 Dashboard 不可用时
     // ============================================================
-
+    
     _showMinimalSkeleton: function() {
         if (!this.root) return;
         if (document.getElementById("systemComposerRoot")) return;
-
+    
         var container = document.createElement('div');
         container.id = 'systemComposerRoot';
-        container.style.cssText = 'min-height: 100vh; background: #0b1220; color: #e2e8f0; font-family: "Inter", -apple-system, sans-serif;';
+        container.style.cssText = 'min-height: 100vh; background: #0b1220; color: #e2e8f0; font-family: "Inter", -apple-system, sans-serif; display: flex; align-items: center; justify-content: center;';
         container.innerHTML = `
-            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;text-align:center;">
+            <div style="text-align:center;padding:20px;">
                 <div style="font-size:48px;margin-bottom:16px;">🚀</div>
                 <h2 style="font-size:22px;font-weight:600;margin:0 0 8px;">Law AI Academy</h2>
                 <p style="color:#94a3b8;font-size:14px;margin:0;">Loading your learning environment...</p>
-                <div style="margin-top:24px;width:32px;height:32px;border:2px solid rgba(74,158,255,0.12);border-top-color:#4a9eff;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
-                <style>
-                    @keyframes spin { to { transform: rotate(360deg); } }
-                </style>
+                <div style="margin-top:24px;width:32px;height:32px;border:2px solid rgba(74,158,255,0.12);border-top-color:#4a9eff;border-radius:50%;animation:spin 0.8s linear infinite;margin-left:auto;margin-right:auto;"></div>
             </div>
+            <style>
+                @keyframes spin { to { transform: rotate(360deg); } }
+            </style>
         `;
         this.root.appendChild(container);
         this.root = container;
         console.log("🔄 Minimal skeleton rendered");
+    
+        // 2 秒后重试 Dashboard
+        var self = this;
+        setTimeout(function() {
+            if (window.LawAIApp && window.LawAIApp.Dashboard && typeof window.LawAIApp.Dashboard.render === 'function') {
+                var existing = document.getElementById("systemComposerRoot");
+                if (existing) {
+                    console.log("🔄 Retrying Dashboard render...");
+                    // 不清除容器，Dashboard 会替换内容
+                    window.LawAIApp.Dashboard.render();
+                }
+            }    
+        }, 2000);
     },
-
+    
     // ============================================================
     // 13. Fallback UI 方法
     // ============================================================
