@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Law AI Academy — Season 4</title>
+  <title>Law AI Academy</title>
 
   <!-- ============================================================ -->
-  <!-- CSS — 设计系统样式                                          -->
+  <!-- CSS — 使用相对路径（不依赖根路径）                            -->
   <!-- ============================================================ -->
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/academy.css">
@@ -16,149 +16,152 @@
   <link rel="stylesheet" href="css/learning.css">
   <link rel="stylesheet" href="css/responsive.css">
   <link rel="stylesheet" href="css/theme.css">
-  <link rel="stylesheet" href="css/notes.css">
-  <link rel="stylesheet" href="css/settings.css">
-
-  <style>
-    /* 基础重置 */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      margin: 0; 
-      background: #0b1220; 
-      color: #e2e8f0; 
-      font-family: 'Inter', -apple-system, sans-serif; 
-      min-height: 100vh;
-    }
-    #law-runtime-root { min-height: 100vh; background: #0b1220; }
-
-    /* 加载占位 — 平滑淡出 */
-    #loading-placeholder {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      background: #0b1220;
-      color: #94a3b8;
-      font-family: 'Inter', -apple-system, sans-serif;
-      text-align: center;
-      padding: 20px;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 9999;
-      pointer-events: none;
-      transition: opacity 0.8s ease;
-    }
-    #loading-placeholder.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes pulse {
-      0%, 100% { opacity: 0.6; }
-      50% { opacity: 1; }
-    }
-  </style>
-</head>
-<body>
 
   <!-- ============================================================ -->
-  <!-- ROOT — 所有内容挂载到这里                                     -->
+  <!-- SCRIPT — 保留所有已有加载，只移除了 dummy 文件               -->
   <!-- ============================================================ -->
-  <div id="law-runtime-root"></div>
 
-  <!-- ============================================================ -->
-  <!-- LOADING PLACEHOLDER — 启动时显示，成功后淡出                 -->
-  <!-- ============================================================ -->
-  <div id="loading-placeholder">
-    <div style="font-size: 48px; margin-bottom: 16px; animation: pulse 2s ease-in-out infinite;">🚀</div>
-    <h2 style="color: white; font-weight: 600; margin: 0 0 8px 0;">Law AI Academy</h2>
-    <p style="margin: 0; font-size: 14px; color: #94a3b8;">Initializing your learning environment...</p>
-    <div style="margin-top: 24px; width: 40px; height: 40px; border: 3px solid rgba(74,158,255,0.12); border-top-color: #4a9eff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-  </div>
-
-  <!-- ============================================================ -->
-  <!-- SCRIPT — 只需要这三个核心加载器                              -->
-  <!-- loader.js 会动态加载所有其他模块                            -->
-  <!-- ============================================================ -->
+  <!-- 1. Loader（核心加载器） -->
   <script src="js/loader.js"></script>
-  <script src="js/app.js"></script>
-  <script src="js/systemComposer.js"></script>
+
+  <!-- 2. 课程引擎 -->
+  <script src="js/academy/lessonEngine.js"></script>
+
+  <!-- 3. UI 组件 -->
+  <script src="js/ui/toastSystem.js"></script>
+  <script src="js/ui/emptyStates.js"></script>
+
+  <!-- 4. 核心引擎 -->
+  <script src="js/eventBus.js"></script>
+  <script src="js/academy/notesView.js"></script>
+
+  <!-- 5. Memory Engine -->
+  <script src="js/memoryEngine.js"></script>
+  <script src="js/memoryTracker.js"></script>
+  <script src="js/memoryScheduler.js"></script>
+  <script src="js/memoryAnalytics.js"></script>
+  <script src="js/memoryReview.js"></script>
+  <script src="js/recallEngine.js"></script>
+  <script src="js/forgettingCurve.js"></script>
+  <script src="js/masteryEngine.js"></script>
+  <script src="js/adaptiveMemory.js"></script>
+  <script src="js/recommendationEngine.js"></script>
+  <script src="js/learnerModel.js"></script>
 
   <!-- ============================================================ -->
-  <!-- 启动脚本 — 极简，只负责触发启动                             -->
+  <!-- 🛠️ DevTools（Ctrl+Shift+L 打开性能覆盖层）                   -->
   <!-- ============================================================ -->
+  <script src="js/dev/runtimeProfiler.js"></script>
+  <script src="js/dev/performanceCollector.js"></script>
+  <script src="js/dev/runtimeReport.js"></script>
+  <script src="js/dev/developerOverlay.js"></script>
+
+  <!-- 6. 启动脚本 -->
   <script>
-    (function() {
-      'use strict';
+    console.log('🚀 Starting Law AI Academy...');
 
-      console.log('🚀 Law AI Academy — Season 4');
-      console.log('📋 Architecture: Learner Agency + Bounded Autonomy');
-      console.log('🛠️ DevPanel: Ctrl+Shift+L');
+    function initApp() {
+      console.log('✅ System ready, initializing App...');
 
-      // 如果 8 秒后还没有内容，强制显示 Dashboard
-      var fallbackTimer = setTimeout(function() {
-        var root = document.getElementById('law-runtime-root');
-        var placeholder = document.getElementById('loading-placeholder');
-        
-        if (root && root.innerHTML.trim() === '') {
-          console.warn('⚠️ SYSTEM_READY timeout — forcing render');
-          
-          if (window.LawAIApp?.Dashboard?.render) {
-            window.LawAIApp.Dashboard.render();
-          } else if (window.LawAIApp?.SystemComposer?.init) {
-            window.LawAIApp.SystemComposer.init();
-          }
-          
-          if (placeholder) {
-            placeholder.classList.add('hidden');
-          }
-        }
-      }, 8000);
-
-      // SYSTEM_READY 触发时清除 fallback 并隐藏加载占位
-      document.addEventListener('SYSTEM_READY', function() {
-        clearTimeout(fallbackTimer);
-        console.log('✅ SYSTEM_READY received');
-        
-        var placeholder = document.getElementById('loading-placeholder');
-        if (placeholder) {
-          setTimeout(function() { placeholder.classList.add('hidden'); }, 400);
-        }
-      });
-
-      // COMPOSER_MOUNTED 也是就绪信号
-      document.addEventListener('COMPOSER_MOUNTED', function() {
-        clearTimeout(fallbackTimer);
-        console.log('✅ COMPOSER_MOUNTED received');
-        
-        var placeholder = document.getElementById('loading-placeholder');
-        if (placeholder) {
-          setTimeout(function() { placeholder.classList.add('hidden'); }, 400);
-        }
-      });
-
-      // 如果 DOM 已完全加载，手动触发
-      if (document.readyState === 'complete') {
-        setTimeout(function() {
-          if (window.LawAIApp?.BootManager?.start && !window.LawAIApp.BootManager.isBooted?.()) {
-            console.log('🔥 Manual boot trigger');
-            window.LawAIApp.BootManager.start();
-          }
-        }, 500);
+      var bm = (window.LawAIApp && LawAIApp.BootManager) || window.bootManager;
+      if (bm && typeof bm.start === 'function' && !bm._booted) {
+        console.log('🔥 Auto-starting BootManager...');
+        bm.start();
+      } else if (bm && bm._booted) {
+        console.log('✅ BootManager already booted, skipping');
+      } else {
+        console.warn('⚠️ BootManager not available for auto-start');
       }
 
-    })();
+      if (window.LawAIApp && window.LawAIApp.SystemComposer) {
+        try {
+          window.LawAIApp.SystemComposer.init({});
+        } catch (err) {
+          console.warn('⚠️ SystemComposer init error:', err);
+        }
+      } else {
+        console.warn('⚠️ SystemComposer not found, retrying...');
+        setTimeout(initApp, 500);
+        return;
+      }
+
+      setTimeout(function() {
+        if (LawAIApp.Debug && LawAIApp.Debug.DevPanel && typeof LawAIApp.Debug.DevPanel.refresh === 'function') {
+          LawAIApp.Debug.DevPanel.refresh();
+        }
+      }, 300);
+
+      setTimeout(function() {
+        var el = document.getElementById('loading-placeholder');
+        if (el) {
+          el.style.opacity = '0';
+          setTimeout(function() {
+            el.style.display = 'none';
+          }, 800);
+        }
+      }, 500);
+    }
+
+    document.addEventListener('SYSTEM_READY', function(e) {
+      console.log('📡 SYSTEM_READY received');
+      initApp();
+    });
+
+    setTimeout(function() {
+      var root = document.getElementById('law-runtime-root');
+      if (root && root.innerHTML.trim() === '') {
+        console.warn('⚠️ Fallback: forcing init...');
+        initApp();
+      }
+    }, 5000);
+
+    setTimeout(function() {
+      var el = document.getElementById('loading-placeholder');
+      if (el && el.style.display !== 'none') {
+        el.style.opacity = '0';
+        setTimeout(function() {
+          el.style.display = 'none';
+        }, 800);
+      }
+    }, 7000);
   </script>
 
+</head>
+<body>
+  <div id="law-runtime-root"></div>
+
+  <!-- 加载提示 -->
+  <div id="loading-placeholder" style="
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #0b1220;
+    color: #94a3b8;
+    font-family: 'Inter', -apple-system, sans-serif;
+    text-align: center;
+    padding: 20px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    pointer-events: none;
+    transition: opacity 0.8s ease;
+  ">
+    <div style="font-size: 48px; margin-bottom: 16px;">🚀</div>
+    <h2 style="color: white; font-weight: 600; margin: 0 0 8px 0;">Loading Law AI Academy</h2>
+    <p style="margin: 0; font-size: 14px;">Preparing your learning environment...</p>
+    <div style="margin-top: 24px; width: 40px; height: 40px; border: 3px solid rgba(74,158,255,0.15); border-top-color: #4a9eff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+  </div>
+
   <noscript>
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#0b1220;color:white;text-align:center;padding:20px;font-family:'Inter',sans-serif;">
-      <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
-      <h2 style="font-size:20px;font-weight:600;">JavaScript 未启用</h2>
-      <p style="color:#94a3b8;margin-top:8px;">请启用 JavaScript 以使用 Law AI Academy</p>
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#0b1220;color:white;text-align:center;padding:20px;">
+      <h2>⚠️ JavaScript 未启用</h2>
+      <p style="color:#94a3b8;">请启用 JavaScript 以使用 Law AI Academy</p>
     </div>
   </noscript>
 </body>
