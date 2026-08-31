@@ -228,6 +228,77 @@ LawAIApp.Dashboard = {
     return 'Individual Engines';
   },
 
+  /**
+ * Part 68: 获取学习洞察 (从 ExperienceIntelligence)
+ */
+  _getLearningInsight: function() {
+    var ei = window.LawAIApp?.ExperienceIntelligence;
+    if (!ei || !ei.initialized) return null;
+
+    try {
+      var signals = ei.getSignals();
+      if (!signals || !signals.learningState) return null;
+
+      // 根据学习状态生成洞察
+      var state = signals.learningState;
+      var momentum = signals.momentum;
+      var summary = signals.summary || '';
+
+      // 只有有意义的状态才生成洞察
+      if (state === 'unknown' || state === 'idle') {
+        return null;
+      }
+
+      var insight = {
+        state: state,
+        momentum: momentum,
+        summary: summary,
+        message: this._buildInsightMessage(state, momentum, signals)
+      };
+
+      return insight;
+    } catch (e) {
+      console.warn('[Dashboard] Learning insight error:', e);
+      return null;
+    }
+  },
+
+  /**
+   * Part 68: 构建洞察消息
+   */
+  _buildInsightMessage: function(state, momentum, signals) {
+    var messages = {
+      'active': {
+        'strong': '🔥 You\'re on a roll! Keep the momentum going.',
+        'steady': '📊 Steady progress. Consistency is key.',
+        'slowing': '⏳ You\'ve started something great. Keep showing up.'
+      },
+      'near_completion': {
+        'strong': '🎯 Almost there! You\'re close to finishing this module.',
+        'steady': '📊 You\'re making solid progress toward completion.',
+        'slowing': '⏳ The finish line is near. One more push!'
+      },
+      'idle': {
+        'strong': '💪 You\'ve built great momentum. Ready to continue?',
+        'steady': '📊 You\'ve made good progress. What\'s next?',
+        'slowing': '🌱 Your learning journey is waiting. Take the next step.'
+      }
+    };
+
+    var stateMessages = messages[state];
+    if (!stateMessages) return 'Your learning journey is unfolding.';
+
+    var momentumKey = momentum || 'steady';
+    var message = stateMessages[momentumKey] || stateMessages['steady'];
+
+    // 如果有摘要，追加
+    if (signals.summary && signals.summary !== message) {
+      message += ' · ' + signals.summary;
+    }
+
+    return message;
+  }
+
   // ============================================================
   // HTML 构建 — Canon V2.0 第一印象重构
   // ============================================================
@@ -398,6 +469,24 @@ LawAIApp.Dashboard = {
             ">🔥 ${streakDisplay}</span>
           </div>
         </div>
+
+        // ── Part 68: Learning Insight ──
+        var insight = this._getLearningInsight();
+        var insightHTML = '';
+        if (insight) {
+          insightHTML = `
+            <div style="
+              background: rgba(74,158,255,0.04);
+              border-radius: 8px;
+              padding: 12px 16px;
+              margin-bottom: 12px;
+              border-left: 3px solid #4a9eff;
+            ">
+              <div style="font-size: 11px; color: #4a9eff; font-weight: 500; margin-bottom: 4px;">💡 Learning Insight</div>
+              <div style="font-size: 14px; color: #e2e8f0; line-height: 1.5;">${insight.message}</div>
+            </div>
+          `;
+        }
       </section>
 
       <!-- ========================================================== -->
@@ -649,6 +738,7 @@ LawAIApp.Dashboard = {
         <p style="margin:0 0 10px;font-size:11px;color:#64748b;font-weight:500;letter-spacing:0.6px;">
           📈 LEARNING INSIGHTS
         </p>
+        ${insightHTML}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
           <div>
             <span style="font-size:10px;color:#64748b;">Current Stage</span>
