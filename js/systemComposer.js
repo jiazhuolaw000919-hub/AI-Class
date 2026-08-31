@@ -160,55 +160,46 @@ LawAIApp.SystemComposer = {
         this.boot = boot || LawAIApp.bootStatus || {};
 
         if (this.initialized) {
-            console.log("🔄 SystemComposer already initialized, refreshing...");
-            this.refresh();
-            if (!this._mountedNotified) {
-                this._notifyMounted();
-            }
+            console.log("🔄 SystemComposer already initialized");
             return;
         }
 
         if (this._mounting) {
-            console.warn("⏳ SystemComposer is already mounting, skipping duplicate init");
+            console.warn("⏳ Already mounting");
             return;
         }
 
         this._mounting = true;
-        this._mountedNotified = false;
         console.log("🧩 SystemComposer V" + this.version + " initializing...");
 
         try {
             this.initialized = true;
             this.root = document.getElementById("law-runtime-root") || document.body;
-            this._cacheDOM();
 
             var existingRoot = document.getElementById("systemComposerRoot");
             if (existingRoot) {
-                console.log("🔄 systemComposerRoot already exists, reusing...");
+                console.log("🔄 systemComposerRoot already exists");
             } else {
-                // 🔥 立即渲染
+                // 🔥 立即渲染，无延迟
                 this._renderMainUI();
-                this._cacheDOM();
             }
 
-            // 延迟注册面板
-            this._schedulePanelRegistration();
-
-            // 延迟刷新
-            var self = this;
-            setTimeout(function() {
-                self.refresh();
-                console.log("✅ SystemComposer panels refreshed");
-            }, 300);
-
-            setTimeout(function() {
-                self._notifyMounted();
-            }, 100);
+            // 🔥 立即注册面板
+            this.panels = {
+                learning: function() { this.mountLearning(); }.bind(this),
+                workspace: function() { this.mountWorkspace(); }.bind(this),
+                runtime: function() { this.mountRuntime(); }.bind(this),
+                modules: function() { this.mountRuntimeModules(); }.bind(this)
+            };
+            this._panelsRegistered = true;
 
             this._firstPaintComplete = true;
             this._hideLoader();
 
-            console.log("✅ SystemComposer V" + this.version + " initialized successfully");
+            // 🔥 立即通知 mounted（无延迟）
+            this._notifyMounted();
+
+            console.log("✅ SystemComposer initialized");
 
         } catch (err) {
             console.error("❌ SystemComposer init failed:", err);
@@ -218,13 +209,11 @@ LawAIApp.SystemComposer = {
         }
     },
 
-    _hideLoader: function() {
+    __hideLoader: function() {
         var loader = document.getElementById('loading-placeholder');
         if (loader) {
-            loader.style.opacity = '0';
-            setTimeout(function() {
-                loader.style.display = 'none';
-            }, 800);
+            // 🔥 立即隐藏，无 800ms 延迟
+            loader.style.display = 'none';
             console.log('🔒 Global loader hidden');
         }
     },
