@@ -551,6 +551,21 @@
                     }
 
                     // ============================================================
+                    // 14. PART 65 — LEARNING JOURNEY EXPERIENCE CONTRACT
+                    // ============================================================
+
+                    if (window.LawAIApp?.ExperienceContract && !window.LawAIApp.ExperienceContract.initialized) {
+                        try {
+                            window.LawAIApp.ExperienceContract.init();
+                            console.log('[Academy] ✅ ExperienceContract initialized (Part 65)');
+                        } catch (e) {
+                            console.warn('[Academy] ⚠️ ExperienceContract init failed:', e);
+                        }
+                    } else if (window.LawAIApp?.ExperienceContract && window.LawAIApp.ExperienceContract.initialized) {
+                        console.log('[Academy] ✅ ExperienceContract already initialized');
+                    }
+
+                    // ============================================================
                     // 5. LEGACY — Learning Journey Adapter
                     // ============================================================
                     if (window.LawAIApp?.LearningJourneyAdapter && !window.LawAIApp.LearningJourneyAdapter.initialized) {
