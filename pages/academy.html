@@ -521,6 +521,21 @@
                     }
 
                     // ============================================================
+                    // 12. PART 63 — BOUNDED AUTONOMY & JOURNEY ORCHESTRATION
+                    // ============================================================
+
+                    if (window.LawAIApp?.JourneyOrchestrator && !window.LawAIApp.JourneyOrchestrator.initialized) {
+                        try {
+                            window.LawAIApp.JourneyOrchestrator.init();
+                            console.log('[Academy] ✅ JourneyOrchestrator initialized (Part 63)');
+                        } catch (e) {
+                            console.warn('[Academy] ⚠️ JourneyOrchestrator init failed:', e);
+                        }
+                    } else if (window.LawAIApp?.JourneyOrchestrator && window.LawAIApp.JourneyOrchestrator.initialized) {
+                        console.log('[Academy] ✅ JourneyOrchestrator already initialized');
+                    }
+
+                    // ============================================================
                     // 5. LEGACY — Learning Journey Adapter
                     // ============================================================
                     if (window.LawAIApp?.LearningJourneyAdapter && !window.LawAIApp.LearningJourneyAdapter.initialized) {
