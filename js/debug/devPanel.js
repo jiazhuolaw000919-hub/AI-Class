@@ -134,6 +134,11 @@ LawAIApp.Debug.DevPanel = {
             if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.TransferPanel) {
                 this.registerPanel('transfer', LawAIApp.Debug.Panels.TransferPanel, 'transfer-panel-placeholder', 800);
         }
+
+        // ── Part 62: Calibration Panel ──
+            if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.CalibrationPanel) {
+                this.registerPanel('calibration', LawAIApp.Debug.Panels.CalibrationPanel, 'calibration-panel-placeholder', 850);
+        }
     },
 
     // ============================================================
