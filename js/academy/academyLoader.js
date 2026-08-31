@@ -427,7 +427,9 @@
           { id: 'calibrationRecommender', path: '/js/academy/calibrationRecommender.js' },
           { id: 'calibrationPanel', path: '/js/debug/panels/calibrationPanel.js' },
           { id: 'journeyOrchestrator', path: '/js/academy/journeyOrchestrator.js' },
-          { id: 'journeyPanel', path: '/js/debug/panels/journeyPanel.js' }
+          { id: 'journeyPanel', path: '/js/debug/panels/journeyPanel.js' },
+          { id: 'agencySupport', path: '/js/academy/agencySupport.js' },
+          { id: 'agencyPanel', path: '/js/debug/panels/agencyPanel.js' }
         ]
       };
     }
