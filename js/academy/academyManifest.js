@@ -460,6 +460,13 @@
                 description: 'Experience Contract (Integration Layer)',
                 required: false
             },
+            // ── Part 66: Cross-Surface Integration & Authority Validation ──
+            {
+                id: 'surfaceIntegration',
+                path: '/js/academy/surfaceIntegration.js',
+                description: 'Surface Integration (Authority Validation)',
+                required: false
+            },
         ],
 
         // ============================================================
@@ -586,6 +593,15 @@
                 'learningContext',
                 'experienceIntelligence',
                 'agencySupport'
+            ],
+
+        // ── Part 66: Cross-Surface Integration & Authority Validation ──
+            surfaceIntegration: [
+                'experienceContract',
+                'journeyOrchestrator',
+                'decisionExperience',
+                'courseRegistry',
+                'lessonEngine'
             ],
 
         // ============================================================
