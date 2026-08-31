@@ -489,7 +489,7 @@ LawAIApp.Dashboard = {
           { icon: '📓', label: 'Notes', url: '/pages/academy.html#notes' },
           { icon: '🧠', label: 'Intelligence', url: null },
           { icon: '💬', label: 'Chat', url: null },
-          { icon: '📅', label: 'Planner', url: null },
+          { icon: '📅', label: 'Calendar', url: null },
           { icon: '🛠️', label: 'Tools', url: null },
           { icon: '📋', label: 'Prompts', url: null },
           { icon: '🎯', label: 'Goals', url: null },
