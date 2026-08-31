@@ -566,6 +566,21 @@
                     }
 
                     // ============================================================
+                    // 15. PART 66 — CROSS-SURFACE INTEGRATION & AUTHORITY VALIDATION
+                    // ============================================================
+
+                    if (window.LawAIApp?.SurfaceIntegration && !window.LawAIApp.SurfaceIntegration.initialized) {
+                        try {
+                            window.LawAIApp.SurfaceIntegration.init();
+                            console.log('[Academy] ✅ SurfaceIntegration initialized (Part 66)');
+                        } catch (e) {
+                            console.warn('[Academy] ⚠️ SurfaceIntegration init failed:', e);
+                        }
+                    } else if (window.LawAIApp?.SurfaceIntegration && window.LawAIApp.SurfaceIntegration.initialized) {
+                        console.log('[Academy] ✅ SurfaceIntegration already initialized');
+                    }
+
+                    // ============================================================
                     // 5. LEGACY — Learning Journey Adapter
                     // ============================================================
                     if (window.LawAIApp?.LearningJourneyAdapter && !window.LawAIApp.LearningJourneyAdapter.initialized) {
