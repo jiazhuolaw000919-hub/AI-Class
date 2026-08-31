@@ -149,6 +149,11 @@ LawAIApp.Debug.DevPanel = {
             if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.AgencyPanel) {
                 this.registerPanel('agency', LawAIApp.Debug.Panels.AgencyPanel, 'agency-panel-placeholder', 950);
         }
+
+        // ── Part 66: Surface Integration Panel ──
+            if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.SurfacePanel) {
+                this.registerPanel('surface', LawAIApp.Debug.Panels.SurfacePanel, 'surface-panel-placeholder', 950);
+        }
     },
 
     // ============================================================
