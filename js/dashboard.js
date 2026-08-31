@@ -348,6 +348,21 @@ LawAIApp.Dashboard = {
     // ---- 推荐 ----
     const recommendations = this._getRecommendations();
 
+    // ── Part 68: Learning Insight ──
+    const insight = this._getLearningInsight();
+    const insightHTML = insight ? `
+      <div style="
+        background: rgba(74,158,255,0.04);
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 12px;
+        border-left: 3px solid #4a9eff;
+      ">
+        <div style="font-size: 11px; color: #4a9eff; font-weight: 500; margin-bottom: 4px;">💡 Learning Insight</div>
+        <div style="font-size: 14px; color: #e2e8f0; line-height: 1.5;">${insight.message}</div>
+      </div>
+    ` : '';
+
     // ============================================================
     // 统一卡片设计语言
     // ============================================================
@@ -468,25 +483,7 @@ LawAIApp.Dashboard = {
               font-weight: 500;
             ">🔥 ${streakDisplay}</span>
           </div>
-        </div>
-
-        // ── Part 68: Learning Insight ──
-        var insight = this._getLearningInsight();
-        var insightHTML = '';
-        if (insight) {
-          insightHTML = `
-            <div style="
-              background: rgba(74,158,255,0.04);
-              border-radius: 8px;
-              padding: 12px 16px;
-              margin-bottom: 12px;
-              border-left: 3px solid #4a9eff;
-            ">
-              <div style="font-size: 11px; color: #4a9eff; font-weight: 500; margin-bottom: 4px;">💡 Learning Insight</div>
-              <div style="font-size: 14px; color: #e2e8f0; line-height: 1.5;">${insight.message}</div>
-            </div>
-          `;
-        }
+        </div>       
       </section>
 
       <!-- ========================================================== -->
