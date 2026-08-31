@@ -153,29 +153,27 @@ window.App = {
             return;
         }
 
-        console.log("⚡ Rendering immediately (no waiting)...");
+        console.log("⚡ Rendering immediately (no skeleton, no loading)...");
 
-        if (LawAIApp.DevTools?.RuntimeProfiler) {
-            LawAIApp.DevTools.RuntimeProfiler.recordRender('dashboard');
+        // 🔥 直接尝试渲染 S4 Dashboard
+        if (this._renderS4Dashboard()) {
+            console.log("✅ Dashboard rendered directly");
+            return;
         }
 
+        // 🔥 如果没有 Dashboard，尝试 SystemComposer
         var composer = safeGet(window, 'LawAIApp.SystemComposer');
-
         if (composer && typeof composer.init === 'function') {
             try {
-                var result = composer.init(this._boot);
-                if (result && typeof result.then === 'function') {
-                    result.catch(function(err) {
-                        console.warn('⚠️ Composer init async error:', err);
-                    });
-                }
-                console.log("✅ Composer initiated (immediate)");
+                composer.init(this._boot);
+                console.log("✅ Composer initiated");
                 return;
             } catch (err) {
-                console.warn("⚠️ Composer init immediate error:", err);
+                console.warn("⚠️ Composer init error:", err);
             }
         }
 
+        // ⚠️ 最后才显示 skeleton（但改为立即消失）
         this._showMinimalSkeleton(root);
     },
 
