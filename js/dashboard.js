@@ -1933,6 +1933,12 @@ LawAIApp.Dashboard = {
   _buildContinuityHTML: function() {
       var context = this._getContinuityContext();
 
+      // 🔥 添加这些常量定义
+      const CARD_RADIUS = '16px';
+      const CARD_BG = 'rgba(255,255,255,0.025)';
+      const CARD_BORDER = '1px solid rgba(255,255,255,0.04)';
+      const CARD_PADDING = '20px';
+
       var html = '';
   
       // 如果没有内容，不显示卡片
