@@ -191,6 +191,220 @@ LawAIApp.Dashboard = {
     return states[state] || states['not_started'];
   },
 
+    // ============================================================
+    // Part 74: Learning Loop — INSIGHT → CHOICE → OUTCOME → CONTEXT
+    // ============================================================
+
+    _getLearningLoopData: function() {
+      var loopData = {
+        insight: null,
+        choices: [],
+        outcome: null,
+        context: null,
+        hasActiveLoop: false
+      };
+
+      // 1. INSIGHT: 从 ExperienceIntelligence 获取
+      var ei = window.LawAIApp?.ExperienceIntelligence;
+      if (ei && ei.initialized) {
+        try {
+          var signals = ei.getSignals();
+          if (signals && signals.learningState) {
+            loopData.insight = {
+              message: this._buildInsightMessage(signals.learningState, signals.momentum, signals),
+              state: signals.learningState,
+              momentum: signals.momentum || 'steady',
+              confidence: signals.confidence || 'medium'
+            };
+            loopData.hasActiveLoop = true;
+          }
+        } catch (e) {
+          console.warn('[Dashboard][Part74] Insight error:', e);
+        }
+      }
+
+      // 2. CHOICES: 从 DecisionExperience 获取
+      var de = window.LawAIApp?.DecisionExperience;
+      if (de && de.initialized) {
+        try {
+          var options = de.getOptions({ includeDismissed: false, maxCount: 4 });
+          if (options && options.length > 0) {
+            loopData.choices = options.map(function(opt) {
+              return {
+                id: opt.id,
+                title: opt.title || 'Option',
+                summary: opt.summary || '',
+                type: opt.type || 'ACTION',
+                isPrimary: opt.isPrimary || false,
+                reason: opt.reason || null
+              };
+            });
+            loopData.hasActiveLoop = true;
+          }
+        } catch (e) {
+          console.warn('[Dashboard][Part74] Choices error:', e);
+        }
+      }
+
+      // 3. OUTCOME: 从 ActionTracker 获取最近的完成动作
+      var at = window.LawAIApp?.ActionTracker;
+      if (at && at.initialized) {
+        try {
+          var history = at.getHistory(3);
+          if (history && history.length > 0) {
+            var recent = history[0];
+            if (recent && recent.type === 'COMPLETE') {
+              loopData.outcome = {
+                type: recent.type,
+                target: recent.target || 'Learning activity',
+                timestamp: recent.timestamp || Date.now(),
+                status: 'completed',
+                displayText: this._formatOutcomeDisplay(recent)
+              };
+            } else if (recent && recent.type === 'START') {
+              loopData.outcome = {
+                type: recent.type,
+                target: recent.target || 'Learning activity',
+                timestamp: recent.timestamp || Date.now(),
+                status: 'in_progress',
+                displayText: this._formatOutcomeDisplay(recent)
+              };
+            } else {
+              loopData.outcome = {
+                type: 'pending',
+                target: null,
+                status: 'waiting',
+                displayText: 'Waiting for your next action...'
+              };  
+            }
+          } else {
+            loopData.outcome = {
+              type: 'none',
+              target: null,
+              status: 'idle',
+              displayText: 'Complete an action to see outcomes here.'
+            };  
+          }
+        } catch (e) {
+          console.warn('[Dashboard][Part74] Outcome error:', e);
+        }
+      } else {
+        loopData.outcome = {
+          type: 'none',
+          target: null,
+          status: 'unavailable',
+          displayText: 'Action tracking is initializing...'
+        };
+      }
+
+      // 4. CONTEXT: 从 LearningContext 获取
+      var lc = window.LawAIApp?.LearningContext;
+      if (lc && lc.initialized) {
+        try {
+          var ctx = lc.getContext();
+          if (ctx) {
+            var contextParts = [];
+            if (ctx.course) contextParts.push(ctx.course.title || 'Current Course');
+            if (ctx.module) contextParts.push(ctx.module.name || 'Current Module');
+            if (ctx.lesson) contextParts.push(ctx.lesson.name || 'Current Lesson');
+            
+            loopData.context = {
+              course: ctx.course || null,
+              module: ctx.module || null,
+              lesson: ctx.lesson || null,
+              breadcrumb: contextParts.join(' → ') || 'Explore the Academy',
+              lastActivity: ctx.lastActivity || null,
+              hasActiveSession: ctx.status?.hasActiveSession || false
+            };
+            if (ctx.course || ctx.module || ctx.lesson) {
+              loopData.hasActiveLoop = true;
+            }
+          }
+        } catch (e) {
+          console.warn('[Dashboard][Part74] Context error:', e);
+        }
+      }
+
+      return loopData;
+    },
+
+    /**
+     * 格式化 Outcome 显示
+     */
+    _formatOutcomeDisplay: function(action) {
+      if (!action) return 'Action recorded';
+      var emoji = action.type === 'COMPLETE' ? '✅' : 
+                  action.type === 'START' ? '▶️' : 
+                  action.type === 'DISMISS' ? '✕' : '📌';
+      var target = action.target || 'Learning activity';
+      var timeAgo = this._getTimeAgo(action.timestamp);
+      return emoji + ' ' + target + (timeAgo ? ' (' + timeAgo + ')' : '');
+    },
+
+    /**
+     * 获取相对时间（复用 AcademyView 的逻辑）
+     */
+    _getTimeAgo: function(timestamp) {
+      if (!timestamp) return '';
+      try {
+        var now = Date.now();
+        var then = new Date(timestamp).getTime();
+        var diff = now - then;
+        if (diff < 0) return '';
+        var minutes = Math.floor(diff / 60000);
+        var hours = Math.floor(diff / 3600000);
+        var days = Math.floor(diff / 86400000);
+        if (minutes < 1) return 'Just now';
+        if (minutes < 60) return minutes + 'm ago';
+        if (hours < 24) return hours + 'h ago';
+        if (days < 7) return days + 'd ago';
+        if (days < 30) return Math.floor(days / 7) + 'w ago';
+        return new Date(timestamp).toLocaleDateString();
+      } catch (e) { return ''; }
+    },
+
+    /**
+     * 构建洞察消息（从 _buildInsightMessage 复用或简化）
+     */
+    _buildInsightMessage: function(state, momentum, signals) {
+      var messages = {
+        'active': {
+          'strong': '🔥 You\'re on a roll! Keep the momentum going.',
+          'steady': '📊 Steady progress. Consistency is key.',
+          'slowing': '⏳ You\'ve started something great. Keep showing up.'
+        },
+        'near_completion': {
+          'strong': '🎯 Almost there! You\'re close to finishing this module.',
+          'steady': '📊 You\'re making solid progress toward completion.',
+          'slowing': '⏳ The finish line is near. One more push!'
+        },
+        'idle': {
+          'strong': '💪 You\'ve built great momentum. Ready to continue?',
+          'steady': '📊 You\'ve made good progress. What\'s next?',
+          'slowing': '🌱 Your learning journey is waiting. Take the next step.'
+        },
+        'learning': {
+          'strong': '🚀 You\'re building knowledge actively.',
+          'steady': '📚 You\'re making steady progress.',
+          'slowing': '🌱 Every step counts. Keep going.'
+        },
+        'returning': {
+          'strong': '👋 Welcome back! Your learning is waiting.',
+          'steady': '📖 Ready to continue where you left off?',
+          'slowing': '🌱 Welcome back. Take the next step.'
+        },
+        'exploring': {
+          'strong': '🔍 You\'re exploring. Find something that clicks.',
+          'steady': '🧭 Exploring is part of the journey.',
+          'slowing': '🌱 Take your time exploring.'
+        }
+      };
+      var stateMessages = messages[state];
+      if (!stateMessages) return 'Your learning journey is unfolding.';
+      var momentumKey = momentum || 'steady';
+      return stateMessages[momentumKey] || stateMessages['steady'];
+    },
+
   // ============================================================
   // 数据获取方法
   // ============================================================
