@@ -1589,7 +1589,7 @@ LawAIApp.Dashboard = {
       ${this._renderLearningLoop()}
 
       <!-- 📚 LEARNING CONTINUITY (Part 73) -->
-      ${continuityHTML}
+      ${this._buildContinuityHTML()}
 
       <!-- 🔒 Authority Status -->
       ${authorityHTML}
