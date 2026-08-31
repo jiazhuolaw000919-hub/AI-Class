@@ -1,6 +1,7 @@
 // ================================================================
 // dashboard.js — Part 70: Learning Experience Layer
 // 从 "数据展示" 变成 "学习体验"
+// EXPLORE 导航：Academy/Notes 有功能，其他显示 Coming Soon
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -16,7 +17,6 @@ LawAIApp.Dashboard = {
     let progress, streakData, levelInfo, achievements, contractState;
     let learnerState = 'unknown';
 
-    // 获取学习上下文状态
     if (lc && lc.getContext) {
       try {
         const ctx = lc.getContext();
@@ -87,7 +87,6 @@ LawAIApp.Dashboard = {
     const lastCompletedDate = this._getLastCompletedDate(streakData);
     const noteCount = this._getNoteCount();
 
-    // ── Part 70: 状态感知 Hero ──
     const heroData = this._getHeroData(learnerState, progress, streakData);
 
     const html = this._buildHTML({
@@ -168,7 +167,6 @@ LawAIApp.Dashboard = {
       }
     };
 
-    // 特殊状态: 完成度 >= 80% 且没有当前活动
     if (completed >= 292 && state !== 'active' && state !== 'learning') {
       return {
         greeting: 'You\'re making great progress.',
@@ -179,7 +177,6 @@ LawAIApp.Dashboard = {
       };
     }
 
-    // 特殊状态: 全部完成
     if (completed >= 365) {
       return {
         greeting: '🏆 You\'ve completed everything!',
@@ -190,7 +187,6 @@ LawAIApp.Dashboard = {
       };
     }
 
-    // 默认状态
     return states[state] || states['not_started'];
   },
 
@@ -330,16 +326,13 @@ LawAIApp.Dashboard = {
         return null;
       }
 
-      var insight = {
+      return {
         state: state,
         momentum: momentum,
         summary: summary,
         message: this._buildInsightMessage(state, momentum, signals)
       };
-
-      return insight;
     } catch (e) {
-      console.warn('[Dashboard] Learning insight error:', e);
       return null;
     }
   },
@@ -403,13 +396,11 @@ LawAIApp.Dashboard = {
     const completedCount = progress.completedLessons?.length || 0;
     const totalCount = 365;
 
-    // ── Part 70: 状态感知 Hero ──
     const heroGreeting = heroData.greeting || 'Ready to learn?';
     const heroMessage = heroData.message || 'Explore the Academy and begin your journey.';
     const ctaText = heroData.cta || 'Explore Academy';
     const ctaLink = heroData.ctaLink || '/pages/academy.html';
 
-    // ── Part 70: New Learner Streak ──
     const streak = streakData.currentStreak || 0;
     const streakDisplay = streak > 0 ? '🔥 ' + streak + 'd' : '🌱 Start your first streak';
 
@@ -442,7 +433,6 @@ LawAIApp.Dashboard = {
     const CARD_BORDER = '1px solid rgba(255,255,255,0.04)';
     const CARD_PADDING = '20px';
 
-    // ── Part 70: 只在调试模式显示 Authority Status ──
     const isDebugMode = true;
     const authorityHTML = isDebugMode ? `
       <section style="
@@ -473,7 +463,7 @@ LawAIApp.Dashboard = {
       font-family: 'Inter', -apple-system, sans-serif;
     ">
 
-      <!-- 🔥 EXPLORE 导航 -->
+      <!-- 🔥 EXPLORE 导航（有功能的跳转，没功能的 Coming Soon） -->
       <section style="
         margin-bottom: 16px;
         padding: 14px 18px;
@@ -495,19 +485,23 @@ LawAIApp.Dashboard = {
           margin-right: 6px;
         ">EXPLORE</span>
         ${[
-          { icon: '📚', label: 'Academy', route: 'academy' },
-          { icon: '🧠', label: 'Intelligence', route: 'intelligence' },
-          { icon: '📓', label: 'Notes', route: 'notes' },
-          { icon: '💬', label: 'Chat', route: 'conversations' },
-          { icon: '📅', label: 'Planner', route: 'planner' },
-          { icon: '🛠️', label: 'Tools', route: 'tools' },
-          { icon: '📋', label: 'Prompts', route: 'prompt' },
-          { icon: '🎯', label: 'Goals', route: 'goal-intelligence' },
-          { icon: '🧠', label: 'Mentor', route: 'mentor-brain' },
-          { icon: '🚀', label: 'Showcase', route: 'career-showcase' }
+          { icon: '📚', label: 'Academy', url: '/pages/academy.html' },
+          { icon: '📓', label: 'Notes', url: '/pages/academy.html#notes' },
+          { icon: '🧠', label: 'Intelligence', url: null },
+          { icon: '💬', label: 'Chat', url: null },
+          { icon: '📅', label: 'Planner', url: null },
+          { icon: '🛠️', label: 'Tools', url: null },
+          { icon: '📋', label: 'Prompts', url: null },
+          { icon: '🎯', label: 'Goals', url: null },
+          { icon: '🧠', label: 'Mentor', url: null },
+          { icon: '🚀', label: 'Showcase', url: null }
         ].map(function(btn) {
+          var onClick = btn.url 
+            ? "window.location.href='" + btn.url + "'"
+            : "if(window.LawAIApp&&window.LawAIApp.Toast&&typeof window.LawAIApp.Toast.info==='function'){window.LawAIApp.Toast.info('" + btn.label + " coming soon! 🚧')}else{alert('" + btn.label + " coming soon! 🚧')}";
+          
           return `
-          <button onclick="LawAIApp.Router?.navigate('${btn.route}')" style="
+          <button onclick="${onClick}" style="
             padding: 8px 18px;
             background: transparent;
             border: none;
@@ -573,7 +567,6 @@ LawAIApp.Dashboard = {
             background-clip: text;
           ">${userName}</h1>
 
-          <!-- Part 70: 状态感知 Hero 消息 -->
           <p style="
             margin: 0 0 16px;
             font-size: 15px;
@@ -582,7 +575,6 @@ LawAIApp.Dashboard = {
             line-height: 1.5;
           ">${heroMessage}</p>
 
-          <!-- Part 70: 状态感知 CTA -->
           <a href="${ctaLink}" style="
             display: inline-block;
             padding: 12px 36px;
@@ -598,7 +590,6 @@ LawAIApp.Dashboard = {
             ${ctaText} →
           </a>
 
-          <!-- Part 70: Metrics 次要化 (更小、更轻) -->
           <div style="
             display: flex;
             gap: 16px;
@@ -615,7 +606,7 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
-      <!-- 🔥 CONTINUE LEARNING — 简化版 -->
+      <!-- 🔥 CONTINUE LEARNING -->
       ${completedCount === 0 ? `
       <div style="
         background: ${CARD_BG};
@@ -690,7 +681,7 @@ LawAIApp.Dashboard = {
       </div>
       `}
 
-      <!-- 📊 PROGRESS — 有上下文 -->
+      <!-- 📊 PROGRESS -->
       <section style="
         background: ${CARD_BG};
         border-radius: ${CARD_RADIUS};
@@ -779,7 +770,7 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
-      <!-- 🔒 Authority Status (仅调试模式) -->
+      <!-- 🔒 Authority Status -->
       ${authorityHTML}
 
       <!-- FOOTER -->
