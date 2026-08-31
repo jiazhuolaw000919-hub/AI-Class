@@ -139,6 +139,11 @@ LawAIApp.Debug.DevPanel = {
             if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.CalibrationPanel) {
                 this.registerPanel('calibration', LawAIApp.Debug.Panels.CalibrationPanel, 'calibration-panel-placeholder', 850);
         }
+
+        // ── Part 63: Journey Orchestration Panel ──
+            if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.JourneyPanel) {
+                this.registerPanel('journey', LawAIApp.Debug.Panels.JourneyPanel, 'journey-panel-placeholder', 900);
+        }
     },
 
     // ============================================================
