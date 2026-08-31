@@ -429,7 +429,8 @@
           { id: 'journeyOrchestrator', path: '/js/academy/journeyOrchestrator.js' },
           { id: 'journeyPanel', path: '/js/debug/panels/journeyPanel.js' },
           { id: 'agencySupport', path: '/js/academy/agencySupport.js' },
-          { id: 'agencyPanel', path: '/js/debug/panels/agencyPanel.js' }
+          { id: 'agencyPanel', path: '/js/debug/panels/agencyPanel.js' },
+          { id: 'experienceContract', path: '/js/academy/experienceContract.js' }
         ]
       };
     }
