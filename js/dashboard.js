@@ -1,6 +1,7 @@
 // ================================================================
 // dashboard.js – Phase 1 Dashboard Recovery → First Impression Canon V2.0
 // 保留所有原有功能，重构视觉层次：Hero → Continue → Progress → Recommendations
+// Part 65/66: 集成 Experience Contract + Journey Orchestrator
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -26,18 +27,26 @@ LawAIApp.Dashboard = {
       try {
         const journeyState = orchestrator.getJourneyState({});
         contractState = journeyState;
-        progress = { 
-          xp: 0, 
-          completedLessons: [], 
-          currentLesson: 1, 
-          completionPercent: 0, 
-          currentStage: 'Foundation' 
-        };
-        // 从 journeyState 提取数据
-        if (journeyState.currentContext) {
+        
+        // 尝试从 journeyState 提取进度
+        if (journeyState.currentContext && journeyState.currentContext.lesson) {
           const ctx = journeyState.currentContext;
-          progress.currentLesson = ctx.lesson?.id || 1;
-          progress.currentStage = ctx.course?.title || 'Foundation';
+          progress = {
+            xp: 0,
+            completedLessons: [],
+            currentLesson: parseInt(ctx.lesson.id) || 1,
+            completionPercent: 0,
+            currentStage: ctx.course?.title || 'Foundation'
+          };
+          // 如果有 stats，使用它
+          if (journeyState.stats) {
+            progress.completedLessons = journeyState.stats.completedLessons || [];
+            progress.completionPercent = journeyState.stats.completionPercent || 0;
+            progress.xp = journeyState.stats.xp || 0;
+          }
+        } else {
+          // fallback
+          progress = this._getProgress();
         }
       } catch (e) {
         console.warn('[Dashboard] JourneyOrchestrator error, falling back:', e);
@@ -91,28 +100,9 @@ LawAIApp.Dashboard = {
       currentStage,
       lastCompletedDate,
       dailyBriefingHTML,
-      allLessons
+      allLessons,
+      noteCount
     });
-
-    <!-- ========================================================== -->
-    <!-- 🔒 Authority Status (Developer Info)                      -->
-    <!-- ========================================================== -->
-    <section style="
-      background: rgba(255,255,255,0.015);
-      border-radius: 8px;
-      padding: 8px 12px;
-      border: 1px solid rgba(255,255,255,0.02);
-      margin-bottom: 12px;
-      font-size: 9px;
-      color: #475569;
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    ">
-      <span>📋 Authority: Course + Module + Lesson</span>
-      <span>⚡ State: ${this._getAuthorityStatus()}</span>
-      <span>📊 Source: ${this._getStateSource()}</span>
-    </section>
 
     const app = document.getElementById('app') || document.getElementById('law-runtime-root');
     if (app) {
@@ -123,7 +113,7 @@ LawAIApp.Dashboard = {
   },
 
   // ============================================================
-  // 数据获取方法（全部保留，不改）
+  // 数据获取方法
   // ============================================================
 
   _getProgress: function() {
@@ -236,12 +226,10 @@ LawAIApp.Dashboard = {
       return 'Journey Orchestrator';
     }
     return 'Individual Engines';
-  }
+  },
 
   // ============================================================
   // HTML 构建 — Canon V2.0 第一印象重构
-  // 视觉层次：Hero(40%) → Continue Learning → Today's Progress → Recommendations
-  // 所有卡片统一圆角 16px，统一背景色，统一边框
   // ============================================================
 
   _buildHTML: function(data) {
@@ -256,7 +244,8 @@ LawAIApp.Dashboard = {
       currentStage,
       lastCompletedDate,
       dailyBriefingHTML,
-      allLessons
+      allLessons,
+      noteCount
     } = data;
 
     // ---- 问候语 ----
@@ -282,14 +271,14 @@ LawAIApp.Dashboard = {
     const nextTitle = this._getLessonTitle(nextDay);
     const nextSummary = this._getLessonSummary(nextDay);
 
-    // ---- 周挑战（保留变量，原逻辑不动） ----
+    // ---- 周挑战 ----
     const challenge = this._getWeeklyChallenge();
 
-    // ---- 推荐（保留变量，传给 _loadRecommendations 用） ----
+    // ---- 推荐 ----
     const recommendations = this._getRecommendations();
 
     // ============================================================
-    // 统一卡片设计语言 (Canon Rule 004)
+    // 统一卡片设计语言
     // ============================================================
     const CARD_RADIUS = '16px';
     const CARD_BG = 'rgba(255,255,255,0.025)';
@@ -297,7 +286,7 @@ LawAIApp.Dashboard = {
     const CARD_PADDING = '20px';
 
     // ============================================================
-    // HTML 模板（Canon V2.0 第一印象重构）
+    // HTML 模板
     // ============================================================
     return `
     <div id="dashboard-root" style="
@@ -309,8 +298,7 @@ LawAIApp.Dashboard = {
     ">
 
       <!-- ========================================================== -->
-      <!-- 🔥 HERO — 占首屏 38-42%，唯一视觉焦点 (Rule 001)            -->
-      <!-- 纯净：只有问候 + 名字 + 激励语 + 3 个轻量徽章               -->
+      <!-- 🔥 HERO — 占首屏 38-42%，唯一视觉焦点                      -->
       <!-- ========================================================== -->
       <section id="dashboard-hero" style="
         min-height: 38vh;
@@ -325,7 +313,6 @@ LawAIApp.Dashboard = {
         isolation: isolate;
         animation: heroFadeIn 0.6s ease;
       ">
-        <!-- 背景光晕（柔和，不抢戏） -->
         <div style="
           position: absolute;
           top: 50%;
@@ -351,8 +338,6 @@ LawAIApp.Dashboard = {
         "></div>
 
         <div style="position:relative;z-index:1;">
-
-          <!-- 问候语（轻量小字） -->
           <p style="
             margin: 0 0 4px;
             font-size: 14px;
@@ -361,7 +346,6 @@ LawAIApp.Dashboard = {
             font-weight: 400;
           ">${greeting}</p>
 
-          <!-- 名字（Hero 核心，大字号） -->
           <h1 style="
             margin: 0 0 14px;
             font-size: clamp(28px, 5vw, 42px);
@@ -374,7 +358,6 @@ LawAIApp.Dashboard = {
             background-clip: text;
           ">${userName}</h1>
 
-          <!-- 激励语 -->
           <p style="
             margin: 0 0 22px;
             font-size: 15px;
@@ -383,7 +366,6 @@ LawAIApp.Dashboard = {
             line-height: 1.5;
           ">${motivation}</p>
 
-          <!-- 状态徽章（轻量，不抢名字焦点） -->
           <div style="
             display: flex;
             gap: 8px;
@@ -419,9 +401,34 @@ LawAIApp.Dashboard = {
       </section>
 
       <!-- ========================================================== -->
-      <!-- 🔥 CONTINUE LEARNING — 第二视觉重点，紧贴 Hero (Rule 002)    -->
-      <!-- 更大卡片，一个主操作按钮                                     -->
+      <!-- 🔥 CONTINUE LEARNING — 第二视觉重点                        -->
       <!-- ========================================================== -->
+      ${completedCount === 0 ? `
+      <!-- 空状态 -->
+      <div style="
+        background: ${CARD_BG};
+        border-radius: ${CARD_RADIUS};
+        padding: 32px 24px;
+        border: ${CARD_BORDER};
+        text-align: center;
+        margin-bottom: 24px;
+      ">
+        <div style="font-size: 48px; margin-bottom: 12px;">🚀</div>
+        <h3 style="font-size: 18px; font-weight: 600; margin: 0 0 8px;">Start Your Learning Journey</h3>
+        <p style="color: #94a3b8; font-size: 14px; margin: 0 0 16px;">Explore the Academy to begin building your AI knowledge.</p>
+        <button onclick="window.location.href='/pages/academy.html'" style="
+          padding: 10px 32px;
+          background: #4a9eff;
+          border: none;
+          border-radius: 100px;
+          color: white;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          font-family: inherit;
+        ">Explore Academy →</button>
+      </div>
+      ` : `
       <a href="${lessonLink}" id="continue-learning" style="
         display: block;
         background: linear-gradient(135deg, #1e3555, #162040);
@@ -436,7 +443,6 @@ LawAIApp.Dashboard = {
         position: relative;
         overflow: hidden;
       " onmouseover="this.style.borderColor='rgba(74,158,255,0.3)';this.style.boxShadow='0 8px 40px rgba(74,158,255,0.12)'" onmouseout="this.style.borderColor='rgba(74,158,255,0.12)';this.style.boxShadow='0 4px 24px rgba(0,0,0,0.25)'">
-        <!-- 装饰光晕 -->
         <div style="
           position: absolute;
           top: -50px;
@@ -482,9 +488,10 @@ LawAIApp.Dashboard = {
           ">${btnText} →</div>
         </div>
       </a>
+      `}
 
       <!-- ========================================================== -->
-      <!-- 📊 TODAY'S PROGRESS — 第三视觉层，三列等宽卡片               -->
+      <!-- 📊 TODAY'S PROGRESS — 三列等宽卡片                         -->
       <!-- ========================================================== -->
       <section style="
         display: grid;
@@ -492,7 +499,6 @@ LawAIApp.Dashboard = {
         gap: 12px;
         margin-bottom: 20px;
       ">
-        <!-- 完成率 -->
         <div style="
           background: ${CARD_BG};
           border-radius: ${CARD_RADIUS};
@@ -505,7 +511,6 @@ LawAIApp.Dashboard = {
           <p style="margin:4px 0 0;font-size:10px;color:#64748b;">${completedCount}/${totalCount} lessons</p>
         </div>
 
-        <!-- 连续签到 -->
         <div style="
           background: ${CARD_BG};
           border-radius: ${CARD_RADIUS};
@@ -518,7 +523,6 @@ LawAIApp.Dashboard = {
           <p style="margin:4px 0 0;font-size:10px;color:#64748b;">days</p>
         </div>
 
-        <!-- 成就 -->
         <div style="
           background: ${CARD_BG};
           border-radius: ${CARD_RADIUS};
@@ -533,7 +537,7 @@ LawAIApp.Dashboard = {
       </section>
 
       <!-- ========================================================== -->
-      <!-- 📖 RECOMMENDATIONS — 第四视觉层，延迟加载内容               -->
+      <!-- 📖 RECOMMENDATIONS — 延迟加载内容                          -->
       <!-- ========================================================== -->
       <section id="dashboard-recommendations" style="
         background: ${CARD_BG};
@@ -560,7 +564,7 @@ LawAIApp.Dashboard = {
       </section>
 
       <!-- ========================================================== -->
-      <!-- ⚡ QUICK ACTIONS — 所有导航入口，首屏下方                   -->
+      <!-- ⚡ QUICK ACTIONS                                            -->
       <!-- ========================================================== -->
       <section style="margin-bottom: 16px;">
         <p style="margin:0 0 10px;font-size:11px;color:#64748b;font-weight:500;letter-spacing:0.6px;">
@@ -574,15 +578,14 @@ LawAIApp.Dashboard = {
           ${[
             { icon: '📚', label: 'Academy', route: 'academy' },
             { icon: '🧠', label: 'Intelligence', route: 'intelligence' },
-            { icon: '📓', label: 'Notes', route: 'knowledge-capture' },
+            { icon: '📓', label: 'Notes', route: 'notes' },
             { icon: '💬', label: 'Chat', route: 'conversations' },
             { icon: '📅', label: 'Planner', route: 'planner' },
             { icon: '🛠️', label: 'Tools', route: 'tools' },
             { icon: '📋', label: 'Prompts', route: 'prompt' },
             { icon: '🎯', label: 'Goals', route: 'goal-intelligence' },
             { icon: '🧠', label: 'Mentor', route: 'mentor-brain' },
-            { icon: '🚀', label: 'Showcase', route: 'career-showcase' }，
-            { icon: '📓', label: 'Notes', route: 'notes' }
+            { icon: '🚀', label: 'Showcase', route: 'career-showcase' }
           ].map(function(btn) {
             return `
             <button onclick="LawAIApp.Router?.navigate('${btn.route}')" style="
@@ -604,7 +607,7 @@ LawAIApp.Dashboard = {
       </section>
 
       <!-- ========================================================== -->
-      <!-- 📈 进度条 + 详情（Hero 外的进度条）                         -->
+      <!-- 📈 进度条                                                   -->
       <!-- ========================================================== -->
       <section style="
         background: ${CARD_BG};
@@ -634,7 +637,7 @@ LawAIApp.Dashboard = {
       </section>
 
       <!-- ========================================================== -->
-      <!-- 📈 LEARNING INSIGHTS — 次要详情，自然在滚动下方             -->
+      <!-- 📈 LEARNING INSIGHTS                                        -->
       <!-- ========================================================== -->
       <section style="
         background: ${CARD_BG};
@@ -671,7 +674,28 @@ LawAIApp.Dashboard = {
       </section>
 
       <!-- ========================================================== -->
-      <!-- 页脚 -->
+      <!-- 🔒 Authority Status (Developer Info)                       -->
+      <!-- ========================================================== -->
+      <section style="
+        background: rgba(255,255,255,0.015);
+        border-radius: 8px;
+        padding: 8px 12px;
+        border: 1px solid rgba(255,255,255,0.02);
+        margin-bottom: 12px;
+        font-size: 9px;
+        color: #475569;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      ">
+        <span>📋 Authority: Course + Module + Lesson</span>
+        <span>⚡ State: ${this._getAuthorityStatus()}</span>
+        <span>📊 Source: ${this._getStateSource()}</span>
+        <span>📓 Notes: ${this._getNoteCount()} saved</span>
+      </section>
+
+      <!-- ========================================================== -->
+      <!-- 页脚                                                        -->
       <!-- ========================================================== -->
       <footer style="
         text-align:center;
@@ -704,7 +728,7 @@ LawAIApp.Dashboard = {
   },
 
   // ============================================================
-  // 辅助方法（全部保留，不改）
+  // 辅助方法
   // ============================================================
 
   _getGreeting: function() {
@@ -787,7 +811,7 @@ LawAIApp.Dashboard = {
   },
 
   /**
-   * 初始化动画（保留，不改）
+   * 初始化动画
    */
   _initAnimations: function() {
     var self = this;
@@ -797,7 +821,7 @@ LawAIApp.Dashboard = {
   },
 
   /**
-   * 加载推荐延迟（保留全部原有逻辑，不改）
+   * 加载推荐延迟
    */
   _loadRecommendations: function() {
     var container = document.getElementById('dashboard-recommendations');
@@ -810,7 +834,6 @@ LawAIApp.Dashboard = {
 
     if (de && typeof de.getExplanation === 'function') {
       try {
-        // 获取当前选项的解释
         var options = de.getOptions({ includeDismissed: false });
         if (options && options.length > 0) {
           for (var i = 0; i < Math.min(options.length, 3); i++) {
@@ -825,12 +848,22 @@ LawAIApp.Dashboard = {
       }
     }
 
+    // 空状态处理
     if (recs.length === 0) {
-      // ... 空状态保持不变 ...
+      container.innerHTML = `
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+          <span style="font-size:14px;">🌟</span>
+          <span style="font-size:12px;color:#94a3b8;font-weight:400;">Recommended for you</span>
+        </div>
+        <div style="color:#64748b;font-size:12px;text-align:center;padding:12px 0;">
+          Complete more lessons to get personalized recommendations.
+        </div>
+      `;
+      container.style.opacity = '1';
       return;
     }
 
-    // 渲染推荐时包含解释
+    // 渲染推荐
     var recsHtml = recs.slice(0, 3).map(function(rec, index) {
       var lessonId = rec.id || 'day-' + (index + 1);
       var dayNum = lessonId.replace('day-', '');
@@ -887,7 +920,7 @@ LawAIApp.Dashboard = {
   },
 
   /**
-   * 刷新 Dashboard（保留，不改）
+   * 刷新 Dashboard
    */
   refresh: function() {
     if (!this._rendered) {
@@ -900,7 +933,7 @@ LawAIApp.Dashboard = {
 };
 
 // ============================================================
-// 自动初始化（保留，不改）
+// 自动初始化
 // ============================================================
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
   setTimeout(function() {
@@ -913,4 +946,4 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
   }, 500);
 }
 
-console.log('📊 Dashboard V4.0 ready (Canon V2.0 - First Impression)');
+console.log('📊 Dashboard V4.1 ready (Season 4 - Authority Integrated)');
