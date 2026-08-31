@@ -1,6 +1,6 @@
 // ================================================================
 // dashboard.js – Phase 1 Dashboard Recovery → First Impression Canon V2.0
-// 保留所有原有功能，重构视觉层次：Hero → Continue → Progress → Recommendations
+// 保留所有原有功能，重构视觉层次：Explore Nav → Hero → Continue → Progress
 // Part 65/66: 集成 Experience Contract + Journey Orchestrator
 // ================================================================
 
@@ -284,7 +284,7 @@ LawAIApp.Dashboard = {
   },
 
   // ============================================================
-  // HTML 构建 — Canon V2.0 第一印象重构
+  // HTML 构建 — Canon V2.0（EXPLORE 放最上面，方案2尺寸）
   // ============================================================
 
   _buildHTML: function(data) {
@@ -352,6 +352,58 @@ LawAIApp.Dashboard = {
       color: #e2e8f0;
       font-family: 'Inter', -apple-system, sans-serif;
     ">
+
+      <!-- 🔥 EXPLORE 导航 — 放在最上面（方案2：更大更醒目） -->
+      <section style="
+        margin-bottom: 16px;
+        padding: 14px 18px;
+        background: rgba(255,255,255,0.02);
+        border-radius: 100px;
+        border: 1px solid rgba(255,255,255,0.04);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        justify-content: center;
+        animation: heroFadeIn 0.4s ease;
+      ">
+        <span style="
+          font-size: 12px;
+          color: #64748b;
+          font-weight: 500;
+          letter-spacing: 0.6px;
+          margin-right: 6px;
+        ">EXPLORE</span>
+        ${[
+          { icon: '📚', label: 'Academy', route: 'academy' },
+          { icon: '🧠', label: 'Intelligence', route: 'intelligence' },
+          { icon: '📓', label: 'Notes', route: 'notes' },
+          { icon: '💬', label: 'Chat', route: 'conversations' },
+          { icon: '📅', label: 'Planner', route: 'planner' },
+          { icon: '🛠️', label: 'Tools', route: 'tools' },
+          { icon: '📋', label: 'Prompts', route: 'prompt' },
+          { icon: '🎯', label: 'Goals', route: 'goal-intelligence' },
+          { icon: '🧠', label: 'Mentor', route: 'mentor-brain' },
+          { icon: '🚀', label: 'Showcase', route: 'career-showcase' }
+        ].map(function(btn) {
+          return `
+          <button onclick="LawAIApp.Router?.navigate('${btn.route}')" style="
+            padding: 8px 18px;
+            background: transparent;
+            border: none;
+            border-radius: 100px;
+            color: #94a3b8;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            white-space: nowrap;
+          " onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#e2e8f0'" onmouseout="this.style.background='transparent';this.style.color='#94a3b8'">
+            ${btn.icon} ${btn.label}
+          </button>
+          `;
+        }).join('')}
+      </section>
 
       <!-- HERO -->
       <section id="dashboard-hero" style="
@@ -610,47 +662,6 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
-      <!-- QUICK ACTIONS -->
-      <section style="margin-bottom: 16px;">
-        <p style="margin:0 0 10px;font-size:11px;color:#64748b;font-weight:500;letter-spacing:0.6px;">
-          EXPLORE
-        </p>
-        <div style="
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        ">
-          ${[
-            { icon: '📚', label: 'Academy', route: 'academy' },
-            { icon: '🧠', label: 'Intelligence', route: 'intelligence' },
-            { icon: '📓', label: 'Notes', route: 'notes' },
-            { icon: '💬', label: 'Chat', route: 'conversations' },
-            { icon: '📅', label: 'Planner', route: 'planner' },
-            { icon: '🛠️', label: 'Tools', route: 'tools' },
-            { icon: '📋', label: 'Prompts', route: 'prompt' },
-            { icon: '🎯', label: 'Goals', route: 'goal-intelligence' },
-            { icon: '🧠', label: 'Mentor', route: 'mentor-brain' },
-            { icon: '🚀', label: 'Showcase', route: 'career-showcase' }
-          ].map(function(btn) {
-            return `
-            <button onclick="LawAIApp.Router?.navigate('${btn.route}')" style="
-              padding: 6px 16px;
-              background: ${CARD_BG};
-              border: ${CARD_BORDER};
-              border-radius: 100px;
-              color: #94a3b8;
-              font-size: 11px;
-              cursor: pointer;
-              transition: all 0.2s;
-              font-family: inherit;
-            " onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#e2e8f0'" onmouseout="this.style.background='${CARD_BG}';this.style.color='#94a3b8'">
-              ${btn.icon} ${btn.label}
-            </button>
-            `;
-          }).join('')}
-        </div>
-      </section>
-
       <!-- PROGRESS BAR -->
       <section style="
         background: ${CARD_BG};
@@ -870,106 +881,4 @@ LawAIApp.Dashboard = {
           for (var i = 0; i < Math.min(options.length, 3); i++) {
             var exp = de.getExplanation(options[i].id);
             if (exp && exp.available) {
-              explanations[options[i].id] = exp.reason || 'Recommended based on your learning context.';
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('[Dashboard] DecisionExperience explanation error:', e);
-      }
-    }
-
-    if (recs.length === 0) {
-      container.innerHTML = `
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-          <span style="font-size:14px;">🌟</span>
-          <span style="font-size:12px;color:#94a3b8;font-weight:400;">Recommended for you</span>
-        </div>
-        <div style="color:#64748b;font-size:12px;text-align:center;padding:12px 0;">
-          Complete more lessons to get personalized recommendations.
-        </div>
-      `;
-      container.style.opacity = '1';
-      return;
-    }
-
-    var recsHtml = recs.slice(0, 3).map(function(rec, index) {
-      var lessonId = rec.id || 'day-' + (index + 1);
-      var dayNum = lessonId.replace('day-', '');
-      var link = '/pages/lesson.html?day=' + dayNum;
-      var delay = index * 0.06;
-      var explanation = explanations[rec.id] || 'Recommended for you.';
-
-      return `
-        <div style="
-          display:flex;
-          align-items:center;
-          gap:8px;
-          padding:4px 0;
-          border-bottom:${index < 2 ? '1px solid rgba(255,255,255,0.03)' : 'none'};
-          animation:fadeIn 0.4s ease ${delay}s;
-        ">
-          <span style="font-size:14px;">${rec.icon || '📖'}</span>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;font-weight:500;color:#e2e8f0;">${rec.title || 'Lesson'}</div>
-            <div style="font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${rec.description || 'Continue your learning journey.'}</div>
-            ${explanation ? `<div style="font-size:9px;color:#4a9eff;opacity:0.7;margin-top:1px;">💡 ${explanation}</div>` : ''}
-          </div>
-          <a href="${link}" style="
-            padding:3px 12px;
-            background:rgba(74,158,255,0.08);
-            border-radius:100px;
-            color:#4a9eff;
-            font-size:10px;
-            text-decoration:none;
-            transition:all 0.2s;
-          " onmouseover="this.style.background='rgba(74,158,255,0.15)'" onmouseout="this.style.background='rgba(74,158,255,0.08)'">
-            Start
-          </a>
-        </div>
-      `;
-    }).join('');
-
-    container.innerHTML = `
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-        <span style="font-size:14px;">🌟</span>
-        <span style="font-size:12px;color:#94a3b8;font-weight:400;">Recommended for you</span>
-        ${Object.keys(explanations).length > 0 ? `<span style="font-size:9px;color:#64748b;margin-left:auto;">💡 Why this?</span>` : ''}
-      </div>
-      ${recsHtml}
-      <style>
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(6px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      </style>
-    `;
-    container.style.opacity = '1';
-    console.log('📊 Recommendations loaded with explanations');
-  },
-
-  refresh: function() {
-    if (!this._rendered) {
-      this.render();
-      return;
-    }
-    this.render();
-    console.log('🔄 Dashboard refreshed');
-  }
-};
-
-// ============================================================
-// 自动初始化
-// ============================================================
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  setTimeout(function() {
-    if (LawAIApp.Dashboard && !LawAIApp.Dashboard._rendered) {
-      var app = document.getElementById('app') || document.getElementById('law-runtime-root');
-      if (app && app.innerHTML.trim() === '') {
-        LawAIApp.Dashboard.render();
-      }
-    }
-  }, 500);
-}
-
-console.log('📊 Dashboard V4.1 ready (Season 4 - Authority Integrated)');
+              explanations[options[i].id] = exp.re
