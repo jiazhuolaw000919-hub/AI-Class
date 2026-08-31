@@ -443,7 +443,7 @@ LawAIApp.Dashboard = {
     const CARD_PADDING = '20px';
 
     // ── Part 70: 只在调试模式显示 Authority Status ──
-    const isDebugMode = window.LawAIApp?.Debug?.isDebugMode ? window.LawAIApp.Debug.isDebugMode() : false;
+    const isDebugMode = true;
     const authorityHTML = isDebugMode ? `
       <section style="
         background: rgba(255,255,255,0.015);
