@@ -1,7 +1,6 @@
 // ================================================================
-// dashboard.js – Phase 1 Dashboard Recovery → First Impression Canon V2.0
-// 保留所有原有功能，重构视觉层次：Explore Nav → Hero → Continue → Progress
-// Part 65/66: 集成 Experience Contract + Journey Orchestrator
+// dashboard.js — Part 70: Learning Experience Layer
+// 从 "数据展示" 变成 "学习体验"
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -9,21 +8,34 @@ window.LawAIApp = window.LawAIApp || {};
 LawAIApp.Dashboard = {
   _rendered: false,
 
-  /**
-   * 渲染 Dashboard — Canon V2.0 第一印象重构版
-   */
   render: function() {
-    // ── Part 65/66: 通过 Experience Contract 获取权威状态 ──
     const contract = window.LawAIApp?.ExperienceContract;
     const orchestrator = window.LawAIApp?.JourneyOrchestrator;
+    const lc = window.LawAIApp?.LearningContext;
 
     let progress, streakData, levelInfo, achievements, contractState;
+    let learnerState = 'unknown';
+
+    // 获取学习上下文状态
+    if (lc && lc.getContext) {
+      try {
+        const ctx = lc.getContext();
+        if (ctx && ctx.status) {
+          if (ctx.status.hasActiveSession) learnerState = 'active';
+          else if (ctx.status.hasActiveLesson) learnerState = 'learning';
+          else if (ctx.status.hasActiveCourse) learnerState = 'idle';
+          else if (ctx.progress && ctx.progress.course > 0) learnerState = 'returning';
+          else learnerState = 'not_started';
+        }
+      } catch (e) {
+        console.warn('[Dashboard] LearningContext error:', e);
+      }
+    }
 
     if (orchestrator) {
       try {
         const journeyState = orchestrator.getJourneyState({});
         contractState = journeyState;
-        
         if (journeyState.currentContext && journeyState.currentContext.lesson) {
           const ctx = journeyState.currentContext;
           progress = {
@@ -42,7 +54,6 @@ LawAIApp.Dashboard = {
           progress = this._getProgress();
         }
       } catch (e) {
-        console.warn('[Dashboard] JourneyOrchestrator error, falling back:', e);
         progress = this._getProgress();
       }
     } else {
@@ -52,9 +63,9 @@ LawAIApp.Dashboard = {
     streakData = this._getStreakData();
     levelInfo = this._getLevelInfo();
     achievements = this._getAchievements();
-  
+
     if (contract) {
-      const validation = contract.validate({ 
+      const validation = contract.validate({
         status: progress.completedLessons.length > 0 ? 'IN_PROGRESS' : 'NOT_STARTED',
         authority: 'COURSE'
       });
@@ -62,7 +73,7 @@ LawAIApp.Dashboard = {
         console.warn('[Dashboard] State validation warning:', validation.errors);
       }
     }
-    
+
     const allLessons = this._getAllLessons();
     const favorites = this._getFavorites();
     const todayLesson = this._getTodayLesson(allLessons, progress);
@@ -76,6 +87,9 @@ LawAIApp.Dashboard = {
     const lastCompletedDate = this._getLastCompletedDate(streakData);
     const noteCount = this._getNoteCount();
 
+    // ── Part 70: 状态感知 Hero ──
+    const heroData = this._getHeroData(learnerState, progress, streakData);
+
     const html = this._buildHTML({
       progress,
       streakData,
@@ -88,7 +102,9 @@ LawAIApp.Dashboard = {
       lastCompletedDate,
       dailyBriefingHTML,
       allLessons,
-      noteCount
+      noteCount,
+      heroData,
+      learnerState
     });
 
     const app = document.getElementById('app') || document.getElementById('law-runtime-root');
@@ -97,6 +113,85 @@ LawAIApp.Dashboard = {
       this._rendered = true;
       this._initAnimations();
     }
+  },
+
+  // ============================================================
+  // Part 70: 状态感知 Hero
+  // ============================================================
+
+  _getHeroData: function(state, progress, streakData) {
+    const completed = progress.completedLessons?.length || 0;
+    const streak = streakData.currentStreak || 0;
+
+    const states = {
+      'not_started': {
+        greeting: 'Ready to start your AI journey?',
+        message: 'Explore the Academy and find where you want to begin.',
+        cta: 'Explore Academy',
+        ctaLink: '/pages/academy.html',
+        showStreak: false
+      },
+      'exploring': {
+        greeting: 'You\'re exploring.',
+        message: 'There are several directions you can take from here.',
+        cta: 'Continue Exploring',
+        ctaLink: '/pages/academy.html',
+        showStreak: true
+      },
+      'learning': {
+        greeting: 'Welcome back.',
+        message: 'Continue building on what you\'ve been learning.',
+        cta: 'Continue Learning',
+        ctaLink: completed > 0 ? '/pages/lesson.html?day=' + (completed + 1) : '/pages/academy.html',
+        showStreak: true
+      },
+      'active': {
+        greeting: 'You\'re in the flow.',
+        message: 'Keep the momentum going.',
+        cta: 'Resume Learning',
+        ctaLink: '/pages/lesson.html?day=' + (completed + 1),
+        showStreak: true
+      },
+      'returning': {
+        greeting: 'Welcome back.',
+        message: 'Your learning journey is ready when you are.',
+        cta: 'Resume Learning',
+        ctaLink: completed > 0 ? '/pages/lesson.html?day=' + (completed + 1) : '/pages/academy.html',
+        showStreak: true
+      },
+      'idle': {
+        greeting: 'Ready when you are.',
+        message: 'Take the next step in your learning journey.',
+        cta: 'Continue Learning',
+        ctaLink: completed > 0 ? '/pages/lesson.html?day=' + (completed + 1) : '/pages/academy.html',
+        showStreak: true
+      }
+    };
+
+    // 特殊状态: 完成度 >= 80% 且没有当前活动
+    if (completed >= 292 && state !== 'active' && state !== 'learning') {
+      return {
+        greeting: 'You\'re making great progress.',
+        message: 'Keep going, or step back and review what you\'ve learned.',
+        cta: 'Continue Learning',
+        ctaLink: '/pages/lesson.html?day=' + (completed + 1),
+        showStreak: true
+      };
+    }
+
+    // 特殊状态: 全部完成
+    if (completed >= 365) {
+      return {
+        greeting: '🏆 You\'ve completed everything!',
+        message: 'You\'re a legend. Review or explore new topics.',
+        cta: 'Review All',
+        ctaLink: '/pages/lesson.html?day=365',
+        showStreak: true
+      };
+    }
+
+    // 默认状态
+    return states[state] || states['not_started'];
   },
 
   // ============================================================
@@ -215,9 +310,10 @@ LawAIApp.Dashboard = {
     return 'Individual Engines';
   },
 
-  /**
-   * Part 68: 获取学习洞察 (从 ExperienceIntelligence)
-   */
+  // ============================================================
+  // Part 68: 学习洞察
+  // ============================================================
+
   _getLearningInsight: function() {
     var ei = window.LawAIApp?.ExperienceIntelligence;
     if (!ei || !ei.initialized) return null;
@@ -248,9 +344,6 @@ LawAIApp.Dashboard = {
     }
   },
 
-  /**
-   * Part 68: 构建洞察消息
-   */
   _buildInsightMessage: function(state, momentum, signals) {
     var messages = {
       'active': {
@@ -284,7 +377,7 @@ LawAIApp.Dashboard = {
   },
 
   // ============================================================
-  // HTML 构建 — Canon V2.0（EXPLORE 放最上面，方案2尺寸）
+  // Part 70: HTML 构建 — 学习体验层
   // ============================================================
 
   _buildHTML: function(data) {
@@ -300,30 +393,35 @@ LawAIApp.Dashboard = {
       lastCompletedDate,
       dailyBriefingHTML,
       allLessons,
-      noteCount
+      noteCount,
+      heroData,
+      learnerState
     } = data;
 
     const greeting = this._getGreeting();
     const userName = this._getUserName();
-    const motivation = this._getMotivation(progress, streakData);
-
-    const levelDisplay = 'Lv.' + (levelInfo.level || 1);
-    const xpDisplay = (progress.xp || 0) + ' XP';
-    const streakDisplay = (streakData.currentStreak || 0) + 'd';
-
-    const percent = Math.round(progress.completionPercent || 0);
     const completedCount = progress.completedLessons?.length || 0;
     const totalCount = 365;
 
-    const nextDay = Math.min(completedCount + 1, 365);
-    const lessonLink = completedCount === 0 ? '/pages/academy.html' : '/pages/lesson.html?day=' + nextDay;
-    const btnText = completedCount === 0 ? 'Start Learning' : (completedCount >= 365 ? 'Review All' : 'Continue');
+    // ── Part 70: 状态感知 Hero ──
+    const heroGreeting = heroData.greeting || 'Ready to learn?';
+    const heroMessage = heroData.message || 'Explore the Academy and begin your journey.';
+    const ctaText = heroData.cta || 'Explore Academy';
+    const ctaLink = heroData.ctaLink || '/pages/academy.html';
 
+    // ── Part 70: New Learner Streak ──
+    const streak = streakData.currentStreak || 0;
+    const streakDisplay = streak > 0 ? '🔥 ' + streak + 'd' : '🌱 Start your first streak';
+
+    const levelDisplay = 'Lv.' + (levelInfo.level || 1);
+    const xpDisplay = (progress.xp || 0) + ' XP';
+
+    const percent = Math.round(progress.completionPercent || 0);
+    const noteCountDisplay = noteCount || 0;
+
+    const nextDay = Math.min(completedCount + 1, 365);
     const nextTitle = this._getLessonTitle(nextDay);
     const nextSummary = this._getLessonSummary(nextDay);
-
-    const challenge = this._getWeeklyChallenge();
-    const recommendations = this._getRecommendations();
 
     const insight = this._getLearningInsight();
     const insightHTML = insight ? `
@@ -344,6 +442,28 @@ LawAIApp.Dashboard = {
     const CARD_BORDER = '1px solid rgba(255,255,255,0.04)';
     const CARD_PADDING = '20px';
 
+    // ── Part 70: 只在调试模式显示 Authority Status ──
+    const isDebugMode = window.LawAIApp?.Debug?.isDebugMode ? window.LawAIApp.Debug.isDebugMode() : false;
+    const authorityHTML = isDebugMode ? `
+      <section style="
+        background: rgba(255,255,255,0.015);
+        border-radius: 8px;
+        padding: 8px 12px;
+        border: 1px solid rgba(255,255,255,0.02);
+        margin-bottom: 12px;
+        font-size: 9px;
+        color: #475569;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      ">
+        <span>📋 Authority: Course + Module + Lesson</span>
+        <span>⚡ State: ${this._getAuthorityStatus()}</span>
+        <span>📊 Source: ${this._getStateSource()}</span>
+        <span>📓 Notes: ${this._getNoteCount()} saved</span>
+      </section>
+    ` : '';
+
     return `
     <div id="dashboard-root" style="
       max-width: 960px;
@@ -353,7 +473,7 @@ LawAIApp.Dashboard = {
       font-family: 'Inter', -apple-system, sans-serif;
     ">
 
-      <!-- 🔥 EXPLORE 导航 — 放在最上面（方案2：更大更醒目） -->
+      <!-- 🔥 EXPLORE 导航 -->
       <section style="
         margin-bottom: 16px;
         padding: 14px 18px;
@@ -405,16 +525,16 @@ LawAIApp.Dashboard = {
         }).join('')}
       </section>
 
-      <!-- HERO -->
+      <!-- 🔥 HERO — 状态感知 -->
       <section id="dashboard-hero" style="
-        min-height: 38vh;
+        min-height: 32vh;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         text-align: center;
-        padding: 44px 24px 36px;
-        margin-bottom: 24px;
+        padding: 40px 24px 32px;
+        margin-bottom: 20px;
         position: relative;
         isolation: isolate;
         animation: heroFadeIn 0.6s ease;
@@ -431,17 +551,6 @@ LawAIApp.Dashboard = {
           pointer-events: none;
           z-index: 0;
         "></div>
-        <div style="
-          position: absolute;
-          top: 30%;
-          right: 20%;
-          width: 180px;
-          height: 180px;
-          background: radial-gradient(circle, rgba(124,58,237,0.04), transparent 70%);
-          border-radius: 50%;
-          pointer-events: none;
-          z-index: 0;
-        "></div>
 
         <div style="position:relative;z-index:1;">
           <p style="
@@ -453,7 +562,7 @@ LawAIApp.Dashboard = {
           ">${greeting}</p>
 
           <h1 style="
-            margin: 0 0 14px;
+            margin: 0 0 8px;
             font-size: clamp(28px, 5vw, 42px);
             font-weight: 700;
             letter-spacing: -0.6px;
@@ -464,63 +573,63 @@ LawAIApp.Dashboard = {
             background-clip: text;
           ">${userName}</h1>
 
+          <!-- Part 70: 状态感知 Hero 消息 -->
           <p style="
-            margin: 0 0 22px;
+            margin: 0 0 16px;
             font-size: 15px;
             color: #94a3b8;
             max-width: 440px;
             line-height: 1.5;
-          ">${motivation}</p>
+          ">${heroMessage}</p>
 
+          <!-- Part 70: 状态感知 CTA -->
+          <a href="${ctaLink}" style="
+            display: inline-block;
+            padding: 12px 36px;
+            background: linear-gradient(135deg, #4a9eff, #6366f1);
+            border-radius: 100px;
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 24px rgba(74,158,255,0.15);
+          " onmouseover="this.style.transform='scale(1.04)';this.style.boxShadow='0 8px 40px rgba(74,158,255,0.2)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 24px rgba(74,158,255,0.15)'">
+            ${ctaText} →
+          </a>
+
+          <!-- Part 70: Metrics 次要化 (更小、更轻) -->
           <div style="
             display: flex;
-            gap: 8px;
+            gap: 16px;
             justify-content: center;
             flex-wrap: wrap;
+            margin-top: 16px;
+            font-size: 12px;
+            color: #64748b;
           ">
-            <span style="
-              font-size: 12px;
-              background: rgba(74,158,255,0.08);
-              padding: 5px 18px;
-              border-radius: 100px;
-              color: #4a9eff;
-              font-weight: 500;
-            ">${levelDisplay}</span>
-            <span style="
-              font-size: 12px;
-              background: rgba(251,191,36,0.06);
-              padding: 5px 18px;
-              border-radius: 100px;
-              color: #fbbf24;
-              font-weight: 500;
-            ">${xpDisplay}</span>
-            <span style="
-              font-size: 12px;
-              background: rgba(249,115,22,0.06);
-              padding: 5px 18px;
-              border-radius: 100px;
-              color: #f97316;
-              font-weight: 500;
-            ">🔥 ${streakDisplay}</span>
+            <span style="background: rgba(255,255,255,0.04); padding: 3px 14px; border-radius: 100px;">${levelDisplay}</span>
+            <span style="background: rgba(255,255,255,0.04); padding: 3px 14px; border-radius: 100px;">${xpDisplay}</span>
+            <span style="background: rgba(255,255,255,0.04); padding: 3px 14px; border-radius: 100px;">${streakDisplay}</span>
           </div>
-        </div>       
+        </div>
       </section>
 
-      <!-- CONTINUE LEARNING -->
+      <!-- 🔥 CONTINUE LEARNING — 简化版 -->
       ${completedCount === 0 ? `
       <div style="
         background: ${CARD_BG};
         border-radius: ${CARD_RADIUS};
-        padding: 32px 24px;
+        padding: 24px 20px;
         border: ${CARD_BORDER};
         text-align: center;
-        margin-bottom: 24px;
+        margin-bottom: 20px;
       ">
-        <div style="font-size: 48px; margin-bottom: 12px;">🚀</div>
-        <h3 style="font-size: 18px; font-weight: 600; margin: 0 0 8px;">Start Your Learning Journey</h3>
-        <p style="color: #94a3b8; font-size: 14px; margin: 0 0 16px;">Explore the Academy to begin building your AI knowledge.</p>
+        <div style="font-size: 36px; margin-bottom: 8px;">🚀</div>
+        <h3 style="font-size: 17px; font-weight: 600; margin: 0 0 4px;">Start Your Learning Journey</h3>
+        <p style="color: #94a3b8; font-size: 13px; margin: 0 0 12px;">Explore the Academy to begin building your AI knowledge.</p>
         <button onclick="window.location.href='/pages/academy.html'" style="
-          padding: 10px 32px;
+          padding: 10px 28px;
           background: #4a9eff;
           border: none;
           border-radius: 100px;
@@ -532,118 +641,94 @@ LawAIApp.Dashboard = {
         ">Explore Academy →</button>
       </div>
       ` : `
-      <a href="${lessonLink}" id="continue-learning" style="
-        display: block;
+      <div style="
         background: linear-gradient(135deg, #1e3555, #162040);
         border-radius: ${CARD_RADIUS};
-        padding: 24px 28px;
-        color: white;
-        text-decoration: none;
-        transition: all 0.3s ease;
+        padding: 18px 24px;
         border: 1px solid rgba(74,158,255,0.12);
         box-shadow: 0 4px 24px rgba(0,0,0,0.25);
-        margin-bottom: 24px;
-        position: relative;
-        overflow: hidden;
-      " onmouseover="this.style.borderColor='rgba(74,158,255,0.3)';this.style.boxShadow='0 8px 40px rgba(74,158,255,0.12)'" onmouseout="this.style.borderColor='rgba(74,158,255,0.12)';this.style.boxShadow='0 4px 24px rgba(0,0,0,0.25)'">
-        <div style="
-          position: absolute;
-          top: -50px;
-          right: -30px;
-          width: 200px;
-          height: 200px;
-          background: radial-gradient(circle, rgba(74,158,255,0.07), transparent 70%);
-          border-radius: 50%;
-          pointer-events: none;
-        "></div>
-
-        <div style="position:relative;z-index:1;display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
-          <div style="flex:1;min-width:150px;">
-            <p style="
-              margin: 0 0 4px;
-              font-size: 11px;
-              font-weight: 500;
-              color: #4a9eff;
-              letter-spacing: 0.8px;
-              text-transform: uppercase;
-            ">${completedCount >= 365 ? '🎉 All Complete' : 'Continue Learning'}</p>
-            <h2 style="
-              margin: 0 0 4px;
-              font-size: 20px;
-              font-weight: 600;
-              line-height: 1.3;
-            ">${nextTitle}</h2>
-            <p style="
-              margin: 0;
-              font-size: 13px;
-              color: #94a3b8;
-            ">${nextSummary}</p>
-          </div>
-          <div style="
-            padding: 10px 28px;
-            background: #4a9eff;
-            border-radius: 100px;
-            font-size: 15px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      ">
+        <div style="flex:1;min-width:120px;">
+          <p style="
+            margin: 0 0 2px;
+            font-size: 10px;
+            font-weight: 500;
+            color: #4a9eff;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+          ">${completedCount >= 365 ? '🎉 All Complete' : 'Continue Learning'}</p>
+          <h2 style="
+            margin: 0 0 2px;
+            font-size: 18px;
             font-weight: 600;
-            white-space: nowrap;
-            transition: background 0.2s;
-            box-shadow: 0 2px 12px rgba(74,158,255,0.3);
-          ">${btnText} →</div>
+            line-height: 1.3;
+          ">${nextTitle}</h2>
+          <p style="
+            margin: 0;
+            font-size: 13px;
+            color: #94a3b8;
+          ">${nextSummary}</p>
         </div>
-      </a>
+        <div style="
+          padding: 8px 24px;
+          background: #4a9eff;
+          border-radius: 100px;
+          font-size: 14px;
+          font-weight: 600;
+          white-space: nowrap;
+          box-shadow: 0 2px 12px rgba(74,158,255,0.3);
+        ">
+          <a href="/pages/lesson.html?day=${completedCount + 1}" style="color:white;text-decoration:none;">
+            ${completedCount >= 365 ? '🎉 Review' : 'Continue →'}
+          </a>
+        </div>
+      </div>
       `}
 
-      <!-- TODAY'S PROGRESS -->
+      <!-- 📊 PROGRESS — 有上下文 -->
       <section style="
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 12px;
-        margin-bottom: 20px;
+        background: ${CARD_BG};
+        border-radius: ${CARD_RADIUS};
+        padding: 14px ${CARD_PADDING};
+        border: ${CARD_BORDER};
+        margin-bottom: 16px;
       ">
-        <div style="
-          background: ${CARD_BG};
-          border-radius: ${CARD_RADIUS};
-          padding: ${CARD_PADDING};
-          border: ${CARD_BORDER};
-          text-align: center;
-        ">
-          <p style="margin:0 0 6px;font-size:11px;color:#64748b;">📊 Progress</p>
-          <p style="margin:0;font-size:24px;font-weight:700;">${completionRate}%</p>
-          <p style="margin:4px 0 0;font-size:10px;color:#64748b;">${completedCount}/${totalCount} lessons</p>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+          <span style="font-size:12px;color:#94a3b8;">Your Academy Journey</span>
+          <span style="font-size:12px;color:#64748b;">${completedCount}/${totalCount} lessons</span>
         </div>
-
         <div style="
-          background: ${CARD_BG};
-          border-radius: ${CARD_RADIUS};
-          padding: ${CARD_PADDING};
-          border: ${CARD_BORDER};
-          text-align: center;
+          height: 4px;
+          background: rgba(255,255,255,0.04);
+          border-radius: 100px;
+          overflow: hidden;
         ">
-          <p style="margin:0 0 6px;font-size:11px;color:#64748b;">🔥 Streak</p>
-          <p style="margin:0;font-size:24px;font-weight:700;">${streakData.currentStreak || 0}</p>
-          <p style="margin:4px 0 0;font-size:10px;color:#64748b;">days</p>
+          <div style="
+            width: ${percent}%;
+            height: 100%;
+            background: linear-gradient(90deg, #4a9eff, #7c3aed);
+            border-radius: 100px;
+            transition: width 0.8s ease;
+          "></div>
         </div>
-
-        <div style="
-          background: ${CARD_BG};
-          border-radius: ${CARD_RADIUS};
-          padding: ${CARD_PADDING};
-          border: ${CARD_BORDER};
-          text-align: center;
-        ">
-          <p style="margin:0 0 6px;font-size:11px;color:#64748b;">🏆 Achievements</p>
-          <p style="margin:0;font-size:24px;font-weight:700;">${achievements.length}</p>
-          <p style="margin:4px 0 0;font-size:10px;color:#64748b;">unlocked</p>
+        <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:#475569;">
+          <span>${currentStage}</span>
+          <span>${percent}%</span>
         </div>
       </section>
 
-      <!-- RECOMMENDATIONS -->
+      <!-- 📖 RECOMMENDATIONS -->
       <section id="dashboard-recommendations" style="
         background: ${CARD_BG};
         border-radius: ${CARD_RADIUS};
         padding: ${CARD_PADDING};
         border: ${CARD_BORDER};
-        margin-bottom: 20px;
+        margin-bottom: 16px;
         min-height: 60px;
         transition: opacity 0.4s ease;
       ">
@@ -662,35 +747,7 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
-      <!-- PROGRESS BAR -->
-      <section style="
-        background: ${CARD_BG};
-        border-radius: ${CARD_RADIUS};
-        padding: 14px ${CARD_PADDING};
-        border: ${CARD_BORDER};
-        margin-bottom: 20px;
-      ">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
-          <span style="font-size:11px;color:#94a3b8;">Overall Progress</span>
-          <span style="font-size:12px;font-weight:600;">${percent}%</span>
-        </div>
-        <div style="
-          height: 4px;
-          background: rgba(255,255,255,0.04);
-          border-radius: 100px;
-          overflow: hidden;
-        ">
-          <div style="
-            width: ${percent}%;
-            height: 100%;
-            background: linear-gradient(90deg, #4a9eff, #7c3aed);
-            border-radius: 100px;
-            transition: width 0.8s ease;
-          "></div>
-        </div>
-      </section>
-
-      <!-- LEARNING INSIGHTS -->
+      <!-- 📈 LEARNING INSIGHTS -->
       <section style="
         background: ${CARD_BG};
         border-radius: ${CARD_RADIUS};
@@ -702,7 +759,7 @@ LawAIApp.Dashboard = {
           📈 LEARNING INSIGHTS
         </p>
         ${insightHTML}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div>
             <span style="font-size:10px;color:#64748b;">Current Stage</span>
             <p style="margin:2px 0 0;font-size:14px;font-weight:500;">${currentStage}</p>
@@ -716,34 +773,14 @@ LawAIApp.Dashboard = {
             <p style="margin:2px 0 0;font-size:14px;font-weight:500;">${streakData.longestStreak || 0} days</p>
           </div>
           <div>
-            <span style="font-size:10px;color:#64748b;">Level Progress</span>
-            <p style="margin:2px 0 0;font-size:14px;font-weight:500;">${levelInfo.currentLevelXP || 0} / ${levelInfo.nextLevelXP || 100} XP</p>
-          </div>
-          <div>
             <span style="font-size:10px;color:#64748b;">📓 Notes</span>
-            <p style="margin:2px 0 0;font-size:14px;font-weight:500;">${noteCount || 0} saved</p>
+            <p style="margin:2px 0 0;font-size:14px;font-weight:500;">${noteCountDisplay} saved</p>
           </div>
         </div>
       </section>
 
-      <!-- AUTHORITY STATUS -->
-      <section style="
-        background: rgba(255,255,255,0.015);
-        border-radius: 8px;
-        padding: 8px 12px;
-        border: 1px solid rgba(255,255,255,0.02);
-        margin-bottom: 12px;
-        font-size: 9px;
-        color: #475569;
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-      ">
-        <span>📋 Authority: Course + Module + Lesson</span>
-        <span>⚡ State: ${this._getAuthorityStatus()}</span>
-        <span>📊 Source: ${this._getStateSource()}</span>
-        <span>📓 Notes: ${this._getNoteCount()} saved</span>
-      </section>
+      <!-- 🔒 Authority Status (仅调试模式) -->
+      ${authorityHTML}
 
       <!-- FOOTER -->
       <footer style="
@@ -754,7 +791,7 @@ LawAIApp.Dashboard = {
         letter-spacing:0.5px;
         border-top:1px solid rgba(255,255,255,0.03);
       ">
-        Law AI Academy · V${window.App?.version || '5.1.1'}
+        Law AI Academy · Season 4
       </footer>
 
     </div>
@@ -767,10 +804,6 @@ LawAIApp.Dashboard = {
       @keyframes pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.3; }
-      }
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(6px); }
-        to { opacity: 1; transform: translateY(0); }
       }
     </style>
     `;
@@ -797,28 +830,6 @@ LawAIApp.Dashboard = {
     return 'Learner';
   },
 
-  _getMotivation: function(progress, streakData) {
-    var completed = progress.completedLessons?.length || 0;
-    var streak = streakData.currentStreak || 0;
-
-    if (completed >= 365) {
-      return '🏆 You\'ve completed everything! You\'re a legend.';
-    }
-    if (streak >= 30) {
-      return '🔥 ' + streak + '-day streak! You\'re unstoppable.';
-    }
-    if (streak >= 7) {
-      return '💪 ' + streak + ' days strong! Keep going.';
-    }
-    if (completed >= 10) {
-      return '🌟 ' + completed + ' lessons done! Every step counts.';
-    }
-    if (completed > 0) {
-      return '🌱 Every journey begins with a single step. Keep showing up.';
-    }
-    return '🚀 Ready to start your AI journey?';
-  },
-
   _getLessonTitle: function(day) {
     try {
       if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
@@ -838,15 +849,6 @@ LawAIApp.Dashboard = {
       }
     } catch (e) {}
     return 'Continue building your AI knowledge.';
-  },
-
-  _getWeeklyChallenge: function() {
-    try {
-      if (LawAIApp.Data && typeof LawAIApp.Data.weeklyChallenge === 'function') {
-        return LawAIApp.Data.weeklyChallenge();
-      }
-    } catch (e) {}
-    return { title: 'Complete 3 lessons this week', xp: 200, progress: 0 };
   },
 
   _getRecommendations: function() {
@@ -896,7 +898,7 @@ LawAIApp.Dashboard = {
           <span style="font-size:14px;">🌟</span>
           <span style="font-size:12px;color:#94a3b8;font-weight:400;">Recommended for you</span>
         </div>
-        <div style="color:#64748b;font-size:12px;text-align:center;padding:12px 0;">
+        <div style="color:#64748b;font-size:12px;text-align:center;padding:8px 0;">
           Complete more lessons to get personalized recommendations.
         </div>
       `;
@@ -983,4 +985,4 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
   }, 500);
 }
 
-console.log('📊 Dashboard V4.1 ready (Season 4 - Authority Integrated)');
+console.log('📊 Dashboard V4.2 ready (Part 70 - Learning Experience Layer)');
