@@ -13,16 +13,20 @@ LawAIApp.Settings = {
             <div class="toggle ${darkMode ? 'active' : ''}"></div>
           </div>
           <div class="settings-item"><span>About</span><span>v1.0.0</span></div>
-          <div class="settings-item"><span>Version</span><span>Season 1.5 Alpha</span></div>
+          <div class="settings-item"><span>Version</span><span>Season 4</span></div>
           <div class="settings-item" id="reset-progress"><span>Reset Progress</span><span style="color:var(--danger)">⚠️</span></div>
           <div class="settings-item"><span>Backup</span><span>Coming Soon</span></div>
+          <div class="settings-item" style="border-top:1px solid rgba(255,255,255,0.04);margin-top:4px;padding-top:8px;">
+            <span style="font-size:10px;color:#475569;">🔒 Settings Authority</span>
+            <span style="font-size:9px;color:#64748b;">Preference Authority</span>
+          </div>
         </div>
       </div>
     `;
     document.getElementById('app').innerHTML = html;
     document.getElementById('dark-toggle').addEventListener('click', () => {
       LawAIApp.Theme.toggle();
-      this.render(); // refresh to update toggle visual
+      this.render();
     });
     document.getElementById('reset-progress').addEventListener('click', () => {
       if (LawAIApp.FactoryReset) {
