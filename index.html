@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Law AI Academy</title>
+  <title>Law AI Academy — Season 4</title>
 
   <!-- ============================================================ -->
-  <!-- CSS — 使用相对路径（不依赖根路径）                            -->
+  <!-- CSS                                                    -->
   <!-- ============================================================ -->
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/academy.css">
@@ -16,26 +16,88 @@
   <link rel="stylesheet" href="css/learning.css">
   <link rel="stylesheet" href="css/responsive.css">
   <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/notes.css">
+
+  <style>
+    /* 基础重置 + 加载占位 */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #0b1220;
+      color: #e2e8f0;
+      font-family: 'Inter', -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+    #law-runtime-root { min-height: 100vh; background: #0b1220; }
+
+    /* 加载占位 */
+    #loading-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #0b1220;
+      color: #94a3b8;
+      font-family: 'Inter', -apple-system, sans-serif;
+      text-align: center;
+      padding: 20px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 9999;
+      pointer-events: none;
+      transition: opacity 0.8s ease;
+    }
+    #loading-placeholder.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
 
   <!-- ============================================================ -->
-  <!-- SCRIPT — 保留所有已有加载，只移除了 dummy 文件               -->
+  <!-- ROOT                                                         -->
+  <!-- ============================================================ -->
+  <div id="law-runtime-root"></div>
+
+  <!-- ============================================================ -->
+  <!-- LOADING PLACEHOLDER                                          -->
+  <!-- ============================================================ -->
+  <div id="loading-placeholder">
+    <div style="font-size: 48px; margin-bottom: 16px; animation: pulse 2s ease-in-out infinite;">🚀</div>
+    <h2 style="color: white; font-weight: 600; margin: 0 0 8px 0;">Law AI Academy</h2>
+    <p style="margin: 0; font-size: 14px; color: #94a3b8;">Loading your learning environment...</p>
+    <div style="margin-top: 24px; width: 40px; height: 40px; border: 3px solid rgba(74,158,255,0.12); border-top-color: #4a9eff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SCRIPT — 所有 JS 按依赖顺序加载                              -->
   <!-- ============================================================ -->
 
-  <!-- 1. Loader（核心加载器） -->
+  <!-- ─── 1. 核心基础设施 ─── -->
+  <script src="js/eventBus.js"></script>
+  <script src="js/storageEngine.js"></script>
   <script src="js/loader.js"></script>
 
-  <!-- 2. 课程引擎 -->
+  <!-- ─── 2. 引擎层 ─── -->
   <script src="js/academy/lessonEngine.js"></script>
 
-  <!-- 3. UI 组件 -->
-  <script src="js/ui/toastSystem.js"></script>
-  <script src="js/ui/emptyStates.js"></script>
+  <!-- ─── 3. 进度和学习状态 ─── -->
+  <script src="js/progressEngine.js"></script>
+  <script src="js/streakEngine.js"></script>
+  <script src="js/levelEngine.js"></script>
+  <script src="js/achievementEngine.js"></script>
 
-  <!-- 4. 核心引擎 -->
-  <script src="js/eventBus.js"></script>
-  <script src="js/academy/notesView.js"></script>
-
-  <!-- 5. Memory Engine -->
+  <!-- ─── 4. 记忆和掌握 ─── -->
   <script src="js/memoryEngine.js"></script>
   <script src="js/memoryTracker.js"></script>
   <script src="js/memoryScheduler.js"></script>
@@ -45,125 +107,194 @@
   <script src="js/forgettingCurve.js"></script>
   <script src="js/masteryEngine.js"></script>
   <script src="js/adaptiveMemory.js"></script>
-  <script src="js/recommendationEngine.js"></script>
   <script src="js/learnerModel.js"></script>
 
-  <!-- ============================================================ -->
-  <!-- 🛠️ DevTools（Ctrl+Shift+L 打开性能覆盖层）                   -->
-  <!-- ============================================================ -->
+  <!-- ─── 5. 推荐和智能 ─── -->
+  <script src="js/recommendationEngine.js"></script>
+
+  <!-- ─── 6. UI 组件 ─── -->
+  <script src="js/ui/toastSystem.js"></script>
+  <script src="js/ui/emptyStates.js"></script>
+  <script src="js/ui/loadingStates.js"></script>
+
+  <!-- ─── 7. Academy 核心 ─── -->
+  <script src="js/academy/academyManifest.js"></script>
+  <script src="js/academy/academyLoader.js"></script>
+  <script src="js/academy/academyView.js"></script>
+  <script src="js/academy/academyExperienceManager.js"></script>
+  <script src="js/academy/continueLearning.js"></script>
+  <script src="js/academy/learningJourneyAdapter.js"></script>
+
+  <!-- ─── 8. S4 核心模块 ─── -->
+  <script src="js/academy/decisionOptionModel.js"></script>
+  <script src="js/academy/decisionAuthority.js"></script>
+  <script src="js/academy/decisionPrimacy.js"></script>
+  <script src="js/academy/optionNormalizer.js"></script>
+  <script src="js/academy/decisionExperience.js"></script>
+  <script src="js/academy/actionTracker.js"></script>
+  <script src="js/academy/outcomeNormalizer.js"></script>
+  <script src="js/academy/outcomeLinker.js"></script>
+  <script src="js/academy/adaptationSignal.js"></script>
+  <script src="js/academy/adaptationRecord.js"></script>
+  <script src="js/academy/adaptationExplainer.js"></script>
+  <script src="js/academy/adaptationGovernance.js"></script>
+  <script src="js/academy/learnerControl.js"></script>
+  <script src="js/academy/metacognitiveExperience.js"></script>
+  <script src="js/academy/learningPatternModel.js"></script>
+  <script src="js/academy/patternDetector.js"></script>
+  <script src="js/academy/patternExplainer.js"></script>
+  <script src="js/academy/epistemicStatus.js"></script>
+  <script src="js/academy/sourceDistinguisher.js"></script>
+  <script src="js/academy/aiLiteracyHelper.js"></script>
+  <script src="js/academy/transferModel.js"></script>
+  <script src="js/academy/transferObserver.js"></script>
+  <script src="js/academy/transferRecommender.js"></script>
+  <script src="js/academy/calibrationModel.js"></script>
+  <script src="js/academy/calibrationObserver.js"></script>
+  <script src="js/academy/calibrationRecommender.js"></script>
+  <script src="js/academy/journeyOrchestrator.js"></script>
+  <script src="js/academy/agencySupport.js"></script>
+  <script src="js/academy/experienceContract.js"></script>
+  <script src="js/academy/surfaceIntegration.js"></script>
+  <script src="js/academy/experienceIntelligence.js"></script>
+  <script src="js/academy/learningContext.js"></script>
+
+  <!-- ─── 9. Renderers ─── -->
+  <script src="js/academy/renderers/motivationRenderer.js"></script>
+  <script src="js/academy/renderers/continueLearningRenderer.js"></script>
+
+  <!-- ─── 10. Notes ─── -->
+  <script src="js/academy/knowledgeCapture.js"></script>
+  <script src="js/academy/notes.js"></script>
+  <script src="js/academy/notesView.js"></script>
+
+  <!-- ─── 11. Calendar & Settings ─── -->
+  <script src="js/calendarEngine.js"></script>
+  <script src="js/settings.js"></script>
+
+  <!-- ─── 12. 路由 ─── -->
+  <script src="js/router.js"></script>
+
+  <!-- ─── 13. 🔥 DASHBOARD — S4 核心，必须加载 ─── -->
+  <script src="js/dashboard.js"></script>
+
+  <!-- ─── 14. 🛠️ DevTools ─── -->
   <script src="js/dev/runtimeProfiler.js"></script>
   <script src="js/dev/performanceCollector.js"></script>
   <script src="js/dev/runtimeReport.js"></script>
   <script src="js/dev/developerOverlay.js"></script>
 
-  <script src="js/dashboard.js"></script>
+  <!-- ─── 15. DevPanel ─── -->
+  <script src="js/debug/devPanel.js"></script>
+  <script src="js/debug/panels/runtimePanel.js"></script>
+  <script src="js/debug/panels/performancePanel.js"></script>
+  <script src="js/debug/panels/eventPanel.js"></script>
+  <script src="js/debug/panels/tracePanel.js"></script>
+  <script src="js/debug/panels/statePanel.js"></script>
+  <script src="js/debug/panels/cognitivePanel.js"></script>
+  <script src="js/debug/panels/governancePanel.js"></script>
+  <script src="js/debug/panels/explorerPanel.js"></script>
+  <script src="js/debug/panels/autonomousPanel.js"></script>
+  <script src="js/debug/panels/predictivePanel.js"></script>
+  <script src="js/debug/panels/evolutionPanel.js"></script>
+  <script src="js/debug/panels/orchestrationPanel.js"></script>
+  <script src="js/debug/panels/productionPanel.js"></script>
+  <script src="js/debug/panels/decisionPanel.js"></script>
+  <script src="js/debug/panels/outcomePanel.js"></script>
+  <script src="js/debug/panels/adaptationPanel.js"></script>
+  <script src="js/debug/panels/metacognitivePanel.js"></script>
+  <script src="js/debug/panels/patternPanel.js"></script>
+  <script src="js/debug/panels/epistemicPanel.js"></script>
+  <script src="js/debug/panels/transferPanel.js"></script>
+  <script src="js/debug/panels/calibrationPanel.js"></script>
+  <script src="js/debug/panels/journeyPanel.js"></script>
+  <script src="js/debug/panels/agencyPanel.js"></script>
 
-  <!-- 6. 启动脚本 -->
+  <!-- ─── 16. SystemComposer ─── -->
+  <script src="js/systemComposer.js"></script>
+
+  <!-- ─── 17. App & Bootstrap ─── -->
+  <script src="js/app.js"></script>
+  <script src="js/bootstrap.js"></script>
+
+  <!-- ============================================================ -->
+  <!-- 启动脚本                                                     -->
+  <!-- ============================================================ -->
   <script>
-    console.log('🚀 Starting Law AI Academy...');
+    (function() {
+      'use strict';
 
-    function initApp() {
-      console.log('✅ System ready, initializing App...');
+      console.log('🚀 Law AI Academy — Season 4');
+      console.log('📋 Architecture: Learner Agency + Bounded Autonomy');
+      console.log('🛠️ DevPanel: Ctrl+Shift+L');
+      console.log('📊 Dashboard: S4 Integrated');
 
-      var bm = (window.LawAIApp && LawAIApp.BootManager) || window.bootManager;
-      if (bm && typeof bm.start === 'function' && !bm._booted) {
-        console.log('🔥 Auto-starting BootManager...');
-        bm.start();
-      } else if (bm && bm._booted) {
-        console.log('✅ BootManager already booted, skipping');
-      } else {
-        console.warn('⚠️ BootManager not available for auto-start');
-      }
+      // 如果 8 秒后还没有内容，强制显示 Dashboard
+      var fallbackTimer = setTimeout(function() {
+        var root = document.getElementById('law-runtime-root');
+        var placeholder = document.getElementById('loading-placeholder');
 
-      if (window.LawAIApp && window.LawAIApp.SystemComposer) {
-        try {
-          window.LawAIApp.SystemComposer.init({});
-        } catch (err) {
-          console.warn('⚠️ SystemComposer init error:', err);
+        if (root && root.innerHTML.trim() === '') {
+          console.warn('⚠️ SYSTEM_READY timeout — forcing Dashboard render');
+
+          if (window.LawAIApp?.Dashboard?.render) {
+            window.LawAIApp.Dashboard.render();
+          } else if (window.LawAIApp?.AcademyExperienceManager?.render) {
+            window.LawAIApp.AcademyExperienceManager.render();
+          }
+
+          if (placeholder) {
+            placeholder.classList.add('hidden');
+          }
         }
-      } else {
-        console.warn('⚠️ SystemComposer not found, retrying...');
-        setTimeout(initApp, 500);
-        return;
-      }
+      }, 8000);
 
-      setTimeout(function() {
-        if (LawAIApp.Debug && LawAIApp.Debug.DevPanel && typeof LawAIApp.Debug.DevPanel.refresh === 'function') {
-          LawAIApp.Debug.DevPanel.refresh();
-        }
-      }, 300);
+      // SYSTEM_READY 触发时清除 fallback
+      document.addEventListener('SYSTEM_READY', function() {
+        clearTimeout(fallbackTimer);
+        console.log('✅ SYSTEM_READY received');
 
-      setTimeout(function() {
-        var el = document.getElementById('loading-placeholder');
-        if (el) {
-          el.style.opacity = '0';
+        var placeholder = document.getElementById('loading-placeholder');
+        if (placeholder) {
           setTimeout(function() {
-            el.style.display = 'none';
-          }, 800);
+            placeholder.classList.add('hidden');
+          }, 400);
         }
-      }, 500);
-    }
+      });
 
-    document.addEventListener('SYSTEM_READY', function(e) {
-      console.log('📡 SYSTEM_READY received');
-      initApp();
-    });
+      // COMPOSER_MOUNTED 也是就绪信号
+      document.addEventListener('COMPOSER_MOUNTED', function() {
+        clearTimeout(fallbackTimer);
+        console.log('✅ COMPOSER_MOUNTED received');
 
-    setTimeout(function() {
-      var root = document.getElementById('law-runtime-root');
-      if (root && root.innerHTML.trim() === '') {
-        console.warn('⚠️ Fallback: forcing init...');
-        initApp();
-      }
-    }, 5000);
+        var placeholder = document.getElementById('loading-placeholder');
+        if (placeholder) {
+          setTimeout(function() {
+            placeholder.classList.add('hidden');
+          }, 400);
+        }
+      });
 
-    setTimeout(function() {
-      var el = document.getElementById('loading-placeholder');
-      if (el && el.style.display !== 'none') {
-        el.style.opacity = '0';
+      // 如果 DOM 已完全加载，手动触发
+      if (document.readyState === 'complete') {
         setTimeout(function() {
-          el.style.display = 'none';
-        }, 800);
+          if (window.LawAIApp?.Bootstrap?.isBooted && !window.LawAIApp.Bootstrap.isBooted()) {
+            console.log('🔥 Manual boot trigger');
+            if (window.LawAIApp?.BootManager?.start) {
+              window.LawAIApp.BootManager.start();
+            }
+          }
+        }, 500);
       }
-    }, 7000);
+
+    })();
   </script>
 
-</head>
-<body>
-  <div id="law-runtime-root"></div>
-
-  <!-- 加载提示 -->
-  <div id="loading-placeholder" style="
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    background: #0b1220;
-    color: #94a3b8;
-    font-family: 'Inter', -apple-system, sans-serif;
-    text-align: center;
-    padding: 20px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 9999;
-    pointer-events: none;
-    transition: opacity 0.8s ease;
-  ">
-    <div style="font-size: 48px; margin-bottom: 16px;">🚀</div>
-    <h2 style="color: white; font-weight: 600; margin: 0 0 8px 0;">Loading Law AI Academy</h2>
-    <p style="margin: 0; font-size: 14px;">Preparing your learning environment...</p>
-    <div style="margin-top: 24px; width: 40px; height: 40px; border: 3px solid rgba(74,158,255,0.15); border-top-color: #4a9eff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
-  </div>
-
   <noscript>
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#0b1220;color:white;text-align:center;padding:20px;">
-      <h2>⚠️ JavaScript 未启用</h2>
-      <p style="color:#94a3b8;">请启用 JavaScript 以使用 Law AI Academy</p>
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#0b1220;color:white;text-align:center;padding:20px;font-family:'Inter',sans-serif;">
+      <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
+      <h2 style="font-size:20px;font-weight:600;">JavaScript 未启用</h2>
+      <p style="color:#94a3b8;margin-top:8px;">请启用 JavaScript 以使用 Law AI Academy</p>
     </div>
   </noscript>
 </body>
