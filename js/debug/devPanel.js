@@ -144,6 +144,11 @@ LawAIApp.Debug.DevPanel = {
             if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.JourneyPanel) {
                 this.registerPanel('journey', LawAIApp.Debug.Panels.JourneyPanel, 'journey-panel-placeholder', 900);
         }
+
+        // ── Part 64: Agency Capability Panel ──
+            if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.AgencyPanel) {
+                this.registerPanel('agency', LawAIApp.Debug.Panels.AgencyPanel, 'agency-panel-placeholder', 950);
+        }
     },
 
     // ============================================================
