@@ -601,18 +601,35 @@ LawAIApp.SystemComposer = {
         console.log("🧩 SystemComposer destroyed (architecture cleaned)");
     },
 
-    // ============================================================
-    // 12. 🔥 First Paint — 立即渲染，零等待
-    // ============================================================
-
     _renderMainUI: function() {
         if (!this.root) return;
         if (document.getElementById("systemComposerRoot")) {
             console.log("🔄 systemComposerRoot already exists, skipping render");
             return;
         }
+    
+        console.log("⚡ First Paint: Rendering S4 Dashboard...");
 
-        console.log("⚡ First Paint: Rendering immediately...");
+        // 🔥 优先使用真正的 S4 Dashboard
+        if (window.LawAIApp && window.LawAIApp.Dashboard && typeof window.LawAIApp.Dashboard.render === 'function') {
+            // 创建容器
+            var container = document.createElement('div');
+            container.id = 'systemComposerRoot';
+            this.root.appendChild(container);
+        
+            // 调用真正的 Dashboard
+            window.LawAIApp.Dashboard.render();
+        
+            // 隐藏 loader
+            this._hideLoader();
+            console.log("✅ S4 Dashboard rendered");
+            return;
+        }
+
+        // ⚠️ Fallback: 如果 Dashboard 不可用，显示 minimal skeleton
+        console.warn("⚠️ Dashboard not available, using minimal skeleton");
+        this._showMinimalSkeleton();
+    },
 
         // ============================================================
         // 1. 获取所有数据（纯函数，立即返回）
