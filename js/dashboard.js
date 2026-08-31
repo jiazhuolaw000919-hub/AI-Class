@@ -1,13 +1,13 @@
 // ================================================================
-// dashboard.js — Part 70: Learning Experience Layer
-// 从 "数据展示" 变成 "学习体验"
-// EXPLORE 导航：Academy/Notes 有功能，其他显示 Coming Soon
+// dashboard.js — Part 71: Sense-Making & Learner Reflection
+// 从 "学习体验" 变成 "理解自己的学习"
 // ================================================================
 
 window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.Dashboard = {
   _rendered: false,
+  _reflectionStates: {}, // 跟踪每个 insight 的反思状态
 
   render: function() {
     const contract = window.LawAIApp?.ExperienceContract;
@@ -307,7 +307,7 @@ LawAIApp.Dashboard = {
   },
 
   // ============================================================
-  // Part 68: 学习洞察
+  // Part 71: Sense-Making Insight (增强版)
   // ============================================================
 
   _getLearningInsight: function() {
@@ -326,15 +326,76 @@ LawAIApp.Dashboard = {
         return null;
       }
 
-      return {
-        state: state,
-        momentum: momentum,
-        summary: summary,
-        message: this._buildInsightMessage(state, momentum, signals)
-      };
+      // Part 71: 返回结构化洞察 (事实 + 解释)
+      return this._buildStructuredInsight(state, momentum, signals);
     } catch (e) {
       return null;
     }
+  },
+
+  _buildStructuredInsight: function(state, momentum, signals) {
+    // 事实 (Observable)
+    var fact = this._getFact(state, momentum, signals);
+    // 解释 (Interpretation)
+    var interpretation = this._getInterpretation(state, momentum, signals);
+    // 置信度 (弱证据 → 软语言)
+    var confidence = this._getInsightConfidence(state, momentum);
+
+    return {
+      fact: fact,
+      interpretation: interpretation,
+      confidence: confidence,
+      state: state,
+      momentum: momentum,
+      summary: signals.summary || '',
+      message: this._buildInsightMessage(state, momentum, signals)
+    };
+  },
+
+  _getFact: function(state, momentum, signals) {
+    var facts = {
+      'active': 'You have been actively learning.',
+      'learning': 'You have been building your knowledge.',
+      'near_completion': 'You are close to completing this module.',
+      'idle': 'You have made progress in your learning.',
+      'returning': 'You have returned to your learning.',
+      'exploring': 'You have been exploring different topics.'
+    };
+    return facts[state] || 'You have been engaging with learning content.';
+  },
+
+  _getInterpretation: function(state, momentum, signals) {
+    var interpretations = {
+      'active': {
+        'strong': 'This suggests you are building good momentum.',
+        'steady': 'You are maintaining a steady learning rhythm.',
+        'slowing': 'You are building momentum gradually.'
+      },
+      'near_completion': {
+        'strong': 'You are close to completing this module — a good time to review.',
+        'steady': 'You are making steady progress toward completion.',
+        'slowing': 'You are approaching the finish line.'
+      },
+      'idle': {
+        'strong': 'You have built a foundation to continue from.',
+        'steady': 'Your progress provides a base for further learning.',
+        'slowing': 'You have started building your learning journey.'
+      }
+    };
+
+    var stateInterpretations = interpretations[state];
+    if (!stateInterpretations) return 'Your learning is developing.';
+
+    var momentumKey = momentum || 'steady';
+    return stateInterpretations[momentumKey] || stateInterpretations['steady'];
+  },
+
+  _getInsightConfidence: function(state, momentum) {
+    // 弱证据 → 软语言
+    if (state === 'exploring' || state === 'idle') return 'low';
+    if (state === 'learning' && momentum === 'slowing') return 'low';
+    if (state === 'active' || state === 'near_completion') return 'high';
+    return 'medium';
   },
 
   _buildInsightMessage: function(state, momentum, signals) {
@@ -370,7 +431,90 @@ LawAIApp.Dashboard = {
   },
 
   // ============================================================
-  // Part 70: HTML 构建 — 学习体验层
+  // Part 71: 反思交互
+  // ============================================================
+
+  _toggleReflection: function(insightId) {
+    if (!this._reflectionStates) this._reflectionStates = {};
+    this._reflectionStates[insightId] = !this._reflectionStates[insightId];
+    
+    // 重新渲染以显示/隐藏反思区域
+    this.render();
+  },
+
+  _handleReflectionResponse: function(insightId, response) {
+    console.log('[Dashboard] Reflection response:', insightId, response);
+
+    // 保存到 Notes
+    if (response && response.length > 0) {
+      var notes = window.LawAIApp?.Notes || window.LawAIApp?.KnowledgeCapture;
+      if (notes && typeof notes.create === 'function') {
+        var note = notes.create({
+          title: 'Learning Reflection',
+          content: response,
+          type: 'REFLECTION',
+          source: 'dashboard',
+          tags: ['reflection']
+        });
+        if (note) {
+          if (window.LawAIApp?.Toast && typeof window.LawAIApp.Toast.success === 'function') {
+            window.LawAIApp.Toast.success('✅ Reflection saved to Notes');
+          }
+          this._reflectionStates[insightId] = false;
+          this.render();
+        }
+      }
+    }
+  },
+
+  // ============================================================
+  // Part 71: 自我评估
+  // ============================================================
+
+  _handleSelfAssessment: function(insightId, confidence) {
+    console.log('[Dashboard] Self-assessment:', insightId, confidence);
+    // 存储自我评估 (通过现有架构)
+    try {
+      var existing = JSON.parse(localStorage.getItem('dashboardSelfAssessments') || '{}');
+      existing[insightId] = {
+        confidence: confidence,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('dashboardSelfAssessments', JSON.stringify(existing));
+      
+      if (window.LawAIApp?.Toast && typeof window.LawAIApp.Toast.success === 'function') {
+        window.LawAIApp.Toast.success('✅ Assessment recorded');
+      }
+    } catch (e) {
+      // ignore
+    }
+  },
+
+  // ============================================================
+  // Part 71: 学习者不同意
+  // ============================================================
+
+  _handleDisagree: function(insightId) {
+    console.log('[Dashboard] Learner disagreed with insight:', insightId);
+    // 记录不同意
+    try {
+      var existing = JSON.parse(localStorage.getItem('dashboardDisagreements') || '{}');
+      existing[insightId] = {
+        disagreed: true,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('dashboardDisagreements', JSON.stringify(existing));
+      
+      if (window.LawAIApp?.Toast && typeof window.LawAIApp.Toast.info === 'function') {
+        window.LawAIApp.Toast.info('Thanks for the feedback');
+      }
+    } catch (e) {
+      // ignore
+    }
+  },
+
+  // ============================================================
+  // Part 70: HTML 构建 — 学习体验层 + Part 71 反思
   // ============================================================
 
   _buildHTML: function(data) {
@@ -414,19 +558,162 @@ LawAIApp.Dashboard = {
     const nextTitle = this._getLessonTitle(nextDay);
     const nextSummary = this._getLessonSummary(nextDay);
 
-    const insight = this._getLearningInsight();
-    const insightHTML = insight ? `
-      <div style="
-        background: rgba(74,158,255,0.04);
-        border-radius: 8px;
-        padding: 12px 16px;
-        margin-bottom: 12px;
-        border-left: 3px solid #4a9eff;
-      ">
-        <div style="font-size: 11px; color: #4a9eff; font-weight: 500; margin-bottom: 4px;">💡 Learning Insight</div>
-        <div style="font-size: 14px; color: #e2e8f0; line-height: 1.5;">${insight.message}</div>
-      </div>
-    ` : '';
+    // Part 71: 获取结构化洞察
+    var insight = this._getLearningInsight();
+    var insightId = insight ? 'insight_' + Date.now() : null;
+    var isReflecting = insightId && this._reflectionStates && this._reflectionStates[insightId];
+
+    // 构建 Insight HTML (Part 71: Fact + Interpretation + Reflection)
+    var insightHTML = '';
+    if (insight) {
+      var confidenceLabel = insight.confidence === 'high' ? '💪 Strong evidence' :
+                           insight.confidence === 'medium' ? '📊 Moderate evidence' :
+                           '🔍 Emerging pattern';
+      
+      var disagreeBtn = `
+        <button onclick="LawAIApp.Dashboard._handleDisagree('${insightId}')" style="
+          background: transparent;
+          border: none;
+          color: #64748b;
+          font-size: 10px;
+          cursor: pointer;
+          text-decoration: underline;
+          font-family: inherit;
+          padding: 2px 4px;
+        ">This doesn't feel accurate</button>
+      `;
+
+      var reflectBtn = `
+        <button onclick="LawAIApp.Dashboard._toggleReflection('${insightId}')" style="
+          background: rgba(74,158,255,0.08);
+          border: 1px solid rgba(74,158,255,0.12);
+          border-radius: 100px;
+          color: #4a9eff;
+          font-size: 11px;
+          cursor: pointer;
+          padding: 4px 14px;
+          font-family: inherit;
+          transition: all 0.2s;
+        " onmouseover="this.style.background='rgba(74,158,255,0.15)'" onmouseout="this.style.background='rgba(74,158,255,0.08)'">
+          🤔 Reflect
+        </button>
+      `;
+
+      // 反思区域
+      var reflectionHTML = '';
+      if (isReflecting) {
+        reflectionHTML = `
+          <div style="
+            margin-top: 12px;
+            padding: 14px 16px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.04);
+          ">
+            <p style="font-size: 13px; color: #94a3b8; margin: 0 0 10px 0;">
+              💭 What do you think about this insight?
+            </p>
+            <textarea id="reflection-text-${insightId}" style="
+              width: 100%;
+              background: rgba(255,255,255,0.03);
+              border: 1px solid rgba(255,255,255,0.06);
+              border-radius: 8px;
+              color: #e2e8f0;
+              padding: 10px 14px;
+              font-family: inherit;
+              font-size: 13px;
+              resize: vertical;
+              min-height: 60px;
+              margin-bottom: 10px;
+            " placeholder="What feels clearer? What still feels uncertain?"></textarea>
+            
+            <div style="display:flex; gap: 8px; flex-wrap: wrap;">
+              <button onclick="LawAIApp.Dashboard._handleReflectionResponse('${insightId}', document.getElementById('reflection-text-${insightId}').value)" style="
+                padding: 6px 18px;
+                background: #4a9eff;
+                border: none;
+                border-radius: 100px;
+                color: white;
+                font-size: 12px;
+                font-weight: 500;
+                cursor: pointer;
+                font-family: inherit;
+              ">💾 Save to Notes</button>
+              <button onclick="LawAIApp.Dashboard._toggleReflection('${insightId}')" style="
+                padding: 6px 18px;
+                background: transparent;
+                border: 1px solid rgba(255,255,255,0.06);
+                border-radius: 100px;
+                color: #64748b;
+                font-size: 12px;
+                cursor: pointer;
+                font-family: inherit;
+              ">Cancel</button>
+            </div>
+          </div>
+        `;
+      }
+
+      // 自我评估
+      var selfAssessmentHTML = `
+        <div style="margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+          <span style="font-size: 10px; color: #64748b;">How confident do you feel?</span>
+          ${['Not yet', 'Somewhat', 'Confident', 'Very'].map(function(label, idx) {
+            var val = (idx + 1) * 25;
+            return `
+              <button onclick="LawAIApp.Dashboard._handleSelfAssessment('${insightId}', ${val})" style="
+                padding: 2px 12px;
+                background: rgba(255,255,255,0.02);
+                border: 1px solid rgba(255,255,255,0.04);
+                border-radius: 100px;
+                color: #94a3b8;
+                font-size: 10px;
+                cursor: pointer;
+                font-family: inherit;
+                transition: all 0.2s;
+              " onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+                ${label}
+              </button>
+            `;
+          }).join('')}
+        </div>
+      `;
+
+      insightHTML = `
+        <div style="
+          background: rgba(74,158,255,0.04);
+          border-radius: 8px;
+          padding: 14px 16px;
+          margin-bottom: 12px;
+          border-left: 3px solid #4a9eff;
+        ">
+          <!-- Fact -->
+          <div style="margin-bottom: 6px;">
+            <span style="font-size: 10px; color: #64748b; font-weight: 500; letter-spacing: 0.5px;">🔍 OBSERVED</span>
+            <div style="font-size: 14px; color: #e2e8f0; margin-top: 2px;">${insight.fact}</div>
+          </div>
+          
+          <!-- Interpretation -->
+          <div style="margin-bottom: 8px; padding-left: 4px; border-left: 2px solid rgba(74,158,255,0.15); padding-left: 10px;">
+            <span style="font-size: 10px; color: #4a9eff; font-weight: 500; letter-spacing: 0.5px;">💡 INTERPRETATION</span>
+            <div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">${insight.interpretation}</div>
+            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">${confidenceLabel}</div>
+          </div>
+          
+          <!-- Actions -->
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 6px;">
+            ${reflectBtn}
+            ${disagreeBtn}
+          </div>
+          
+          <!-- Self-assessment -->
+          ${selfAssessmentHTML}
+          
+          <!-- Reflection area (toggled) -->
+          ${reflectionHTML}
+        </div>
+      `;
+    }
 
     const CARD_RADIUS = '16px';
     const CARD_BG = 'rgba(255,255,255,0.025)';
@@ -463,7 +750,7 @@ LawAIApp.Dashboard = {
       font-family: 'Inter', -apple-system, sans-serif;
     ">
 
-      <!-- 🔥 EXPLORE 导航（有功能的跳转，没功能的 Coming Soon） -->
+      <!-- 🔥 EXPLORE 导航 -->
       <section style="
         margin-bottom: 16px;
         padding: 14px 18px;
@@ -519,7 +806,7 @@ LawAIApp.Dashboard = {
         }).join('')}
       </section>
 
-      <!-- 🔥 HERO — 状态感知 -->
+      <!-- 🔥 HERO -->
       <section id="dashboard-hero" style="
         min-height: 32vh;
         display: flex;
@@ -738,7 +1025,7 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
-      <!-- 📈 LEARNING INSIGHTS -->
+      <!-- 📈 LEARNING INSIGHTS (Part 71: Sense-Making) -->
       <section style="
         background: ${CARD_BG};
         border-radius: ${CARD_RADIUS};
@@ -976,4 +1263,4 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
   }, 500);
 }
 
-console.log('📊 Dashboard V4.2 ready (Part 70 - Learning Experience Layer)');
+console.log('📊 Dashboard V4.3 ready (Part 71 - Sense-Making & Reflection)');
