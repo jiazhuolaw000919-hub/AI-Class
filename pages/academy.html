@@ -536,6 +536,21 @@
                     }
 
                     // ============================================================
+                    // 13. PART 64 — AGENCY CAPABILITY & DECISION QUALITY
+                    // ============================================================
+
+                    if (window.LawAIApp?.AgencySupport && !window.LawAIApp.AgencySupport.initialized) {
+                        try {
+                            window.LawAIApp.AgencySupport.init();
+                            console.log('[Academy] ✅ AgencySupport initialized (Part 64)');
+                        } catch (e) {
+                            console.warn('[Academy] ⚠️ AgencySupport init failed:', e);
+                        }
+                    } else if (window.LawAIApp?.AgencySupport && window.LawAIApp.AgencySupport.initialized) {
+                        console.log('[Academy] ✅ AgencySupport already initialized');
+                    }
+
+                    // ============================================================
                     // 5. LEGACY — Learning Journey Adapter
                     // ============================================================
                     if (window.LawAIApp?.LearningJourneyAdapter && !window.LawAIApp.LearningJourneyAdapter.initialized) {
