@@ -427,6 +427,19 @@
                 description: 'Calibration Panel (DevPanel)',
                 required: false
             },
+            // ── Part 63: Bounded Autonomy & Journey Orchestration ──
+            {
+                id: 'journeyOrchestrator',
+                path: '/js/academy/journeyOrchestrator.js',
+                description: 'Journey Orchestrator (Integration Layer)',
+                required: false
+            },
+            {
+                id: 'journeyPanel',
+                path: '/js/debug/panels/journeyPanel.js',
+                description: 'Journey Panel (DevPanel)',
+                required: false
+            },
         ],
 
         // ============================================================
@@ -528,6 +541,19 @@
             calibrationObserver: ['calibrationModel', 'metacognitiveExperience', 'outcomeNormalizer', 'actionTracker'],
             calibrationRecommender: ['calibrationObserver', 'calibrationModel'],
             calibrationPanel: ['calibrationObserver', 'calibrationRecommender'],
+
+        // ── Part 63: Bounded Autonomy & Journey Orchestration ──
+            journeyOrchestrator: [
+                'decisionExperience',
+                'learningContext',
+                'actionTracker',
+                'patternDetector',
+                'transferObserver',
+                'calibrationObserver',
+                'courseRegistry',
+                'lessonEngine'
+            ],
+            journeyPanel: ['journeyOrchestrator'],
 
         // ============================================================
         // 3. LEGACY — Core Dependencies (Preserved)
