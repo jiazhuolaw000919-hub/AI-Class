@@ -1212,6 +1212,9 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
+      <!-- 📚 LEARNING CONTINUITY (Part 73) -->
+      ${continuityHTML}
+
       <!-- 🔒 Authority Status -->
       ${authorityHTML}
 
@@ -1392,6 +1395,268 @@ LawAIApp.Dashboard = {
     `;
     container.style.opacity = '1';
     console.log('📊 Recommendations loaded with explanations');
+  },
+
+  // ============================================================
+  // Part 73: Learning Continuity & Memory Loop
+  // ============================================================
+
+  /**
+   * 获取连续性上下文
+   */
+  _getContinuityContext: function() {
+      var context = {
+          hasRecentLearning: false,
+          hasReflection: false,
+          hasUpcoming: false,
+          recentLearning: null,
+          recentReflections: [],
+          upcomingItems: [],
+          message: null
+      };
+
+      // 1. 最近学习
+      var learning = this._getRecentLearning();
+      if (learning) {
+          context.hasRecentLearning = true;
+          context.recentLearning = learning;
+      }
+
+      // 2. 最近反思
+      var reflections = this._getRecentReflections();
+      if (reflections && reflections.length > 0) {
+          context.hasReflection = true;
+          context.recentReflections = reflections.slice(0, 2);
+      }
+
+      // 3. 即将到来的日程
+      var upcoming = this._getUpcomingSchedule();
+      if (upcoming && upcoming.length > 0) {
+          context.hasUpcoming = true;
+          context.upcomingItems = upcoming.slice(0, 2);
+      }
+
+      // 4. 生成连续性消息
+      context.message = this._getContinuityMessage(context);
+
+      return context;
+  },
+
+  /**
+   * 获取最近学习
+   */
+  _getRecentLearning: function() {
+      var lc = window.LawAIApp?.LearningContext;
+      if (!lc) return null;
+
+      try {
+          var ctx = lc.getContext();
+          if (!ctx || !ctx.course) return null;
+
+          return {
+              courseId: ctx.course.id,
+              courseTitle: ctx.course.title || 'Current Course',
+              moduleTitle: ctx.module?.name || null,
+              lessonTitle: ctx.lesson?.name || null,
+              lastActivity: ctx.lastActivity || null,
+              progress: ctx.progress?.course || 0
+          };
+      } catch (e) {
+          console.warn('[Dashboard] Recent learning error:', e);
+          return null;
+      }
+  },
+
+  /**
+   * 获取最近反思
+   */
+  _getRecentReflections: function() {
+      var notes = window.LawAIApp?.Notes || window.LawAIApp?.KnowledgeCapture;
+      if (!notes) return [];
+
+      try {
+          var allNotes = notes.getNotes ? notes.getNotes() : [];
+          if (!allNotes || allNotes.length === 0) return [];
+
+          // 筛选反思类型的笔记
+          var reflections = allNotes.filter(function(n) {
+              return n.type === 'REFLECTION' || 
+                     n.tags?.indexOf('reflection') !== -1 ||
+                     n.source === 'dashboard';
+          });
+
+          // 按时间排序
+          reflections.sort(function(a, b) {
+              return new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt);
+          });
+
+          return reflections;
+      } catch (e) {
+          console.warn('[Dashboard] Recent reflections error:', e);
+          return [];
+      }
+  },
+
+  /**
+   * 获取即将到来的日程
+   */
+  _getUpcomingSchedule: function() {
+      var cal = window.LawAIApp?.CalendarEngine;
+      if (!cal) return [];
+
+      try {
+          // 简化版本：从 localStorage 或现有状态获取
+          var upcoming = [];
+          var stored = localStorage.getItem('dashboardUpcomingSchedule');
+          if (stored) {
+              var parsed = JSON.parse(stored);
+              if (parsed && parsed.length > 0) {
+                  return parsed;
+              }
+          }
+          return [];
+      } catch (e) {
+          return [];
+      }
+  },
+
+  /**
+   * 生成连续性消息
+   */
+  _getContinuityMessage: function(context) {
+      if (!context.hasRecentLearning && !context.hasReflection) {
+          return 'Your learning story will appear here as you begin exploring.';
+      }
+
+      var parts = [];
+
+      if (context.hasRecentLearning && context.recentLearning) {
+          var learning = context.recentLearning;
+          parts.push('Recently: ' + learning.courseTitle);
+          if (learning.moduleTitle) {
+              parts.push(learning.moduleTitle);
+          }
+      }
+
+      if (context.hasReflection) {
+          var count = context.recentReflections.length;
+          parts.push('Reflected: ' + count + ' insight' + (count > 1 ? 's' : ''));
+      }
+
+      if (context.hasUpcoming) {
+          var count = context.upcomingItems.length;
+          parts.push('Planned: ' + count + ' item' + (count > 1 ? 's' : ''));
+      }
+
+      return parts.join(' · ') || 'Your learning journey continues.';
+  },
+
+  /**
+   * 构建连续性卡片 HTML
+   */
+  _buildContinuityHTML: function() {
+      var context = this._getContinuityContext();
+
+      var html = '';
+  
+      // 如果没有内容，不显示卡片
+      if (!context.hasRecentLearning && !context.hasReflection && !context.hasUpcoming) {
+          return '';
+      }
+
+      html += `
+          <section style="
+              background: rgba(255,255,255,0.02);
+              border-radius: ${CARD_RADIUS};
+              padding: ${CARD_PADDING};
+              border: ${CARD_BORDER};
+              margin-bottom: 16px;
+          ">
+              <p style="
+                  margin: 0 0 10px;
+                  font-size: 11px;
+                  color: #64748b;
+                  font-weight: 500;
+                  letter-spacing: 0.6px;
+              ">  
+                  📚 LEARNING CONTINUITY
+              </p>
+              <div style="font-size: 13px; color: #94a3b8; line-height: 1.6;">
+                  ${context.message}
+              </div>
+      `;
+
+      // 如果有反思，显示最近一条
+      if (context.hasReflection && context.recentReflections.length > 0) {
+          var ref = context.recentReflections[0];
+          var preview = ref.content ? ref.content.substring(0, 80) + (ref.content.length > 80 ? '...' : '') : 'Saved reflection';
+          html += `
+              <div style="
+                  margin-top: 8px;
+                  padding: 8px 12px;
+                  background: rgba(255,255,255,0.02);
+                  border-radius: 6px;
+                  border-left: 2px solid #4a9eff;
+                  font-size: 12px;
+                  color: #e2e8f0;
+              ">
+                  💭 ${preview}
+              </div>
+          `;  
+      }
+
+      // 如果有日程，显示
+      if (context.hasUpcoming && context.upcomingItems.length > 0) {
+          html += `
+              <div style="
+                  margin-top: 8px;
+                  display: flex;
+                  gap: 12px;
+                  flex-wrap: wrap;
+                  font-size: 11px;
+                  color: #64748b;
+              ">
+                  ${context.upcomingItems.map(function(item) {
+                      return `<span style="background: rgba(255,255,255,0.03); padding: 2px 12px; border-radius: 100px;">📅 ${item.title || 'Review'}</span>`;
+                  }).join('')}
+              </div>
+          `;  
+      }
+
+      html += `
+              <div style="
+                  margin-top: 10px;
+                  display: flex;
+                  gap: 8px;
+                  flex-wrap: wrap;
+                  border-top: 1px solid rgba(255,255,255,0.04);
+                  padding-top: 10px;
+              ">
+                  <button onclick="window.location.href='/pages/academy.html'" style="
+                      padding: 4px 14px;
+                      background: rgba(74,158,255,0.06);
+                      border: 1px solid rgba(74,158,255,0.08);
+                      border-radius: 100px;
+                      color: #94a3b8;
+                      font-size: 10px;
+                      cursor: pointer;
+                      font-family: inherit;
+                  ">📚 Continue Learning</button>
+                  ${context.hasReflection ? `<button onclick="window.location.href='/pages/academy.html#notes'" style="
+                      padding: 4px 14px;
+                      background: rgba(255,255,255,0.02);
+                      border: 1px solid rgba(255,255,255,0.04);
+                      border-radius: 100px;
+                      color: #94a3b8;
+                      font-size: 10px;
+                      cursor: pointer;
+                      font-family: inherit;
+                  ">📓 View Notes</button>` : ''}
+              </div>
+          </section>
+      `;
+
+      return html;
   },
 
   refresh: function() {
