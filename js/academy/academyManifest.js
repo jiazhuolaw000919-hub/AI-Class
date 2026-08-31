@@ -402,6 +402,31 @@
                 description: 'Transfer Panel (DevPanel)',
                 required: false
             },
+            // ── Part 62: Calibration & Evaluative Judgment ──
+            {
+                id: 'calibrationModel',
+                path: '/js/academy/calibrationModel.js',
+                description: 'Calibration Model (Self-assessment vs Performance)',
+                required: false
+            },
+            {
+                id: 'calibrationObserver',
+                path: '/js/academy/calibrationObserver.js',
+                description: 'Calibration Observer (Evidence-based)',
+                required: false
+            },
+            {
+                id: 'calibrationRecommender',
+                path: '/js/academy/calibrationRecommender.js',
+                description: 'Calibration Recommender (Optional/Explainable)',
+                required: false
+            },
+            {
+                id: 'calibrationPanel',
+                path: '/js/debug/panels/calibrationPanel.js',
+                description: 'Calibration Panel (DevPanel)',
+                required: false
+            },
         ],
 
         // ============================================================
@@ -497,6 +522,12 @@
             transferObserver: ['transferModel', 'actionTracker', 'learningContext', 'knowledgeGraph'],
             transferRecommender: ['transferObserver', 'transferModel', 'courseRegistry'],
             transferPanel: ['transferObserver', 'transferRecommender'],
+
+        // ── Part 62: Calibration & Evaluative Judgment ──
+            calibrationModel: [],
+            calibrationObserver: ['calibrationModel', 'metacognitiveExperience', 'outcomeNormalizer', 'actionTracker'],
+            calibrationRecommender: ['calibrationObserver', 'calibrationModel'],
+            calibrationPanel: ['calibrationObserver', 'calibrationRecommender'],
 
         // ============================================================
         // 3. LEGACY — Core Dependencies (Preserved)
