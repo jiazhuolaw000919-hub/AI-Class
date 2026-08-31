@@ -1931,116 +1931,113 @@ LawAIApp.Dashboard = {
    * 构建连续性卡片 HTML
    */
   _buildContinuityHTML: function() {
-      var context = this._getContinuityContext();
+    // 🔥 添加常量定义（从 _buildHTML 复制过来）
+    var CARD_RADIUS = '16px';
+    var CARD_BG = 'rgba(255,255,255,0.025)';
+    var CARD_BORDER = '1px solid rgba(255,255,255,0.04)';
+    var CARD_PADDING = '20px';
 
-      // 🔥 添加这些常量定义
-      const CARD_RADIUS = '16px';
-      const CARD_BG = 'rgba(255,255,255,0.025)';
-      const CARD_BORDER = '1px solid rgba(255,255,255,0.04)';
-      const CARD_PADDING = '20px';
+    var context = this._getContinuityContext();
 
-      var html = '';
+    var html = '';
   
-      // 如果没有内容，不显示卡片
-      if (!context.hasRecentLearning && !context.hasReflection && !context.hasUpcoming) {
-          return '';
-      }
+    if (!context.hasRecentLearning && !context.hasReflection && !context.hasUpcoming) {
+        return '';
+    }
 
-      html += `
-          <section style="
-              background: rgba(255,255,255,0.02);
-              border-radius: ${CARD_RADIUS};
-              padding: ${CARD_PADDING};
-              border: ${CARD_BORDER};
-              margin-bottom: 16px;
-          ">
-              <p style="
-                  margin: 0 0 10px;
-                  font-size: 11px;
-                  color: #64748b;
-                  font-weight: 500;
-                  letter-spacing: 0.6px;
-              ">  
-                  📚 LEARNING CONTINUITY
-              </p>
-              <div style="font-size: 13px; color: #94a3b8; line-height: 1.6;">
-                  ${context.message}
-              </div>
-      `;
+    html += `
+        <section style="
+            background: ${CARD_BG};
+            border-radius: ${CARD_RADIUS};
+            padding: ${CARD_PADDING};
+            border: ${CARD_BORDER};
+            margin-bottom: 16px;
+        ">
+            <p style="
+                margin: 0 0 10px;
+                font-size: 11px;
+                color: #64748b;
+                font-weight: 500;
+                letter-spacing: 0.6px;
+            ">  
+                📚 LEARNING CONTINUITY
+            </p>
+            <div style="font-size: 13px; color: #94a3b8; line-height: 1.6;">
+                ${context.message}
+            </div>
+    `;
 
-      // 如果有反思，显示最近一条
-      if (context.hasReflection && context.recentReflections.length > 0) {
-          var ref = context.recentReflections[0];
-          var preview = ref.content ? ref.content.substring(0, 80) + (ref.content.length > 80 ? '...' : '') : 'Saved reflection';
-          html += `
-              <div style="
-                  margin-top: 8px;
-                  padding: 8px 12px;
-                  background: rgba(255,255,255,0.02);
-                  border-radius: 6px;
-                  border-left: 2px solid #4a9eff;
-                  font-size: 12px;
-                  color: #e2e8f0;
-              ">
-                  💭 ${preview}
-              </div>
-          `;  
-      }
+    if (context.hasReflection && context.recentReflections.length > 0) {
+        var ref = context.recentReflections[0];
+        var preview = ref.content ? ref.content.substring(0, 80) + (ref.content.length > 80 ? '...' : '') : 'Saved reflection';
+        html += `
+            <div style="
+                margin-top: 8px;
+                padding: 8px 12px;
+                background: rgba(255,255,255,0.02);
+                border-radius: 6px;
+                border-left: 2px solid #4a9eff;
+                font-size: 12px;
+                color: #e2e8f0;
+            ">
+                💭 ${preview}
+            </div>
+        `;  
+    }
 
-      // 如果有日程，显示
-      if (context.hasUpcoming && context.upcomingItems.length > 0) {
-          html += `
-              <div style="
-                  margin-top: 8px;
-                  display: flex;
-                  gap: 12px;
-                  flex-wrap: wrap;
-                  font-size: 11px;
-                  color: #64748b;
-              ">
-                  ${context.upcomingItems.map(function(item) {
-                      return `<span style="background: rgba(255,255,255,0.03); padding: 2px 12px; border-radius: 100px;">📅 ${item.title || 'Review'}</span>`;
-                  }).join('')}
-              </div>
-          `;  
-      }
+    if (context.hasUpcoming && context.upcomingItems.length > 0) {
+        html += `
+            <div style="
+                margin-top: 8px;
+                display: flex;
+                gap: 12px;
+                flex-wrap: wrap;
+                font-size: 11px;
+                color: #64748b;
+            ">
+                ${context.upcomingItems.map(function(item) {
+                    return `<span style="background: rgba(255,255,255,0.03); padding: 2px 12px; border-radius: 100px;">📅 ${item.title || 'Review'}</span>`;
+                }).join('')}
+            </div>
+        `;  
+    }
 
-      html += `
-              <div style="
-                  margin-top: 10px;
-                  display: flex;
-                  gap: 8px;
-                  flex-wrap: wrap;
-                  border-top: 1px solid rgba(255,255,255,0.04);
-                  padding-top: 10px;
-              ">
-                  <button onclick="window.location.href='/pages/academy.html'" style="
-                      padding: 4px 14px;
-                      background: rgba(74,158,255,0.06);
-                      border: 1px solid rgba(74,158,255,0.08);
-                      border-radius: 100px;
-                      color: #94a3b8;
-                      font-size: 10px;
-                      cursor: pointer;
-                      font-family: inherit;
-                  ">📚 Continue Learning</button>
-                  ${context.hasReflection ? `<button onclick="window.location.href='/pages/academy.html#notes'" style="
-                      padding: 4px 14px;
-                      background: rgba(255,255,255,0.02);
-                      border: 1px solid rgba(255,255,255,0.04);
-                      border-radius: 100px;
-                      color: #94a3b8;
-                      font-size: 10px;
-                      cursor: pointer;
-                      font-family: inherit;
-                  ">📓 View Notes</button>` : ''}
-              </div>
-          </section>
-      `;
+    html += `
+            <div style="
+                margin-top: 10px;
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+                border-top: 1px solid rgba(255,255,255,0.04);
+                padding-top: 10px;
+            ">
+                <button onclick="window.location.href='/pages/academy.html'" style="
+                    padding: 4px 14px;
+                    background: rgba(74,158,255,0.06);
+                    border: 1px solid rgba(74,158,255,0.08);
+                    border-radius: 100px;
+                    color: #94a3b8;
+                    font-size: 10px;
+                    cursor: pointer;
+                    font-family: inherit;
+                ">📚 Continue Learning</button>
+                ${context.hasReflection ? `<button onclick="window.location.href='/pages/academy.html#notes'" style="
+                    padding: 4px 14px;
+                    background: rgba(255,255,255,0.02);
+                    border: 1px solid rgba(255,255,255,0.04);
+                    border-radius: 100px;
+                    color: #94a3b8;
+                    font-size: 10px;
+                    cursor: pointer;
+                    font-family: inherit;
+                ">📓 View Notes</button>` : ''}
+            </div>
+        </section>
+    `;
 
-      return html;
-  },
-
+    return html;
+},
+  
   // ============================================================
   // Part 74: Learning Loop Renderer
   // ============================================================
