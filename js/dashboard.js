@@ -11,12 +11,8 @@ LawAIApp.Dashboard = {
 
   /**
    * 渲染 Dashboard — Canon V2.0 第一印象重构版
-   * 视觉层次：Hero (40%) → Continue Learning → Today's Progress → Recommendations
    */
   render: function() {
-    // ============================================================
-    // 数据获取（所有引擎继续运行，不改）
-    // ============================================================
     // ── Part 65/66: 通过 Experience Contract 获取权威状态 ──
     const contract = window.LawAIApp?.ExperienceContract;
     const orchestrator = window.LawAIApp?.JourneyOrchestrator;
@@ -28,7 +24,6 @@ LawAIApp.Dashboard = {
         const journeyState = orchestrator.getJourneyState({});
         contractState = journeyState;
         
-        // 尝试从 journeyState 提取进度
         if (journeyState.currentContext && journeyState.currentContext.lesson) {
           const ctx = journeyState.currentContext;
           progress = {
@@ -38,14 +33,12 @@ LawAIApp.Dashboard = {
             completionPercent: 0,
             currentStage: ctx.course?.title || 'Foundation'
           };
-          // 如果有 stats，使用它
           if (journeyState.stats) {
             progress.completedLessons = journeyState.stats.completedLessons || [];
             progress.completionPercent = journeyState.stats.completionPercent || 0;
             progress.xp = journeyState.stats.xp || 0;
           }
         } else {
-          // fallback
           progress = this._getProgress();
         }
       } catch (e) {
@@ -53,16 +46,13 @@ LawAIApp.Dashboard = {
         progress = this._getProgress();
       }
     } else {
-      // Fallback: 直接读取引擎
       progress = this._getProgress();
     }
 
-    // 仍从各引擎读取 (保持兼容)
     streakData = this._getStreakData();
     levelInfo = this._getLevelInfo();
     achievements = this._getAchievements();
   
-    // 如果 contract 可用，用 contract 验证状态
     if (contract) {
       const validation = contract.validate({ 
         status: progress.completedLessons.length > 0 ? 'IN_PROGRESS' : 'NOT_STARTED',
@@ -86,9 +76,6 @@ LawAIApp.Dashboard = {
     const lastCompletedDate = this._getLastCompletedDate(streakData);
     const noteCount = this._getNoteCount();
 
-    // ============================================================
-    // 构建 UI — Canon V2.0 层级
-    // ============================================================
     const html = this._buildHTML({
       progress,
       streakData,
@@ -229,8 +216,8 @@ LawAIApp.Dashboard = {
   },
 
   /**
- * Part 68: 获取学习洞察 (从 ExperienceIntelligence)
- */
+   * Part 68: 获取学习洞察 (从 ExperienceIntelligence)
+   */
   _getLearningInsight: function() {
     var ei = window.LawAIApp?.ExperienceIntelligence;
     if (!ei || !ei.initialized) return null;
@@ -239,12 +226,10 @@ LawAIApp.Dashboard = {
       var signals = ei.getSignals();
       if (!signals || !signals.learningState) return null;
 
-      // 根据学习状态生成洞察
       var state = signals.learningState;
       var momentum = signals.momentum;
       var summary = signals.summary || '';
 
-      // 只有有意义的状态才生成洞察
       if (state === 'unknown' || state === 'idle') {
         return null;
       }
@@ -291,13 +276,12 @@ LawAIApp.Dashboard = {
     var momentumKey = momentum || 'steady';
     var message = stateMessages[momentumKey] || stateMessages['steady'];
 
-    // 如果有摘要，追加
     if (signals.summary && signals.summary !== message) {
       message += ' · ' + signals.summary;
     }
 
     return message;
-  }
+  },
 
   // ============================================================
   // HTML 构建 — Canon V2.0 第一印象重构
@@ -319,22 +303,18 @@ LawAIApp.Dashboard = {
       noteCount
     } = data;
 
-    // ---- 问候语 ----
     const greeting = this._getGreeting();
     const userName = this._getUserName();
     const motivation = this._getMotivation(progress, streakData);
 
-    // ---- 状态徽章 ----
     const levelDisplay = 'Lv.' + (levelInfo.level || 1);
     const xpDisplay = (progress.xp || 0) + ' XP';
     const streakDisplay = (streakData.currentStreak || 0) + 'd';
 
-    // ---- 进度 ----
     const percent = Math.round(progress.completionPercent || 0);
     const completedCount = progress.completedLessons?.length || 0;
     const totalCount = 365;
 
-    // ---- 继续学习 ----
     const nextDay = Math.min(completedCount + 1, 365);
     const lessonLink = completedCount === 0 ? '/pages/academy.html' : '/pages/lesson.html?day=' + nextDay;
     const btnText = completedCount === 0 ? 'Start Learning' : (completedCount >= 365 ? 'Review All' : 'Continue');
@@ -342,13 +322,9 @@ LawAIApp.Dashboard = {
     const nextTitle = this._getLessonTitle(nextDay);
     const nextSummary = this._getLessonSummary(nextDay);
 
-    // ---- 周挑战 ----
     const challenge = this._getWeeklyChallenge();
-
-    // ---- 推荐 ----
     const recommendations = this._getRecommendations();
 
-    // ── Part 68: Learning Insight ──
     const insight = this._getLearningInsight();
     const insightHTML = insight ? `
       <div style="
@@ -363,17 +339,11 @@ LawAIApp.Dashboard = {
       </div>
     ` : '';
 
-    // ============================================================
-    // 统一卡片设计语言
-    // ============================================================
     const CARD_RADIUS = '16px';
     const CARD_BG = 'rgba(255,255,255,0.025)';
     const CARD_BORDER = '1px solid rgba(255,255,255,0.04)';
     const CARD_PADDING = '20px';
 
-    // ============================================================
-    // HTML 模板
-    // ============================================================
     return `
     <div id="dashboard-root" style="
       max-width: 960px;
@@ -383,9 +353,7 @@ LawAIApp.Dashboard = {
       font-family: 'Inter', -apple-system, sans-serif;
     ">
 
-      <!-- ========================================================== -->
-      <!-- 🔥 HERO — 占首屏 38-42%，唯一视觉焦点                      -->
-      <!-- ========================================================== -->
+      <!-- HERO -->
       <section id="dashboard-hero" style="
         min-height: 38vh;
         display: flex;
@@ -486,11 +454,8 @@ LawAIApp.Dashboard = {
         </div>       
       </section>
 
-      <!-- ========================================================== -->
-      <!-- 🔥 CONTINUE LEARNING — 第二视觉重点                        -->
-      <!-- ========================================================== -->
+      <!-- CONTINUE LEARNING -->
       ${completedCount === 0 ? `
-      <!-- 空状态 -->
       <div style="
         background: ${CARD_BG};
         border-radius: ${CARD_RADIUS};
@@ -576,9 +541,7 @@ LawAIApp.Dashboard = {
       </a>
       `}
 
-      <!-- ========================================================== -->
-      <!-- 📊 TODAY'S PROGRESS — 三列等宽卡片                         -->
-      <!-- ========================================================== -->
+      <!-- TODAY'S PROGRESS -->
       <section style="
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
@@ -622,9 +585,7 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
-      <!-- ========================================================== -->
-      <!-- 📖 RECOMMENDATIONS — 延迟加载内容                          -->
-      <!-- ========================================================== -->
+      <!-- RECOMMENDATIONS -->
       <section id="dashboard-recommendations" style="
         background: ${CARD_BG};
         border-radius: ${CARD_RADIUS};
@@ -649,9 +610,7 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
-      <!-- ========================================================== -->
-      <!-- ⚡ QUICK ACTIONS                                            -->
-      <!-- ========================================================== -->
+      <!-- QUICK ACTIONS -->
       <section style="margin-bottom: 16px;">
         <p style="margin:0 0 10px;font-size:11px;color:#64748b;font-weight:500;letter-spacing:0.6px;">
           EXPLORE
@@ -692,9 +651,7 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
-      <!-- ========================================================== -->
-      <!-- 📈 进度条                                                   -->
-      <!-- ========================================================== -->
+      <!-- PROGRESS BAR -->
       <section style="
         background: ${CARD_BG};
         border-radius: ${CARD_RADIUS};
@@ -722,9 +679,7 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
-      <!-- ========================================================== -->
-      <!-- 📈 LEARNING INSIGHTS                                        -->
-      <!-- ========================================================== -->
+      <!-- LEARNING INSIGHTS -->
       <section style="
         background: ${CARD_BG};
         border-radius: ${CARD_RADIUS};
@@ -760,9 +715,7 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
-      <!-- ========================================================== -->
-      <!-- 🔒 Authority Status (Developer Info)                       -->
-      <!-- ========================================================== -->
+      <!-- AUTHORITY STATUS -->
       <section style="
         background: rgba(255,255,255,0.015);
         border-radius: 8px;
@@ -781,9 +734,7 @@ LawAIApp.Dashboard = {
         <span>📓 Notes: ${this._getNoteCount()} saved</span>
       </section>
 
-      <!-- ========================================================== -->
-      <!-- 页脚                                                        -->
-      <!-- ========================================================== -->
+      <!-- FOOTER -->
       <footer style="
         text-align:center;
         padding:16px;
@@ -897,9 +848,6 @@ LawAIApp.Dashboard = {
     return recs;
   },
 
-  /**
-   * 初始化动画
-   */
   _initAnimations: function() {
     var self = this;
     setTimeout(function() {
@@ -907,14 +855,10 @@ LawAIApp.Dashboard = {
     }, 300);
   },
 
-  /**
-   * 加载推荐延迟
-   */
   _loadRecommendations: function() {
     var container = document.getElementById('dashboard-recommendations');
     if (!container) return;
 
-    // ── Part 60/65: 尝试从 DecisionExperience 获取带解释的推荐 ──
     var recs = this._getRecommendations();
     var de = window.LawAIApp?.DecisionExperience;
     var explanations = {};
@@ -935,7 +879,6 @@ LawAIApp.Dashboard = {
       }
     }
 
-    // 空状态处理
     if (recs.length === 0) {
       container.innerHTML = `
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
@@ -950,7 +893,6 @@ LawAIApp.Dashboard = {
       return;
     }
 
-    // 渲染推荐
     var recsHtml = recs.slice(0, 3).map(function(rec, index) {
       var lessonId = rec.id || 'day-' + (index + 1);
       var dayNum = lessonId.replace('day-', '');
@@ -1006,9 +948,6 @@ LawAIApp.Dashboard = {
     console.log('📊 Recommendations loaded with explanations');
   },
 
-  /**
-   * 刷新 Dashboard
-   */
   refresh: function() {
     if (!this._rendered) {
       this.render();
