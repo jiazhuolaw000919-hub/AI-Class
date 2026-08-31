@@ -179,6 +179,26 @@ window.App = {
         this._showMinimalSkeleton(root);
     },
 
+    _renderS4Dashboard: function() {
+        var root = this.getRoot();
+        if (!root) return;
+
+        // 如果 Dashboard 存在，直接渲染
+        if (window.LawAIApp && window.LawAIApp.Dashboard && typeof window.LawAIApp.Dashboard.render === 'function') {
+            console.log("📊 Rendering S4 Dashboard...");
+            // 清空 root
+            root.innerHTML = '';
+            // 创建容器
+            var container = document.createElement('div');
+            container.id = 'systemComposerRoot';
+            root.appendChild(container);
+            // 渲染 Dashboard
+            window.LawAIApp.Dashboard.render();
+            return true;
+        }
+        return false;
+    },
+
     _showMinimalSkeleton: function(root) {
         if (!root) return;
         if (root.innerHTML.trim() !== '') return;
