@@ -1238,6 +1238,310 @@
             return summary;
         },
 
+                // ============================================================
+        // Part 95: Learner Model Calibration & Self-Correction
+        // ============================================================
+
+        /**
+         * 记录预测结果
+         * 用于后续校准
+         * @param {Object} prediction - 预测
+         * @param {Object} outcome - 实际结果
+         * @returns {Object} 校准记录
+         */
+        recordPredictionOutcome: function(prediction, outcome) {
+            var record = {
+                prediction: {
+                    state: prediction.state || null,
+                    recommendation: prediction.recommendation || null,
+                    confidence: prediction.confidence || 'unknown',
+                    timestamp: prediction.timestamp || new Date().toISOString()
+                },
+                outcome: {
+                    result: outcome.result || 'unknown',  // success | partial | failure | dismissed
+                    action: outcome.action || null,
+                    timestamp: outcome.timestamp || new Date().toISOString()
+                },
+                calibration: null,
+                timestamp: new Date().toISOString()
+            };
+
+            // 计算校准
+            var calibration = this._calculatePredictionCalibration(prediction, outcome);
+            record.calibration = calibration;
+
+            // 存储
+            try {
+                var stored = localStorage.getItem('predictionCalibrationHistory') || '[]';
+                var history = JSON.parse(stored);
+                history.push(record);
+                if (history.length > 200) {
+                    history = history.slice(-200);
+                }
+                localStorage.setItem('predictionCalibrationHistory', JSON.stringify(history));
+            } catch (e) {
+                console.warn('[Adapter] Prediction record error:', e);
+            }
+
+            this._emit('PREDICTION_OUTCOME_RECORDED', {
+                prediction: prediction,
+                outcome: outcome,
+                calibration: calibration
+            });
+
+            return record;
+        },
+
+        /**
+         * 计算预测校准
+         * @private
+         */
+        _calculatePredictionCalibration: function(prediction, outcome) {
+            var result = {
+                status: 'unknown',  // well_calibrated | over_confident | under_confident | uncertain | insufficient_evidence
+                confidence: 'low',
+                message: null
+            };
+
+            var predConfidence = prediction.confidence || 'medium';
+            var outcomeResult = outcome.result || 'unknown';
+
+            // 检查是否有足够证据
+            if (predConfidence === 'unknown' || outcomeResult === 'unknown') {
+                result.status = 'insufficient_evidence';
+                result.message = 'Insufficient evidence for calibration.';
+                return result;
+            }
+
+            // 高估：高信心 + 失败
+            if (predConfidence === 'high' && outcomeResult === 'failure') {
+                result.status = 'over_confident';
+                result.confidence = 'high';
+                result.message = 'Prediction confidence was higher than outcome.';
+                return result;
+            }
+
+            // 低估：低信心 + 成功
+            if (predConfidence === 'low' && outcomeResult === 'success') {
+                result.status = 'under_confident';
+                result.confidence = 'high';
+                result.message = 'Prediction confidence was lower than outcome.';
+                return result;
+            }
+
+            // 高估：高信心 + 部分成功
+            if (predConfidence === 'high' && outcomeResult === 'partial') {
+                result.status = 'over_confident';
+                result.confidence = 'medium';
+                result.message = 'Outcome was partial despite high confidence.';
+                return result;
+            }
+
+            // 低估：低信心 + 部分成功
+            if (predConfidence === 'low' && outcomeResult === 'partial') {
+                result.status = 'under_confident';
+                result.confidence = 'medium';
+                result.message = 'Outcome was better than expected.';
+                return result;
+            }
+
+            // 良好校准
+            if ((predConfidence === 'high' && outcomeResult === 'success') ||
+                (predConfidence === 'low' && outcomeResult === 'failure') ||
+                (predConfidence === 'medium')) {
+                result.status = 'well_calibrated';
+                result.confidence = 'medium';
+                result.message = 'Prediction and outcome are aligned.';
+                return result;
+            }
+
+            result.status = 'uncertain';
+            result.message = 'Calibration uncertain.';
+            return result;
+        },
+
+        /**
+         * 获取校准历史摘要
+         * @param {string} type - 可选的过滤类型
+         * @returns {Object} 校准摘要
+         */
+        getCalibrationSummary: function(type) {
+            var summary = {
+                hasHistory: false,
+                total: 0,
+                well_calibrated: 0,
+                over_confident: 0,
+                under_confident: 0,
+                uncertain: 0,
+                insufficient_evidence: 0,
+                calibrationRate: null,
+                trends: null,
+                message: null
+            };
+
+            try {
+                var stored = localStorage.getItem('predictionCalibrationHistory') || '[]';
+                var history = JSON.parse(stored);
+                
+                if (!history || history.length === 0) {
+                    summary.message = 'No calibration history yet.';
+                    return summary;
+                }
+
+                summary.hasHistory = true;
+                summary.total = history.length;
+
+                // 统计
+                var counts = {
+                    'well_calibrated': 0,
+                    'over_confident': 0,
+                    'under_confident': 0,
+                    'uncertain': 0,
+                    'insufficient_evidence': 0
+                };
+
+                for (var i = 0; i < history.length; i++) {
+                    var calibration = history[i].calibration;
+                    if (calibration && calibration.status) {
+                        counts[calibration.status] = (counts[calibration.status] || 0) + 1;
+                    }
+                }
+
+                summary.well_calibrated = counts.well_calibrated;
+                summary.over_confident = counts.over_confident;
+                summary.under_confident = counts.under_confident;
+                summary.uncertain = counts.uncertain;
+                summary.insufficient_evidence = counts.insufficient_evidence;
+
+                // 校准率
+                var validCalibrations = counts.well_calibrated + counts.over_confident + counts.under_confident;
+                if (validCalibrations > 0) {
+                    summary.calibrationRate = Math.round((counts.well_calibrated / validCalibrations) * 100);
+                }
+
+                // 趋势：最近 10 条
+                var recent = history.slice(-10);
+                var recentWell = 0;
+                for (var j = 0; j < recent.length; j++) {
+                    if (recent[j].calibration && recent[j].calibration.status === 'well_calibrated') {
+                        recentWell++;
+                    }
+                }
+                var recentRate = recent.length > 0 ? Math.round((recentWell / recent.length) * 100) : 0;
+                var overallRate = summary.calibrationRate || 0;
+
+                if (recentRate > overallRate + 10) {
+                    summary.trends = 'improving';
+                } else if (recentRate < overallRate - 10) {
+                    summary.trends = 'declining';
+                } else {
+                    summary.trends = 'stable';
+                }
+
+                summary.message = this._generateCalibrationMessage(summary);
+
+                return summary;
+
+            } catch (e) {
+                summary.message = 'Error loading calibration history.';
+                return summary;
+            }
+        },
+
+        /**
+         * 生成校准消息
+         * @private
+         */
+        _generateCalibrationMessage: function(summary) {
+            if (!summary.hasHistory) {
+                return 'No calibration data available.';
+            }
+
+            var parts = [];
+            parts.push(summary.total + ' predictions recorded');
+
+            if (summary.calibrationRate !== null) {
+                parts.push(summary.calibrationRate + '% calibrated');
+            }
+
+            if (summary.over_confident > 0) {
+                parts.push(summary.over_confident + ' overconfident');
+            }
+
+            if (summary.under_confident > 0) {
+                parts.push(summary.under_confident + ' underconfident');
+            }
+
+            if (summary.trends === 'improving') {
+                parts.push('⬆️ improving');
+            } else if (summary.trends === 'declining') {
+                parts.push('⬇️ declining');
+            }
+
+            return parts.join(' · ');
+        },
+
+        /**
+         * 执行自校正检查
+         * @returns {Object} 自校正建议
+         */
+        performSelfCorrection: function() {
+            var summary = this.getCalibrationSummary();
+            var corrections = {
+                needsCorrection: false,
+                actions: [],
+                confidence: 'low',
+                message: null
+            };
+
+            if (!summary.hasHistory || summary.total < 5) {
+                corrections.message = 'Insufficient history for self-correction.';
+                return corrections;
+            }
+
+            // 检查是否频繁高估
+            if (summary.over_confident > summary.total * 0.4) {
+                corrections.needsCorrection = true;
+                corrections.actions.push({
+                    type: 'adjust_state_confidence',
+                    target: 'reduce_overall_confidence',
+                    reason: 'Frequent overconfidence detected (' + summary.over_confident + '/' + summary.total + ')'
+                });
+                corrections.confidence = 'high';
+            }
+
+            // 检查是否频繁低估
+            if (summary.under_confident > summary.total * 0.4) {
+                corrections.needsCorrection = true;
+                corrections.actions.push({
+                    type: 'adjust_state_confidence',
+                    target: 'increase_overall_confidence',
+                    reason: 'Frequent underconfidence detected (' + summary.under_confident + '/' + summary.total + ')'
+                });
+                corrections.confidence = 'high';
+            }
+
+            // 检查校准趋势
+            if (summary.trends === 'declining') {
+                corrections.needsCorrection = true;
+                corrections.actions.push({
+                    type: 'review_calibration_process',
+                    target: 'investigate_declining_calibration',
+                    reason: 'Calibration trend is declining'
+                });
+                corrections.confidence = 'medium';
+            }
+
+            if (corrections.needsCorrection) {
+                corrections.message = 'Self-correction suggested: ' + 
+                    corrections.actions.map(function(a) { return a.reason; }).join('; ');
+            } else {
+                corrections.message = 'No self-correction needed at this time.';
+            }
+
+            return corrections;
+        },
+
         /**
          * 描述信号
          * @private
