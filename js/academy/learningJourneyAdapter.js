@@ -4084,6 +4084,509 @@
 
             return validation;
         },
+
+            // ============================================================
+        // Part 92: Learner State Model
+        // ============================================================
+
+        /**
+         * 获取完整的学习者状态
+         * 这是 Core Intelligence 的核心
+         * @param {string} context - 可选的上下文过滤
+         * @returns {Object} 学习者状态
+         */
+        getLearnerState: function(context) {
+            context = context || 'general';
+            
+            var state = {
+                timestamp: new Date().toISOString(),
+                version: '1.0.0',
+                source: 'LearningJourneyAdapter',
+                
+                // 核心维度
+                knowledge: this._assessKnowledgeState(context),
+                skill: this._assessSkillState(context),
+                engagement: this._assessEngagementState(context),
+                confidence: this._assessConfidenceState(context),
+                retention: this._assessRetentionState(context),
+                transfer: this._assessTransferState(context),
+                independence: this._assessIndependenceState(context),
+                momentum: this._assessMomentum(context),
+                goalAlignment: this._assessGoalAlignment(context),
+                
+                // 元数据
+                metadata: {
+                    hasSufficientEvidence: false,
+                    confidence: 'low',
+                    evidenceCount: 0,
+                    lastUpdated: null,
+                    context: context
+                }
+            };
+
+            // 计算元数据
+            var dimensions = ['knowledge', 'skill', 'engagement', 'confidence', 
+                              'retention', 'transfer', 'independence', 'momentum', 'goalAlignment'];
+            var evidenceCount = 0;
+            var hasAnyState = false;
+
+            for (var i = 0; i < dimensions.length; i++) {
+                var dim = dimensions[i];
+                if (state[dim] && state[dim].status !== 'unknown') {
+                    hasAnyState = true;
+                    if (state[dim].evidenceCount) {
+                        evidenceCount += state[dim].evidenceCount;
+                    }
+                }
+            }
+
+            state.metadata.hasSufficientEvidence = hasAnyState && evidenceCount >= 3;
+            state.metadata.evidenceCount = evidenceCount;
+            state.metadata.confidence = evidenceCount >= 10 ? 'high' : 
+                                        evidenceCount >= 5 ? 'medium' : 'low';
+
+            return state;
+        },
+
+        /**
+         * 评估知识状态
+         * @private
+         */
+        _assessKnowledgeState: function(context) {
+            var state = this._journeyState;
+            var completedLessons = (state.completedLessons || []).length;
+            
+            var result = {
+                status: 'unknown',  // known | developing | uncertain | not_evidenced
+                confidence: 'low',
+                evidenceCount: 0,
+                lastUpdated: state.lastActivity || null,
+                description: null
+            };
+
+            if (completedLessons === 0) {
+                result.status = 'not_evidenced';
+                result.description = 'No knowledge evidence available yet.';
+                return result;
+            }
+
+            if (completedLessons >= 10) {
+                result.status = 'known';
+                result.confidence = 'high';
+                result.evidenceCount = completedLessons;
+                result.description = 'Substantial knowledge evidence available.';
+            } else if (completedLessons >= 5) {
+                result.status = 'developing';
+                result.confidence = 'medium';
+                result.evidenceCount = completedLessons;
+                result.description = 'Developing knowledge evidence.';
+            } else {
+                result.status = 'emerging';
+                result.confidence = 'low';
+                result.evidenceCount = completedLessons;
+                result.description = 'Early knowledge evidence.';
+            }
+
+            return result;
+        },
+
+        /**
+         * 评估技能状态
+         * @private
+         */
+        _assessSkillState: function(context) {
+            var state = this._journeyState;
+            
+            var result = {
+                status: 'unknown',  // introduced | practising | functional | consistent | transferable
+                confidence: 'low',
+                evidenceCount: 0,
+                lastUpdated: state.lastActivity || null,
+                description: null
+            };
+
+            // 从进度和完成情况推断
+            var progress = state.progress || 0;
+            var completedModules = (state.completedModules || []).length;
+            var hasPracticed = false; // 从 practice history 获取
+
+            // 简化版本：基于进度
+            if (progress >= 80) {
+                result.status = 'consistent';
+                result.confidence = 'high';
+                result.evidenceCount = Math.floor(progress / 10);
+                result.description = 'Consistent skill demonstration.';
+            } else if (progress >= 50) {
+                result.status = 'functional';
+                result.confidence = 'medium';
+                result.evidenceCount = Math.floor(progress / 10);
+                result.description = 'Functional skill level.';
+            } else if (progress >= 20) {
+                result.status = 'practising';
+                result.confidence = 'medium';
+                result.evidenceCount = Math.floor(progress / 10);
+                result.description = 'Currently practising.';
+            } else if (progress > 0) {
+                result.status = 'introduced';
+                result.confidence = 'low';
+                result.evidenceCount = Math.floor(progress / 10);
+                result.description = 'Introduced to skills.';
+            } else {
+                result.status = 'unknown';
+                result.description = 'No skill evidence available yet.';
+            }
+
+            return result;
+        },
+
+        /**
+         * 评估参与状态
+         * @private
+         */
+        _assessEngagementState: function(context) {
+            var state = this._journeyState;
+            
+            var result = {
+                status: 'unknown',  // exploring | engaged | intermittent | returning | dormant
+                confidence: 'low',
+                evidenceCount: 0,
+                lastUpdated: state.lastActivity || null,
+                description: null
+            };
+
+            if (!state.lastActivity) {
+                result.status = 'unknown';
+                result.description = 'No engagement data available.';
+                return result;
+            }
+
+            var now = Date.now();
+            var lastActivityTime = new Date(state.lastActivity).getTime();
+            var diff = now - lastActivityTime;
+            var daysSince = diff / 86400000;
+
+            // 基于最近的 activity
+            if (daysSince < 1) {
+                result.status = 'engaged';
+                result.confidence = 'high';
+                result.evidenceCount = 1;
+                result.description = 'Engaged recently.';
+            } else if (daysSince < 3) {
+                result.status = 'engaged';
+                result.confidence = 'medium';
+                result.evidenceCount = 1;
+                result.description = 'Engaged within the last few days.';
+            } else if (daysSince < 7) {
+                result.status = 'intermittent';
+                result.confidence = 'medium';
+                result.evidenceCount = 1;
+                result.description = 'Intermittent engagement.';
+            } else if (daysSince < 14) {
+                result.status = 'returning';
+                result.confidence = 'medium';
+                result.evidenceCount = 1;
+                result.description = 'Returning after a pause.';
+            } else if (daysSince < 30) {
+                result.status = 'dormant';
+                result.confidence = 'medium';
+                result.evidenceCount = 1;
+                result.description = 'Dormant engagement.';
+            } else {
+                result.status = 'dormant';
+                result.confidence = 'low';
+                result.evidenceCount = 1;
+                result.description = 'Inactive for an extended period.';
+            }
+
+            return result;
+        },
+
+        /**
+         * 评估自信状态
+         * @private
+         */
+        _assessConfidenceState: function(context) {
+            var result = {
+                status: 'unknown',
+                confidence: 'low',
+                evidenceCount: 0,
+                lastUpdated: null,
+                description: null,
+                perceived: null,
+                observed: null
+            };
+
+            // 获取自信度记录
+            var confidenceRecords = this.getConfidenceHistory(context);
+            if (!confidenceRecords || confidenceRecords.length === 0) {
+                result.status = 'unknown';
+                result.description = 'No confidence data available.';
+                return result;
+            }
+
+            var average = this._calculateAverageConfidence(confidenceRecords);
+            result.perceived = average;
+            result.evidenceCount = confidenceRecords.length;
+
+            // 判断自信状态
+            if (average >= 75) {
+                result.status = 'high';
+                result.confidence = 'high';
+                result.description = 'High self-reported confidence.';
+            } else if (average >= 50) {
+                result.status = 'moderate';
+                result.confidence = 'medium';
+                result.description = 'Moderate self-reported confidence.';
+            } else {
+                result.status = 'low';
+                result.confidence = 'medium';
+                result.description = 'Low self-reported confidence.';
+            }
+
+            // 添加观察到的表现（如果有）
+            var performanceData = this._getPerformanceData(context);
+            if (performanceData) {
+                result.observed = performanceData.score;
+            }
+
+            return result;
+        },
+
+        /**
+         * 评估记忆状态
+         * @private
+         */
+        _assessRetentionState: function(context) {
+            var state = this._journeyState;
+            
+            var result = {
+                status: 'unknown',  // fresh | stable | decaying | needs_retrieval_evidence | unknown
+                confidence: 'low',
+                evidenceCount: 0,
+                lastUpdated: state.lastActivity || null,
+                description: null
+            };
+
+            // 简化版本：基于最近活动和完成情况
+            var completedLessons = (state.completedLessons || []).length;
+            
+            if (completedLessons === 0) {
+                result.status = 'unknown';
+                result.description = 'No retention evidence available.';
+                return result;
+            }
+
+            if (state.lastActivity) {
+                var now = Date.now();
+                var lastActivityTime = new Date(state.lastActivity).getTime();
+                var diff = now - lastActivityTime;
+                var daysSince = diff / 86400000;
+
+                if (daysSince < 1) {
+                    result.status = 'fresh';
+                    result.confidence = 'high';
+                    result.evidenceCount = 1;
+                    result.description = 'Recently reviewed material.';
+                } else if (daysSince < 7) {
+                    result.status = 'stable';
+                    result.confidence = 'medium';
+                    result.evidenceCount = 1;
+                    result.description = 'Relatively recent learning.';
+                } else {
+                    result.status = 'decaying';
+                    result.confidence = 'low';
+                    result.evidenceCount = 1;
+                    result.description = 'May need review.';
+                }
+            } else {
+                result.status = 'unknown';
+                result.description = 'No retention evidence available.';
+            }
+
+            return result;
+        },
+
+        /**
+         * 评估迁移状态
+         * @private
+         */
+        _assessTransferState: function(context) {
+            var state = this._journeyState;
+            
+            var result = {
+                status: 'unknown',  // not_tested | emerging | partial | demonstrated | stable
+                confidence: 'low',
+                evidenceCount: 0,
+                lastUpdated: state.lastActivity || null,
+                description: null
+            };
+
+            // 简化：基于进度
+            var progress = state.progress || 0;
+            
+            if (progress >= 80) {
+                result.status = 'demonstrated';
+                result.confidence = 'high';
+                result.evidenceCount = Math.floor(progress / 20);
+                result.description = 'Transfer demonstrated.';
+            } else if (progress >= 50) {
+                result.status = 'partial';
+                result.confidence = 'medium';
+                result.evidenceCount = Math.floor(progress / 20);
+                result.description = 'Partial transfer evidence.';
+            } else if (progress >= 20) {
+                result.status = 'emerging';
+                result.confidence = 'low';
+                result.evidenceCount = Math.floor(progress / 20);
+                result.description = 'Emerging transfer evidence.';
+            } else {
+                result.status = 'not_tested';
+                result.description = 'Transfer not yet tested.';
+            }
+
+            return result;
+        },
+
+        /**
+         * 评估独立性状态
+         * @private
+         */
+        _assessIndependenceState: function(context) {
+            var result = {
+                status: 'unknown',  // dependent | supported | guided | self_directed | independent
+                confidence: 'low',
+                evidenceCount: 0,
+                lastUpdated: null,
+                description: null
+            };
+
+            // 使用 Part 89 的独立性评估
+            var independence = this.assessIndependence(context);
+            if (!independence.hasEvidence) {
+                result.status = 'unknown';
+                result.description = 'No independence evidence available.';
+                return result;
+            }
+
+            var levelMap = {
+                'unknown': 'unknown',
+                'emerging': 'supported',
+                'developing': 'guided',
+                'capable': 'self_directed',
+                'independent': 'independent'
+            };
+
+            result.status = levelMap[independence.level] || 'unknown';
+            result.confidence = independence.level === 'independent' ? 'high' : 'medium';
+            result.evidenceCount = independence.observations.length;
+            result.lastUpdated = new Date().toISOString();
+            result.description = independence.message || 'Independence is developing.';
+
+            return result;
+        },
+
+        /**
+         * 评估学习动量
+         * @private
+         */
+        _assessMomentum: function(context) {
+            var state = this._journeyState;
+            
+            var result = {
+                status: 'unknown',  // stable | accelerating | slowing | recovering | stalled | unknown
+                confidence: 'low',
+                evidenceCount: 0,
+                lastUpdated: state.lastActivity || null,
+                description: null
+            };
+
+            if (!state.lastActivity) {
+                result.status = 'unknown';
+                result.description = 'No momentum data available.';
+                return result;
+            }
+
+            var now = Date.now();
+            var lastActivityTime = new Date(state.lastActivity).getTime();
+            var diff = now - lastActivityTime;
+            var daysSince = diff / 86400000;
+
+            var progress = state.progress || 0;
+
+            if (daysSince > 14) {
+                result.status = 'stalled';
+                result.confidence = 'medium';
+                result.evidenceCount = 1;
+                result.description = 'Learning has stalled.';
+            } else if (daysSince > 7) {
+                result.status = 'slowing';
+                result.confidence = 'medium';
+                result.evidenceCount = 1;
+                result.description = 'Learning is slowing.';
+            } else if (daysSince > 3) {
+                result.status = 'recovering';
+                result.confidence = 'medium';
+                result.evidenceCount = 1;
+                result.description = 'Learning is recovering.';
+            } else if (progress > 50) {
+                result.status = 'accelerating';
+                result.confidence = 'high';
+                result.evidenceCount = 1;
+                result.description = 'Learning is accelerating.';
+            } else {
+                result.status = 'stable';
+                result.confidence = 'medium';
+                result.evidenceCount = 1;
+                result.description = 'Learning is stable.';
+            }
+
+            return result;
+        },
+
+        /**
+         * 评估目标对齐
+         * @private
+         */
+        _assessGoalAlignment: function(context) {
+            var result = {
+                status: 'unknown',  // aligned | developing | misaligned | unknown
+                confidence: 'low',
+                evidenceCount: 0,
+                lastUpdated: null,
+                description: null,
+                goal: null
+            };
+
+            var goals = this._getJourneyGoals();
+            if (!goals || goals.length === 0) {
+                result.status = 'unknown';
+                result.description = 'No goal set.';
+                return result;
+            }
+
+            var goal = goals[0];
+            result.goal = goal;
+            result.evidenceCount = 1;
+
+            // 简化：检查是否有进度与目标相关
+            var progress = this._journeyState.progress || 0;
+            
+            if (progress > 50) {
+                result.status = 'aligned';
+                result.confidence = 'high';
+                result.description = 'Learning appears aligned with goal.';
+            } else if (progress > 20) {
+                result.status = 'developing';
+                result.confidence = 'medium';
+                result.description = 'Goal alignment is developing.';
+            } else {
+                result.status = 'misaligned';
+                result.confidence = 'low';
+                result.description = 'Current activity may not align with goal.';
+            }
+
+            return result;
+        },
     };  // ← LearningJourneyAdapter 对象结束
 
     // ============================================================
