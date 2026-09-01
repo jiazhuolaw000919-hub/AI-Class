@@ -2311,6 +2311,311 @@
             }
         },
 
+                // ============================================================
+        // Part 90: Learner Self-Monitoring & Learning Evidence
+        // ============================================================
+
+        /**
+         * 获取学习证据
+         * 从原始数据中提取有意义的证据
+         * @param {string} context - 上下文
+         * @returns {Object} 学习证据
+         */
+        getLearningEvidence: function(context) {
+            context = context || 'general';
+            
+            var evidence = {
+                hasEvidence: false,
+                data: null,
+                evidence: null,
+                insight: null,
+                quality: 'unknown',  // weak | moderate | strong
+                confidence: 'low',
+                timestamp: new Date().toISOString(),
+                source: 'learning_journey_adapter'
+            };
+
+            // 1. 收集数据
+            var data = this._collectLearningData(context);
+            if (!data || !data.hasData) {
+                evidence.hasEvidence = false;
+                evidence.insight = 'Not enough learning data yet.';
+                return evidence;
+            }
+
+            evidence.hasEvidence = true;
+            evidence.data = data;
+
+            // 2. 转换为证据
+            var evidenceResult = this._deriveEvidence(data);
+            evidence.evidence = evidenceResult;
+            evidence.quality = evidenceResult.quality || 'moderate';
+            evidence.confidence = evidenceResult.confidence || 'medium';
+
+            // 3. 生成洞察
+            evidence.insight = this._generateLearningInsight(data, evidenceResult);
+
+            return evidence;
+        },
+
+        /**
+         * 收集学习数据
+         * @private
+         */
+        _collectLearningData: function(context) {
+            var state = this._journeyState;
+            var data = {
+                hasData: false,
+                lessonsCompleted: 0,
+                practicesCompleted: 0,
+                quizzesTaken: 0,
+                recallAttempts: 0,
+                reviewCount: 0,
+                recentActivity: null,
+                lastActivityTime: null,
+                totalTime: 0
+            };
+
+            // 从状态中提取
+            if (state.completedLessons) {
+                data.lessonsCompleted = state.completedLessons.length;
+            }
+            if (state.completedModules) {
+                data.modulesCompleted = state.completedModules.length;
+            }
+            if (state.lastActivity) {
+                data.lastActivityTime = state.lastActivity;
+                data.recentActivity = this._getRecentActivity();
+            }
+
+            data.hasData = data.lessonsCompleted > 0 || data.modulesCompleted > 0 || !!state.lastActivity;
+
+            return data;
+        },
+
+        /**
+         * 从数据中推导证据
+         * @private
+         */
+        _deriveEvidence: function(data) {
+            var evidence = {
+                quality: 'weak',
+                confidence: 'low',
+                signals: [],
+                summary: null
+            };
+
+            var signals = [];
+
+            // 完成度信号
+            if (data.lessonsCompleted > 0) {
+                signals.push({
+                    type: 'completion',
+                    value: data.lessonsCompleted,
+                    description: data.lessonsCompleted + ' lessons completed'
+                });
+            }
+
+            // 活动信号
+            if (data.recentActivity) {
+                signals.push({
+                    type: 'activity',
+                    value: data.recentActivity.type,
+                    description: 'Recent activity: ' + (data.recentActivity.type || 'active')
+                });
+            }
+
+            // 进展信号
+            if (data.lessonsCompleted >= 5) {
+                signals.push({
+                    type: 'progress',
+                    value: 'consistent',
+                    description: 'Consistent learning activity'
+                });
+            }
+
+            evidence.signals = signals;
+
+            // 判断质量
+            if (data.lessonsCompleted >= 10) {
+                evidence.quality = 'strong';
+                evidence.confidence = 'high';
+            } else if (data.lessonsCompleted >= 3) {
+                evidence.quality = 'moderate';
+                evidence.confidence = 'medium';
+            } else {
+                evidence.quality = 'weak';
+                evidence.confidence = 'low';
+            }
+
+            evidence.summary = this._summarizeEvidence(evidence);
+
+            return evidence;
+        },
+
+        /**
+         * 总结证据
+         * @private
+         */
+        _summarizeEvidence: function(evidence) {
+            if (evidence.signals.length === 0) {
+                return 'No significant learning signals yet.';
+            }
+            var descriptions = evidence.signals.map(function(s) { return s.description; });
+            return descriptions.join('; ');
+        },
+
+        /**
+         * 生成学习洞察
+         * @private
+         */
+        _generateLearningInsight: function(data, evidence) {
+            var insight = {
+                message: null,
+                evidence: evidence,
+                confidence: evidence.confidence,
+                suggestion: null,
+                reflectionPrompt: null
+            };
+
+            var parts = [];
+
+            // 基于证据生成洞察
+            if (data.lessonsCompleted >= 10) {
+                parts.push('You are building a strong learning foundation.');
+                insight.suggestion = 'Consider applying your knowledge to a transfer challenge.';
+            } else if (data.lessonsCompleted >= 3) {
+                parts.push('You are developing consistency in your learning.');
+                insight.suggestion = 'Try to practice what you\'ve learned.';
+            } else if (data.lessonsCompleted >= 1) {
+                parts.push('You\'ve started your learning journey.');
+                insight.suggestion = 'Continue building momentum.';
+            } else {
+                parts.push('Your learning journey is just beginning.');
+                insight.suggestion = 'Start with a lesson to build your foundation.';
+            }
+
+            if (data.lastActivityTime) {
+                var freshness = this._getStateFreshness({ lastActivity: data.lastActivityTime });
+                if (freshness === 'fresh') {
+                    parts.push('Recent activity shows engagement.');
+                } else if (freshness === 'stale') {
+                    parts.push('It\'s been a while since your last activity.');
+                    insight.suggestion = 'Consider a quick review to refresh.';
+                }
+            }
+
+            insight.message = parts.join(' ');
+            insight.reflectionPrompt = this._getReflectionPromptForInsight(data);
+
+            return insight;
+        },
+
+        /**
+         * 获取洞察的反思提示
+         * @private
+         */
+        _getReflectionPromptForInsight: function(data) {
+            if (data.lessonsCompleted === 0) {
+                return 'What would you like to learn today?';
+            }
+            if (data.lessonsCompleted < 3) {
+                return 'How does this topic feel so far?';
+            }
+            return 'What has been most useful in your learning so far?';
+        },
+
+        /**
+         * 获取校准洞察
+         * 比较自信度与实际表现
+         * @param {string} context - 上下文
+         * @returns {Object} 校准洞察
+         */
+        getCalibrationInsight: function(context) {
+            context = context || 'general';
+            
+            var insight = {
+                hasInsight: false,
+                perceived: null,
+                observed: null,
+                alignment: 'unknown',  // aligned | developing | uncertain | inconsistent | improving
+                message: null,
+                suggestion: null
+            };
+
+            // 获取自信度历史
+            var confidenceRecords = this.getConfidenceHistory(context);
+            // 获取表现数据（简化版本）
+            var performanceData = this._getPerformanceData(context);
+
+            if (!confidenceRecords || confidenceRecords.length < 2) {
+                insight.message = 'Not enough confidence data for calibration.';
+                return insight;
+            }
+
+            insight.hasInsight = true;
+            insight.perceived = {
+                average: this._calculateAverageConfidence(confidenceRecords),
+                count: confidenceRecords.length
+            };
+
+            if (performanceData) {
+                insight.observed = performanceData;
+            }
+
+            // 判断对齐
+            if (insight.perceived && insight.observed) {
+                var diff = Math.abs(insight.perceived.average - insight.observed.score);
+                if (diff < 15) {
+                    insight.alignment = 'aligned';
+                    insight.message = 'Your confidence and performance are well aligned.';
+                    insight.suggestion = 'Keep building on this foundation.';
+                } else if (diff < 30) {
+                    insight.alignment = 'developing';
+                    insight.message = 'Your confidence and performance are developing alignment.';
+                    insight.suggestion = 'Try a diagnostic challenge to check your understanding.';
+                } else {
+                    insight.alignment = 'inconsistent';
+                    insight.message = 'Your confidence and performance show some inconsistency.';
+                    insight.suggestion = 'Would you like to investigate this gap?';
+                }
+            } else {
+                insight.message = 'Confidence recorded but performance data is limited.';
+                insight.suggestion = 'Complete a practice activity to compare.';
+            }
+
+            return insight;
+        },
+
+        /**
+         * 计算平均自信度
+         * @private
+         */
+        _calculateAverageConfidence: function(records) {
+            var map = { 'not_sure': 25, 'somewhat': 50, 'confident': 75, 'very': 90 };
+            var total = 0;
+            for (var i = 0; i < records.length; i++) {
+                var score = map[records[i].confidence] || 50;
+                total += score;
+            }
+            return records.length > 0 ? Math.round(total / records.length) : null;
+        },
+
+        /**
+         * 获取表现数据
+         * @private
+         */
+        _getPerformanceData: function(context) {
+            // 简化版本：从进度推断
+            var state = this._journeyState;
+            var progress = state.progress || 0;
+            if (progress === 0) return null;
+            return {
+                score: Math.min(100, progress + 10),
+                source: 'progress'
+            };
+        },
+
         /**
          * 获取硬约束
          * @private
