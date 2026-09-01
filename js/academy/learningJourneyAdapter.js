@@ -5666,6 +5666,1101 @@
             if (ratio >= 0.5) return 'medium';
             return 'low';
         },
+
+                // ============================================================
+        // Part 97: Decision Conflict Resolution & Uncertainty Governance
+        // ============================================================
+
+        /**
+         * 检测证据冲突
+         * @param {Array} evidenceItems - 证据列表
+         * @param {Object} state - 当前状态
+         * @returns {Object} 冲突分析
+         */
+        _detectConflicts: function(evidenceItems, state) {
+            var result = {
+                hasConflict: false,
+                conflicts: [],
+                severity: 'none',  // none | low | medium | high | critical
+                resolution: null,  // resolve | defer | separate | ask | abstain
+                message: null
+            };
+
+            if (!evidenceItems || evidenceItems.length < 2) {
+                result.message = 'Insufficient evidence for conflict detection.';
+                return result;
+            }
+
+            // 按类型分组
+            var grouped = {};
+            for (var i = 0; i < evidenceItems.length; i++) {
+                var item = evidenceItems[i];
+                var type = item.type || 'general';
+                if (!grouped[type]) {
+                    grouped[type] = [];
+                }
+                grouped[type].push(item);
+            }
+
+            var conflicts = [];
+
+            // 1. 检查 performance vs self-report 矛盾
+            if (grouped.performance && grouped.self_report) {
+                var perfScores = grouped.performance.map(function(e) { return e.score || 0; });
+                var reportScores = grouped.self_report.map(function(e) { return e.confidence || 0; });
+                var avgPerf = perfScores.reduce(function(a, b) { return a + b; }, 0) / perfScores.length;
+                var avgReport = reportScores.reduce(function(a, b) { return a + b; }, 0) / reportScores.length;
+
+                if (Math.abs(avgPerf - avgReport) > 30) {
+                    conflicts.push({
+                        type: 'performance_vs_self_report',
+                        severity: 'high',
+                        description: 'Performance differs from self-report',
+                        details: 'Perf: ' + Math.round(avgPerf) + '%, Self: ' + Math.round(avgReport) + '%'
+                    });
+                }
+            }
+
+            // 2. 检查 recall vs transfer 矛盾
+            if (grouped.recall && grouped.transfer) {
+                var recallScores = grouped.recall.map(function(e) { return e.score || 0; });
+                var transferScores = grouped.transfer.map(function(e) { return e.score || 0; });
+                var avgRecall = recallScores.reduce(function(a, b) { return a + b; }, 0) / recallScores.length;
+                var avgTransfer = transferScores.reduce(function(a, b) { return a + b; }, 0) / transferScores.length;
+
+                if (avgRecall > 70 && avgTransfer < 45) {
+                    conflicts.push({
+                        type: 'recall_vs_transfer',
+                        severity: 'medium',
+                        description: 'Recall strong but transfer weak',
+                        details: 'Recall: ' + Math.round(avgRecall) + '%, Transfer: ' + Math.round(avgTransfer) + '%'
+                    });
+                }
+            }
+
+            // 3. 检查 temporal 矛盾（最近 vs 长期）
+            if (grouped.recent && grouped.historical) {
+                var recentScores = grouped.recent.map(function(e) { return e.score || 0; });
+                var historicalScores = grouped.historical.map(function(e) { return e.score || 0; });
+                var avgRecent = recentScores.reduce(function(a, b) { return a + b; }, 0) / recentScores.length;
+                var avgHistorical = historicalScores.reduce(function(a, b) { return a + b; }, 0) / historicalScores.length;
+
+                if (Math.abs(avgRecent - avgHistorical) > 25) {
+                    var age = grouped.historical[0] ? this._getEvidenceAge(grouped.historical[0]) : 'old';
+                    conflicts.push({
+                        type: 'temporal',
+                        severity: 'low',
+                        description: 'Recent and historical evidence differ',
+                        details: 'Recent: ' + Math.round(avgRecent) + '%, Historical: ' + Math.round(avgHistorical) + '% (' + age + ')'
+                    });
+                }
+            }
+
+            result.conflicts = conflicts;
+            result.hasConflict = conflicts.length > 0;
+
+            if (result.hasConflict) {
+                // 计算严重程度
+                var hasCritical = conflicts.some(function(c) { return c.severity === 'critical'; });
+                var hasHigh = conflicts.some(function(c) { return c.severity === 'high'; });
+                var hasMedium = conflicts.some(function(c) { return c.severity === 'medium'; });
+
+                if (hasCritical) {
+                    result.severity = 'critical';
+                    result.resolution = 'ask';
+                } else if (hasHigh) {
+                    result.severity = 'high';
+                    result.resolution = 'ask';
+                } else if (hasMedium) {
+                    result.severity = 'medium';
+                    result.resolution = 'separate';
+                } else {
+                    result.severity = 'low';
+                    result.resolution = 'defer';
+                }
+
+                result.message = conflicts.map(function(c) { return c.description; }).join('; ');
+            } else {
+                result.message = 'No significant conflicts detected.';
+            }
+
+            return result;
+        },
+
+        /**
+         * 获取证据年龄
+         * @private
+         */
+        _getEvidenceAge: function(evidence) {
+            if (!evidence || !evidence.timestamp) return 'unknown';
+            var now = Date.now();
+            var then = new Date(evidence.timestamp).getTime();
+            var diff = now - then;
+            var days = diff / 86400000;
+            if (days < 7) return 'recent';
+            if (days < 30) return 'recent_weeks';
+            if (days < 90) return 'months';
+            return 'old';
+        },
+
+        /**
+         * 解决冲突
+         * @param {Object} conflictResult - 冲突分析结果
+         * @param {Object} state - 当前状态
+         * @param {Object} context - 上下文
+         * @returns {Object} 解决结果
+         */
+        _resolveConflicts: function(conflictResult, state, context) {
+            var result = {
+                resolved: false,
+                strategy: conflictResult.resolution || 'defer',
+                state: null,
+                message: null,
+                requiresLearnerInput: false
+            };
+
+            if (!conflictResult.hasConflict) {
+                result.resolved = true;
+                result.state = state;
+                result.message = 'No conflicts to resolve.';
+                return result;
+            }
+
+            var strategy = conflictResult.resolution || 'defer';
+
+            switch (strategy) {
+                case 'resolve':
+                    // 用最高质量的证据
+                    result.resolved = true;
+                    result.state = this._applyResolution(state, conflictResult);
+                    result.message = 'Resolved using highest quality evidence.';
+                    break;
+
+                case 'separate':
+                    // 拆分为不同维度
+                    result.resolved = true;
+                    result.state = this._applySeparation(state, conflictResult);
+                    result.message = 'Separated conflicting dimensions.';
+                    break;
+
+                case 'defer':
+                    result.resolved = false;
+                    result.state = this._applyDeferral(state);
+                    result.message = 'Deferring decision, need more evidence.';
+                    result.requiresLearnerInput = false;
+                    break;
+
+                case 'ask':
+                    result.resolved = false;
+                    result.state = this._applyAsk(state);
+                    result.message = 'Requires learner input to resolve.';
+                    result.requiresLearnerInput = true;
+                    break;
+
+                case 'abstain':
+                    result.resolved = false;
+                    result.state = this._applyAbstain(state);
+                    result.message = 'Abstaining due to insufficient evidence or high risk.';
+                    result.requiresLearnerInput = false;
+                    break;
+
+                default:
+                    result.resolved = false;
+                    result.state = state;
+                    result.message = 'No resolution strategy applied.';
+            }
+
+            return result;
+        },
+
+        /**
+         * 应用解决
+         * @private
+         */
+        _applyResolution: function(state, conflictResult) {
+            // 标记冲突已解决，但保留记录
+            var newState = JSON.parse(JSON.stringify(state));
+            newState.metadata = newState.metadata || {};
+            newState.metadata.conflictResolution = {
+                resolved: true,
+                strategy: 'resolve',
+                timestamp: new Date().toISOString()
+            };
+            return newState;
+        },
+
+        /**
+         * 应用分离
+         * @private
+         */
+        _applySeparation: function(state, conflictResult) {
+            var newState = JSON.parse(JSON.stringify(state));
+            newState.metadata = newState.metadata || {};
+            newState.metadata.conflictResolution = {
+                resolved: true,
+                strategy: 'separate',
+                timestamp: new Date().toISOString(),
+                note: 'Conflicts separated by dimension'
+            };
+            // 保留所有维度，不强制合并
+            return newState;
+        },
+
+        /**
+         * 应用延迟
+         * @private
+         */
+        _applyDeferral: function(state) {
+            var newState = JSON.parse(JSON.stringify(state));
+            newState.metadata = newState.metadata || {};
+            newState.metadata.conflictResolution = {
+                resolved: false,
+                strategy: 'defer',
+                timestamp: new Date().toISOString(),
+                note: 'Deferred pending more evidence'
+            };
+            newState.metadata.confidence = 'low';
+            return newState;
+        },
+
+        /**
+         * 应用询问
+         * @private
+         */
+        _applyAsk: function(state) {
+            var newState = JSON.parse(JSON.stringify(state));
+            newState.metadata = newState.metadata || {};
+            newState.metadata.conflictResolution = {
+                resolved: false,
+                strategy: 'ask',
+                timestamp: new Date().toISOString(),
+                note: 'Requires learner input'
+            };
+            newState.metadata.needsLearnerInput = true;
+            return newState;
+        },
+
+        /**
+         * 应用弃权
+         * @private
+         */
+        _applyAbstain: function(state) {
+            var newState = JSON.parse(JSON.stringify(state));
+            newState.metadata = newState.metadata || {};
+            newState.metadata.conflictResolution = {
+                resolved: false,
+                strategy: 'abstain',
+                timestamp: new Date().toISOString(),
+                note: 'Abstained due to risk or insufficient evidence'
+            };
+            newState.metadata.confidence = 'unknown';
+            newState.metadata.abstain = true;
+            return newState;
+        },
+
+        /**
+         * 评估干预风险
+         * @param {Object} recommendation - 推荐
+         * @param {Object} context - 上下文
+         * @returns {Object} 风险评估
+         */
+        _assessInterventionRisk: function(recommendation, context) {
+            var risk = {
+                level: 'low',  // low | medium | high | critical
+                score: 0,
+                reason: null,
+                shouldProceed: true
+            };
+
+            if (!recommendation) {
+                risk.reason = 'No recommendation to assess.';
+                risk.shouldProceed = false;
+                return risk;
+            }
+
+            var type = recommendation.type || 'unknown';
+            var confidence = recommendation.confidence || 'low';
+
+            // 不同类型有不同的风险
+            var riskMap = {
+                'skip': { level: 'high', score: 80 },
+                'review': { level: 'medium', score: 50 },
+                'practice': { level: 'medium', score: 40 },
+                'continue': { level: 'low', score: 20 },
+                'explore': { level: 'low', score: 15 },
+                'transfer': { level: 'medium', score: 45 },
+                'unknown': { level: 'medium', score: 50 }
+            };
+
+            var typeRisk = riskMap[type] || riskMap.unknown;
+            risk.score = typeRisk.score;
+
+            // 根据 confidence 调整
+            if (confidence === 'low') {
+                risk.score += 20;
+            } else if (confidence === 'high') {
+                risk.score -= 10;
+            }
+
+            // 确定级别
+            if (risk.score >= 80) {
+                risk.level = 'high';
+            } else if (risk.score >= 50) {
+                risk.level = 'medium';
+            } else {
+                risk.level = 'low';
+            }
+
+            // 高风险 + 低信心 = 不应继续
+            if (risk.level === 'high' && confidence === 'low') {
+                risk.shouldProceed = false;
+                risk.reason = 'High risk with low confidence. Consider deferring.';
+            } else if (risk.level === 'critical') {
+                risk.shouldProceed = false;
+                risk.reason = 'Critical risk level. Do not proceed.';
+            } else {
+                risk.shouldProceed = true;
+                risk.reason = 'Risk level is ' + risk.level + '. Proceeding is acceptable.';
+            }
+
+            return risk;
+        },
+
+        /**
+         * 生成置信度感知的消息
+         * @param {Object} recommendation - 推荐
+         * @param {Object} conflictResult - 冲突分析
+         * @param {Object} risk - 风险评估
+         * @returns {Object} 消息
+         */
+        _generateConfidenceAwareMessage: function(recommendation, conflictResult, risk) {
+            var message = {
+                text: null,
+                confidence: 'low',
+                tone: 'neutral',  // neutral | encouraging | cautious | deferential
+                conflictDisclosure: null,
+                riskDisclosure: null
+            };
+
+            if (!recommendation) {
+                message.text = 'No recommendation available at this time.';
+                message.confidence = 'unknown';
+                message.tone = 'neutral';
+                return message;
+            }
+
+            var confidence = recommendation.confidence || 'low';
+            var hasConflict = conflictResult && conflictResult.hasConflict;
+
+            // 置信度感知的消息
+            var messages = {
+                'high': {
+                    text: 'Based on your recent performance, this looks like a good next option.',
+                    tone: 'encouraging'
+                },
+                'medium': {
+                    text: 'Your recent results suggest this may be useful.',
+                    tone: 'neutral'
+                },
+                'low': {
+                    text: 'There isn\'t enough recent evidence to make a strong recommendation.',
+                    tone: 'cautious'
+                },
+                'unknown': {
+                    text: 'Not enough information to make a confident recommendation.',
+                    tone: 'deferential'
+                }
+            };
+
+            var base = messages[confidence] || messages.unknown;
+            message.text = base.text;
+            message.confidence = confidence;
+            message.tone = base.tone;
+
+            // 如果有冲突，披露
+            if (hasConflict && conflictResult.conflicts && conflictResult.conflicts.length > 0) {
+                var conflictDescriptions = conflictResult.conflicts.map(function(c) {
+                    return c.description;
+                }).join('; ');
+                message.conflictDisclosure = 'Conflicting evidence: ' + conflictDescriptions;
+                message.text += ' Some evidence points in different directions.';
+            }
+
+            // 如果有风险，披露
+            if (risk && risk.level === 'high') {
+                message.riskDisclosure = 'This option carries higher risk. Consider carefully.';
+                message.text += ' ' + message.riskDisclosure;
+            }
+
+            return message;
+        },
+
+                // ============================================================
+        // Part 98: Cross-Engine Coherence & State Consistency
+        // ============================================================
+
+        /**
+         * 验证跨引擎一致性
+         * @param {Object} results - 各引擎结果
+         * @param {Object} context - 统一上下文
+         * @returns {Object} 验证结果
+         */
+        validateCoherence: function(results, context) {
+            var validation = {
+                valid: true,
+                warnings: [],
+                conflicts: [],
+                violations: [],
+                timestamp: new Date().toISOString()
+            };
+
+            if (!results) {
+                validation.valid = false;
+                validation.violations.push('No results to validate');
+                return validation;
+            }
+
+            // 1. 检查 State 一致性
+            var state = results.state || results.learnerState;
+            if (state) {
+                var stateValidity = this._validateState(state);
+                if (!stateValidity.valid) {
+                    validation.valid = false;
+                    validation.violations = validation.violations.concat(stateValidity.violations);
+                }
+                if (stateValidity.warnings.length > 0) {
+                    validation.warnings = validation.warnings.concat(stateValidity.warnings);
+                }
+            }
+
+            // 2. 检查 Recommendation 与 State 一致性
+            var recommendation = results.recommendation || results.recommendedAction;
+            if (recommendation && state) {
+                var recValidity = this._validateRecommendation(recommendation, state);
+                if (!recValidity.valid) {
+                    validation.valid = false;
+                    validation.violations = validation.violations.concat(recValidity.violations);
+                }
+                if (recValidity.warnings.length > 0) {
+                    validation.warnings = validation.warnings.concat(recValidity.warnings);
+                }
+            }
+
+            // 3. 检查 Confidence 与 Evidence 一致性
+            if (state && state.metadata) {
+                var confidenceValidity = this._validateConfidence(state);
+                if (!confidenceValidity.valid) {
+                    validation.valid = false;
+                    validation.violations = validation.violations.concat(confidenceValidity.violations);
+                }
+                if (confidenceValidity.warnings.length > 0) {
+                    validation.warnings = validation.warnings.concat(confidenceValidity.warnings);
+                }
+            }
+
+            // 4. 检查 Goal 与 State 一致性
+            var goals = results.goals || context?.goals;
+            if (goals && state) {
+                var goalValidity = this._validateGoalAlignment(goals, state);
+                if (goalValidity.warnings.length > 0) {
+                    validation.warnings = validation.warnings.concat(goalValidity.warnings);
+                }
+            }
+
+            // 如果没有 violations，但有一些冲突，标记为警告
+            if (validation.violations.length === 0 && validation.conflicts.length > 0) {
+                // 冲突可以共存，但降低 confidence
+                validation.valid = true;
+            }
+
+            return validation;
+        },
+
+        /**
+         * 验证 State 语义
+         * @private
+         */
+        _validateState: function(state) {
+            var result = {
+                valid: true,
+                warnings: [],
+                violations: []
+            };
+
+            if (!state) {
+                result.valid = false;
+                result.violations.push('State is null or undefined');
+                return result;
+            }
+
+            // 检查是否有维度
+            var dimensions = ['knowledge', 'skill', 'engagement', 'confidence', 'retention', 'transfer', 'independence', 'momentum', 'goalAlignment'];
+            var hasAnyDimension = false;
+            var dimensionsWithStatus = [];
+
+            for (var i = 0; i < dimensions.length; i++) {
+                var dim = dimensions[i];
+                if (state[dim] && state[dim].status && state[dim].status !== 'unknown') {
+                    hasAnyDimension = true;
+                    dimensionsWithStatus.push(dim + ':' + state[dim].status);
+                }
+            }
+
+            if (!hasAnyDimension) {
+                result.warnings.push('No state dimensions have meaningful status');
+            }
+
+            // 检查 impossible combinations
+            if (state.metadata && state.metadata.confidence === 'high' && dimensionsWithStatus.length < 2) {
+                result.violations.push('CONFIDENCE_WITHOUT_EVIDENCE: High confidence with minimal state dimensions');
+                result.valid = false;
+            }
+
+            if (state.metadata && state.metadata.confidence === 'unknown' && dimensionsWithStatus.length >= 3) {
+                result.warnings.push('Unknown confidence despite multiple state dimensions');
+            }
+
+            return result;
+        },
+
+        /**
+         * 验证 Recommendation 与 State 一致
+         * @private
+         */
+        _validateRecommendation: function(recommendation, state) {
+            var result = {
+                valid: true,
+                warnings: [],
+                violations: []
+            };
+
+            if (!recommendation) {
+                result.warnings.push('No recommendation to validate');
+                return result;
+            }
+
+            // 检查 recommendation 是否引用了 state
+            if (!recommendation.basedOn) {
+                result.warnings.push('Recommendation does not reference state dimensions');
+            }
+
+            // 检查是否与 state 冲突
+            if (recommendation.type === 'skip' || recommendation.type === 'accelerate') {
+                // 如果转移状态是 emerging，skip 可能不合适
+                if (state.transfer && state.transfer.status === 'emerging') {
+                    result.warnings.push('Recommendation to skip/accelerate while transfer is emerging');
+                }
+            }
+
+            if (recommendation.type === 'review' && state.transfer && state.transfer.status === 'demonstrated') {
+                result.warnings.push('Review recommended while transfer is already demonstrated');
+            }
+
+            return result;
+        },
+
+        /**
+         * 验证 Confidence 与 Evidence 一致
+         * @private
+         */
+        _validateConfidence: function(state) {
+            var result = {
+                valid: true,
+                warnings: [],
+                violations: []
+            };
+
+            if (!state || !state.metadata) {
+                result.warnings.push('No metadata for confidence validation');
+                return result;
+            }
+
+            var confidence = state.metadata.confidence || 'unknown';
+            var evidenceCount = state.metadata.evidenceCount || 0;
+
+            if (confidence === 'high' && evidenceCount < 3) {
+                result.violations.push('High confidence with insufficient evidence (' + evidenceCount + ' items)');
+                result.valid = false;
+            }
+
+            if (confidence === 'high' && state.metadata.hasSufficientEvidence === false) {
+                result.violations.push('High confidence flagged as insufficient evidence');
+                result.valid = false;
+            }
+
+            if (confidence === 'unknown' && evidenceCount >= 5) {
+                result.warnings.push('Unknown confidence despite substantial evidence');
+            }
+
+            return result;
+        },
+
+        /**
+         * 验证 Goal Alignment
+         * @private
+         */
+        _validateGoalAlignment: function(goals, state) {
+            var result = {
+                valid: true,
+                warnings: [],
+                violations: []
+            };
+
+            if (!goals || goals.length === 0) {
+                result.warnings.push('No goals to validate alignment');
+                return result;
+            }
+
+            var activeGoal = goals[0] || goals;
+            var goalText = (activeGoal.title || activeGoal.name || '').toLowerCase();
+            var stateStatus = 'unknown';
+
+            // 检查是否有相关的 state 维度与 goal 冲突
+            if (state.transfer && state.transfer.status === 'not_tested' && 
+                goalText.includes('apply') || goalText.includes('project') || goalText.includes('build')) {
+                result.warnings.push('Goal involves application but transfer is not yet tested');
+            }
+
+            if (state.knowledge && state.knowledge.status === 'unknown' && 
+                goalText.includes('master') || goalText.includes('understand')) {
+                result.warnings.push('Goal involves mastery but knowledge state is unknown');
+            }
+
+            return result;
+        },
+
+        /**
+         * 检查是否有 impossible combinations
+         * @param {Object} results - 各引擎结果
+         * @returns {Array} impossible combinations
+         */
+        detectImpossibleCombinations: function(results) {
+            var combinations = [];
+
+            if (!results) return combinations;
+
+            var state = results.state || results.learnerState;
+            var recommendation = results.recommendation || results.recommendedAction;
+            var confidence = results.confidence || state?.metadata?.confidence || 'unknown';
+
+            // 1. state = unknown, confidence = high
+            if (state) {
+                var hasUnknownState = false;
+                var dimensions = ['knowledge', 'skill', 'engagement', 'confidence', 'retention', 'transfer', 'independence', 'momentum', 'goalAlignment'];
+                for (var i = 0; i < dimensions.length; i++) {
+                    if (state[dimensions[i]] && state[dimensions[i]].status === 'unknown') {
+                        hasUnknownState = true;
+                        break;
+                    }
+                }
+                if (hasUnknownState && confidence === 'high') {
+                    combinations.push({
+                        type: 'unknown_state_high_confidence',
+                        description: 'State is unknown but confidence is high',
+                        severity: 'high'
+                    });
+                }
+            }
+
+            // 2. evidence = none, confidence = high
+            if (state?.metadata?.evidenceCount === 0 && confidence === 'high') {
+                combinations.push({
+                    type: 'no_evidence_high_confidence',
+                    description: 'No evidence but confidence is high',
+                    severity: 'high'
+                });
+            }
+
+            // 3. recommendation conflicts with state
+            if (recommendation && state) {
+                if (recommendation.type === 'skip' && state.transfer?.status === 'emerging') {
+                    combinations.push({
+                        type: 'skip_while_emerging',
+                        description: 'Recommendation to skip while transfer is emerging',
+                        severity: 'medium'
+                    });
+                }
+            }
+
+            return combinations;
+        },
+
+        // ============================================================
+        // Part 99: End-to-End Decision Trace & Replay
+        // ============================================================
+
+        /**
+         * 生成决策追踪 ID
+         * @returns {string} 唯一 ID
+         */
+        _generateDecisionId: function() {
+            return 'dec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+        },
+
+        /**
+         * 创建决策追踪
+         * @param {Object} decisionContext - 决策上下文
+         * @param {Object} result - 决策结果
+         * @returns {Object} 决策追踪
+         */
+        createDecisionTrace: function(decisionContext, result) {
+            var trace = {
+                decisionId: this._generateDecisionId(),
+                timestamp: new Date().toISOString(),
+                policyVersion: '1.0.0',
+                engineVersions: {
+                    state: '1.0.0',
+                    recommendation: '1.0.0',
+                    governance: '1.0.0',
+                    calibration: '1.0.0'
+                },
+
+                // 上下文快照（不可变）
+                context: this._captureContextSnapshot(decisionContext),
+
+                // 证据快照
+                evidence: this._captureEvidenceSnapshot(decisionContext),
+
+                // 状态快照
+                state: this._captureStateSnapshot(decisionContext),
+
+                // 候选决策
+                candidates: result.candidates || [],
+
+                // 治理
+                governance: result.governance || null,
+
+                // 选中的决策
+                selected: result.selected || null,
+
+                // 置信度
+                confidence: result.confidence || 'low',
+
+                // 理由
+                rationale: result.rationale || null,
+
+                // 变化归因
+                changeAttribution: result.changeAttribution || null,
+
+                // 学习者选择（稍后填充）
+                learnerChoice: null,
+
+                // 结果（稍后填充）
+                outcome: null,
+
+                // 权威来源
+                authoritySources: result.authoritySources || [],
+
+                // 审计
+                audit: null,
+
+                // 是否可审计
+                isAuditable: false
+            };
+
+            // 运行审计
+            trace.audit = this.auditDecisionTrace(trace);
+            trace.isAuditable = trace.audit.passed;
+
+            // 存储追踪
+            this._storeDecisionTrace(trace);
+
+            return trace;
+        },
+
+        /**
+         * 捕获上下文快照
+         * @private
+         */
+        _captureContextSnapshot: function(context) {
+            return {
+                goal: context.goal ? {
+                    id: context.goal.id,
+                    title: context.goal.title || context.goal.name,
+                    description: context.goal.description || ''
+                } : null,
+                learningMode: context.learningMode || 'independent',
+                availableTime: context.availableTime || null,
+                preferences: context.preferences || null,
+                timestamp: new Date().toISOString()
+            };
+        },
+
+        /**
+         * 捕获证据快照
+         * @private
+         */
+        _captureEvidenceSnapshot: function(context) {
+            var evidenceItems = context.evidence || [];
+            return evidenceItems.map(function(item) {
+                return {
+                    id: item.id,
+                    type: item.type,
+                    source: item.source,
+                    score: item.score,
+                    quality: item.quality || 'moderate',
+                    status: item.status || 'verified',
+                    timestamp: item.timestamp || new Date().toISOString(),
+                    context: item.context || null
+                };
+            });
+        },
+
+        /**
+         * 捕获状态快照
+         * @private
+         */
+        _captureStateSnapshot: function(context) {
+            var state = context.state || {};
+            return {
+                knowledge: state.knowledge || null,
+                skill: state.skill || null,
+                engagement: state.engagement || null,
+                confidence: state.confidence || null,
+                retention: state.retention || null,
+                transfer: state.transfer || null,
+                independence: state.independence || null,
+                momentum: state.momentum || null,
+                goalAlignment: state.goalAlignment || null,
+                metadata: state.metadata || null,
+                timestamp: new Date().toISOString()
+            };
+        },
+
+        /**
+         * 存储决策追踪
+         * @private
+         */
+        _storeDecisionTrace: function(trace) {
+            try {
+                var stored = localStorage.getItem('decisionTraces') || '[]';
+                var traces = JSON.parse(stored);
+                traces.push(trace);
+                // 只保留最近 200 条
+                if (traces.length > 200) {
+                    traces = traces.slice(-200);
+                }
+                localStorage.setItem('decisionTraces', JSON.stringify(traces));
+            } catch (e) {
+                console.warn('[Adapter] Trace storage error:', e);
+            }
+        },
+
+        /**
+         * 获取决策追踪
+         * @param {string} decisionId - 决策 ID
+         * @returns {Object} 决策追踪
+         */
+        getDecisionTrace: function(decisionId) {
+            try {
+                var stored = localStorage.getItem('decisionTraces') || '[]';
+                var traces = JSON.parse(stored);
+                return traces.find(function(t) { return t.decisionId === decisionId; }) || null;
+            } catch (e) {
+                return null;
+            }
+        },
+
+        /**
+         * 审计决策追踪
+         * @param {Object} trace - 决策追踪
+         * @returns {Object} 审计结果
+         */
+        auditDecisionTrace: function(trace) {
+            var audit = {
+                passed: true,
+                checks: [],
+                warnings: [],
+                failures: []
+            };
+
+            // 1. 检查是否有证据
+            if (!trace.evidence || trace.evidence.length === 0) {
+                audit.passed = false;
+                audit.failures.push('NO_EVIDENCE');
+            } else {
+                audit.checks.push('has_evidence');
+            }
+
+            // 2. 检查是否有上下文
+            if (!trace.context) {
+                audit.passed = false;
+                audit.failures.push('NO_CONTEXT');
+            } else {
+                audit.checks.push('has_context');
+            }
+
+            // 3. 检查是否有状态
+            if (!trace.state) {
+                audit.passed = false;
+                audit.failures.push('NO_STATE');
+            } else {
+                audit.checks.push('has_state');
+            }
+
+            // 4. 检查是否有置信度
+            if (!trace.confidence || trace.confidence === 'unknown') {
+                audit.warnings.push('LOW_CONFIDENCE');
+            } else {
+                audit.checks.push('has_confidence');
+            }
+
+            // 5. 检查是否有理由
+            if (!trace.rationale) {
+                audit.warnings.push('NO_RATIONALE');
+            } else {
+                audit.checks.push('has_rationale');
+            }
+
+            // 6. 检查是否有政策版本
+            if (!trace.policyVersion) {
+                audit.warnings.push('NO_POLICY_VERSION');
+            } else {
+                audit.checks.push('has_policy_version');
+            }
+
+            // 7. 检查是否有时间戳
+            if (!trace.timestamp) {
+                audit.passed = false;
+                audit.failures.push('NO_TIMESTAMP');
+            } else {
+                audit.checks.push('has_timestamp');
+            }
+
+            // 8. 检查是否有权威来源
+            if (!trace.authoritySources || trace.authoritySources.length === 0) {
+                audit.warnings.push('NO_AUTHORITY_SOURCES');
+            } else {
+                audit.checks.push('has_authority_sources');
+            }
+
+            // 9. 置信度上限检查
+            if (!audit.passed || audit.failures.length > 0) {
+                // 如果审计失败，置信度不能超过 low
+                if (trace.confidence === 'high' || trace.confidence === 'medium') {
+                    audit.warnings.push('CONFIDENCE_CEILING_APPLIED');
+                    // 标记为需要降级
+                    audit.confidenceCeiling = 'low';
+                }
+            }
+
+            return audit;
+        },
+
+        /**
+         * 记录学习者选择
+         * @param {string} decisionId - 决策 ID
+         * @param {string} choice - 学习者的选择
+         * @param {string} reason - 可选原因
+         * @returns {Object} 更新后的追踪
+         */
+        recordLearnerChoice: function(decisionId, choice, reason) {
+            var trace = this.getDecisionTrace(decisionId);
+            if (!trace) {
+                console.warn('[Adapter] Decision trace not found:', decisionId);
+                return null;
+            }
+
+            trace.learnerChoice = {
+                choice: choice,
+                reason: reason || null,
+                timestamp: new Date().toISOString()
+            };
+
+            this._storeDecisionTrace(trace);
+            return trace;
+        },
+
+        /**
+         * 记录结果
+         * @param {string} decisionId - 决策 ID
+         * @param {Object} outcome - 结果
+         * @returns {Object} 更新后的追踪
+         */
+        recordOutcome: function(decisionId, outcome) {
+            var trace = this.getDecisionTrace(decisionId);
+            if (!trace) {
+                console.warn('[Adapter] Decision trace not found:', decisionId);
+                return null;
+            }
+
+            trace.outcome = {
+                result: outcome.result || 'unknown',
+                quality: outcome.quality || 'unknown',
+                timestamp: new Date().toISOString(),
+                details: outcome.details || null
+            };
+
+            this._storeDecisionTrace(trace);
+            return trace;
+        },
+
+        /**
+         * 计算变化归因
+         * @param {Object} previousTrace - 之前的追踪
+         * @param {Object} currentTrace - 当前的追踪
+         * @returns {string} 归因
+         */
+        calculateChangeAttribution: function(previousTrace, currentTrace) {
+            if (!previousTrace || !currentTrace) {
+                return 'UNKNOWN';
+            }
+
+            // 检查是否有新证据
+            var prevEvidenceCount = previousTrace.evidence ? previousTrace.evidence.length : 0;
+            var currEvidenceCount = currentTrace.evidence ? currentTrace.evidence.length : 0;
+            if (currEvidenceCount > prevEvidenceCount) {
+                return 'NEW_EVIDENCE';
+            }
+
+            // 检查状态是否变化
+            var prevState = previousTrace.state;
+            var currState = currentTrace.state;
+            if (prevState && currState) {
+                var dimensions = ['knowledge', 'skill', 'transfer', 'independence'];
+                for (var i = 0; i < dimensions.length; i++) {
+                    var dim = dimensions[i];
+                    if (prevState[dim] && currState[dim] && 
+                        prevState[dim].status !== currState[dim].status) {
+                        return 'STATE_CHANGE';
+                    }
+                }
+            }
+
+            // 检查目标是否变化
+            if (prevState && currState) {
+                if (prevState.goalAlignment && currState.goalAlignment &&
+                    prevState.goalAlignment.status !== currState.goalAlignment.status) {
+                    return 'GOAL_CHANGE';
+                }
+            }
+
+            // 检查政策版本是否变化
+            if (previousTrace.policyVersion !== currentTrace.policyVersion) {
+                return 'POLICY_CHANGE';
+            }
+
+            return 'UNKNOWN';
+        },
+
+        /**
+         * 获取决策历史
+         * @param {number} limit - 限制数量
+         * @returns {Array} 决策历史
+         */
+        getDecisionHistory: function(limit) {
+            try {
+                var stored = localStorage.getItem('decisionTraces') || '[]';
+                var traces = JSON.parse(stored);
+                // 按时间倒序
+                traces.sort(function(a, b) {
+                    return new Date(b.timestamp) - new Date(a.timestamp);
+                });
+                return limit ? traces.slice(0, limit) : traces;
+            } catch (e) {
+                return [];
+            }
+        },
     };  // ← LearningJourneyAdapter 对象结束
 
     // ============================================================
