@@ -4086,6 +4086,155 @@
         },
 
             // ============================================================
+        // Part 93: Adapter Boundary & Modularization Safety
+        // ============================================================
+
+        /**
+         * 安全执行引擎调用
+         * 确保一个引擎失败不影响整体
+         * @param {Function} fn - 要执行的函数
+         * @param {*} fallback - 失败时的回退值
+         * @param {string} context - 上下文名称（用于日志）
+         * @returns {*} 函数结果或回退值
+         */
+        _safeEngineCall: function(fn, fallback, context) {
+            context = context || 'unknown';
+            try {
+                var result = fn();
+                // 如果结果是 undefined 或 null，返回回退值
+                if (result === undefined || result === null) {
+                    console.warn('[Adapter] Engine returned null:', context);
+                    return fallback;
+                }
+                return result;
+            } catch (e) {
+                console.warn('[Adapter] Engine failed:', context, e.message);
+                return fallback;
+            }
+        },
+
+        /**
+         * 安全获取 Journey Context（Part 93 包装）
+         * 确保部分引擎失败不影响整体
+         * @param {Object} options - 选项
+         * @returns {Object} 安全的旅程上下文
+         */
+        getJourneyContextSafe: function(options) {
+            options = options || {};
+            
+            // 获取基础上下文
+            var baseContext = this._safeEngineCall(
+                function() { return this.getJourneyContext(options); }.bind(this),
+                { position: {}, progress: {}, metadata: { hasSufficientData: false } },
+                'getJourneyContext'
+            );
+
+            // 如果完全失败，返回最小可用上下文
+            if (!baseContext || !baseContext.position) {
+                return {
+                    timestamp: new Date().toISOString(),
+                    version: '1.0.0',
+                    source: 'LearningJourneyAdapter',
+                    position: { hasPosition: false },
+                    progress: { overall: 0 },
+                    metadata: { 
+                        hasSufficientData: false, 
+                        confidence: 'unknown',
+                        errors: ['Journey context unavailable']
+                    }
+                };
+            }
+
+            // 确保关键字段存在
+            baseContext.metadata = baseContext.metadata || {};
+            baseContext.metadata.errors = baseContext.metadata.errors || [];
+
+            return baseContext;
+        },
+
+        /**
+         * 获取系统健康状态
+         * @returns {Object} 健康状态
+         */
+        getSystemHealth: function() {
+            var engines = [
+                { name: 'JourneyContext', status: 'unknown' },
+                { name: 'LearnerState', status: 'unknown' },
+                { name: 'Evidence', status: 'unknown' },
+                { name: 'Insight', status: 'unknown' },
+                { name: 'Recommendation', status: 'unknown' },
+                { name: 'Explanation', status: 'unknown' },
+                { name: 'Agency', status: 'unknown' }
+            ];
+
+            // 检查每个引擎是否可用
+            try {
+                var context = this.getJourneyContext({});
+                if (context && context.position) {
+                    engines[0].status = 'available';
+                }
+            } catch (e) {
+                engines[0].status = 'unavailable';
+                engines[0].error = e.message;
+            }
+
+            try {
+                var state = this.getLearnerState();
+                if (state && state.metadata) {
+                    engines[1].status = 'available';
+                }
+            } catch (e) {
+                engines[1].status = 'unavailable';
+                engines[1].error = e.message;
+            }
+
+            try {
+                var evidence = this.getLearningEvidence();
+                if (evidence !== undefined) {
+                    engines[2].status = 'available';
+                }
+            } catch (e) {
+                engines[2].status = 'unavailable';
+                engines[2].error = e.message;
+            }
+
+            try {
+                var insights = this._getJourneyInsights();
+                if (insights !== undefined) {
+                    engines[3].status = 'available';
+                }
+            } catch (e) {
+                engines[3].status = 'unavailable';
+                engines[3].error = e.message;
+            }
+
+            try {
+                var recs = this._getJourneyRecommendations();
+                if (recs !== undefined) {
+                    engines[4].status = 'available';
+                }
+            } catch (e) {
+                engines[4].status = 'unavailable';
+                engines[4].error = e.message;
+            }
+
+            // 计算整体健康
+            var available = engines.filter(function(e) { return e.status === 'available'; }).length;
+            var total = engines.length;
+
+            return {
+                timestamp: new Date().toISOString(),
+                engines: engines,
+                summary: {
+                    available: available,
+                    total: total,
+                    health: available === total ? 'healthy' : 
+                            available >= total / 2 ? 'degraded' : 'critical'
+                }
+            };
+        },
+
+        // ============================================================
         // Part 92: Learner State Model
         // ============================================================
 
