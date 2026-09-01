@@ -5,6 +5,11 @@
 
 window.LawAIApp = window.LawAIApp || {};
 
+LawAIApp.Dashboard = {
+  _rendered: false,
+  _reflectionStates: {},
+  _dialogueStates: {},
+
   // ============================================================
   // Part 76: Attention & Priority Constants
   // ============================================================
@@ -22,11 +27,6 @@ window.LawAIApp = window.LawAIApp || {};
     'tertiary': 2,
     'background': 3
   },
-
-LawAIApp.Dashboard = {
-  _rendered: false,
-  _reflectionStates: {},
-  _dialogueStates: {},
 
   render: function() {
     const contract = window.LawAIApp?.ExperienceContract;
