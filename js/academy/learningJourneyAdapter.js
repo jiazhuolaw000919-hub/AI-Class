@@ -685,6 +685,195 @@
             };
         },
 
+                // ============================================================
+        // Part 84: Adaptive Evidence & Decision Context
+        // ============================================================
+
+        /**
+         * 获取自适应证据
+         * 从 Learning State 中提取与此决策相关的证据
+         * @param {string} decisionType - 决策类型
+         * @returns {Object} 自适应证据
+         */
+        getAdaptiveEvidence: function(decisionType) {
+            decisionType = decisionType || 'NEXT_LEARNING_ACTION';
+            
+            var state = this._journeyState;
+            var evidence = {
+                decisionType: decisionType,
+                timestamp: new Date().toISOString(),
+                sources: [],
+                signals: [],
+                confidence: 'low',
+                hasSufficientEvidence: false
+            };
+
+            // 1. 位置证据
+            if (state.currentCourseId) {
+                evidence.signals.push({
+                    type: 'position',
+                    source: 'learning_state',
+                    value: {
+                        courseId: state.currentCourseId,
+                        moduleId: state.currentModuleId,
+                        lessonId: state.currentLessonId
+                    },
+                    freshness: this._getStateFreshness(state),
+                    confidence: 'high'
+                });
+                evidence.sources.push('position');
+            }
+
+            // 2. 进度证据
+            var progress = this._getProgress();
+            if (progress && progress.completedLessons) {
+                evidence.signals.push({
+                    type: 'progress',
+                    source: 'progress',
+                    value: {
+                        completedLessons: progress.completedLessons.length,
+                        completionPercent: progress.completionPercent || 0
+                    },
+                    freshness: 'recent',
+                    confidence: 'high'
+                });
+                evidence.sources.push('progress');
+            }
+
+            // 3. 记忆证据
+            var memoryEngine = window.LawAIApp?.MemoryEngine || window.LawAIApp?.AdaptiveMemory;
+            if (memoryEngine && typeof memoryEngine.getRetentionSignals === 'function') {
+                try {
+                    var retentionSignals = memoryEngine.getRetentionSignals();
+                    if (retentionSignals && retentionSignals.length > 0) {
+                        evidence.signals.push({
+                            type: 'retention',
+                            source: 'memory_engine',
+                            value: retentionSignals,
+                            freshness: 'recent',
+                            confidence: 'medium'
+                        });
+                        evidence.sources.push('retention');
+                    }
+                } catch (e) {}
+            }
+
+            // 4. 目标证据
+            var goalsEngine = window.LawAIApp?.GoalsEngine || window.LawAIApp?.GoalEngine;
+            if (goalsEngine && typeof goalsEngine.getActiveGoal === 'function') {
+                try {
+                    var goal = goalsEngine.getActiveGoal();
+                    if (goal) {
+                        evidence.signals.push({
+                            type: 'goal',
+                            source: 'goals_engine',
+                            value: goal,
+                            freshness: 'recent',
+                            confidence: 'high'
+                        });
+                        evidence.sources.push('goal');
+                    }
+                } catch (e) {}
+            }
+
+            // 5. 活动证据
+            if (state.lastActivity) {
+                var recentActivity = this._getRecentActivity();
+                if (recentActivity) {
+                    evidence.signals.push({
+                        type: 'activity',
+                        source: 'learning_state',
+                        value: recentActivity,
+                        freshness: this._getStateFreshness(state),
+                        confidence: 'medium'
+                    });
+                    evidence.sources.push('activity');
+                }
+            }
+
+            // 6. 判断是否足够
+            evidence.hasSufficientEvidence = evidence.sources.length >= 2;
+            evidence.confidence = evidence.sources.length >= 3 ? 'high' : 
+                                 evidence.sources.length >= 2 ? 'medium' : 'low';
+
+            return evidence;
+        },
+
+        /**
+         * 获取决策上下文
+         * 为自适应引擎构建决策上下文
+         * @param {string} decisionType - 决策类型
+         * @returns {Object} 决策上下文
+         */
+        getDecisionContext: function(decisionType) {
+            decisionType = decisionType || 'NEXT_LEARNING_ACTION';
+            
+            // 1. 获取证据
+            var evidence = this.getAdaptiveEvidence(decisionType);
+            
+            // 2. 获取当前路径
+            var courseId = this._journeyState.currentCourseId;
+            var path = courseId ? this.getLearningPath(courseId) : null;
+            
+            // 3. 获取有效候选
+            var candidates = this._generateCandidates(courseId, path || { items: [], isEmpty: true });
+            
+            // 4. 获取硬约束
+            var constraints = this._getHardConstraints(courseId);
+
+            // 5. 构建决策上下文
+            var context = {
+                decisionType: decisionType,
+                timestamp: new Date().toISOString(),
+                evidence: evidence,
+                path: path,
+                candidates: candidates,
+                constraints: constraints,
+                hasValidCandidates: candidates && candidates.length > 0,
+                hasSufficientEvidence: evidence.hasSufficientEvidence
+            };
+
+            return context;
+        },
+
+        /**
+         * 获取硬约束
+         * @private
+         */
+        _getHardConstraints: function(courseId) {
+            var constraints = [];
+            
+            // 检查是否有先决条件
+            var prerequisiteEngine = window.LawAIApp?.PrerequisiteEngine;
+            if (prerequisiteEngine && typeof prerequisiteEngine.getActiveConstraints === 'function') {
+                try {
+                    var prereqs = prerequisiteEngine.getActiveConstraints(courseId);
+                    if (prereqs && prereqs.length > 0) {
+                        constraints = prereqs;
+                    }
+                } catch (e) {}
+            }
+
+            // 默认：没有硬约束（保持学习者自由）
+            return constraints;
+        },
+
+        /**
+         * 获取最近活动
+         * @private
+         */
+        _getRecentActivity: function() {
+            var state = this._journeyState;
+            if (!state.lastActivity) return null;
+
+            return {
+                type: state.sessionStatus === 'active' ? 'active_learning' : 'idle',
+                timestamp: state.lastActivity,
+                sessionStatus: state.sessionStatus,
+                hasActiveSession: this.hasActiveSession()
+            };
+        },
+
         /**
          * 获取状态新鲜度
          * @private
