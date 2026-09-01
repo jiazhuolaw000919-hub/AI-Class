@@ -243,11 +243,14 @@
                 }
             }
 
-            const course = {
+           const course = {
                 ...courseData,
                 status: courseData.status || 'active',
-                modules: courseData.modules || [],
-                createdAt: courseData.createdAt || new Date().toISOString()
+                modules: courseData.modules || [],  // 🔥 确保 modules 数组存在
+                createdAt: courseData.createdAt || new Date().toISOString(),
+                // 🔥 Part 80: 如果有 S4 数据，保留
+                _s4: courseData._s4 || false,
+                _metadata: courseData._metadata || {}
             };
 
             this._courses.set(courseData.id, course);
