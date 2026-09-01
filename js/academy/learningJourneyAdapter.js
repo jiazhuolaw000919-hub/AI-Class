@@ -981,6 +981,358 @@
             };
         },
 
+                // ============================================================
+        // Part 86: Learner Judgment & Decision Support
+        // ============================================================
+
+        /**
+         * 获取决策支持信息
+         * 为学习者提供做出明智决策所需的上下文
+         * @param {Object} recommendation - 推荐对象
+         * @param {Array} alternatives - 替代选项
+         * @param {Object} context - 决策上下文
+         * @returns {Object} 判断支持信息
+         */
+        getJudgmentSupport: function(recommendation, alternatives, context) {
+            var support = {
+                hasSupport: false,
+                primary: null,
+                alternatives: [],
+                tradeOffs: [],
+                evidence: [],
+                uncertainty: 'low',
+                reflectionPrompt: null,
+                timestamp: new Date().toISOString()
+            };
+
+            if (!recommendation && (!alternatives || alternatives.length === 0)) {
+                return support;
+            }
+
+            support.hasSupport = true;
+
+            // 1. 主要推荐
+            if (recommendation) {
+                support.primary = {
+                    title: recommendation.title || 'Recommended',
+                    description: recommendation.description || '',
+                    type: recommendation.type || 'recommendation',
+                    targetId: recommendation.targetId || null,
+                    // 决策维度
+                    dimensions: this._getDecisionDimensions(recommendation, context)
+                };
+            }
+
+            // 2. 替代选项
+            if (alternatives && alternatives.length > 0) {
+                support.alternatives = alternatives.map(function(alt) {
+                    return {
+                        title: alt.title || 'Alternative',
+                        description: alt.description || '',
+                        type: alt.type || 'alternative',
+                        targetId: alt.targetId || null,
+                        dimensions: this._getDecisionDimensions(alt, context)
+                    };
+                }.bind(this));
+            }
+
+            // 3. 权衡
+            support.tradeOffs = this._getTradeOffs(recommendation, alternatives, context);
+
+            // 4. 证据
+            support.evidence = this._getEvidenceSummary(context);
+
+            // 5. 不确定性
+            support.uncertainty = this._getUncertaintyLevel(recommendation, context);
+
+            // 6. 反思提示
+            support.reflectionPrompt = this._getReflectionPrompt(recommendation, context);
+
+            return support;
+        },
+
+        /**
+         * 获取决策维度
+         * @private
+         */
+        _getDecisionDimensions: function(option, context) {
+            var dimensions = [];
+
+            // 时间
+            if (context && context.evidence && context.evidence.signals) {
+                var timeSignal = context.evidence.signals.find(function(s) { 
+                    return s.type === 'time' || s.type === 'availability';
+                });
+                if (timeSignal) {
+                    dimensions.push({
+                        name: 'Time',
+                        value: timeSignal.value || 'Unknown',
+                        icon: '⏱️'
+                    });
+                }
+            }
+
+            // 目标对齐
+            var goal = this._getActiveGoal();
+            if (goal && option.title) {
+                var goalRelevance = this._calculateGoalRelevance(option, goal);
+                dimensions.push({
+                    name: 'Goal',
+                    value: goalRelevance > 70 ? 'High alignment' : 
+                           goalRelevance > 40 ? 'Moderate alignment' : 'Low alignment',
+                    icon: '🎯',
+                    score: goalRelevance
+                });
+            }
+
+            // 难度
+            if (option.difficulty) {
+                dimensions.push({
+                    name: 'Difficulty',
+                    value: option.difficulty,
+                    icon: '📊'
+                });
+            }
+
+            // 掌握度
+            var masterySignal = context && context.evidence ? 
+                context.evidence.signals.find(function(s) { return s.type === 'mastery'; }) : null;
+            if (masterySignal) {
+                dimensions.push({
+                    name: 'Mastery',
+                    value: masterySignal.value || 'Unknown',
+                    icon: '💪'
+                });
+            }
+
+            return dimensions;
+        },
+
+        /**
+         * 获取权衡
+         * @private
+         */
+        _getTradeOffs: function(primary, alternatives, context) {
+            var tradeOffs = [];
+
+            if (!primary && (!alternatives || alternatives.length === 0)) {
+                return tradeOffs;
+            }
+
+            // 主要选项的权衡
+            if (primary) {
+                tradeOffs.push({
+                    option: primary.title || 'Primary',
+                    pros: this._getPros(primary, context),
+                    cons: this._getCons(primary, context)
+                });
+            }
+
+            // 替代选项的权衡
+            if (alternatives && alternatives.length > 0) {
+                for (var i = 0; i < Math.min(alternatives.length, 2); i++) {
+                    var alt = alternatives[i];
+                    tradeOffs.push({
+                        option: alt.title || 'Alternative ' + (i + 1),
+                        pros: this._getPros(alt, context),
+                        cons: this._getCons(alt, context)
+                    });
+                }
+            }
+
+            return tradeOffs;
+        },
+
+        /**
+         * 获取优点
+         * @private
+         */
+        _getPros: function(option, context) {
+            var pros = [];
+
+            if (!option) return pros;
+
+            // 基于类型
+            if (option.type === 'continue' || option.type === 'next') {
+                pros.push('Maintains learning momentum');
+            }
+            if (option.type === 'review') {
+                pros.push('Reinforces previous learning');
+                pros.push('Strengthens retention');
+            }
+            if (option.type === 'practice') {
+                pros.push('Builds mastery through active application');
+            }
+            if (option.type === 'explore') {
+                pros.push('Broadens understanding');
+                pros.push('May discover new interests');
+            }
+
+            // 基于证据
+            if (context && context.evidence) {
+                var signals = context.evidence.signals || [];
+                var goalSignal = signals.find(function(s) { return s.type === 'goal'; });
+                if (goalSignal && goalSignal.value) {
+                    var relevance = this._calculateGoalRelevance(option, goalSignal.value);
+                    if (relevance > 70) {
+                        pros.push('Strongly aligned with your goal');
+                    }
+                }
+            }
+
+            return pros.length > 0 ? pros : ['Valid learning option'];
+        },
+
+        /**
+         * 获取缺点
+         * @private
+         */
+        _getCons: function(option, context) {
+            var cons = [];
+
+            if (!option) return cons;
+
+            if (option.type === 'review') {
+                cons.push('May be repetitive if already confident');
+            }
+            if (option.type === 'practice') {
+                cons.push('Requires focused effort');
+            }
+            if (option.type === 'explore') {
+                cons.push('May not directly address immediate learning gaps');
+            }
+            if (option.type === 'continue') {
+                cons.push('Assumes current approach is working');
+            }
+
+            return cons.length > 0 ? cons : [];
+        },
+
+        /**
+         * 获取证据摘要
+         * @private
+         */
+        _getEvidenceSummary: function(context) {
+            var summary = [];
+
+            if (!context || !context.evidence) {
+                return summary;
+            }
+
+            var signals = context.evidence.signals || [];
+
+            for (var i = 0; i < signals.length; i++) {
+                var signal = signals[i];
+                var confidence = signal.confidence || 'medium';
+                var emoji = confidence === 'high' ? '✅' : 
+                           confidence === 'medium' ? '📊' : '🔍';
+                summary.push({
+                    type: signal.type || 'signal',
+                    description: this._describeSignal(signal),
+                    confidence: confidence,
+                    emoji: emoji,
+                    source: signal.source || 'unknown'
+                });
+            }
+
+            return summary;
+        },
+
+        /**
+         * 描述信号
+         * @private
+         */
+        _describeSignal: function(signal) {
+            var descriptions = {
+                'position': 'Current learning position',
+                'progress': 'Learning progress',
+                'retention': 'Retention state',
+                'goal': 'Active goal',
+                'activity': 'Recent activity',
+                'performance': 'Recent performance',
+                'time': 'Available time'
+            };
+            return descriptions[signal.type] || signal.type || 'Signal';
+        },
+
+        /**
+         * 获取不确定性级别
+         * @private
+         */
+        _getUncertaintyLevel: function(option, context) {
+            if (!context || !context.evidence) {
+                return 'unknown';
+            }
+
+            var sources = context.evidence.sources || [];
+            var confidence = context.evidence.confidence || 'low';
+
+            if (sources.length >= 3 && confidence === 'high') {
+                return 'low';
+            } else if (sources.length >= 2) {
+                return 'moderate';
+            } else {
+                return 'high';
+            }
+        },
+
+        /**
+         * 获取反思提示
+         * @private
+         */
+        _getReflectionPrompt: function(option, context) {
+            if (!option) return null;
+
+            var prompts = {
+                'continue': 'What do you hope to gain by continuing?',
+                'review': 'What do you remember about this concept?',
+                'practice': 'What feels most challenging about this topic?',
+                'explore': 'What interests you about this topic?'
+            };
+
+            return prompts[option.type] || 'What would make this choice right for you?';
+        },
+
+        /**
+         * 获取活跃目标
+         * @private
+         */
+        _getActiveGoal: function() {
+            var goalsEngine = window.LawAIApp?.GoalsEngine || window.LawAIApp?.GoalEngine;
+            if (goalsEngine && typeof goalsEngine.getActiveGoal === 'function') {
+                try {
+                    return goalsEngine.getActiveGoal();
+                } catch (e) {}
+            }
+            return null;
+        },
+
+        /**
+         * 计算目标相关性
+         * @private
+         */
+        _calculateGoalRelevance: function(option, goal) {
+            if (!option || !goal) return 0;
+
+            var score = 0;
+            var optionText = (option.title || '').toLowerCase();
+            var goalText = (goal.title || goal.name || '').toLowerCase();
+
+            if (optionText.includes(goalText) || goalText.includes(optionText)) {
+                score += 50;
+            }
+
+            // 检查关键词重叠
+            var keywords = goalText.split(' ');
+            for (var i = 0; i < keywords.length; i++) {
+                if (keywords[i].length > 3 && optionText.includes(keywords[i])) {
+                    score += 10;
+                }
+            }
+
+            return Math.min(100, score);
+        },
+
         /**
          * 获取硬约束
          * @private
