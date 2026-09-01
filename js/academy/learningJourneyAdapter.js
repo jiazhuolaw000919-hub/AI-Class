@@ -5294,6 +5294,378 @@
 
             return result;
         },
+
+                // ============================================================
+        // Part 96: Unified Intelligence Decision Pipeline
+        // ============================================================
+
+        /**
+         * 运行统一智能决策管道
+         * 这是 Core Intelligence 的统一入口
+         * @param {Object} context - 决策上下文
+         * @returns {Object} 管道结果
+         */
+        runPipeline: function(context) {
+            context = context || {};
+            
+            var result = {
+                timestamp: new Date().toISOString(),
+                version: '1.0.0',
+                source: 'CoreIntelligencePipeline',
+                
+                // 管道各阶段输出
+                evidence: null,
+                state: null,
+                interpretation: null,
+                decision: null,
+                recommendation: null,
+                explanation: null,
+                
+                // 元数据
+                metadata: {
+                    hasRecommendation: false,
+                    confidence: 'low',
+                    errors: [],
+                    warnings: []
+                }
+            };
+
+            try {
+                // ── Stage 1: Evidence ──
+                var evidence = this._safeEngineCall(
+                    function() { return this.getLearningEvidence(context); }.bind(this),
+                    { hasEvidence: false, evidence: null },
+                    'getLearningEvidence'
+                );
+                result.evidence = evidence;
+
+                // ── Stage 2: Learner State ──
+                var state = this._safeEngineCall(
+                    function() { return this.getLearnerState(context); }.bind(this),
+                    { metadata: { hasSufficientEvidence: false } },
+                    'getLearnerState'
+                );
+                result.state = state;
+
+                // ── Stage 3: Interpretation ──
+                var interpretation = this._safeEngineCall(
+                    function() { return this._interpretState(state, evidence, context); }.bind(this),
+                    { hasInterpretation: false, message: null },
+                    'interpretState'
+                );
+                result.interpretation = interpretation;
+
+                // ── Stage 4: Decision ──
+                var decision = this._safeEngineCall(
+                    function() { return this._makeDecision(state, interpretation, context); }.bind(this),
+                    { hasDecision: false, candidates: [] },
+                    'makeDecision'
+                );
+                result.decision = decision;
+
+                // ── Stage 5: Recommendation ──
+                var recommendation = this._safeEngineCall(
+                    function() { return this._generateRecommendation(decision, interpretation, context); }.bind(this),
+                    { hasRecommendation: false, recommendation: null },
+                    'generateRecommendation'
+                );
+                result.recommendation = recommendation;
+
+                // ── Stage 6: Explanation ──
+                var explanation = this._safeEngineCall(
+                    function() { return this._generateExplanation(recommendation, decision, interpretation, context); }.bind(this),
+                    { hasExplanation: false, text: null },
+                    'generateExplanation'
+                );
+                result.explanation = explanation;
+
+                // ── 元数据 ──
+                result.metadata.hasRecommendation = recommendation && recommendation.hasRecommendation;
+                result.metadata.confidence = this._calculatePipelineConfidence(result);
+                result.metadata.hasSufficientData = state && state.metadata && state.metadata.hasSufficientEvidence;
+
+            } catch (e) {
+                result.metadata.errors.push('Pipeline error: ' + e.message);
+                console.warn('[Pipeline] Critical error:', e);
+            }
+
+            return result;
+        },
+
+        /**
+         * 解释状态
+         * @private
+         */
+        _interpretState: function(state, evidence, context) {
+            var interpretation = {
+                hasInterpretation: false,
+                message: null,
+                gap: null,
+                need: null,
+                trend: null,
+                goalAlignment: null
+            };
+
+            if (!state || !evidence) {
+                interpretation.message = 'Insufficient data for interpretation.';
+                return interpretation;
+            }
+
+            var stateConfidence = state.metadata && state.metadata.confidence;
+            var hasSufficientData = state.metadata && state.metadata.hasSufficientEvidence;
+
+            if (!hasSufficientData) {
+                interpretation.message = 'Not enough evidence to interpret learning state.';
+                interpretation.hasInterpretation = true;
+                return interpretation;
+            }
+
+            // 构建解释
+            var parts = [];
+            if (state.knowledge && state.knowledge.status !== 'unknown') {
+                parts.push('Knowledge: ' + state.knowledge.status);
+            }
+            if (state.transfer && state.transfer.status !== 'unknown') {
+                parts.push('Transfer: ' + state.transfer.status);
+            }
+            if (state.independence && state.independence.status !== 'unknown') {
+                parts.push('Independence: ' + state.independence.status);
+            }
+
+            interpretation.message = parts.length > 0 ? parts.join(' · ') : 'Learning state is developing.';
+            interpretation.hasInterpretation = true;
+            interpretation.gap = this._identifyGap(state, context);
+            interpretation.trend = state.momentum ? state.momentum.status : 'unknown';
+            interpretation.goalAlignment = state.goalAlignment ? state.goalAlignment.status : 'unknown';
+
+            return interpretation;
+        },
+
+        /**
+         * 识别差距
+         * @private
+         */
+        _identifyGap: function(state, context) {
+            var gap = {
+                exists: false,
+                description: null,
+                severity: 'low'
+            };
+
+            if (!state) return gap;
+
+            var transfer = state.transfer ? state.transfer.status : 'unknown';
+            var knowledge = state.knowledge ? state.knowledge.status : 'unknown';
+            var goalAlignment = state.goalAlignment ? state.goalAlignment.status : 'unknown';
+
+            // 知识稳定但迁移弱 → 差距
+            if (knowledge === 'known' || knowledge === 'developing') {
+                if (transfer === 'emerging' || transfer === 'not_tested') {
+                    gap.exists = true;
+                    gap.description = 'Knowledge is developing but transfer is limited.';
+                    gap.severity = 'medium';
+                }
+            }
+
+            // 目标对齐弱 → 差距
+            if (goalAlignment === 'misaligned') {
+                gap.exists = true;
+                gap.description = 'Current activity may not align with goal.';
+                gap.severity = 'high';
+            }
+
+            return gap;
+        },
+
+        /**
+         * 做出决策
+         * @private
+         */
+        _makeDecision: function(state, interpretation, context) {
+            var decision = {
+                hasDecision: false,
+                candidates: [],
+                primary: null,
+                confidence: 'low',
+                reason: null
+            };
+
+            if (!interpretation || !interpretation.hasInterpretation) {
+                decision.reason = 'Insufficient interpretation for decision.';
+                return decision;
+            }
+
+            // 生成候选行动
+            var candidates = [];
+            
+            // 基于差距生成候选
+            if (interpretation.gap && interpretation.gap.exists) {
+                if (interpretation.gap.severity === 'high') {
+                    candidates.push({
+                        type: 'review',
+                        title: 'Review to address gaps',
+                        priority: 10,
+                        reason: interpretation.gap.description
+                    });
+                }
+                candidates.push({
+                    type: 'practice',
+                    title: 'Practice the concept',
+                    priority: 8,
+                    reason: 'Build stronger understanding.'
+                });
+            }
+
+            // 基于迁移状态
+            if (state.transfer && state.transfer.status === 'emerging') {
+                candidates.push({
+                    type: 'transfer',
+                    title: 'Try a transfer challenge',
+                    priority: 7,
+                    reason: 'Test knowledge in a new context.'
+                });
+            }
+
+            // 默认候选
+            if (candidates.length === 0) {
+                candidates.push({
+                    type: 'continue',
+                    title: 'Continue current learning',
+                    priority: 5,
+                    reason: 'Maintain momentum.'
+                });
+                candidates.push({
+                    type: 'explore',
+                    title: 'Explore related topic',
+                    priority: 3,
+                    reason: 'Broaden understanding.'
+                });
+            }
+
+            decision.hasDecision = candidates.length > 0;
+            decision.candidates = candidates;
+            decision.primary = candidates.length > 0 ? candidates[0] : null;
+            decision.confidence = candidates.length > 0 ? 'medium' : 'low';
+            decision.reason = candidates.length > 0 ? 'Candidates generated based on state and interpretation.' : 'No decision available.';
+
+            return decision;
+        },
+
+        /**
+         * 生成推荐
+         * @private
+         */
+        _generateRecommendation: function(decision, interpretation, context) {
+            var recommendation = {
+                hasRecommendation: false,
+                recommendation: null,
+                confidence: 'low',
+                alternatives: [],
+                message: null
+            };
+
+            if (!decision || !decision.hasDecision || !decision.primary) {
+                recommendation.message = 'No recommendation available.';
+                return recommendation;
+            }
+
+            // 检查是否应该推荐（干预阈值）
+            var shouldRecommend = this._checkInterventionThreshold(decision, interpretation, context);
+            if (!shouldRecommend) {
+                recommendation.message = 'Intervention not recommended at this time.';
+                return recommendation;
+            }
+
+            recommendation.hasRecommendation = true;
+            recommendation.recommendation = decision.primary;
+            recommendation.confidence = decision.confidence || 'medium';
+            recommendation.alternatives = decision.candidates.slice(1, 4);
+
+            return recommendation;
+        },
+
+        /**
+         * 检查干预阈值
+         * @private
+         */
+        _checkInterventionThreshold: function(decision, interpretation, context) {
+            // 没有候选 → 不干预
+            if (!decision || !decision.candidates || decision.candidates.length === 0) {
+                return false;
+            }
+
+            // 没有解释 → 不干预
+            if (!interpretation || !interpretation.hasInterpretation) {
+                return false;
+            }
+
+            // 检查是否有高优先级候选
+            var hasHighPriority = decision.candidates.some(function(c) {
+                return c.priority >= 7;
+            });
+
+            // 检查是否有差距
+            var hasGap = interpretation.gap && interpretation.gap.exists;
+
+            return hasHighPriority || hasGap;
+        },
+
+        /**
+         * 生成解释
+         * @private
+         */
+        _generateExplanation: function(recommendation, decision, interpretation, context) {
+            var explanation = {
+                hasExplanation: false,
+                text: null,
+                evidence: [],
+                confidence: 'low',
+                alternatives: []
+            };
+
+            if (!recommendation || !recommendation.hasRecommendation) {
+                explanation.text = 'No recommendation to explain.';
+                return explanation;
+            }
+
+            var rec = recommendation.recommendation;
+            var reason = rec.reason || 'Recommended based on your learning context.';
+            var evidenceParts = [];
+
+            if (interpretation.gap && interpretation.gap.exists) {
+                evidenceParts.push('Gap identified: ' + interpretation.gap.description);
+            }
+
+            if (state.transfer && state.transfer.status === 'emerging') {
+                evidenceParts.push('Transfer is developing');
+            }
+
+            explanation.hasExplanation = true;
+            explanation.text = reason;
+            explanation.evidence = evidenceParts;
+            explanation.confidence = recommendation.confidence || 'medium';
+            explanation.alternatives = recommendation.alternatives || [];
+
+            return explanation;
+        },
+
+        /**
+         * 计算管道信心
+         * @private
+         */
+        _calculatePipelineConfidence: function(result) {
+            var stages = ['evidence', 'state', 'interpretation', 'decision', 'recommendation', 'explanation'];
+            var completed = 0;
+            for (var i = 0; i < stages.length; i++) {
+                if (result[stages[i]]) {
+                    completed++;
+                }
+            }
+            var ratio = completed / stages.length;
+            if (ratio >= 0.8) return 'high';
+            if (ratio >= 0.5) return 'medium';
+            return 'low';
+        },
     };  // ← LearningJourneyAdapter 对象结束
 
     // ============================================================
