@@ -209,12 +209,6 @@ LawAIApp.Dashboard = {
     return states[state] || states['not_started'];
   },
 
-      <!-- 🎯 CONTEXTUAL PRIORITY (Part 76) -->
-      ${this._renderPriorityIndicator()}
-
-      <!-- 🤔 LEARNER JUDGEMENT (Part 77) -->
-      ${this._renderJudgementPrompt()}
-
   // ============================================================
   // Part 74: Learning Loop — INSIGHT → CHOICE → OUTCOME → CONTEXT
   // ============================================================
@@ -2332,7 +2326,7 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
-      <!-- 📈 LEARNING INSIGHTS (Part 72: Dialogue + Calibration) -->
+      <!-- 📈 LEARNING INSIGHTS (Part 72 + 76 + 77) -->
       <section style="
         background: ${CARD_BG};
         border-radius: ${CARD_RADIUS};
@@ -2343,8 +2337,18 @@ LawAIApp.Dashboard = {
         <p style="margin:0 0 10px;font-size:11px;color:#64748b;font-weight:500;letter-spacing:0.6px;">
           📈 LEARNING INSIGHTS
         </p>
+        
+        <!-- Part 76: Priority Indicator (精简) -->
+        ${this._renderPriorityIndicatorCompact()}
+        
+        <!-- Part 72: Dialogue Insight -->
         ${insightHTML}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        
+        <!-- Part 77: Judgement Prompt (精简) -->
+        ${this._renderJudgementPromptCompact()}
+        
+        <!-- Stats -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;">
           <div>
             <span style="font-size:10px;color:#64748b;">Current Stage</span>
             <p style="margin:2px 0 0;font-size:14px;font-weight:500;">${currentStage}</p>
