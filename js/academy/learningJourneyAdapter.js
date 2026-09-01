@@ -3734,7 +3734,356 @@
                 // 忽略
             }
         }
+                // ============================================================
+        // Part 91: Evidence-Aware Journey Contract
+        // ============================================================
 
+        /**
+         * 获取完整的旅程上下文
+         * 这是 LearningJourneyAdapter 的核心输出
+         * @param {Object} options - 选项
+         * @returns {Object} 旅程上下文
+         */
+        getJourneyContext: function(options) {
+            options = options || {};
+            
+            var context = {
+                timestamp: new Date().toISOString(),
+                version: '2.0.0',
+                source: 'LearningJourneyAdapter',
+                
+                // 学习者
+                learner: this._getLearnerSummary(),
+                
+                // 当前位置
+                position: this._getJourneyPosition(),
+                
+                // 进度
+                progress: this._getJourneyProgress(),
+                
+                // 证据
+                evidence: this._getJourneyEvidence(),
+                
+                // 洞察
+                insights: this._getJourneyInsights(),
+                
+                // 目标
+                goals: this._getJourneyGoals(),
+                
+                // 推荐
+                recommendations: this._getJourneyRecommendations(),
+                
+                // 学习者选择
+                choices: this._getJourneyChoices(),
+                
+                // 元数据
+                metadata: {
+                    confidence: 'medium',
+                    hasSufficientData: false,
+                    staleWarning: null,
+                    partialData: []
+                }
+            };
+
+            // 判断数据充足性
+            context.metadata.hasSufficientData = this._hasSufficientJourneyData(context);
+            
+            // 检查数据新鲜度
+            var freshness = this._checkJourneyFreshness(context);
+            if (freshness === 'stale' || freshness === 'old') {
+                context.metadata.staleWarning = 'Some data may be outdated.';
+            }
+
+            return context;
+        },
+
+        /**
+         * 获取学习者摘要
+         * @private
+         */
+        _getLearnerSummary: function() {
+            var state = this._journeyState;
+            return {
+                id: this._userId,
+                hasActiveSession: this.hasActiveSession(),
+                lastActivity: state.lastActivity || null,
+                currentStage: this._determineLearningStage()
+            };
+        },
+
+        /**
+         * 确定学习阶段
+         * @private
+         */
+        _determineLearningStage: function() {
+            var state = this._journeyState;
+            var progress = state.progress || 0;
+            
+            if (progress === 0 && !state.currentCourseId) {
+                return 'not_started';
+            }
+            if (progress < 25) {
+                return 'exploring';
+            }
+            if (progress < 75) {
+                return 'learning';
+            }
+            if (progress < 100) {
+                return 'consolidating';
+            }
+            return 'independent';
+        },
+
+        /**
+         * 获取旅程位置
+         * @private
+         */
+        _getJourneyPosition: function() {
+            var state = this._journeyState;
+            return {
+                schoolId: null,
+                courseId: state.currentCourseId || null,
+                moduleId: state.currentModuleId || null,
+                lessonId: state.currentLessonId || null,
+                hasPosition: !!(state.currentCourseId || state.currentModuleId || state.currentLessonId)
+            };
+        },
+
+        /**
+         * 获取旅程进度
+         * @private
+         */
+        _getJourneyProgress: function() {
+            var state = this._journeyState;
+            return {
+                overall: state.progress || 0,
+                completedLessons: (state.completedLessons || []).length,
+                completedModules: (state.completedModules || []).length,
+                completedCourses: (state.completedCourses || []).length,
+                source: 'progress_engine'
+            };
+        },
+
+        /**
+         * 获取旅程证据
+         * @private
+         */
+        _getJourneyEvidence: function() {
+            var evidence = {
+                hasEvidence: false,
+                items: [],
+                confidence: 'low',
+                summary: null
+            };
+
+            // 使用 Part 90 的证据方法
+            var learningEvidence = this.getLearningEvidence();
+            if (learningEvidence && learningEvidence.hasEvidence) {
+                evidence.hasEvidence = true;
+                evidence.items = learningEvidence.evidence.signals || [];
+                evidence.confidence = learningEvidence.confidence || 'low';
+                evidence.summary = learningEvidence.evidence.summary || null;
+            }
+
+            return evidence;
+        },
+
+        /**
+         * 获取旅程洞察
+         * @private
+         */
+        _getJourneyInsights: function() {
+            var insights = [];
+            
+            // 使用 Part 90 的洞察方法
+            var learningEvidence = this.getLearningEvidence();
+            if (learningEvidence && learningEvidence.insight) {
+                insights.push({
+                    message: learningEvidence.insight.message || null,
+                    confidence: learningEvidence.confidence || 'low',
+                    suggestion: learningEvidence.insight.suggestion || null,
+                    timestamp: learningEvidence.timestamp
+                });
+            }
+
+            // 添加校准洞察
+            var calibration = this.getCalibrationInsight();
+            if (calibration && calibration.hasInsight) {
+                insights.push({
+                    message: calibration.message || null,
+                    alignment: calibration.alignment || 'unknown',
+                    suggestion: calibration.suggestion || null,
+                    timestamp: new Date().toISOString()
+                });
+            }
+
+            return insights;
+        },
+
+        /**
+         * 获取旅程目标
+         * @private
+         */
+        _getJourneyGoals: function() {
+            var goals = [];
+            var goalsEngine = window.LawAIApp?.GoalsEngine || window.LawAIApp?.GoalEngine;
+            if (goalsEngine && typeof goalsEngine.getActiveGoal === 'function') {
+                try {
+                    var goal = goalsEngine.getActiveGoal();
+                    if (goal) {
+                        goals.push({
+                            id: goal.id,
+                            title: goal.title || goal.name,
+                            description: goal.description || '',
+                            source: 'goals_engine'
+                        });
+                    }
+                } catch (e) {}
+            }
+            return goals;
+        },
+
+        /**
+         * 获取旅程推荐
+         * @private
+         */
+        _getJourneyRecommendations: function() {
+            var recommendations = [];
+            
+            var adaptiveResult = this.getAdaptiveRecommendation();
+            if (adaptiveResult && adaptiveResult.hasRecommendation) {
+                recommendations.push({
+                    id: adaptiveResult.recommendation.id || 'rec_' + Date.now(),
+                    title: adaptiveResult.recommendation.title || 'Recommended',
+                    description: adaptiveResult.recommendation.description || '',
+                    type: adaptiveResult.recommendation.type || 'recommendation',
+                    confidence: adaptiveResult.confidence || 'medium',
+                    explanation: adaptiveResult.explanation ? adaptiveResult.explanation.text : null,
+                    isOptional: true
+                });
+            }
+
+            return recommendations;
+        },
+
+        /**
+         * 获取旅程选择
+         * @private
+         */
+        _getJourneyChoices: function() {
+            var choices = [];
+            var state = this._journeyState;
+            
+            if (state.currentLessonId) {
+                choices.push({
+                    type: 'selected_lesson',
+                    value: state.currentLessonId,
+                    timestamp: state.lastActivity
+                });
+            }
+            
+            return choices;
+        },
+
+        /**
+         * 检查是否有足够的数据
+         * @private
+         */
+        _hasSufficientJourneyData: function(context) {
+            var hasPosition = context.position && context.position.hasPosition;
+            var hasProgress = context.progress && context.progress.completedLessons > 0;
+            var hasEvidence = context.evidence && context.evidence.hasEvidence;
+            
+            return hasPosition || hasProgress || hasEvidence;
+        },
+
+        /**
+         * 检查旅程数据新鲜度
+         * @private
+         */
+        _checkJourneyFreshness: function(context) {
+            var state = this._journeyState;
+            if (!state.lastActivity) {
+                return 'unknown';
+            }
+            
+            var now = Date.now();
+            var lastActivityTime = new Date(state.lastActivity).getTime();
+            var diff = now - lastActivityTime;
+            
+            if (diff < 86400000) { // 24 小时
+                return 'fresh';
+            }
+            if (diff < 604800000) { // 7 天
+                return 'recent';
+            }
+            if (diff < 2592000000) { // 30 天
+                return 'stale';
+            }
+            return 'old';
+        },
+
+        /**
+         * 获取旅程摘要（轻量级）
+         * @returns {Object} 旅程摘要
+         */
+        getJourneySummary: function() {
+            var context = this.getJourneyContext();
+            
+            return {
+                hasActiveLearning: context.position.hasPosition || context.progress.completedLessons > 0,
+                currentStage: context.learner.currentStage || 'not_started',
+                progress: context.progress.overall || 0,
+                insights: context.insights.length > 0 ? context.insights[0].message : null,
+                recommendation: context.recommendations.length > 0 ? context.recommendations[0] : null,
+                hasSufficientData: context.metadata.hasSufficientData,
+                updatedAt: context.timestamp
+            };
+        },
+
+        /**
+         * 验证旅程上下文的权威性
+         * @param {Object} context - 旅程上下文
+         * @returns {Object} 验证结果
+         */
+        validateJourneyContext: function(context) {
+            var validation = {
+                valid: true,
+                warnings: [],
+                errors: []
+            };
+
+            if (!context) {
+                validation.valid = false;
+                validation.errors.push('Context is null or undefined');
+                return validation;
+            }
+
+            // 检查必要字段
+            var required = ['timestamp', 'version', 'position', 'progress'];
+            for (var i = 0; i < required.length; i++) {
+                if (!context[required[i]]) {
+                    validation.valid = false;
+                    validation.errors.push('Missing required field: ' + required[i]);
+                }
+            }
+
+            // 检查所有权
+            if (context.metadata && context.metadata.authority) {
+                var allowedAuthorities = ['learning_journey_adapter', 'adaptive_core'];
+                if (allowedAuthorities.indexOf(context.metadata.authority) === -1) {
+                    validation.warnings.push('Unusual authority source: ' + context.metadata.authority);
+                }
+            }
+
+            // 检查信心
+            if (context.metadata && context.metadata.confidence === 'unknown' && 
+                context.position && context.position.hasPosition) {
+                validation.warnings.push('Low confidence despite having position data');
+            }
+
+            return validation;
+        },
     };  // ← LearningJourneyAdapter 对象结束
 
     // ============================================================
