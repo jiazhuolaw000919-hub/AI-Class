@@ -212,6 +212,9 @@ LawAIApp.Dashboard = {
       <!-- 🎯 CONTEXTUAL PRIORITY (Part 76) -->
       ${this._renderPriorityIndicator()}
 
+      <!-- 🤔 LEARNER JUDGEMENT (Part 77) -->
+      ${this._renderJudgementPrompt()}
+
   // ============================================================
   // Part 74: Learning Loop — INSIGHT → CHOICE → OUTCOME → CONTEXT
   // ============================================================
@@ -733,6 +736,272 @@ LawAIApp.Dashboard = {
     };
 
     return priority;
+  },
+
+  // ============================================================
+  // Part 77: Learner Interpretation & Judgement Architecture
+  // ============================================================
+
+  /**
+   * 获取学习者的判断（如果存在）
+   * 从现有系统派生，不新建存储
+   */
+  _getLearnerJudgement: function() {
+    var judgement = {
+      hasJudgement: false,
+      confidence: null,        // 'not_yet' | 'somewhat' | 'confident' | 'very'
+      difficulty: null,        // 'easy' | 'moderate' | 'hard'
+      correction: null,
+      reflection: null,
+      timestamp: null,
+      source: null
+    };
+
+    // 1. 从 localStorage 读取最近的判断（复用现有存储）
+    try {
+      var stored = localStorage.getItem('dashboardLearnerJudgements');
+      if (stored) {
+        var parsed = JSON.parse(stored);
+        if (parsed && parsed.length > 0) {
+          var recent = parsed[parsed.length - 1];
+          // 只使用 24 小时内的判断
+          if (Date.now() - new Date(recent.timestamp).getTime() < 86400000) {
+            judgement.hasJudgement = true;
+            judgement.confidence = recent.confidence || null;
+            judgement.difficulty = recent.difficulty || null;
+            judgement.correction = recent.correction || null;
+            judgement.reflection = recent.reflection || null;
+            judgement.timestamp = recent.timestamp;
+            judgement.source = recent.source || 'learner';
+          }
+        }
+      }
+    } catch (e) {}
+
+    // 2. 如果没有存储的判断，从 Notes 查找最近的反思
+    if (!judgement.hasJudgement) {
+      var notes = window.LawAIApp?.Notes || window.LawAIApp?.KnowledgeCapture;
+      if (notes && typeof notes.getNotes === 'function') {
+        try {
+          var allNotes = notes.getNotes();
+          if (allNotes && allNotes.length > 0) {
+            // 找最近的 REFLECTION 类型笔记
+            var reflections = allNotes.filter(function(n) {
+              return n.type === 'REFLECTION' || n.source === 'dashboard' || 
+                     (n.tags && n.tags.indexOf('reflection') !== -1);
+            });
+            if (reflections && reflections.length > 0) {
+              var recent = reflections[reflections.length - 1];
+              if (Date.now() - new Date(recent.updatedAt || recent.createdAt).getTime() < 86400000) {
+                judgement.hasJudgement = true;
+                judgement.reflection = recent.content || null;
+                judgement.timestamp = recent.updatedAt || recent.createdAt;
+                judgement.source = 'notes';
+              }
+            }
+          }
+        } catch (e) {}
+      }
+    }
+
+    return judgement;
+  },
+
+  // ============================================================
+  // Part 77: Judgement Prompt Renderer
+  // ============================================================
+
+  /**
+   * 渲染学习者判断提示
+   * 只在合适的时候出现（有学习上下文，但不打扰）
+   */
+  _renderJudgementPrompt: function() {
+    // 检查是否应该显示判断提示
+    var lc = window.LawAIApp?.LearningContext;
+    var hasLearningData = false;
+    var hasActiveSession = false;
+    
+    if (lc && lc.initialized) {
+      try {
+        var ctx = lc.getContext();
+        if (ctx) {
+          hasLearningData = !!(ctx.course || ctx.module || ctx.lesson);
+          hasActiveSession = ctx.status?.hasActiveSession || false;
+        }
+      } catch (e) {}
+    }
+
+    // 如果没有学习数据，不显示
+    if (!hasLearningData) {
+      return '';
+    }
+
+    // 如果有活跃会话，不打扰
+    if (hasActiveSession) {
+      return '';
+    }
+
+    // 获取现有判断
+    var judgement = this._getLearnerJudgement();
+    
+    // 如果已有最近的判断，不重复提示
+    if (judgement.hasJudgement && judgement.confidence) {
+      return '';
+    }
+
+    // 获取当前课程/课时信息
+    var contextParts = [];
+    var lessonName = '';
+    var courseName = '';
+    
+    if (lc && lc.initialized) {
+      try {
+        var ctx = lc.getContext();
+        if (ctx) {
+          if (ctx.lesson) lessonName = ctx.lesson.name || 'this lesson';
+          if (ctx.course) courseName = ctx.course.title || 'this course';
+        }
+      } catch (e) {}
+    }
+
+    var targetName = lessonName || courseName || 'this topic';
+
+    return `
+      <div style="
+        background: rgba(139, 92, 246, 0.04);
+        border-radius: 12px;
+        padding: 16px 20px;
+        border: 1px solid rgba(139, 92, 246, 0.08);
+        margin-bottom: 16px;
+      ">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+          <span style="font-size: 14px;">🤔</span>
+          <span style="font-size: 11px; color: #8b5cf6; font-weight: 500; letter-spacing: 0.6px;">YOUR JUDGEMENT</span>
+        </div>
+        <div style="font-size: 14px; color: #e2e8f0; margin-bottom: 8px;">
+          How confident do you feel about ${targetName}?
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'not_yet')" style="
+            padding: 4px 16px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 100px;
+            color: #94a3b8;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+          " onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
+            🌱 Not yet
+          </button>
+          <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'somewhat')" style="
+            padding: 4px 16px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 100px;
+            color: #94a3b8;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+          " onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
+            🔄 Somewhat
+          </button>
+          <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'confident')" style="
+            padding: 4px 16px;
+            background: rgba(74,158,255,0.08);
+            border: 1px solid rgba(74,158,255,0.12);
+            border-radius: 100px;
+            color: #4a9eff;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+          " onmouseover="this.style.background='rgba(74,158,255,0.14)'" onmouseout="this.style.background='rgba(74,158,255,0.08)'">
+            💪 Confident
+          </button>
+          <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'very')" style="
+            padding: 4px 16px;
+            background: rgba(16,185,129,0.08);
+            border: 1px solid rgba(16,185,129,0.12);
+            border-radius: 100px;
+            color: #10b981;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+          " onmouseover="this.style.background='rgba(16,185,129,0.14)'" onmouseout="this.style.background='rgba(16,185,129,0.08)'">
+            🎯 Very confident
+          </button>
+          <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('dismiss', 'judgement')" style="
+            padding: 4px 12px;
+            background: transparent;
+            border: none;
+            color: #475569;
+            font-size: 11px;
+            cursor: pointer;
+            font-family: inherit;
+            text-decoration: underline;
+          ">
+            Skip
+          </button>
+        </div>
+        <div style="font-size: 11px; color: #64748b; margin-top: 8px;">
+          💡 This helps us provide more relevant recommendations.
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * 记录学习者的判断
+   * 复用现有存储（localStorage），不新建数据库
+   */
+  _recordLearnerJudgement: function(type, value) {
+    console.log('[Dashboard][Part77] Judgement recorded:', type, value);
+
+    try {
+      var stored = localStorage.getItem('dashboardLearnerJudgements') || '[]';
+      var judgements = JSON.parse(stored);
+      
+      // 找到同类型的最近记录并更新，或追加新记录
+      var existing = judgements.find(function(j) { return j.type === type; });
+      if (existing) {
+        existing.value = value;
+        existing.timestamp = Date.now();
+      } else {
+        judgements.push({
+          type: type,
+          value: value,
+          timestamp: Date.now(),
+          source: 'dashboard'
+        });
+      }
+      
+      // 只保留最近 20 条
+      if (judgements.length > 20) {
+        judgements = judgements.slice(-20);
+      }
+      
+      localStorage.setItem('dashboardLearnerJudgements', JSON.stringify(judgements));
+      
+      // Toast 反馈
+      if (window.LawAIApp?.Toast && typeof window.LawAIApp.Toast.info === 'function') {
+        var messages = {
+          'confidence': '📊 Confidence recorded.',
+          'difficulty': '📊 Difficulty recorded.',
+          'correction': '🔄 Thanks for the correction.',
+          'reflection': '💭 Reflection saved.'
+        };
+        window.LawAIApp.Toast.info(messages[type] || '✅ Recorded');
+      }
+    } catch (e) {
+      console.warn('[Dashboard][Part77] Record judgement error:', e);
+    }
+
+    // 刷新 Dashboard
+    setTimeout(function() { LawAIApp.Dashboard.render(); }, 300);
   },
 
   /**
