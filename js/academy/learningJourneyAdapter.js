@@ -598,7 +598,7 @@
             };
         },
 
-                // ============================================================
+        // ============================================================
         // Part 83: Learning State — Authoritative State Representation
         // ============================================================
 
@@ -685,7 +685,7 @@
             };
         },
 
-                // ============================================================
+        // ============================================================
         // Part 84: Adaptive Evidence & Decision Context
         // ============================================================
 
@@ -821,19 +821,164 @@
             // 4. 获取硬约束
             var constraints = this._getHardConstraints(courseId);
 
-            // 5. 构建决策上下文
+            // 5. 应用治理到候选
+            var governedCandidates = this.applyGovernanceToCandidates(candidates, {
+                constraints: constraints,
+                evidence: evidence
+            });
+
+            // 6. 构建决策上下文（包含治理结果）
             var context = {
                 decisionType: decisionType,
                 timestamp: new Date().toISOString(),
                 evidence: evidence,
                 path: path,
                 candidates: candidates,
+                governedCandidates: governedCandidates,
                 constraints: constraints,
-                hasValidCandidates: candidates && candidates.length > 0,
-                hasSufficientEvidence: evidence.hasSufficientEvidence
+                hasValidCandidates: governedCandidates && governedCandidates.length > 0,
+                hasSufficientEvidence: evidence.hasSufficientEvidence,
+                governanceSummary: {
+                    totalCandidates: candidates ? candidates.length : 0,
+                    allowedCandidates: governedCandidates ? governedCandidates.length : 0,
+                    blockedCandidates: (candidates ? candidates.length : 0) - (governedCandidates ? governedCandidates.length : 0)
+                }
             };
 
             return context;
+        },
+
+        // ============================================================
+        // Part 85: Adaptive Decision Governance
+        // ============================================================
+
+        /**
+         * 检查决策是否被允许
+         * 治理检查：权威、约束、代理、有效性
+         * @param {Object} decision - 决策对象
+         * @returns {Object} 治理结果
+         */
+        checkDecisionGovernance: function(decision) {
+            var result = {
+                allowed: false,
+                reason: null,
+                authority: null,
+                constraint: null,
+                requiresLearnerChoice: true,
+                explanation: null
+            };
+
+            // 1. 检查是否有硬约束
+            var constraints = decision.constraints || [];
+            for (var i = 0; i < constraints.length; i++) {
+                var constraint = constraints[i];
+                if (constraint.type === 'hard' && !constraint.satisfied) {
+                    result.allowed = false;
+                    result.reason = 'hard_constraint_blocked';
+                    result.constraint = constraint;
+                    result.explanation = constraint.explanation || 'This action is blocked by a prerequisite.';
+                    return result;
+                }
+            }
+
+            // 2. 检查是否需要在权威系统中执行
+            var authority = decision.authority || 'adaptive';
+            if (authority !== 'adaptive' && authority !== 'learner') {
+                // 需要委派给权威系统
+                result.allowed = false;
+                result.reason = 'requires_authority_delegation';
+                result.authority = authority;
+                result.explanation = 'This action must be performed by the ' + authority + ' system.';
+                return result;
+            }
+
+            // 3. 检查是否需要学习者选择
+            var actionType = decision.actionType || 'recommendation';
+            if (actionType === 'recommendation' || actionType === 'suggestion') {
+                result.requiresLearnerChoice = true;
+                result.allowed = true;
+                result.reason = 'recommendation_allowed';
+                result.explanation = 'This is a recommendation. The learner can choose to accept or decline.';
+                return result;
+            }
+
+            // 4. 检查是否直接修改权威状态
+            var modifiesAuthority = ['progress', 'goal', 'settings', 'calendar', 'achievement', 'reward', 'note'];
+            if (modifiesAuthority.indexOf(actionType) !== -1) {
+                result.allowed = false;
+                result.reason = 'modifies_authority';
+                result.authority = actionType;
+                result.explanation = 'This action modifies ' + actionType + ' state and must be performed through the appropriate authority.';
+                return result;
+            }
+
+            // 5. 默认允许（安全回退）
+            result.allowed = true;
+            result.reason = 'default_allowed';
+            result.explanation = 'This action is allowed.';
+            return result;
+        },
+
+        /**
+         * 应用治理规则到候选列表
+         * @param {Array} candidates - 候选列表
+         * @param {Object} context - 决策上下文
+         * @returns {Array} 治理后的候选列表
+         */
+        applyGovernanceToCandidates: function(candidates, context) {
+            if (!candidates || candidates.length === 0) {
+                return [];
+            }
+
+            var governed = [];
+
+            for (var i = 0; i < candidates.length; i++) {
+                var candidate = candidates[i];
+                var decision = {
+                    actionType: candidate.type || 'recommendation',
+                    authority: 'adaptive',
+                    constraints: context.constraints || [],
+                    candidate: candidate
+                };
+
+                var governance = this.checkDecisionGovernance(decision);
+
+                governed.push({
+                    candidate: candidate,
+                    governance: governance,
+                    allowed: governance.allowed,
+                    reason: governance.reason,
+                    requiresLearnerChoice: governance.requiresLearnerChoice
+                });
+            }
+
+            // 返回允许的候选
+            return governed.filter(function(item) { return item.allowed; });
+        },
+
+        /**
+         * 生成治理报告
+         * @param {Object} decision - 决策
+         * @param {Object} context - 上下文
+         * @returns {Object} 治理报告
+         */
+        generateGovernanceReport: function(decision, context) {
+            var governance = this.checkDecisionGovernance(decision);
+
+            return {
+                decisionType: decision.type || 'unknown',
+                timestamp: new Date().toISOString(),
+                governance: governance,
+                context: {
+                    hasEvidence: !!(context && context.evidence),
+                    hasCandidates: !!(context && context.candidates && context.candidates.length > 0),
+                    hasConstraints: !!(context && context.constraints && context.constraints.length > 0)
+                },
+                // 治理结果摘要
+                summary: governance.allowed ? 
+                    '✅ Allowed: ' + (governance.explanation || '') : 
+                    '❌ Blocked: ' + (governance.explanation || '')
+            };
         },
 
         /**
