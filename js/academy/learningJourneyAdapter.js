@@ -1075,6 +1075,218 @@
             };
         },
 
+                // ============================================================
+        // Part 82: Adaptive Path Decision
+        // ============================================================
+
+        /**
+         * 获取自适应推荐
+         * 基于当前上下文生成候选选项，排序后返回推荐
+         * @param {Object} options - 可选参数
+         * @returns {Object} 推荐结果
+         */
+        getAdaptiveRecommendation: function(options) {
+            options = options || {};
+            var courseId = options.courseId || this._journeyState.currentCourseId;
+            var maxCandidates = options.maxCandidates || 4;
+
+            if (!courseId) {
+                return {
+                    hasRecommendation: false,
+                    candidates: [],
+                    recommendation: null,
+                    explanation: null,
+                    confidence: 'low',
+                    alternatives: [],
+                    message: 'Start learning to get personalized recommendations.'
+                };
+            }
+
+            // 1. 获取当前路径
+            var path = this.getLearningPath(courseId);
+            if (path.isEmpty) {
+                return {
+                    hasRecommendation: false,
+                    candidates: [],
+                    recommendation: null,
+                    explanation: null,
+                    confidence: 'low',
+                    alternatives: [],
+                    message: 'No learning path available.'
+                };
+            }
+
+            // 2. 生成候选
+            var candidates = this._generateCandidates(courseId, path);
+            if (!candidates || candidates.length === 0) {
+                return {
+                    hasRecommendation: false,
+                    candidates: [],
+                    recommendation: null,
+                    explanation: null,
+                    confidence: 'low',
+                    alternatives: [],
+                    message: 'No recommendations available at this time.'
+                };
+            }
+
+            // 3. 排序候选
+            var ranked = this._rankCandidates(candidates, courseId);
+
+            // 4. 选择推荐
+            var recommendation = ranked.length > 0 ? ranked[0] : null;
+            var alternatives = ranked.length > 1 ? ranked.slice(1, Math.min(ranked.length, 4)) : [];
+
+            // 5. 生成解释
+            var explanation = recommendation ? this._generateExplanation(recommendation, courseId) : null;
+
+            return {
+                hasRecommendation: !!recommendation,
+                candidates: ranked,
+                recommendation: recommendation,
+                explanation: explanation,
+                confidence: recommendation ? recommendation.confidence || 'medium' : 'low',
+                alternatives: alternatives,
+                message: recommendation ? 'Here is a recommendation for your learning.' : 'No recommendation available.'
+            };
+        },
+
+        /**
+         * 生成候选选项
+         * @private
+         */
+        _generateCandidates: function(courseId, path) {
+            var candidates = [];
+            var state = this._journeyState;
+            var currentIdx = path.currentIndex;
+
+            // 候选 A: 继续当前模块
+            if (currentIdx >= 0 && currentIdx < path.items.length) {
+                var currentItem = path.items[currentIdx];
+                if (!currentItem.isCompleted) {
+                    candidates.push({
+                        id: 'continue-' + currentItem.id,
+                        type: 'continue',
+                        targetId: currentItem.id,
+                        targetType: 'module',
+                        title: 'Continue: ' + (currentItem.title || 'Current Module'),
+                        description: 'Continue where you left off.',
+                        priority: 10,
+                        confidence: 'high',
+                        signals: ['current_position']
+                    });
+                }
+            }
+
+            // 候选 B: 第一个未完成的模块
+            var firstIncomplete = path.items.find(function(item) { return !item.isCompleted; });
+            if (firstIncomplete && firstIncomplete.id !== (currentIdx >= 0 ? path.items[currentIdx]?.id : null)) {
+                candidates.push({
+                    id: 'next-' + firstIncomplete.id,
+                    type: 'next',
+                    targetId: firstIncomplete.id,
+                    targetType: 'module',
+                    title: 'Next: ' + (firstIncomplete.title || 'Next Module'),
+                    description: 'Move forward in your learning path.',
+                    priority: 8,
+                    confidence: 'medium',
+                    signals: ['path_order']
+                });
+            }
+
+            // 候选 C: 复习最近的模块
+            var recentCompleted = null;
+            for (var i = path.items.length - 1; i >= 0; i--) {
+                if (path.items[i].isCompleted) {
+                    recentCompleted = path.items[i];
+                    break;
+                }
+            }
+            if (recentCompleted) {
+                candidates.push({
+                    id: 'review-' + recentCompleted.id,
+                    type: 'review',
+                    targetId: recentCompleted.id,
+                    targetType: 'module',
+                    title: 'Review: ' + (recentCompleted.title || 'Review'),
+                    description: 'Reinforce what you\'ve learned.',
+                    priority: 6,
+                    confidence: 'medium',
+                    signals: ['review_opportunity']
+                });
+            }
+
+            // 候选 D: 探索其他模块
+            var otherModules = path.items.filter(function(item) {
+                return !item.isCompleted && item.id !== (currentIdx >= 0 ? path.items[currentIdx]?.id : null);
+            });
+            if (otherModules.length > 0) {
+                var exploreTarget = otherModules[0];
+                candidates.push({
+                    id: 'explore-' + exploreTarget.id,
+                    type: 'explore',
+                    targetId: exploreTarget.id,
+                    targetType: 'module',
+                    title: 'Explore: ' + (exploreTarget.title || 'Explore'),
+                    description: 'Explore other learning content.',
+                    priority: 4,
+                    confidence: 'low',
+                    signals: ['exploration']
+                });
+            }
+
+            return candidates;
+        },
+
+        /**
+         * 排序候选
+         * @private
+         */
+        _rankCandidates: function(candidates, courseId) {
+            // 按优先级排序
+            return candidates.sort(function(a, b) {
+                return (b.priority || 0) - (a.priority || 0);
+            });
+        },
+
+        /**
+         * 生成解释
+         * @private
+         */
+        _generateExplanation: function(recommendation, courseId) {
+            if (!recommendation) return null;
+
+            var explanations = {
+                'continue': 'You were making progress here. Continuing keeps your momentum.',
+                'next': 'This is the next step in your learning path.',
+                'review': 'Reviewing helps reinforce what you\'ve learned.',
+                'explore': 'Exploring different topics can broaden your understanding.'
+            };
+
+            var base = explanations[recommendation.type] || 'This may be useful for your learning.';
+
+            // 添加信号上下文
+            if (recommendation.signals && recommendation.signals.length > 0) {
+                var signalContexts = {
+                    'current_position': 'Based on where you left off.',
+                    'path_order': 'Based on your learning path.',
+                    'review_opportunity': 'Based on your recent activity.',
+                    'exploration': 'Based on your learning interests.'
+                };
+                var signal = recommendation.signals[0];
+                var context = signalContexts[signal] || '';
+                if (context) {
+                    base += ' ' + context;
+                }
+            }
+
+            return {
+                text: base,
+                signals: recommendation.signals || [],
+                confidence: recommendation.confidence || 'medium'
+            };
+        },
+
         /**
          * 🔥 Part 81: 获取建议路径（基于上下文）
          * 这是 Suggested Path，不是 Curriculum Path
