@@ -4231,6 +4231,259 @@
                     health: available === total ? 'healthy' : 
                             available >= total / 2 ? 'degraded' : 'critical'
                 }
+
+                // ============================================================
+                // Part 94: Evidence → State → Decision Calibration
+                // ============================================================
+
+                /**    
+                 * 评估证据质量
+                 * @param {Object} evidence - 证据对象
+                 * @returns {Object} 质量评估
+                 */
+                _assessEvidenceQuality: function(evidence) {
+                    var quality = {
+                        overall: 'unknown',  // weak | moderate | strong
+                        strength: 'unknown',
+                        freshness: 'unknown',
+                        consistency: 'unknown',
+                        confidence: 'low',
+                        score: 0,
+                        reason: null
+                    };    
+
+                    if (!evidence) {
+                        quality.reason = 'No evidence provided';
+                        return quality;
+                    }
+
+                    var score = 0;
+                    var reasons = [];
+    
+                    // 1. 强度
+                    var strengthMap = { 'weak': 0.2, 'moderate': 0.5, 'strong': 1.0 };
+                    var strengthScore = strengthMap[evidence.strength] || 0.2;
+                    score += strengthScore * 0.4;
+                    quality.strength = evidence.strength || 'unknown';
+                    reasons.push('Strength: ' + quality.strength);
+
+                    // 2. 新鲜度
+                    var freshnessMap = { 'stale': 0.1, 'aging': 0.3, 'recent': 0.7, 'fresh': 1.0 };
+                    var freshnessScore = freshnessMap[evidence.freshness] || 0.2;
+                    score += freshnessScore * 0.3;
+                    quality.freshness = evidence.freshness || 'unknown';
+                    reasons.push('Freshness: ' + quality.freshness);
+
+                    // 3. 一致性
+                    var consistencyMap = { 'one_time': 0.2, 'emerging': 0.5, 'consistent': 0.9 };
+                    var consistencyScore = consistencyMap[evidence.consistency] || 0.2;
+                    score += consistencyScore * 0.3;
+                    quality.consistency = evidence.consistency || 'unknown';
+                    reasons.push('Consistency: ' + quality.consistency);
+
+                    // 4. 整体质量
+                    quality.score = Math.round(score * 100);
+                    if (quality.score >= 70) {
+                        quality.overall = 'strong';
+                        quality.confidence = 'high';
+                    } else if (quality.score >= 40) {
+                        quality.overall = 'moderate';
+                        quality.confidence = 'medium';
+                    } else {
+                        quality.overall = 'weak';
+                        quality.confidence = 'low';
+                    }
+
+                    quality.reason = reasons.join('; ');
+                    return quality;
+                },
+
+                /**
+                 * 检查证据矛盾
+                 * @param {Array} evidenceItems - 证据列表
+                 * @returns {Object} 矛盾分析
+                 */
+                _checkEvidenceContradictions: function(evidenceItems) {
+                    var result = {
+                        hasContradiction: false,
+                        conflicts: [],
+                        severity: 'none',  // none | low | moderate | high
+                        summary: null
+                    };    
+
+                    if (!evidenceItems || evidenceItems.length < 2) {
+                        result.summary = 'Insufficient evidence for contradiction check.';
+                        return result;
+                    }
+
+                    // 按概念分组
+                    var grouped = {};
+                    for (var i = 0; i < evidenceItems.length; i++) {
+                        var item = evidenceItems[i];
+                        var concept = item.concept || 'general';
+                        if (!grouped[concept]) {
+                            grouped[concept] = [];
+                        }
+                        grouped[concept].push(item);
+                    }
+
+                    // 检查每个概念的矛盾
+                    for (var concept in grouped) {
+                        var items = grouped[concept];
+                        // 检查 performance vs self-report 的矛盾
+                        var performances = items.filter(function(e) { return e.type === 'performance'; });
+                        var selfReports = items.filter(function(e) { return e.type === 'self_report'; });
+
+                        if (performances.length > 0 && selfReports.length > 0) {
+                            // 简化：检查是否有高分和低分的矛盾
+                            var perfScores = performances.map(function(e) { return e.score || 0; });
+                            var reportScores = selfReports.map(function(e) { return e.confidence || 0; });
+                    
+                            var avgPerf = perfScores.reduce(function(a, b) { return a + b; }, 0) / perfScores.length;
+                            var avgReport = reportScores.reduce(function(a, b) { return a + b; }, 0) / reportScores.length;
+
+                            if (Math.abs(avgPerf - avgReport) > 30) {
+                                result.hasContradiction = true;
+                                result.conflicts.push({
+                                    concept: concept,
+                                    type: 'performance_vs_self_report',
+                                    performance: Math.round(avgPerf),
+                                    selfReport: Math.round(avgReport),
+                                    description: 'Performance and self-report differ on ' + concept
+                                });
+                            }
+                        }
+
+                        // 检查 recall vs transfer 的矛盾
+                        var recalls = items.filter(function(e) { return e.type === 'recall'; });
+                        var transfers = items.filter(function(e) { return e.type === 'transfer'; });
+
+                        if (recalls.length > 0 && transfers.length > 0) {
+                            var avgRecall = recalls.reduce(function(a, b) { return a + (b.score || 0); }, 0) / recalls.length;
+                            var avgTransfer = transfers.reduce(function(a, b) { return a + (b.score || 0); }, 0) / transfers.length;
+
+                            if (avgRecall > 70 && avgTransfer < 50) {
+                                result.hasContradiction = true;
+                                result.conflicts.push({
+                                    concept: concept,
+                                    type: 'recall_vs_transfer',
+                                    recall: Math.round(avgRecall),
+                                    transfer: Math.round(avgTransfer),
+                                    description: 'Recall is strong but transfer is weak on ' + concept
+                                });
+                            }
+                        }
+                    }
+
+                    // 判断严重程度
+                    if (result.conflicts.length >= 3) {
+                        result.severity = 'high';
+                    } else if (result.conflicts.length >= 1) {
+                        result.severity = 'moderate';
+                    } else {
+                        result.severity = 'none';
+                    }
+
+                    result.summary = result.hasContradiction ? 
+                        result.conflicts.length + ' conflict(s) detected' : 
+                        'No significant contradictions found.';
+
+                    return result;
+                },
+
+                /**
+                 * 评估决策资格
+                 * @param {Object} state - 学习者状态
+                 * @param {Object} evidence - 证据
+                 * @param {Object} context - 上下文
+                 * @returns {Object} 决策资格评估
+                 */
+                _assessDecisionEligibility: function(state, evidence, context) {
+                    var result = {
+                        eligible: false,
+                        confidence: 'low',
+                        reason: null,
+                        actionType: 'gather_evidence'  // recommend | optional | gather_evidence | do_not_infer
+                    };
+
+                    // 检查是否有足够的证据
+                    var evidenceCount = evidence ? (evidence.evidenceCount || 0) : 0;
+                    var stateConfidence = state && state.metadata ? state.metadata.confidence : 'low';
+
+                    if (evidenceCount < 3) {
+                        result.eligible = false;
+                        result.confidence = 'low';
+                        result.reason = 'Insufficient evidence (' + evidenceCount + ' items)';
+                        result.actionType = 'gather_evidence';
+                        return result;
+                    }
+
+                    // 检查矛盾
+                    var contradictionCheck = this._checkEvidenceContradictions(evidence ? evidence.items || [] : []);
+                    if (contradictionCheck.hasContradiction && contradictionCheck.severity === 'high') {
+                        result.eligible = true;
+                        result.confidence = 'medium';
+                        result.reason = 'Contradictions exist, but action with caution';
+                        result.actionType = 'optional';
+                        return result;
+                    }
+
+                    // 基于证据数量和质量
+                    if (evidenceCount >= 10 && stateConfidence === 'high') {
+                        result.eligible = true;
+                        result.confidence = 'high';
+                        result.reason = 'Strong evidence and high confidence';
+                        result.actionType = 'recommend';
+                    } else if (evidenceCount >= 5 && stateConfidence !== 'low') {
+                        result.eligible = true;
+                        result.confidence = 'medium';
+                        result.reason = 'Moderate evidence, can recommend with caution';
+                        result.actionType = 'optional';
+                    } else {
+                        result.eligible = true;
+                        result.confidence = 'low';
+                        result.reason = 'Limited evidence, prefer to gather more';
+                        result.actionType = 'gather_evidence';
+                    }
+
+                    return result;
+                },
+
+                /**
+                 * 生成证据摘要
+                 * @param {string} context - 上下文
+                 * @returns {Object} 证据摘要
+                 */
+                getEvidenceSummary: function(context) {
+                    context = context || 'general';
+            
+                    var evidence = this.getLearningEvidence(context);
+                    var state = this.getLearnerState(context);
+                    var quality = this._assessEvidenceQuality(evidence ? evidence.evidence : null);
+                    var contradictions = this._checkEvidenceContradictions(evidence ? evidence.items || [] : []);
+                    var decisionEligibility = this._assessDecisionEligibility(state, evidence);
+
+                    return {
+                        timestamp: new Date().toISOString(),
+                        evidence: {
+                            hasEvidence: evidence ? evidence.hasEvidence : false,
+                            count: evidence ? (evidence.evidenceCount || 0) : 0,
+                            quality: quality,
+                            contradictions: contradictions
+                        },
+                        state: {
+                            confidence: state && state.metadata ? state.metadata.confidence : 'low',
+                            hasSufficientData: state && state.metadata ? state.metadata.hasSufficientEvidence : false
+                        },
+                        decisionEligibility: decisionEligibility,
+                        summary: {
+                            canRecommend: decisionEligibility.actionType === 'recommend',
+                            canSuggest: decisionEligibility.actionType === 'optional',
+                            shouldGatherMore: decisionEligibility.actionType === 'gather_evidence',
+                            message: decisionEligibility.reason || 'Insufficient evidence for decision'
+                        }
+                    };
+                },
             };
         },
 
