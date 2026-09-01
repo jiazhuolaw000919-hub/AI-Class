@@ -264,6 +264,7 @@
                 return null;
             }
 
+            // 🔥 Part 80: 确保 Module 数据契约完整
             var progressData = this.getModuleProgress(moduleId);
 
             var lessons = [];
@@ -279,15 +280,22 @@
             }
 
             return {
-                ...module,
+                id: module.id,
+                courseId: module.courseId || this._journeyState.currentCourseId || '',
+                title: module.name || module.title || 'Untitled Module',
+                description: module.description || '',
+                order: module.order !== undefined ? module.order : 0,
                 lessons: lessons,
+                learningObjectives: module.learningObjectives || module.objectives || [],
+                metadata: module.metadata || {},
                 progress: progressData.progress,
                 completed: progressData.completed,
                 totalLessons: lessons.length,
-                completedLessons: completedLessons
-            };
+                completedLessons: completedLessons,
+                status: module.status || 'active'
+            };    
         },
-
+        
         // ============================================================
         // 5. PUBLIC API — Lesson
         // ============================================================
