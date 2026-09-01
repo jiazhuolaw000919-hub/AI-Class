@@ -1642,8 +1642,29 @@ function __safeCall(pathOrObj) {
                         <span style="color: ${statusColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${statusIcon} ${statusText}</span>
                         <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 ${lessonCount} lessons</span>
                         <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📊 ${moduleProgress}% complete</span>
+                        ${pathContext}
                     </div>
             `;
+
+            // 🔥 Part 81: Path 上下文指示器
+            var pathContext = '';
+            var adapter = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
+            if (adapter && typeof adapter.getLearningPath === 'function') {
+                var path = adapter.getLearningPath(courseId);
+                if (path && !path.isEmpty) {
+                    var currentIdx = path.currentIndex;
+                    var total = path.totalCount;
+                    if (currentIdx >= 0 && total > 0) {
+                        var positionLabel = (currentIdx + 1) + ' of ' + total;
+                        var progressEmoji = path.progress >= 100 ? '✅' : '📍';
+                        pathContext = `
+                            <span style="color: #64748b; font-size: 12px; background: rgba(255,255,255,0.04); padding: 2px 12px; border-radius: 12px;">
+                                ${progressEmoji} Path: ${positionLabel} · ${path.progress}% complete
+                            </span>
+                        `;
+                    }
+                }
+            }
 
             // 进度条 — 使用 adapter 的进度数据
             var progressData = adapter ? adapter.getModuleProgress(moduleId) : { progress: 0, completed: false };
