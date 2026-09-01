@@ -2301,7 +2301,7 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
-      <!-- 📖 RECOMMENDATIONS -->
+            <!-- 📖 RECOMMENDATIONS (Part 82: Adaptive) -->
       <section id="dashboard-recommendations" style="
         background: ${CARD_BG};
         border-radius: ${CARD_RADIUS};
@@ -2315,14 +2315,7 @@ LawAIApp.Dashboard = {
           🌟 Recommended for you
         </p>
         <div style="display:flex;flex-direction:column;gap:8px;">
-          ${[0,1,2].map(function(i) {
-            return `
-            <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:${i < 2 ? '1px solid rgba(255,255,255,0.02)' : 'none'};">
-              <span style="font-size:14px;opacity:0.3;">⏳</span>
-              <div style="flex:1;height:10px;width:${75 - i * 18}%;background:rgba(255,255,255,0.03);border-radius:4px;animation:pulse 1.5s infinite ${i * 0.2}s;"></div>
-            </div>
-            `;
-          }).join('')}
+          ${this._renderAdaptiveRecommendations()}
         </div>
       </section>
 
@@ -3053,7 +3046,7 @@ LawAIApp.Dashboard = {
     return html;
   },
 
-    // ============================================================
+  // ============================================================
   // Part 76: Priority Indicator (Compact)
   // ============================================================
 
@@ -3113,6 +3106,182 @@ LawAIApp.Dashboard = {
         ` : ''}
       </div>
     `;
+  },
+
+    // ============================================================
+  // Part 82: Adaptive Recommendation Renderer
+  // ============================================================
+
+  _renderAdaptiveRecommendations: function() {
+    var adapter = window.LawAIApp?.LearningJourneyAdapter;
+    if (!adapter || !adapter.initialized) {
+      return `
+        <div style="color:#64748b;font-size:12px;text-align:center;padding:8px 0;">
+          Learning recommendations are initializing...
+        </div>
+      `;
+    }
+
+    if (typeof adapter.getAdaptiveRecommendation !== 'function') {
+      return `
+        <div style="color:#64748b;font-size:12px;text-align:center;padding:8px 0;">
+          Complete more lessons to get personalized recommendations.
+        </div>
+      `;
+    }
+
+    var result = adapter.getAdaptiveRecommendation({ maxCandidates: 4 });
+
+    if (!result.hasRecommendation || !result.recommendation) {
+      return `
+        <div style="color:#64748b;font-size:12px;text-align:center;padding:8px 0;">
+          ${result.message || 'Complete more learning to unlock recommendations.'}
+        </div>
+      `;
+    }
+
+    var rec = result.recommendation;
+    var explanation = result.explanation;
+
+    // 构建推荐卡片
+    var html = `
+      <div style="
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        background: rgba(74,158,255,0.04);
+        border-radius: 10px;
+        border: 1px solid rgba(74,158,255,0.06);
+        transition: all 0.2s;
+      ">
+        <span style="font-size: 18px;">${rec.type === 'continue' ? '▶️' : rec.type === 'review' ? '🔄' : rec.type === 'explore' ? '🔍' : '📌'}</span>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 13px; font-weight: 500; color: #e2e8f0;">
+            ${rec.title}
+          </div>
+          <div style="font-size: 11px; color: #94a3b8;">
+            ${rec.description}
+          </div>
+          ${explanation ? `
+            <div style="font-size: 10px; color: #4a9eff; opacity: 0.7; margin-top: 2px;">
+              💡 ${explanation.text}
+            </div>
+          ` : ''}
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+          ${result.alternatives.length > 0 ? `
+            <button onclick="LawAIApp.Dashboard._showAlternatives()" style="
+              padding: 2px 10px;
+              background: rgba(255,255,255,0.03);
+              border: 1px solid rgba(255,255,255,0.06);
+              border-radius: 100px;
+              color: #64748b;
+              font-size: 9px;
+              cursor: pointer;
+              font-family: inherit;
+            ">${result.alternatives.length}+</button>
+          ` : ''}
+          <button onclick="LawAIApp.Dashboard._handleAdaptiveChoice('${rec.id}', '${rec.type}', '${rec.targetId}')" style="
+            padding: 4px 16px;
+            background: #4a9eff;
+            border: none;
+            border-radius: 100px;
+            color: white;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+          " onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
+            Go →
+          </button>
+        </div>
+      </div>
+    `;
+
+    // 如果有替代选项，添加隐藏的备选列表
+    if (result.alternatives.length > 0) {
+      html += `
+        <div id="adaptive-alternatives" style="display:none; margin-top: 6px; padding: 8px 14px; background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid rgba(255,255,255,0.04);">
+          <div style="font-size: 10px; color: #64748b; margin-bottom: 4px;">Alternative options:</div>
+          ${result.alternatives.map(function(alt) {
+            return `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 0; font-size: 12px; color: #94a3b8;">
+                <span>${alt.title}</span>
+                <button onclick="LawAIApp.Dashboard._handleAdaptiveChoice('${alt.id}', '${alt.type}', '${alt.targetId}')" style="
+                  padding: 1px 12px;
+                  background: rgba(255,255,255,0.04);
+                  border: 1px solid rgba(255,255,255,0.06);
+                  border-radius: 100px;
+                  color: #64748b;
+                  font-size: 9px;
+                  cursor: pointer;
+                  font-family: inherit;
+                ">Choose</button>
+              </div>
+            `;
+          }).join('')}
+          <button onclick="LawAIApp.Dashboard._hideAlternatives()" style="
+            margin-top: 4px;
+            padding: 2px 10px;
+            background: transparent;
+            border: none;
+            color: #475569;
+            font-size: 9px;
+            cursor: pointer;
+            font-family: inherit;
+            text-decoration: underline;
+          ">Hide alternatives</button>
+        </div>
+      `;
+    }
+
+    return html;
+  },
+
+  /**
+   * 显示替代选项
+   */
+  _showAlternatives: function() {
+    var el = document.getElementById('adaptive-alternatives');
+    if (el) el.style.display = 'block';
+  },
+
+  /**
+   * 隐藏替代选项
+   */
+  _hideAlternatives: function() {
+    var el = document.getElementById('adaptive-alternatives');
+    if (el) el.style.display = 'none';
+  },
+
+  /**
+   * 处理自适应推荐选择
+   */
+  _handleAdaptiveChoice: function(recId, type, targetId) {
+    console.log('[Dashboard][Part82] Adaptive choice:', recId, type, targetId);
+
+    // 记录选择
+    var at = window.LawAIApp?.ActionTracker;
+    if (at && at.initialized && typeof at.record === 'function') {
+      try {
+        at.record({
+          type: 'SELECT',
+          target: recId,
+          source: 'dashboard-adaptive',
+          metadata: { type: type, targetId: targetId },
+          timestamp: Date.now()
+        });
+      } catch (e) {}
+    }
+
+    // 导航到目标
+    if (targetId) {
+      window.location.href = '/pages/academy.html?view=module&id=' + targetId;
+    } else {
+      window.location.href = '/pages/academy.html';
+    }
   },
 
   refresh: function() {
