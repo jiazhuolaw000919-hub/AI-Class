@@ -1676,6 +1676,347 @@
             return 'Continue reflecting on your learning strategies.';
         },
 
+                // ============================================================
+        // Part 88: Adaptive Scaffolding & Support Intensity
+        // ============================================================
+
+        /**
+         * 确定支持强度级别
+         * 基于学习者上下文、任务、表现、自信等
+         * @param {Object} context - 学习上下文
+         * @returns {Object} 支持策略
+         */
+        determineSupportIntensity: function(context) {
+            context = context || {};
+            
+            var strategy = {
+                level: 0,           // 0-5
+                type: 'none',       // none | cue | prompt | guidance | worked | direct
+                reason: null,
+                confidence: 'low',
+                shouldOffer: false,
+                message: null
+            };
+
+            // 1. 检查上下文
+            var taskType = context.taskType || 'learning';
+            var isAssessment = (taskType === 'assessment' || taskType === 'quiz' || taskType === 'exam');
+            var isChallenge = context.isChallenge || false;
+            var isExploration = (taskType === 'exploration');
+            var hasExplicitRequest = context.explicitRequest || false;
+            var hasAttempts = context.attempts || 0;
+            var hasErrors = context.errors || 0;
+            var learnerConfidence = context.confidence || 'unknown';
+            var performance = context.performance || 'unknown';
+
+            // 2. 评估模式 → 最小支持
+            if (isAssessment) {
+                strategy.level = 0;
+                strategy.type = 'none';
+                strategy.reason = 'assessment_mode';
+                strategy.shouldOffer = false;
+                strategy.message = 'Assessment mode: limited support available.';
+                return strategy;
+            }
+
+            // 3. 挑战模式 → 最小支持（除非明确请求）
+            if (isChallenge && !hasExplicitRequest) {
+                strategy.level = 0;
+                strategy.type = 'none';
+                strategy.reason = 'challenge_mode';
+                strategy.shouldOffer = false;
+                strategy.message = 'Challenge mode: try independently first.';
+                return strategy;
+            }
+
+            // 4. 探索模式 → 轻提示
+            if (isExploration) {
+                strategy.level = 1;
+                strategy.type = 'cue';
+                strategy.reason = 'exploration_mode';
+                strategy.shouldOffer = true;
+                strategy.message = 'Explore freely. Need a direction?';
+                return strategy;
+            }
+
+            // 5. 明确请求 → 直接支持
+            if (hasExplicitRequest) {
+                strategy.level = 4;
+                strategy.type = 'guidance';
+                strategy.reason = 'explicit_request';
+                strategy.shouldOffer = true;
+                strategy.message = 'Let me help you with that.';
+                return strategy;
+            }
+
+            // 6. 多次尝试 + 错误 → 增加支持
+            if (hasAttempts >= 3 && hasErrors >= 2) {
+                strategy.level = 3;
+                strategy.type = 'guidance';
+                strategy.reason = 'repeated_difficulty';
+                strategy.shouldOffer = true;
+                strategy.message = 'You\'ve tried this a few times. Would you like a hint?';
+                return strategy;
+            }
+
+            // 7. 尝试 + 错误 → 轻提示
+            if (hasAttempts >= 1 && hasErrors >= 1) {
+                strategy.level = 2;
+                strategy.type = 'prompt';
+                strategy.reason = 'first_difficulty';
+                strategy.shouldOffer = true;
+                strategy.message = 'Need a hint?';
+                return strategy;
+            }
+
+            // 8. 高自信 + 强表现 → 最小支持
+            if (learnerConfidence === 'high' && performance === 'strong') {
+                strategy.level = 0;
+                strategy.type = 'none';
+                strategy.reason = 'strong_performance';
+                strategy.shouldOffer = false;
+                strategy.message = 'You\'re doing well. Keep going!';
+                return strategy;
+            }
+
+            // 9. 低自信 + 差表现 → 引导支持
+            if (learnerConfidence === 'low' && performance === 'weak') {
+                strategy.level = 3;
+                strategy.type = 'guidance';
+                strategy.reason = 'low_confidence_weak_performance';
+                strategy.shouldOffer = true;
+                strategy.message = 'This might be challenging. Let\'s take it step by step.';
+                return strategy;
+            }
+
+            // 10. 默认：轻量支持
+            strategy.level = 1;
+            strategy.type = 'cue';
+            strategy.reason = 'default';
+            strategy.shouldOffer = true;
+            strategy.message = 'Need any help?';
+            return strategy;
+        },
+
+        /**
+         * 获取支持的脚手架内容
+         * @param {Object} supportStrategy - 支持策略
+         * @param {Object} context - 学习上下文
+         * @returns {Object} 脚手架内容
+         */
+        getScaffoldContent: function(supportStrategy, context) {
+            context = context || {};
+            var content = {
+                hint: null,
+                explanation: null,
+                example: null,
+                question: null,
+                nextStep: null
+            };
+
+            var type = supportStrategy.type || 'none';
+            var taskType = context.taskType || 'learning';
+
+            // 基于类型和任务生成内容
+            switch (type) {
+                case 'cue':
+                    content.hint = 'Think about the key concept here.';
+                    content.question = 'What do you already know about this?';
+                    content.nextStep = 'Try to solve it on your own first.';
+                    break;
+                case 'prompt':
+                    content.hint = 'Look at the relationship between the two parts.';
+                    content.question = 'Which part seems most challenging?';
+                    content.nextStep = 'Try this: focus on the first part.';
+                    break;
+                case 'guidance':
+                    content.hint = 'Let\'s break this down step by step.';
+                    content.explanation = 'This concept works by...';
+                    content.question = 'What do you think the next step is?';
+                    content.nextStep = 'Try solving it with this approach.';
+                    break;
+                case 'worked':
+                    content.hint = 'Here\'s a similar example.';
+                    content.example = 'Example: ...';
+                    content.explanation = 'Notice how the example handles this part.';
+                    content.nextStep = 'Now try to apply the same logic.';
+                    break;
+                case 'direct':
+                    content.hint = 'Here\'s a direct explanation.';
+                    content.explanation = 'The key is to...';
+                    content.nextStep = 'Try it now.';
+                    break;
+                default:
+                    content.hint = 'Let me know if you need any help.';
+                    content.nextStep = 'Continue when ready.';
+                    break;
+            }
+
+            // 任务特定内容
+            if (taskType === 'practice') {
+                content.hint = (content.hint || '') + ' Practice helps build mastery.';
+            } else if (taskType === 'review') {
+                content.hint = (content.hint || '') + ' Review reinforces what you\'ve learned.';
+            }
+
+            return content;
+        },
+
+        /**
+         * 检查是否应消退支持
+         * @param {Object} context - 学习上下文
+         * @returns {Object} 消退评估
+         */
+        shouldFadeSupport: function(context) {
+            context = context || {};
+            
+            var assessment = {
+                shouldFade: false,
+                reason: null,
+                confidence: 'low',
+                newLevel: 0
+            };
+
+            var attempts = context.attempts || 0;
+            var errors = context.errors || 0;
+            var successes = context.successes || 0;
+            var independentAttempts = context.independentAttempts || 0;
+            var hintRequests = context.hintRequests || 0;
+
+            // 成功独立尝试 → 消退
+            if (independentAttempts >= 2 && successes >= 2) {
+                assessment.shouldFade = true;
+                assessment.reason = 'independent_success';
+                assessment.confidence = 'high';
+                assessment.newLevel = 0;
+                return assessment;
+            }
+
+            // 成功尝试 + 低错误率 → 消退
+            if (attempts >= 3 && successes >= 2 && errors <= 1) {
+                assessment.shouldFade = true;
+                assessment.reason = 'consistent_success';
+                assessment.confidence = 'medium';
+                assessment.newLevel = 1;
+                return assessment;
+            }
+
+            // 提示请求减少 → 消退
+            if (attempts >= 3 && hintRequests <= 1) {
+                assessment.shouldFade = true;
+                assessment.reason = 'reduced_hint_requests';
+                assessment.confidence = 'medium';
+                assessment.newLevel = 1;
+                return assessment;
+            }
+
+            // 默认：不退消
+            assessment.shouldFade = false;
+            assessment.reason = 'insufficient_evidence';
+            assessment.confidence = 'low';
+            assessment.newLevel = 0;
+            return assessment;
+        },
+
+        /**
+         * 检查是否应增加支持
+         * @param {Object} context - 学习上下文
+         * @returns {Object} 升级评估
+         */
+        shouldEscalateSupport: function(context) {
+            context = context || {};
+            
+            var assessment = {
+                shouldEscalate: false,
+                reason: null,
+                confidence: 'low',
+                newLevel: 0
+            };
+
+            var attempts = context.attempts || 0;
+            var errors = context.errors || 0;
+            var hintRequests = context.hintRequests || 0;
+            var recentPerformance = context.recentPerformance || 'unknown';
+
+            // 多次错误 → 升级
+            if (attempts >= 3 && errors >= 3) {
+                assessment.shouldEscalate = true;
+                assessment.reason = 'repeated_errors';
+                assessment.confidence = 'high';
+                assessment.newLevel = 3;
+                return assessment;
+            }
+
+            // 错误 + 提示请求 → 升级
+            if (errors >= 2 && hintRequests >= 2) {
+                assessment.shouldEscalate = true;
+                assessment.reason = 'errors_with_hint_requests';
+                assessment.confidence = 'medium';
+                assessment.newLevel = 2;
+                return assessment;
+            }
+
+            // 最近表现弱 → 升级
+            if (recentPerformance === 'weak') {
+                assessment.shouldEscalate = true;
+                assessment.reason = 'weak_recent_performance';
+                assessment.confidence = 'medium';
+                assessment.newLevel = 2;
+                return assessment;
+            }
+
+            // 默认：不升级
+            assessment.shouldEscalate = false;
+            assessment.reason = 'no_escalation_needed';
+            assessment.confidence = 'low';
+            assessment.newLevel = 0;
+            return assessment;
+        },
+
+        /**
+         * 生成支持报告
+         * @param {Object} context - 学习上下文
+         * @returns {Object} 支持报告
+         */
+        generateSupportReport: function(context) {
+            context = context || {};
+            
+            var intensity = this.determineSupportIntensity(context);
+            var fade = this.shouldFadeSupport(context);
+            var escalate = this.shouldEscalateSupport(context);
+
+            return {
+                timestamp: new Date().toISOString(),
+                context: {
+                    taskType: context.taskType || 'learning',
+                    attempts: context.attempts || 0,
+                    errors: context.errors || 0,
+                    successes: context.successes || 0,
+                    confidence: context.confidence || 'unknown',
+                    performance: context.performance || 'unknown'
+                },
+                support: {
+                    level: intensity.level,
+                    type: intensity.type,
+                    reason: intensity.reason,
+                    shouldOffer: intensity.shouldOffer,
+                    message: intensity.message
+                },
+                fade: {
+                    shouldFade: fade.shouldFade,
+                    reason: fade.reason,
+                    confidence: fade.confidence,
+                    newLevel: fade.newLevel
+                },
+                escalate: {
+                    shouldEscalate: escalate.shouldEscalate,
+                    reason: escalate.reason,
+                    confidence: escalate.confidence,
+                    newLevel: escalate.newLevel
+                }
+            };
+        },
+
         /**
          * 获取硬约束
          * @private
