@@ -192,12 +192,17 @@
 
         getModuleProgress: function(moduleId) {
             var state = this._journeyState;
-            var progress = state.moduleProgress && state.moduleProgress[moduleId] ? state.moduleProgress[moduleId] : 0;
+    
+            // 🔥 Part 83: 区分 Unknown 和 Zero
+            var hasProgress = state.moduleProgress && state.moduleProgress[moduleId] !== undefined;
+            var progress = hasProgress ? state.moduleProgress[moduleId] : null;
             var completed = state.completedModules && state.completedModules.indexOf(moduleId) !== -1;
 
             return {
                 progress: completed ? 100 : progress,
-                completed: completed
+                completed: completed,
+                isUnknown: !hasProgress && !completed,  // 🔥 Part 83: Unknown 状态
+                hasProgress: hasProgress
             };
         },
 
@@ -591,6 +596,117 @@
                 lastActivity: this._journeyState.lastActivity,
                 hasActiveSession: this.hasActiveSession()
             };
+        },
+
+                // ============================================================
+        // Part 83: Learning State — Authoritative State Representation
+        // ============================================================
+
+        /**
+         * 获取当前学习状态
+         * Learning State = 学习者当前在旅程中的位置
+         * 不是 Learner Identity（档案/偏好）
+         * 不是 Adaptive Context（决策上下文）
+         * @returns {Object} 学习状态对象
+         */
+        getLearningState: function() {
+            var state = this._journeyState;
+            var continueData = this.getContinueLearning();
+
+            // 获取当前学习位置
+            var position = {
+                schoolId: null,
+                courseId: state.currentCourseId || null,
+                moduleId: state.currentModuleId || null,
+                lessonId: state.currentLessonId || null
+            };
+
+            // 尝试从 CourseRegistry 获取更多上下文
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            if (courseRegistry && position.courseId) {
+                var course = courseRegistry.getCourse(position.courseId);
+                if (course) {
+                    position.courseTitle = course.title || null;
+                    position.schoolId = course.schoolId || course._metadata?.school || null;
+                }
+            }
+
+            // 获取进度
+            var progress = {
+                course: state.progress || 0,
+                completedLessons: (state.completedLessons || []).length,
+                completedModules: (state.completedModules || []).length,
+                completedCourses: (state.completedCourses || []).length
+            };
+
+            // 获取活动状态
+            var activity = {
+                hasActiveSession: this.hasActiveSession(),
+                lastActivity: state.lastActivity || null,
+                sessionStatus: state.sessionStatus || null,
+                sessionStartedAt: state.sessionStartedAt || null
+            };
+
+            // 🔥 Part 83: 区分 Unknown 和 Zero
+            var hasAnyActivity = !!(state.currentCourseId || 
+                                    state.currentModuleId || 
+                                    state.currentLessonId || 
+                                    (state.completedLessons && state.completedLessons.length > 0) ||
+                                    state.lastActivity);
+
+            return {
+                // 位置
+                position: position,
+                
+                // 进度
+                progress: progress,
+                
+                // 活动
+                activity: activity,
+                
+                // 继续学习
+                continueLearning: continueData,
+                
+                // 🔥 Part 83: 状态元数据
+                meta: {
+                    hasAnyActivity: hasAnyActivity,
+                    isColdStart: !hasAnyActivity,
+                    isActive: activity.hasActiveSession,
+                    lastActivityTime: state.lastActivity || null,
+                    // 数据新鲜度
+                    freshness: this._getStateFreshness(state)
+                },
+                
+                // 时间戳
+                updatedAt: new Date().toISOString(),
+                
+                // 来源
+                source: 'LearningJourneyAdapter'
+            };
+        },
+
+        /**
+         * 获取状态新鲜度
+         * @private
+         */
+        _getStateFreshness: function(state) {
+            if (!state.lastActivity) {
+                return 'unknown';
+            }
+            
+            var now = Date.now();
+            var lastActivityTime = new Date(state.lastActivity).getTime();
+            var diff = now - lastActivityTime;
+            
+            if (diff < 3600000) { // 1 小时
+                return 'fresh';
+            } else if (diff < 86400000) { // 24 小时
+                return 'recent';
+            } else if (diff < 604800000) { // 7 天
+                return 'stale';
+            } else {
+                return 'old';
+            }
         },
 
         // ============================================================
