@@ -257,7 +257,7 @@ function __safeCall(pathOrObj) {
                     this._renderSubjectView(container, data.currentSubjectId);
                     break;
                 case 'lesson':
-                    this._renderLessonView(container, data.currentLessonId);
+                    this._renderModuleView(container, data.currentLessonId);
                     break;
                 default:
                     this._renderDashboard(container, data);
