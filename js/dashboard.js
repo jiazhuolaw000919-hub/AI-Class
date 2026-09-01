@@ -5,6 +5,24 @@
 
 window.LawAIApp = window.LawAIApp || {};
 
+  // ============================================================
+  // Part 76: Attention & Priority Constants
+  // ============================================================
+
+  PRIORITY: {
+    PRIMARY: 'primary',
+    SECONDARY: 'secondary',
+    TERTIARY: 'tertiary',
+    BACKGROUND: 'background'
+  },
+
+  PRIORITY_ORDER: {
+    'primary': 0,
+    'secondary': 1,
+    'tertiary': 2,
+    'background': 3
+  },
+
 LawAIApp.Dashboard = {
   _rendered: false,
   _reflectionStates: {},
@@ -190,6 +208,9 @@ LawAIApp.Dashboard = {
 
     return states[state] || states['not_started'];
   },
+
+      <!-- 🎯 CONTEXTUAL PRIORITY (Part 76) -->
+      ${this._renderPriorityIndicator()}
 
   // ============================================================
   // Part 74: Learning Loop — INSIGHT → CHOICE → OUTCOME → CONTEXT
@@ -492,6 +513,252 @@ LawAIApp.Dashboard = {
     state.message = null;
 
     return state;
+  },
+
+    // ============================================================
+  // Part 76: Contextual Priority & Attention Architecture
+  // ============================================================
+
+  /**
+   * 确定当前上下文的优先级
+   * 不新建引擎，只从现有系统派生
+   */
+  _getContextualPriority: function() {
+    var priority = {
+      level: this.PRIORITY.BACKGROUND,
+      currentJourney: null,
+      primaryAction: null,
+      insight: null,
+      recommendation: null,
+      supportingData: null,
+      explanation: null,
+      hasActiveContext: false
+    };
+
+    // 1. 获取当前学习上下文
+    var lc = window.LawAIApp?.LearningContext;
+    var hasActiveSession = false;
+    var hasLearningData = false;
+    var currentCourse = null;
+    var currentModule = null;
+    var currentLesson = null;
+
+    if (lc && lc.initialized) {
+      try {
+        var ctx = lc.getContext();
+        if (ctx) {
+          hasActiveSession = ctx.status?.hasActiveSession || false;
+          hasLearningData = !!(ctx.course || ctx.module || ctx.lesson);
+          currentCourse = ctx.course || null;
+          currentModule = ctx.module || null;
+          currentLesson = ctx.lesson || null;
+        }
+      } catch (e) {}
+    }
+
+    // 2. 获取活跃推荐
+    var de = window.LawAIApp?.DecisionExperience;
+    var hasActiveRecommendation = false;
+    var recommendationCount = 0;
+    var primaryRecommendation = null;
+
+    if (de && de.initialized) {
+      try {
+        var options = de.getOptions({ includeDismissed: false, maxCount: 5 });
+        if (options && options.length > 0) {
+          hasActiveRecommendation = true;
+          recommendationCount = options.length;
+          primaryRecommendation = options[0] || null;
+        }
+      } catch (e) {}
+    }
+
+    // 3. 获取洞察
+    var ei = window.LawAIApp?.ExperienceIntelligence;
+    var hasInsight = false;
+    var insightData = null;
+
+    if (ei && ei.initialized) {
+      try {
+        var signals = ei.getSignals();
+        if (signals && signals.learningState && signals.learningState !== 'unknown') {
+          hasInsight = true;
+          insightData = {
+            state: signals.learningState,
+            momentum: signals.momentum || 'steady',
+            confidence: signals.confidence || 'medium',
+            message: this._buildInsightMessage(signals.learningState, signals.momentum, signals)
+          };
+        }
+      } catch (e) {}
+    }
+
+    // 4. 判断优先级（按层级）
+    // 4a. PRIMARY: 有活跃会话 → 当前旅程
+    if (hasActiveSession && hasLearningData) {
+      priority.level = this.PRIORITY.PRIMARY;
+      priority.currentJourney = {
+        course: currentCourse,
+        module: currentModule,
+        lesson: currentLesson,
+        status: 'active'
+      };
+      priority.explanation = 'You have an active learning session.';
+      priority.hasActiveContext = true;
+      
+      // Primary Action: Continue
+      if (currentLesson) {
+        priority.primaryAction = {
+          label: 'Continue Learning',
+          action: 'continue',
+          target: currentLesson.id || null
+        };
+      } else if (currentCourse) {
+        priority.primaryAction = {
+          label: 'Resume Course',
+          action: 'continue',
+          target: currentCourse.id || null
+        };
+      }
+      
+      // Insight (secondary within primary)
+      if (hasInsight && insightData) {
+        priority.insight = insightData;
+      }
+      
+      return priority;
+    }
+
+    // 4b. PRIMARY: 有活跃推荐
+    if (hasActiveRecommendation && primaryRecommendation) {
+      priority.level = this.PRIORITY.PRIMARY;
+      priority.currentJourney = {
+        course: currentCourse,
+        module: currentModule,
+        lesson: currentLesson,
+        status: hasLearningData ? 'idle' : 'exploring'
+      };
+      priority.explanation = 'A recommendation is available based on your learning context.';
+      priority.hasActiveContext = true;
+      
+      priority.primaryAction = {
+        label: primaryRecommendation.title || 'View Recommendation',
+        action: 'recommendation',
+        target: primaryRecommendation.id || null
+      };
+      
+      if (primaryRecommendation.reason) {
+        priority.explanation = primaryRecommendation.reason;
+      }
+      
+      // 如果有洞察，作为 secondary
+      if (hasInsight && insightData) {
+        priority.insight = insightData;
+      }
+      
+      return priority;
+    }
+
+    // 4c. SECONDARY: 有学习数据但无活跃会话/推荐
+    if (hasLearningData) {
+      priority.level = this.PRIORITY.SECONDARY;
+      priority.currentJourney = {
+        course: currentCourse,
+        module: currentModule,
+        lesson: currentLesson,
+        status: 'paused'
+      };
+      priority.explanation = 'Your learning is ready when you are.';
+      priority.hasActiveContext = true;
+      
+      if (currentLesson) {
+        priority.primaryAction = {
+          label: 'Resume Learning',
+          action: 'continue',
+          target: currentLesson.id || null
+        };
+      } else if (currentCourse) {
+        priority.primaryAction = {
+          label: 'Continue Course',
+          action: 'continue',
+          target: currentCourse.id || null
+        };
+      }
+      
+      if (hasInsight && insightData) {
+        priority.insight = insightData;
+      }
+      
+      return priority;
+    }
+
+    // 4d. TERTIARY: 有洞察但无学习数据
+    if (hasInsight && insightData) {
+      priority.level = this.PRIORITY.TERTIARY;
+      priority.currentJourney = null;
+      priority.explanation = 'Insight available based on your learning history.';
+      priority.hasActiveContext = true;
+      priority.insight = insightData;
+      priority.primaryAction = {
+        label: 'Explore Academy',
+        action: 'explore',
+        target: null
+      };
+      return priority;
+    }
+
+    // 4e. BACKGROUND: 有数据但无洞察
+    if (this._getNoteCount() > 0 || this._getProgress().completedLessons?.length > 0) {
+      priority.level = this.PRIORITY.BACKGROUND;
+      priority.currentJourney = null;
+      priority.explanation = 'You have learning history. Explore to continue.';
+      priority.hasActiveContext = true;
+      priority.primaryAction = {
+        label: 'Explore Academy',
+        action: 'explore',
+        target: null
+      };
+      return priority;
+    }
+
+    // 4f. 默认：安静（无数据）
+    priority.level = this.PRIORITY.BACKGROUND;
+    priority.currentJourney = null;
+    priority.explanation = null;
+    priority.hasActiveContext = false;
+    priority.primaryAction = {
+      label: 'Start Learning',
+      action: 'explore',
+      target: null
+    };
+
+    return priority;
+  },
+
+  /**
+   * 获取优先级标签
+   */
+  _getPriorityLabel: function(level) {
+    var labels = {
+      'primary': '🌟 Primary',
+      'secondary': '📘 Secondary',
+      'tertiary': '🔍 Tertiary',
+      'background': '📁 Background'
+    };
+    return labels[level] || '📁 Background';
+  },
+
+  /**
+   * 获取优先级颜色
+   */
+  _getPriorityColor: function(level) {
+    var colors = {
+      'primary': '#4a9eff',
+      'secondary': '#94a3b8',
+      'tertiary': '#64748b',
+      'background': '#475569'
+    };
+    return colors[level] || '#475569';
   },
 
   /**
@@ -1042,6 +1309,42 @@ LawAIApp.Dashboard = {
     setTimeout(function() {
       LawAIApp.Dashboard.render();
     }, 300);
+  },
+
+  // ============================================================
+  // Part 76: Priority Action Handler
+  // ============================================================
+
+  _handlePriorityAction: function(action, target) {
+    console.log('[Dashboard][Part76] Priority action:', action, target);
+
+    switch (action) {
+      case 'continue':
+        if (target) {
+          window.location.href = '/pages/academy.html?view=lesson&id=' + target;
+        } else {
+          window.location.href = '/pages/academy.html';
+        }
+        break;
+      case 'explore':
+        window.location.href = '/pages/academy.html';
+        break;
+      case 'recommendation':
+        // 调用 DecisionExperience
+        var de = window.LawAIApp?.DecisionExperience;
+        if (de && de.initialized && target && typeof de.selectOption === 'function') {
+          try {
+            de.selectOption(target);
+          } catch (e) {
+            console.warn('[Dashboard][Part76] Recommendation select error:', e);
+          }
+        }
+        window.location.href = '/pages/academy.html';
+        break;
+      default:
+        window.location.href = '/pages/academy.html';
+        break;
+    }
   },
 
   // ============================================================
@@ -2501,6 +2804,96 @@ LawAIApp.Dashboard = {
             cursor: pointer;
             font-family: inherit;
           ">⏹️ Done</button>
+        </div>
+      </div>
+    `;
+
+    return html;
+  },
+
+  // ============================================================
+  // Part 76: Priority Indicator Renderer
+  // ============================================================
+
+  _renderPriorityIndicator: function() {
+    var priority = this._getContextualPriority();
+    
+    var levelLabel = this._getPriorityLabel(priority.level);
+    var levelColor = this._getPriorityColor(priority.level);
+    
+    // 如果没有活跃上下文，显示安静状态
+    if (!priority.hasActiveContext && !priority.currentJourney && !priority.insight) {
+      return `
+        <div style="
+          background: rgba(255,255,255,0.02);
+          border-radius: 8px;
+          padding: 12px 16px;
+          border: 1px solid rgba(255,255,255,0.04);
+          margin-bottom: 16px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        ">
+          <span style="font-size: 14px;">🌱</span>
+          <span style="font-size: 13px; color: #94a3b8;">Ready to begin your learning journey.</span>
+          <span style="font-size: 10px; color: #475569; background: rgba(255,255,255,0.03); padding: 2px 10px; border-radius: 100px; margin-left: auto;">QUIET</span>
+        </div>
+      `;
+    }
+
+    // 构建上下文显示
+    var contextParts = [];
+    if (priority.currentJourney) {
+      var j = priority.currentJourney;
+      if (j.course) contextParts.push(j.course.title || 'Course');
+      if (j.module) contextParts.push(j.module.name || 'Module');
+      if (j.lesson) contextParts.push(j.lesson.name || 'Lesson');
+    }
+    var contextDisplay = contextParts.length > 0 ? contextParts.join(' → ') : 'Exploring';
+
+    var statusEmoji = priority.currentJourney?.status === 'active' ? '▶️' :
+                      priority.currentJourney?.status === 'paused' ? '⏸️' :
+                      priority.currentJourney?.status === 'idle' ? '📖' : '🔍';
+
+    var html = `
+      <div style="
+        background: rgba(255,255,255,0.02);
+        border-radius: 8px;
+        padding: 12px 16px;
+        border: 1px solid rgba(255,255,255,0.04);
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      ">
+        <span style="font-size: 14px;">${statusEmoji}</span>
+        <div style="flex: 1; min-width: 120px;">
+          <div style="font-size: 13px; color: #e2e8f0; font-weight: 500;">
+            ${contextDisplay}
+          </div>
+          ${priority.explanation ? `<div style="font-size: 11px; color: #64748b;">${priority.explanation}</div>` : ''}
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          ${priority.primaryAction ? `
+            <button onclick="LawAIApp.Dashboard._handlePriorityAction('${priority.primaryAction.action}', '${priority.primaryAction.target || ''}')" style="
+              padding: 4px 16px;
+              background: ${levelColor}22;
+              border: 1px solid ${levelColor}44;
+              border-radius: 100px;
+              color: ${levelColor};
+              font-size: 11px;
+              cursor: pointer;
+              font-family: inherit;
+              transition: all 0.2s;
+            " onmouseover="this.style.background='${levelColor}44'" onmouseout="this.style.background='${levelColor}22'">
+              ${priority.primaryAction.label} →
+            </button>
+          ` : ''}
+          <span style="font-size: 9px; color: ${levelColor}; background: ${levelColor}11; padding: 2px 10px; border-radius: 100px; border: 1px solid ${levelColor}22;">
+            ${levelLabel}
+          </span>
         </div>
       </div>
     `;
