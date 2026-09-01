@@ -196,6 +196,18 @@ LawAIApp.Dashboard = {
   // ============================================================
 
   _getLearningLoopData: function() {
+    var state = this._getLoopState();
+    
+    // 如果状态是 QUIET 且无活动，返回安静状态
+    if (state.status === 'QUIET' && !state.hasAction) {
+      return {
+        hasActiveLoop: false,
+        isQuiet: true,
+        quietMessage: state.message || 'Nothing needs your attention right now.',
+        state: state
+      };
+    }
+    
     var loopData = {
       insight: null,
       choices: [],
@@ -326,6 +338,188 @@ LawAIApp.Dashboard = {
     }
 
     return loopData;
+  },
+
+    // ============================================================
+  // Part 75: Learning Loop Governance — State Determination
+  // ============================================================
+
+  /**
+   * 确定当前 Learning Loop 的状态
+   * 概念状态：QUIET / ACTIVE / PENDING / COMPLETED / DEFERRED / DISMISSED / FAILED
+   * 不新建权威，只从现有系统派生
+   */
+  _getLoopState: function() {
+    var state = {
+      status: 'QUIET',        // QUIET | ACTIVE | PENDING | COMPLETED | DEFERRED | DISMISSED | FAILED
+      reason: null,
+      hasAction: false,
+      shouldShow: false,
+      message: null
+    };
+
+    // 1. 检查是否有活跃的学习会话
+    var lc = window.LawAIApp?.LearningContext;
+    var hasActiveSession = false;
+    var hasLearningData = false;
+    var hasRecentActivity = false;
+
+    if (lc && lc.initialized) {
+      try {
+        var ctx = lc.getContext();
+        if (ctx) {
+          hasActiveSession = ctx.status?.hasActiveSession || false;
+          hasLearningData = !!(ctx.course || ctx.module || ctx.lesson);
+          hasRecentActivity = ctx.lastActivity ? (Date.now() - new Date(ctx.lastActivity).getTime() < 86400000) : false;
+        }
+      } catch (e) {}
+    }
+
+    // 2. 检查是否有待处理的操作（从 ActionTracker）
+    var at = window.LawAIApp?.ActionTracker;
+    var hasPendingAction = false;
+    var hasCompletedAction = false;
+    var lastActionType = null;
+    if (at && at.initialized) {
+      try {
+        var history = at.getHistory(5);
+        if (history && history.length > 0) {
+          var recent = history[0];
+          if (recent) {
+            lastActionType = recent.type;
+            if (recent.type === 'START' || recent.type === 'SELECT') {
+              hasPendingAction = true;
+            } else if (recent.type === 'COMPLETE' || recent.type === 'SAVE') {
+              hasCompletedAction = true;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    // 3. 检查是否有未处理的推荐（从 DecisionExperience）
+    var de = window.LawAIApp?.DecisionExperience;
+    var hasActiveRecommendation = false;
+    var hasDismissedRecommendation = false;
+    if (de && de.initialized) {
+      try {
+        var options = de.getOptions({ includeDismissed: true, maxCount: 5 });
+        if (options && options.length > 0) {
+          var active = options.filter(function(o) { return o.status !== 'dismissed'; });
+          var dismissed = options.filter(function(o) { return o.status === 'dismissed'; });
+          hasActiveRecommendation = active.length > 0;
+          hasDismissedRecommendation = dismissed.length > 0;
+        }
+      } catch (e) {}
+    }
+
+    // 4. 状态判定（按优先级）
+    // 4a. 如果有活跃会话 → ACTIVE
+    if (hasActiveSession) {
+      state.status = 'ACTIVE';
+      state.reason = 'You have an active learning session.';
+      state.hasAction = true;
+      state.shouldShow = true;
+      state.message = '▶️ Continue your learning session.';
+      return state;
+    }
+
+    // 4b. 如果有待处理操作 → PENDING
+    if (hasPendingAction && !hasCompletedAction) {
+      state.status = 'PENDING';
+      state.reason = 'You have started an action that is not yet complete.';
+      state.hasAction = true;
+      state.shouldShow = true;
+      state.message = '⏳ Complete your pending action.';
+      return state;
+    }
+
+    // 4c. 如果有活跃推荐且未处理 → ACTIVE
+    if (hasActiveRecommendation) {
+      state.status = 'ACTIVE';
+      state.reason = 'There is a recommendation available.';
+      state.hasAction = true;
+      state.shouldShow = true;
+      state.message = '💡 A recommendation is waiting for your response.';
+      return state;
+    }
+
+    // 4d. 如果有最近学习活动且无待处理 → QUIET
+    if (hasLearningData && hasRecentActivity) {
+      state.status = 'QUIET';
+      state.reason = 'You have learning context, but nothing needs attention.';
+      state.hasAction = false;
+      state.shouldShow = true;
+      state.message = '🌱 You\'re all caught up. Nothing needs your attention right now.';
+      return state;
+    }
+
+    // 4e. 如果有已完成的推荐 → COMPLETED
+    if (hasCompletedAction) {
+      state.status = 'COMPLETED';
+      state.reason = 'Your recent action was completed.';
+      state.hasAction = false;
+      state.shouldShow = true;
+      state.message = '✅ Your action was completed successfully.';
+      return state;
+    }
+
+    // 4f. 如果有已拒绝的推荐 → DISMISSED
+    if (hasDismissedRecommendation) {
+      state.status = 'DISMISSED';
+      state.reason = 'You have dismissed suggestions.';
+      state.hasAction = false;
+      state.shouldShow = true;
+      state.message = '✕ Suggestions dismissed. You can explore on your own.';
+      return state;
+    }
+
+    // 4g. 有学习数据但无近期活动 → QUIET（温和提示）
+    if (hasLearningData && !hasRecentActivity) {
+      state.status = 'QUIET';
+      state.reason = 'You have learning history, but no recent activity.';
+      state.hasAction = false;
+      state.shouldShow = true;
+      state.message = '📚 Your learning is waiting when you\'re ready.';
+      return state;
+    }
+
+    // 4h. 默认：无数据 → 不显示 Loop（完全安静）
+    state.status = 'QUIET';
+    state.reason = 'Insufficient data for learning loop.';
+    state.hasAction = false;
+    state.shouldShow = false;
+    state.message = null;
+
+    return state;
+  },
+
+  /**
+   * 判断是否应该显示 Learning Loop
+   * 核心 Governance：不是有数据就显示，而是有意义才显示
+   */
+  _shouldShowLearningLoop: function() {
+    var state = this._getLoopState();
+    
+    // QUIET 但无活动 → 不显示（完全安静）
+    if (state.status === 'QUIET' && !state.hasAction && !state.message) {
+      return false;
+    }
+
+    // 如果有任何有意义的内容 → 显示
+    return state.shouldShow;
+  },
+
+  /**
+   * 获取 Learning Loop 的安静消息
+   * 用于 QUIET 状态的展示
+   */
+  _getQuietMessage: function() {
+    var state = this._getLoopState();
+    if (state.status === 'QUIET' && state.message) {
+      return state.message;
+    }
+    return null;
   },
 
   /**
@@ -810,6 +1004,44 @@ LawAIApp.Dashboard = {
       });
       document.dispatchEvent(event);
     } catch (e) {}
+  },
+
+  // ============================================================
+  // Part 75: Loop Closure — Learner says "Done"
+  // ============================================================
+
+  /**
+   * 处理学习者主动关闭 Loop
+   * 不惩罚，不记录"失败"，只是尊重选择
+   */
+  _handleLoopClosure: function() {
+    console.log('[Dashboard][Part75] Loop closed by learner');
+
+    // 记录关闭事件（使用现有 ActionTracker）
+    var at = window.LawAIApp?.ActionTracker;
+    if (at && at.initialized && typeof at.record === 'function') {
+      try {
+        at.record({
+          type: 'CLOSE',
+          target: 'learning-loop',
+          source: 'dashboard',
+          timestamp: Date.now()
+        });
+        console.log('[Dashboard][Part75] ✅ Closure recorded');
+      } catch (e) {
+        console.warn('[Dashboard][Part75] Closure record error:', e);
+      }
+    }
+
+    // 显示 Toast 反馈（温和，不惩罚）
+    if (window.LawAIApp?.Toast && typeof window.LawAIApp.Toast.info === 'function') {
+      LawAIApp.Toast.info('🔄 Loop closed. Check back when you\'re ready.');
+    }
+
+    // 刷新 Dashboard 进入安静状态
+    setTimeout(function() {
+      LawAIApp.Dashboard.render();
+    }, 300);
   },
 
   // ============================================================
@@ -2048,25 +2280,33 @@ LawAIApp.Dashboard = {
   _renderLearningLoop: function() {
     var loopData = this._getLearningLoopData();
 
-    // 如果没有活跃的 Loop，显示空状态
-    if (!loopData.hasActiveLoop) {
+    if (loopData.isQuiet && loopData.quietMessage) {
       return `
         <div style="
           background: rgba(255,255,255,0.02);
           border-radius: 12px;
-          padding: 20px 24px;
+          padding: 16px 20px;
           border: 1px solid rgba(255,255,255,0.04);
           margin-bottom: 16px;
         ">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-            <span style="font-size: 14px;">🔄</span>
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <span style="font-size: 14px;">🌱</span>
             <span style="font-size: 11px; color: #64748b; font-weight: 500; letter-spacing: 0.6px;">LEARNING LOOP</span>
+            <span style="font-size: 9px; color: #64748b; background: rgba(255,255,255,0.04); padding: 2px 10px; border-radius: 100px;">QUIET</span>
           </div>
-          <div style="font-size: 13px; color: #64748b; text-align: center; padding: 12px 0;">
-            Start learning to see your choices and outcomes here.
+          <div style="font-size: 14px; color: #94a3b8; padding: 4px 0 2px 0;">
+            ${loopData.quietMessage}
+          </div>
+          <div style="font-size: 11px; color: #475569; margin-top: 4px;">
+            Check back when you're ready to continue.
           </div>
         </div>
       `;
+    }
+
+    // 如果完全没有活跃 Loop，不显示
+    if (!loopData.hasActiveLoop) {
+      return '';
     }
 
     var html = '';
@@ -2251,6 +2491,16 @@ LawAIApp.Dashboard = {
             cursor: pointer;
             font-family: inherit;
           ">📚 Go to Academy</button>
+          <button onclick="LawAIApp.Dashboard._handleLoopClosure()" style="
+            padding: 4px 14px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 100px;
+            color: #475569;
+            font-size: 10px;
+            cursor: pointer;
+            font-family: inherit;
+          ">⏹️ Done</button>
         </div>
       </div>
     `;
