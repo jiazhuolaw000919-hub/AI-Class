@@ -807,16 +807,11 @@ LawAIApp.Dashboard = {
     return judgement;
   },
 
-  // ============================================================
-  // Part 77: Judgement Prompt Renderer
+    // ============================================================
+  // Part 77: Judgement Prompt (Compact)
   // ============================================================
 
-  /**
-   * 渲染学习者判断提示
-   * 只在合适的时候出现（有学习上下文，但不打扰）
-   */
-  _renderJudgementPrompt: function() {
-    // 检查是否应该显示判断提示
+  _renderJudgementPromptCompact: function() {
     var lc = window.LawAIApp?.LearningContext;
     var hasLearningData = false;
     var hasActiveSession = false;
@@ -831,125 +826,105 @@ LawAIApp.Dashboard = {
       } catch (e) {}
     }
 
-    // 如果没有学习数据，不显示
-    if (!hasLearningData) {
+    if (!hasLearningData || hasActiveSession) {
       return '';
     }
 
-    // 如果有活跃会话，不打扰
-    if (hasActiveSession) {
-      return '';
-    }
-
-    // 获取现有判断
     var judgement = this._getLearnerJudgement();
-    
-    // 如果已有最近的判断，不重复提示
     if (judgement.hasJudgement && judgement.confidence) {
-      return '';
+      // 如果已有判断，显示"已记录"状态（不占空间）
+      var confidenceLabels = {
+        'not_yet': '🌱 Not yet',
+        'somewhat': '🔄 Somewhat',
+        'confident': '💪 Confident',
+        'very': '🎯 Very confident'
+      };
+      var label = confidenceLabels[judgement.confidence] || 'Recorded';
+      return `
+        <div style="
+          font-size: 11px;
+          color: #64748b;
+          padding: 4px 0;
+          border-top: 1px solid rgba(255,255,255,0.03);
+          margin-top: 6px;
+        ">
+          ✅ Your judgement: ${label}
+        </div>
+      `;
     }
 
-    // 获取当前课程/课时信息
     var contextParts = [];
-    var lessonName = '';
-    var courseName = '';
-    
     if (lc && lc.initialized) {
       try {
         var ctx = lc.getContext();
         if (ctx) {
-          if (ctx.lesson) lessonName = ctx.lesson.name || 'this lesson';
-          if (ctx.course) courseName = ctx.course.title || 'this course';
+          if (ctx.lesson) contextParts.push(ctx.lesson.name || 'this lesson');
+          else if (ctx.course) contextParts.push(ctx.course.title || 'this course');
         }
       } catch (e) {}
     }
-
-    var targetName = lessonName || courseName || 'this topic';
+    var targetName = contextParts.length > 0 ? contextParts[0] : 'this topic';
 
     return `
       <div style="
-        background: rgba(139, 92, 246, 0.04);
-        border-radius: 12px;
-        padding: 16px 20px;
-        border: 1px solid rgba(139, 92, 246, 0.08);
-        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding: 6px 0;
+        border-top: 1px solid rgba(255,255,255,0.03);
+        margin-top: 6px;
       ">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-          <span style="font-size: 14px;">🤔</span>
-          <span style="font-size: 11px; color: #8b5cf6; font-weight: 500; letter-spacing: 0.6px;">YOUR JUDGEMENT</span>
-        </div>
-        <div style="font-size: 14px; color: #e2e8f0; margin-bottom: 8px;">
-          How confident do you feel about ${targetName}?
-        </div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'not_yet')" style="
-            padding: 4px 16px;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 100px;
-            color: #94a3b8;
-            font-size: 12px;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all 0.2s;
-          " onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
-            🌱 Not yet
-          </button>
-          <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'somewhat')" style="
-            padding: 4px 16px;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 100px;
-            color: #94a3b8;
-            font-size: 12px;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all 0.2s;
-          " onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
-            🔄 Somewhat
-          </button>
-          <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'confident')" style="
-            padding: 4px 16px;
-            background: rgba(74,158,255,0.08);
-            border: 1px solid rgba(74,158,255,0.12);
-            border-radius: 100px;
-            color: #4a9eff;
-            font-size: 12px;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all 0.2s;
-          " onmouseover="this.style.background='rgba(74,158,255,0.14)'" onmouseout="this.style.background='rgba(74,158,255,0.08)'">
-            💪 Confident
-          </button>
-          <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'very')" style="
-            padding: 4px 16px;
-            background: rgba(16,185,129,0.08);
-            border: 1px solid rgba(16,185,129,0.12);
-            border-radius: 100px;
-            color: #10b981;
-            font-size: 12px;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all 0.2s;
-          " onmouseover="this.style.background='rgba(16,185,129,0.14)'" onmouseout="this.style.background='rgba(16,185,129,0.08)'">
-            🎯 Very confident
-          </button>
-          <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('dismiss', 'judgement')" style="
-            padding: 4px 12px;
-            background: transparent;
-            border: none;
-            color: #475569;
-            font-size: 11px;
-            cursor: pointer;
-            font-family: inherit;
-            text-decoration: underline;
-          ">
-            Skip
-          </button>
-        </div>
-        <div style="font-size: 11px; color: #64748b; margin-top: 8px;">
-          💡 This helps us provide more relevant recommendations.
-        </div>
+        <span style="font-size: 11px; color: #94a3b8;">🤔 How confident about ${targetName}?</span>
+        <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'not_yet')" style="
+          padding: 1px 10px;
+          background: transparent;
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 100px;
+          color: #64748b;
+          font-size: 10px;
+          cursor: pointer;
+          font-family: inherit;
+        ">Not yet</button>
+        <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'somewhat')" style="
+          padding: 1px 10px;
+          background: transparent;
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 100px;
+          color: #64748b;
+          font-size: 10px;
+          cursor: pointer;
+          font-family: inherit;
+        ">Somewhat</button>
+        <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'confident')" style="
+          padding: 1px 10px;
+          background: rgba(74,158,255,0.06);
+          border: 1px solid rgba(74,158,255,0.08);
+          border-radius: 100px;
+          color: #4a9eff;
+          font-size: 10px;
+          cursor: pointer;
+          font-family: inherit;
+        ">Confident</button>
+        <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'very')" style="
+          padding: 1px 10px;
+          background: rgba(16,185,129,0.06);
+          border: 1px solid rgba(16,185,129,0.08);
+          border-radius: 100px;
+          color: #10b981;
+          font-size: 10px;
+          cursor: pointer;
+          font-family: inherit;
+        ">Very</button>
+        <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('dismiss', 'judgement')" style="
+          padding: 1px 8px;
+          background: transparent;
+          border: none;
+          color: #475569;
+          font-size: 10px;
+          cursor: pointer;
+          font-family: inherit;
+        ">Skip</button>
       </div>
     `;
   },
@@ -3080,38 +3055,21 @@ LawAIApp.Dashboard = {
     return html;
   },
 
-  // ============================================================
-  // Part 76: Priority Indicator Renderer
+    // ============================================================
+  // Part 76: Priority Indicator (Compact)
   // ============================================================
 
-  _renderPriorityIndicator: function() {
+  _renderPriorityIndicatorCompact: function() {
     var priority = this._getContextualPriority();
     
-    var levelLabel = this._getPriorityLabel(priority.level);
-    var levelColor = this._getPriorityColor(priority.level);
-    
-    // 如果没有活跃上下文，显示安静状态
+    // 如果没有活跃上下文，不显示
     if (!priority.hasActiveContext && !priority.currentJourney && !priority.insight) {
-      return `
-        <div style="
-          background: rgba(255,255,255,0.02);
-          border-radius: 8px;
-          padding: 12px 16px;
-          border: 1px solid rgba(255,255,255,0.04);
-          margin-bottom: 16px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          flex-wrap: wrap;
-        ">
-          <span style="font-size: 14px;">🌱</span>
-          <span style="font-size: 13px; color: #94a3b8;">Ready to begin your learning journey.</span>
-          <span style="font-size: 10px; color: #475569; background: rgba(255,255,255,0.03); padding: 2px 10px; border-radius: 100px; margin-left: auto;">QUIET</span>
-        </div>
-      `;
+      return '';
     }
 
-    // 构建上下文显示
+    var levelColor = this._getPriorityColor(priority.level);
+    var levelLabel = this._getPriorityLabel(priority.level);
+
     var contextParts = [];
     if (priority.currentJourney) {
       var j = priority.currentJourney;
@@ -3125,49 +3083,38 @@ LawAIApp.Dashboard = {
                       priority.currentJourney?.status === 'paused' ? '⏸️' :
                       priority.currentJourney?.status === 'idle' ? '📖' : '🔍';
 
-    var html = `
+    return `
       <div style="
-        background: rgba(255,255,255,0.02);
-        border-radius: 8px;
-        padding: 12px 16px;
-        border: 1px solid rgba(255,255,255,0.04);
-        margin-bottom: 16px;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
+        padding: 6px 12px;
+        background: rgba(255,255,255,0.02);
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.03);
+        margin-bottom: 10px;
         flex-wrap: wrap;
       ">
-        <span style="font-size: 14px;">${statusEmoji}</span>
-        <div style="flex: 1; min-width: 120px;">
-          <div style="font-size: 13px; color: #e2e8f0; font-weight: 500;">
-            ${contextDisplay}
-          </div>
-          ${priority.explanation ? `<div style="font-size: 11px; color: #64748b;">${priority.explanation}</div>` : ''}
-        </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          ${priority.primaryAction ? `
-            <button onclick="LawAIApp.Dashboard._handlePriorityAction('${priority.primaryAction.action}', '${priority.primaryAction.target || ''}')" style="
-              padding: 4px 16px;
-              background: ${levelColor}22;
-              border: 1px solid ${levelColor}44;
-              border-radius: 100px;
-              color: ${levelColor};
-              font-size: 11px;
-              cursor: pointer;
-              font-family: inherit;
-              transition: all 0.2s;
-            " onmouseover="this.style.background='${levelColor}44'" onmouseout="this.style.background='${levelColor}22'">
-              ${priority.primaryAction.label} →
-            </button>
-          ` : ''}
-          <span style="font-size: 9px; color: ${levelColor}; background: ${levelColor}11; padding: 2px 10px; border-radius: 100px; border: 1px solid ${levelColor}22;">
-            ${levelLabel}
-          </span>
-        </div>
+        <span style="font-size: 13px;">${statusEmoji}</span>
+        <span style="font-size: 12px; color: #e2e8f0; font-weight: 500;">${contextDisplay}</span>
+        <span style="font-size: 10px; color: #64748b; margin-left: auto;">${levelLabel}</span>
+        ${priority.primaryAction ? `
+          <button onclick="LawAIApp.Dashboard._handlePriorityAction('${priority.primaryAction.action}', '${priority.primaryAction.target || ''}')" style="
+            padding: 2px 14px;
+            background: ${levelColor}22;
+            border: 1px solid ${levelColor}44;
+            border-radius: 100px;
+            color: ${levelColor};
+            font-size: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+          " onmouseover="this.style.background='${levelColor}44'" onmouseout="this.style.background='${levelColor}22'">
+            ${priority.primaryAction.label}
+          </button>
+        ` : ''}
       </div>
     `;
-
-    return html;
   },
 
   refresh: function() {
