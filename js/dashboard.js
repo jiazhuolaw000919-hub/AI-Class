@@ -2338,14 +2338,8 @@ LawAIApp.Dashboard = {
           📈 LEARNING INSIGHTS
         </p>
         
-        <!-- Part 76: Priority Indicator (精简) -->
-        ${this._renderPriorityIndicatorCompact()}
-        
         <!-- Part 72: Dialogue Insight -->
         ${insightHTML}
-        
-        <!-- Part 77: Judgement Prompt (精简) -->
-        ${this._renderJudgementPromptCompact()}
         
         <!-- Stats -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;">
