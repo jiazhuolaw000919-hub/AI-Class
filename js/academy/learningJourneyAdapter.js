@@ -1333,6 +1333,349 @@
             return Math.min(100, score);
         },
 
+                // ============================================================
+        // Part 87: Metacognitive Learning Loop
+        // ============================================================
+
+        /**
+         * 记录学习者自信度
+         * @param {string} context - 上下文（如 lesson_id, practice_id）
+         * @param {string} confidence - 自信度级别
+         * @param {string} timing - 时机（before/after）
+         * @returns {Object} 记录结果
+         */
+        recordConfidence: function(context, confidence, timing) {
+            timing = timing || 'after';
+            
+            var record = {
+                context: context,
+                confidence: confidence,
+                timing: timing,
+                timestamp: new Date().toISOString(),
+                source: 'learner'
+            };
+
+            // 存储到 localStorage（复用现有存储）
+            try {
+                var stored = localStorage.getItem('learnerConfidenceRecords') || '[]';
+                var records = JSON.parse(stored);
+                records.push(record);
+                // 只保留最近 100 条
+                if (records.length > 100) {
+                    records = records.slice(-100);
+                }
+                localStorage.setItem('learnerConfidenceRecords', JSON.stringify(records));
+            } catch (e) {
+                console.warn('[LearningJourneyAdapter] Confidence record error:', e);
+            }
+
+            // 触发事件
+            this._emit('LEARNING_CONFIDENCE_RECORDED', {
+                context: context,
+                confidence: confidence,
+                timing: timing,
+                timestamp: record.timestamp
+            });
+
+            return record;
+        },
+
+        /**
+         * 获取学习者自信度历史
+         * @param {string} context - 可选，上下文过滤
+         * @returns {Array} 自信度记录
+         */
+        getConfidenceHistory: function(context) {
+            try {
+                var stored = localStorage.getItem('learnerConfidenceRecords') || '[]';
+                var records = JSON.parse(stored);
+                if (context) {
+                    records = records.filter(function(r) { return r.context === context; });
+                }
+                return records;
+            } catch (e) {
+                return [];
+            }
+        },
+
+        /**
+         * 记录反思
+         * @param {string} context - 上下文
+         * @param {string} reflection - 反思内容
+         * @param {string} type - 反思类型
+         * @returns {Object} 记录结果
+         */
+        recordReflection: function(context, reflection, type) {
+            type = type || 'general';
+            
+            var record = {
+                context: context,
+                reflection: reflection,
+                type: type,
+                timestamp: new Date().toISOString(),
+                source: 'learner'
+            };
+
+            // 存储到 localStorage
+            try {
+                var stored = localStorage.getItem('learnerReflections') || '[]';
+                var records = JSON.parse(stored);
+                records.push(record);
+                if (records.length > 100) {
+                    records = records.slice(-100);
+                }
+                localStorage.setItem('learnerReflections', JSON.stringify(records));
+            } catch (e) {
+                console.warn('[LearningJourneyAdapter] Reflection record error:', e);
+            }
+
+            this._emit('LEARNING_REFLECTION_RECORDED', {
+                context: context,
+                reflection: reflection,
+                type: type,
+                timestamp: record.timestamp
+            });
+
+            return record;
+        },
+
+        /**
+         * 获取反思历史
+         * @param {string} context - 可选，上下文过滤
+         * @returns {Array} 反思记录
+         */
+        getReflectionHistory: function(context) {
+            try {
+                var stored = localStorage.getItem('learnerReflections') || '[]';
+                var records = JSON.parse(stored);
+                if (context) {
+                    records = records.filter(function(r) { return r.context === context; });
+                }
+                return records;
+            } catch (e) {
+                return [];
+            }
+        },
+
+        /**
+         * 记录策略选择
+         * @param {string} context - 上下文
+         * @param {string} strategy - 策略名称
+         * @param {string} reason - 选择原因
+         * @returns {Object} 记录结果
+         */
+        recordStrategy: function(context, strategy, reason) {
+            var record = {
+                context: context,
+                strategy: strategy,
+                reason: reason || null,
+                timestamp: new Date().toISOString(),
+                source: 'learner'
+            };
+
+            try {
+                var stored = localStorage.getItem('learnerStrategies') || '[]';
+                var records = JSON.parse(stored);
+                records.push(record);
+                if (records.length > 100) {
+                    records = records.slice(-100);
+                }
+                localStorage.setItem('learnerStrategies', JSON.stringify(records));
+            } catch (e) {
+                console.warn('[LearningJourneyAdapter] Strategy record error:', e);
+            }
+
+            this._emit('LEARNING_STRATEGY_RECORDED', {
+                context: context,
+                strategy: strategy,
+                reason: reason,
+                timestamp: record.timestamp
+            });
+
+            return record;
+        },
+
+        /**
+         * 计算校准（自信度 vs 表现）
+         * @param {string} context - 上下文
+         * @returns {Object} 校准结果
+         */
+        calculateCalibration: function(context) {
+            var confidenceRecords = this.getConfidenceHistory(context);
+            // 这里需要与实际表现数据对比
+            // 简化版本：返回基于自信度分布的校准信号
+            
+            if (!confidenceRecords || confidenceRecords.length === 0) {
+                return {
+                    hasData: false,
+                    calibration: 'unknown',
+                    confidenceAverage: null,
+                    message: 'Not enough data for calibration.'
+                };
+            }
+
+            var confidenceMap = {
+                'not_sure': 25,
+                'somewhat': 50,
+                'confident': 75,
+                'very': 90
+            };
+
+            var total = 0;
+            var count = 0;
+            for (var i = 0; i < confidenceRecords.length; i++) {
+                var score = confidenceMap[confidenceRecords[i].confidence] || 50;
+                total += score;
+                count++;
+            }
+
+            var average = count > 0 ? Math.round(total / count) : null;
+
+            // 简单校准判断
+            var calibration = 'unknown';
+            if (average !== null) {
+                if (average >= 75) calibration = 'high';
+                else if (average >= 50) calibration = 'moderate';
+                else calibration = 'low';
+            }
+
+            return {
+                hasData: count > 0,
+                calibration: calibration,
+                confidenceAverage: average,
+                recordCount: count,
+                message: count > 0 ? 
+                    'Average confidence: ' + average + '%' : 
+                    'No confidence data available.'
+            };
+        },
+
+        /**
+         * 生成元认知洞察
+         * @param {string} context - 上下文
+         * @returns {Object} 元认知洞察
+         */
+        getMetacognitiveInsight: function(context) {
+            var insight = {
+                hasInsight: false,
+                confidenceTrend: null,
+                calibration: null,
+                reflectionCount: 0,
+                strategyCount: 0,
+                message: null,
+                suggestion: null
+            };
+
+            // 1. 自信度历史
+            var confidenceRecords = this.getConfidenceHistory(context);
+            if (confidenceRecords && confidenceRecords.length > 0) {
+                insight.confidenceTrend = this._calculateTrend(confidenceRecords);
+                insight.hasInsight = true;
+            }
+
+            // 2. 校准
+            var calibration = this.calculateCalibration(context);
+            if (calibration.hasData) {
+                insight.calibration = calibration;
+                insight.hasInsight = true;
+            }
+
+            // 3. 反思计数
+            var reflections = this.getReflectionHistory(context);
+            if (reflections && reflections.length > 0) {
+                insight.reflectionCount = reflections.length;
+                insight.hasInsight = true;
+            }
+
+            // 4. 策略计数
+            var strategies = localStorage.getItem('learnerStrategies') || '[]';
+            try {
+                var strategyRecords = JSON.parse(strategies);
+                if (strategyRecords && strategyRecords.length > 0) {
+                    insight.strategyCount = strategyRecords.length;
+                    insight.hasInsight = true;
+                }
+            } catch (e) {}
+
+            // 5. 生成消息
+            if (insight.hasInsight) {
+                var parts = [];
+                if (insight.confidenceTrend) {
+                    parts.push('Confidence is ' + insight.confidenceTrend);
+                }
+                if (insight.calibration && insight.calibration.hasData) {
+                    parts.push('Calibration: ' + insight.calibration.calibration);
+                }
+                if (insight.reflectionCount > 0) {
+                    parts.push(insight.reflectionCount + ' reflections recorded');
+                }
+                insight.message = parts.join(' · ') || 'Metacognitive data available.';
+            } else {
+                insight.message = 'No metacognitive data available yet. Continue learning to build insights.';
+            }
+
+            // 6. 生成建议
+            insight.suggestion = this._generateMetacognitiveSuggestion(insight);
+
+            return insight;
+        },
+
+        /**
+         * 计算趋势
+         * @private
+         */
+        _calculateTrend: function(records) {
+            if (!records || records.length < 2) {
+                return 'stable';
+            }
+
+            var confidenceMap = {
+                'not_sure': 1,
+                'somewhat': 2,
+                'confident': 3,
+                'very': 4
+            };
+
+            var recent = records.slice(-5);
+            var first = recent[0];
+            var last = recent[recent.length - 1];
+
+            var firstScore = confidenceMap[first.confidence] || 2;
+            var lastScore = confidenceMap[last.confidence] || 2;
+
+            if (lastScore > firstScore + 1) return 'increasing';
+            if (lastScore < firstScore - 1) return 'decreasing';
+            return 'stable';
+        },
+
+        /**
+         * 生成元认知建议
+         * @private
+         */
+        _generateMetacognitiveSuggestion: function(insight) {
+            if (!insight.hasInsight) {
+                return 'Start paying attention to your confidence and strategies.';
+            }
+
+            if (insight.calibration && insight.calibration.calibration === 'high') {
+                return 'Your confidence is well-aligned with your performance. Keep reflecting!';
+            }
+
+            if (insight.calibration && insight.calibration.calibration === 'low') {
+                return 'Your confidence may not match your performance. Try a short review.';
+            }
+
+            if (insight.confidenceTrend === 'increasing') {
+                return 'Your confidence is growing. Challenge yourself with harder material.';
+            }
+
+            if (insight.confidenceTrend === 'decreasing') {
+                return 'Your confidence is decreasing. Consider a quick review or practice.';
+            }
+
+            return 'Continue reflecting on your learning strategies.';
+        },
+
         /**
          * 获取硬约束
          * @private
