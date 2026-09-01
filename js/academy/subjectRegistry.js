@@ -264,6 +264,30 @@
         }
     }
 
+    /**
+     * 🔥 Part 80: 获取 Module 兼容格式
+     * 将 Subject 数据转换为 Module 格式，供 AcademyView 使用
+     */
+    getModuleCompatible(subjectId) {
+        var subject = this.getSubject(subjectId);
+        if (!subject) return null;
+
+        return {
+            id: subject.id,
+            courseId: subject.courseId,
+            name: subject.title,
+            title: subject.title,
+            description: subject.description || '',
+            order: subject.order || 0,
+            lessons: subject.lessons || [],
+            learningObjectives: subject.learningObjectives || subject.objectives || [],
+            metadata: subject.metadata || {},
+            status: subject.status || 'published',
+            // 保留原始 Subject 数据
+            _subject: subject
+        };
+    }
+
     // ============================================================
     // Export
     // ============================================================
