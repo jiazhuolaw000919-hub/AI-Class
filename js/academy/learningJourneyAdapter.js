@@ -971,6 +971,233 @@
             };
         },
 
+                // ============================================================
+        // Part 81: Learning Path — Structured Route
+        // ============================================================
+
+        /**
+         * 获取当前学习路径
+         * Path = 结构化路线，不是强制进度
+         * @param {string} courseId - 可选，指定 Course
+         * @returns {Object} 学习路径对象
+         */
+        getLearningPath: function(courseId) {
+            var state = this._journeyState;
+            var targetCourseId = courseId || state.currentCourseId;
+
+            if (!targetCourseId) {
+                return {
+                    id: null,
+                    type: 'empty',
+                    title: 'No Active Path',
+                    items: [],
+                    progress: 0,
+                    currentIndex: -1,
+                    isEmpty: true
+                };
+            }
+
+            // 获取 Course 的 Module 列表
+            var modules = this.getCourseModules(targetCourseId);
+            if (!modules || modules.length === 0) {
+                return {
+                    id: 'path-' + targetCourseId,
+                    type: 'empty',
+                    title: 'No Modules Available',
+                    items: [],
+                    progress: 0,
+                    currentIndex: -1,
+                    isEmpty: true
+                };
+            }
+
+            // 构建路径项
+            var items = [];
+            var completedCount = 0;
+            var currentIndex = -1;
+
+            for (var i = 0; i < modules.length; i++) {
+                var module = modules[i];
+                var isCompleted = module.isCompleted || false;
+                var isActive = module.isActive || false;
+
+                items.push({
+                    id: module.id,
+                    type: 'module',
+                    refId: module.id,
+                    title: module.name || 'Module',
+                    description: module.description || '',
+                    order: i,
+                    isCompleted: isCompleted,
+                    isActive: isActive,
+                    isLocked: false,  // 🔥 Part 81: 永不锁定，除非显式先决条件
+                    progress: module.progress || 0,
+                    optional: false,
+                    prerequisite: null
+                });
+
+                if (isCompleted) completedCount++;
+                if (isActive) currentIndex = i;
+            }
+
+            // 如果没有 active 模块，找第一个未完成的作为 "当前位置"
+            if (currentIndex === -1) {
+                for (var j = 0; j < items.length; j++) {
+                    if (!items[j].isCompleted) {
+                        currentIndex = j;
+                        items[j].isActive = true;
+                        break;
+                    }
+                }
+                // 如果全部完成，最后一个是当前位置
+                if (currentIndex === -1 && items.length > 0) {
+                    currentIndex = items.length - 1;
+                }
+            }
+
+            var progress = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0;
+
+            return {
+                id: 'path-' + targetCourseId,
+                type: 'curriculum',  // curriculum | suggested | learner
+                title: 'Learning Path',
+                courseId: targetCourseId,
+                items: items,
+                progress: progress,
+                completedCount: completedCount,
+                totalCount: items.length,
+                currentIndex: currentIndex,
+                isEmpty: false,
+                // 🔥 Part 81: 区分路径类型
+                pathType: 'curriculum',  // 默认是 curriculum path
+                isSuggested: false,
+                isLearnerControlled: true
+            };
+        },
+
+        /**
+         * 🔥 Part 81: 获取建议路径（基于上下文）
+         * 这是 Suggested Path，不是 Curriculum Path
+         * 建议来自现有推荐系统或智能上下文
+         */
+        getSuggestedPath: function(courseId) {
+            var curriculumPath = this.getLearningPath(courseId);
+            if (curriculumPath.isEmpty) return curriculumPath;
+
+            // 基于现有推荐系统生成建议
+            var recommendations = [];
+            var recEngine = window.LawAIApp?.RecommendationEngine;
+            if (recEngine && typeof recEngine.getRecommendations === 'function') {
+                try {
+                    recommendations = recEngine.getRecommendations(3) || [];
+                } catch (e) {}
+            }
+
+            var items = curriculumPath.items.map(function(item) {
+                var isRecommended = recommendations.some(function(rec) {
+                    return rec.id === item.refId || rec.target === item.refId;
+                });
+                return {
+                    ...item,
+                    isRecommended: isRecommended,
+                    // 建议路径可以调整顺序，但不改变 Curriculum
+                };
+            });
+
+            // 按推荐优先级排序（推荐的在前）
+            if (recommendations.length > 0) {
+                items.sort(function(a, b) {
+                    if (a.isRecommended && !b.isRecommended) return -1;
+                    if (!a.isRecommended && b.isRecommended) return 1;
+                    return a.order - b.order;
+                });
+            }
+
+            return {
+                ...curriculumPath,
+                type: 'suggested',
+                pathType: 'suggested',
+                isSuggested: true,
+                items: items
+            };
+        },
+
+        /**
+         * 🔥 Part 81: 获取学习者的实际路径
+         * 记录学习者实际选择的路由
+         */
+        getLearnerPath: function() {
+            var state = this._journeyState;
+            var courseId = state.currentCourseId;
+
+            if (!courseId) {
+                return {
+                    id: null,
+                    type: 'empty',
+                    title: 'No Learner Path',
+                    items: [],
+                    progress: 0,
+                    isEmpty: true
+                };
+            }
+
+            // 从已完成和当前状态构建学习者路径
+            var learnerItems = [];
+            var completedLessons = state.completedLessons || [];
+            var completedModules = state.completedModules || [];
+
+            var modules = this.getCourseModules(courseId);
+            if (!modules || modules.length === 0) {
+                return {
+                    id: 'learner-path-' + courseId,
+                    type: 'empty',
+                    title: 'No Learning Activity Yet',
+                    items: [],
+                    progress: 0,
+                    isEmpty: true
+                };
+            }
+
+            // 学习者路径 = 已完成 + 当前进行中
+            for (var i = 0; i < modules.length; i++) {
+                var module = modules[i];
+                var isCompleted = completedModules.indexOf(module.id) !== -1;
+                var isActive = state.currentModuleId === module.id;
+
+                // 只包含有活动的或已完成的模块
+                if (isCompleted || isActive) {
+                    learnerItems.push({
+                        id: module.id,
+                        type: 'module',
+                        refId: module.id,
+                        title: module.name || 'Module',
+                        order: i,
+                        isCompleted: isCompleted,
+                        isActive: isActive,
+                        completedAt: isCompleted ? state.lastActivity : null,
+                        isLearnerChosen: true
+                    });
+                }
+            }
+
+            var progress = learnerItems.length > 0 && modules.length > 0 ?
+                Math.round((learnerItems.filter(function(item) { return item.isCompleted; }).length / modules.length) * 100) : 0;
+
+            return {
+                id: 'learner-path-' + courseId,
+                type: 'learner',
+                pathType: 'learner',
+                title: 'My Journey',
+                courseId: courseId,
+                items: learnerItems,
+                progress: progress,
+                completedCount: learnerItems.filter(function(item) { return item.isCompleted; }).length,
+                totalCount: modules.length,
+                isEmpty: learnerItems.length === 0,
+                isLearnerControlled: true
+            };
+        },
+
         // ============================================================
         // 🔥 Part 59.3: Private Helpers for Next Action
         // ============================================================
