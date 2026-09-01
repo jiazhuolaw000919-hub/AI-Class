@@ -2017,6 +2017,300 @@
             };
         },
 
+                // ============================================================
+        // Part 89: Learning Independence & Responsibility Transfer
+        // ============================================================
+
+        /**
+         * 评估学习者的独立性水平
+         * 不产生分数，只产生观察
+         * @param {Object} context - 学习上下文
+         * @returns {Object} 独立性评估
+         */
+        assessIndependence: function(context) {
+            context = context || {};
+            
+            var assessment = {
+                hasEvidence: false,
+                observations: [],
+                level: 'unknown',  // unknown | emerging | developing | capable | independent
+                message: null,
+                suggestion: null
+            };
+
+            // 收集证据
+            var evidence = {
+                startedWithoutPrompt: context.startedWithoutPrompt || false,
+                choseTask: context.choseTask || false,
+                choseStrategy: context.choseStrategy || false,
+                solvedIndependently: context.solvedIndependently || false,
+                evaluatedResult: context.evaluatedResult || false,
+                askedForHelp: context.askedForHelp || false,
+                helpQuality: context.helpQuality || 'unknown',
+                recentIndependentAttempts: context.recentIndependentAttempts || 0,
+                hintRequests: context.hintRequests || 0,
+                totalAttempts: context.totalAttempts || 0
+            };
+
+            // 构建观察
+            var observations = [];
+            if (evidence.startedWithoutPrompt) {
+                observations.push('Started learning without prompting');
+            }
+            if (evidence.choseTask) {
+                observations.push('Chose own task');
+            }
+            if (evidence.choseStrategy) {
+                observations.push('Chose own strategy');
+            }
+            if (evidence.solvedIndependently) {
+                observations.push('Solved independently');
+            }
+            if (evidence.evaluatedResult) {
+                observations.push('Evaluated own result');
+            }
+            if (evidence.askedForHelp && evidence.helpQuality === 'high') {
+                observations.push('Asked for help effectively');
+            }
+
+            // 判断级别
+            var independentCount = observations.length;
+            var helpRatio = evidence.totalAttempts > 0 ? 
+                evidence.hintRequests / evidence.totalAttempts : 0;
+
+            assessment.hasEvidence = evidence.totalAttempts > 0;
+
+            if (independentCount >= 4 && helpRatio < 0.3) {
+                assessment.level = 'independent';
+            } else if (independentCount >= 3) {
+                assessment.level = 'capable';
+            } else if (independentCount >= 2) {
+                assessment.level = 'developing';
+            } else if (independentCount >= 1) {
+                assessment.level = 'emerging';
+            } else {
+                assessment.level = 'unknown';
+            }
+
+            assessment.observations = observations;
+
+            // 生成消息
+            if (assessment.hasEvidence) {
+                var parts = [];
+                if (observations.length > 0) {
+                    parts.push(observations.slice(0, 3).join('; '));
+                    if (observations.length > 3) {
+                        parts.push('+ ' + (observations.length - 3) + ' more');
+                    }
+                }
+                assessment.message = parts.length > 0 ? 
+                    'Observations: ' + parts.join(' · ') : 
+                    'No independence observations yet.';
+            } else {
+                assessment.message = 'Not enough evidence to assess independence.';
+            }
+
+            // 生成建议
+            assessment.suggestion = this._generateIndependenceSuggestion(assessment);
+
+            return assessment;
+        },
+
+        /**
+         * 生成独立性建议
+         * @private
+         */
+        _generateIndependenceSuggestion: function(assessment) {
+            if (!assessment.hasEvidence) {
+                return 'Start by choosing your own learning task.';
+            }
+
+            switch (assessment.level) {
+                case 'emerging':
+                    return 'Try choosing between two options next time.';
+                case 'developing':
+                    return 'You\'re starting to make choices. Try a challenge without hints.';
+                case 'capable':
+                    return 'You\'re making good decisions. Try setting your own goal for a session.';
+                case 'independent':
+                    return 'You\'re learning independently. Keep exploring and reflect on what works.';
+                default:
+                    return 'Continue learning and notice your choices.';
+            }
+        },
+
+        /**
+         * 评估是否可以进行责任转移
+         * @param {Object} context - 学习上下文
+         * @returns {Object} 转移评估
+         */
+        evaluateResponsibilityTransfer: function(context) {
+            context = context || {};
+            
+            var evaluation = {
+                canTransfer: false,
+                domain: null,  // goal | strategy | selection | execution | monitoring | evaluation | reflection
+                reason: null,
+                confidence: 'low',
+                message: null
+            };
+
+            // 检查各个领域
+            var domains = ['goal', 'strategy', 'selection', 'execution', 'monitoring', 'evaluation', 'reflection'];
+            var readyDomains = [];
+
+            // 目标：学习者是否表达了明确目标？
+            var hasGoal = context.hasGoal || false;
+            if (hasGoal) {
+                readyDomains.push('goal');
+            }
+
+            // 策略：学习者是否选择了策略？
+            var hasStrategy = context.hasStrategy || false;
+            if (hasStrategy) {
+                readyDomains.push('strategy');
+            }
+
+            // 选择：学习者是否独立选择了任务？
+            var hasSelection = context.hasSelection || false;
+            if (hasSelection) {
+                readyDomains.push('selection');
+            }
+
+            // 执行：学习者是否独立执行？
+            var hasExecution = context.hasExecution || false;
+            if (hasExecution) {
+                readyDomains.push('execution');
+            }
+
+            // 监控：学习者是否监控了自己的进度？
+            var hasMonitoring = context.hasMonitoring || false;
+            if (hasMonitoring) {
+                readyDomains.push('monitoring');
+            }
+
+            // 评估：学习者是否评估了自己的结果？
+            var hasEvaluation = context.hasEvaluation || false;
+            if (hasEvaluation) {
+                readyDomains.push('evaluation');
+            }
+
+            // 反思：学习者是否进行了反思？
+            var hasReflection = context.hasReflection || false;
+            if (hasReflection) {
+                readyDomains.push('reflection');
+            }
+
+            // 如果有一个领域准备好了，可以转移
+            if (readyDomains.length > 0) {
+                evaluation.canTransfer = true;
+                evaluation.domain = readyDomains[0];
+                evaluation.reason = 'Learner has demonstrated capability in this area.';
+                evaluation.confidence = readyDomains.length >= 3 ? 'high' : 'medium';
+                evaluation.message = 'Ready to transfer responsibility for: ' + readyDomains[0];
+            } else {
+                evaluation.canTransfer = false;
+                evaluation.reason = 'No domain shows sufficient readiness.';
+                evaluation.confidence = 'low';
+                evaluation.message = 'Continue building capability before transferring responsibility.';
+            }
+
+            return evaluation;
+        },
+
+        /**
+         * 生成独立性洞察
+         * @param {Object} context - 学习上下文
+         * @returns {Object} 独立性洞察
+         */
+        getIndependenceInsight: function(context) {
+            context = context || {};
+            
+            var assessment = this.assessIndependence(context);
+            var transfer = this.evaluateResponsibilityTransfer(context);
+
+            var insight = {
+                hasInsight: assessment.hasEvidence || transfer.canTransfer,
+                assessment: assessment,
+                transfer: transfer,
+                message: null,
+                suggestion: null
+            };
+
+            if (insight.hasInsight) {
+                var parts = [];
+                if (assessment.level !== 'unknown') {
+                    parts.push('Independence: ' + assessment.level);
+                }
+                if (transfer.canTransfer) {
+                    parts.push('Ready to transfer: ' + transfer.domain);
+                }
+                insight.message = parts.join(' · ') || 'Independence data available.';
+                insight.suggestion = assessment.suggestion || transfer.message;
+            } else {
+                insight.message = 'No independence data available yet. Keep learning!';
+                insight.suggestion = 'Start by making small choices in your learning.';
+            }
+
+            return insight;
+        },
+
+        /**
+         * 记录独立性事件
+         * @param {string} type - 事件类型
+         * @param {Object} data - 事件数据
+         * @returns {Object} 记录结果
+         */
+        recordIndependenceEvent: function(type, data) {
+            data = data || {};
+            
+            var event = {
+                type: type,  // started_without_prompt | chose_task | chose_strategy | solved_independently | evaluated_result | asked_for_help
+                data: data,
+                timestamp: new Date().toISOString(),
+                source: 'learner'
+            };
+
+            // 存储到 localStorage
+            try {
+                var stored = localStorage.getItem('independenceEvents') || '[]';
+                var events = JSON.parse(stored);
+                events.push(event);
+                if (events.length > 200) {
+                    events = events.slice(-200);
+                }
+                localStorage.setItem('independenceEvents', JSON.stringify(events));
+            } catch (e) {
+                console.warn('[LearningJourneyAdapter] Independence event error:', e);
+            }
+
+            this._emit('INDEPENDENCE_EVENT_RECORDED', {
+                type: type,
+                data: data,
+                timestamp: event.timestamp
+            });
+
+            return event;
+        },
+
+        /**
+         * 获取独立性事件历史
+         * @param {string} type - 可选，事件类型过滤
+         * @returns {Array} 事件列表
+         */
+        getIndependenceEvents: function(type) {
+            try {
+                var stored = localStorage.getItem('independenceEvents') || '[]';
+                var events = JSON.parse(stored);
+                if (type) {
+                    events = events.filter(function(e) { return e.type === type; });
+                }
+                return events;
+            } catch (e) {
+                return [];
+            }
+        },
+
         /**
          * 获取硬约束
          * @private
