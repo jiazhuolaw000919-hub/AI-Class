@@ -1593,13 +1593,11 @@ function __safeCall(pathOrObj) {
                 return;
             }
 
-            // 获取学习状态
             var adapter = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
             var state = adapter ? adapter.getState() : null;
             var moduleProgress = state && state.moduleProgress ? state.moduleProgress[moduleId] || 0 : 0;
             var isModuleCompleted = state && state.completedModules ? state.completedModules.indexOf(moduleId) !== -1 : false;
 
-            // 获取 Lessons 数量
             var lessonCount = module.lessons ? module.lessons.length : 0;
             var completedLessons = 0;
             if (state && state.completedLessons && module.lessons) {
@@ -1608,12 +1606,30 @@ function __safeCall(pathOrObj) {
                 }).length;
             }
 
-            // 获取 CourseId (从 module 或 state)
             var courseId = module.courseId || module.programId || (state && state.currentCourseId) || '';
+
+            // 🔥 Part 81: Path 上下文指示器
+            var pathContext = '';
+            if (adapter && typeof adapter.getLearningPath === 'function') {
+                var path = adapter.getLearningPath(courseId);
+                if (path && !path.isEmpty) {
+                    var currentIdx = path.currentIndex;
+                    var total = path.totalCount;
+                    if (currentIdx >= 0 && total > 0) {
+                        var positionLabel = (currentIdx + 1) + ' of ' + total;
+                        var progressEmoji = path.progress >= 100 ? '✅' : '📍';
+                        pathContext = `
+                            <span style="color: #64748b; font-size: 12px; background: rgba(255,255,255,0.04); padding: 2px 12px; border-radius: 12px;">
+                                ${progressEmoji} Path: ${positionLabel} · ${path.progress}% complete
+                            </span>
+                        `;
+                    }
+                }
+            }
 
             var html = '';
 
-            // 返回栏 — Back to Course
+            // 返回栏
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToCourse', '${courseId}')" 
@@ -1624,7 +1640,6 @@ function __safeCall(pathOrObj) {
                 </div>
             `;
 
-            // Module 头部
             var statusIcon = isModuleCompleted ? '✅' : '📄';
             var statusColor = isModuleCompleted ? '#10b981' : '#4a9eff';
             var statusText = isModuleCompleted ? 'Completed' : 'In Progress';
@@ -1646,27 +1661,7 @@ function __safeCall(pathOrObj) {
                     </div>
             `;
 
-            // 🔥 Part 81: Path 上下文指示器
-            var pathContext = '';
-            var adapter = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
-            if (adapter && typeof adapter.getLearningPath === 'function') {
-                var path = adapter.getLearningPath(courseId);
-                if (path && !path.isEmpty) {
-                    var currentIdx = path.currentIndex;
-                    var total = path.totalCount;
-                    if (currentIdx >= 0 && total > 0) {
-                        var positionLabel = (currentIdx + 1) + ' of ' + total;
-                        var progressEmoji = path.progress >= 100 ? '✅' : '📍';
-                        pathContext = `
-                            <span style="color: #64748b; font-size: 12px; background: rgba(255,255,255,0.04); padding: 2px 12px; border-radius: 12px;">
-                                ${progressEmoji} Path: ${positionLabel} · ${path.progress}% complete
-                            </span>
-                        `;
-                    }
-                }
-            }
-
-            // 进度条 — 使用 adapter 的进度数据
+            // 进度条
             var progressData = adapter ? adapter.getModuleProgress(moduleId) : { progress: 0, completed: false };
             var displayProgress = progressData.progress || 0;
             var isCompleted = progressData.completed || false;
@@ -1689,9 +1684,7 @@ function __safeCall(pathOrObj) {
                 </div>
             `;
 
-            // ============================================================
-            // 🔥 Part 58.5: Lesson 列表
-            // ============================================================
+            // Lesson 列表
             var lessons = adapter ? adapter.getModuleLessons(moduleId) : [];
 
             if (lessons && lessons.length > 0) {
@@ -1722,17 +1715,13 @@ function __safeCall(pathOrObj) {
                                         ${String(index + 1).padStart(2, '0')}. ${lesson.name}
                                     </div>
                                     ${lesson.description ? `<div style="color: #64748b; font-size: 12px;">${lesson.description}</div>` : ''}
-                                                                        <div style="display: flex; gap: 8px; align-items: center;">
-                                        ${lesson.duration ? `<span style="color: #64748b; font-size: 12px;">⏱️ ${lesson.duration}min</span>` : ''}
-                                        <span style="color: ${lStatusColor}; font-size: 11px; background: rgba(255,255,255,0.06); padding: 2px 10px; border-radius: 12px;">${lStatusText}</span>
-                                        ${!lessonCompleted && !lessonActive ? `<span style="color: #64748b; font-size: 9px;">🔓 Free to explore</span>` : ''}
-                                    </div>
                                 </div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 12px;">
                                 <div style="display: flex; gap: 8px; align-items: center;">
                                     ${lesson.duration ? `<span style="color: #64748b; font-size: 12px;">⏱️ ${lesson.duration}min</span>` : ''}
                                     <span style="color: ${lStatusColor}; font-size: 11px; background: rgba(255,255,255,0.06); padding: 2px 10px; border-radius: 12px;">${lStatusText}</span>
+                                    ${!lessonCompleted && !lessonActive ? `<span style="color: #64748b; font-size: 9px;">🔓 Free to explore</span>` : ''}
                                 </div>
                                 <span style="color: ${lStatusColor}; font-size: 14px;">→</span>
                             </div>
