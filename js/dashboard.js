@@ -28,6 +28,16 @@ LawAIApp.Dashboard = {
     'background': 3
   },
 
+  var learningState = null;
+    var adapter = window.LawAIApp?.LearningJourneyAdapter;
+    if (adapter && adapter.initialized && typeof adapter.getLearningState === 'function') {
+        try {
+            learningState = adapter.getLearningState();
+        } catch (e) {
+            console.warn('[Dashboard] LearningState unavailable:', e);
+        }
+    }
+
   render: function() {
     const contract = window.LawAIApp?.ExperienceContract;
     const orchestrator = window.LawAIApp?.JourneyOrchestrator;
