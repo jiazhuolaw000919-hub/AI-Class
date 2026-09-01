@@ -1722,6 +1722,11 @@ function __safeCall(pathOrObj) {
                                         ${String(index + 1).padStart(2, '0')}. ${lesson.name}
                                     </div>
                                     ${lesson.description ? `<div style="color: #64748b; font-size: 12px;">${lesson.description}</div>` : ''}
+                                                                        <div style="display: flex; gap: 8px; align-items: center;">
+                                        ${lesson.duration ? `<span style="color: #64748b; font-size: 12px;">⏱️ ${lesson.duration}min</span>` : ''}
+                                        <span style="color: ${lStatusColor}; font-size: 11px; background: rgba(255,255,255,0.06); padding: 2px 10px; border-radius: 12px;">${lStatusText}</span>
+                                        ${!lessonCompleted && !lessonActive ? `<span style="color: #64748b; font-size: 9px;">🔓 Free to explore</span>` : ''}
+                                    </div>
                                 </div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 12px;">
