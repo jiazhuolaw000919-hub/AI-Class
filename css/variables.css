@@ -93,6 +93,50 @@
     /* ===== 内容宽度 ===== */
     --max-width-container: 1000px;
     --max-width-reading: 740px;
+
+   /* ===== 颜色系统 - 补充 ===== */
+--color-primary: #4a9eff;
+--color-success: #22c55e;
+--color-warning: #f59e0b;
+--color-danger: #ef4444;
+--color-accent: #8b5cf6;
+
+/* ===== 间距系统 - 补充细粒度 ===== */
+--space-4xs: 2px;
+--space-3xs: 4px;
+--space-2xs: 6px;
+--space-xs: 8px;
+--space-sm: 10px;
+--space-md: 14px;
+--space-lg: 18px;
+--space-xl: 24px;
+--space-2xl: 32px;
+--space-3xl: 48px;
+
+/* ===== 圆角系统 - 补充 ===== */
+--radius-sm: 8px;
+--radius-md: 12px;
+--radius-lg: 16px;
+--radius-xl: 24px;
+--radius-2xl: 32px;
+--radius-full: 9999px;
+
+/* ===== 字体大小 - 补充 ===== */
+--font-size-3xs: 10px;
+--font-size-2xs: 11px;
+--font-size-xs: 12px;
+--font-size-sm: 14px;
+--font-size-base: 15px;
+--font-size-md: 16px;
+--font-size-lg: 18px;
+--font-size-xl: 22px;
+--font-size-2xl: 26px;
+--font-size-3xl: 32px;
+--font-size-4xl: 40px;
+
+/* ===== 阴影 - 补充 ===== */
+--shadow-glow-sm: 0 4px 24px rgba(74,158,255,0.15);
+--shadow-glow-md: 0 8px 40px rgba(74,158,255,0.25);
 }
 
 /* ===== 暗色主题变量（默认） ===== */
