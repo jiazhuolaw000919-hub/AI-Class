@@ -29,6 +29,18 @@ LawAIApp.Dashboard = {
   },
 
   render: function() {
+    // 🔥 Part 102: 从 Core 获取数据
+    var coreResult = this._getCoreIntelligenceResult();
+    
+    // 🔥 Part 102: 通过 Adapter 转换为 Dashboard 数据
+    var surfaceData = LawAIApp.DashboardSurfaceAdapter 
+        ? LawAIApp.DashboardSurfaceAdapter.adapt(coreResult)
+        : null;
+    
+    var viewModel = LawAIApp.DashboardViewModel
+        ? LawAIApp.DashboardViewModel.toRenderModel(surfaceData)
+        : null;
+    
     var learningState = null;
     var adapter = window.LawAIApp?.LearningJourneyAdapter;
     if (adapter && adapter.initialized && typeof adapter.getLearningState === 'function') {
