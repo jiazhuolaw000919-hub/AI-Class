@@ -67,7 +67,7 @@ LawAIApp.Calendar = {
   // ========== 日历视图 ==========
   renderCalendarView(container) {
     const { daysInMonth, firstDay } = LawAIApp.CalendarEngine.getMonthData(this.currentYear, this.currentMonth);
-    const progress = LawAIApp.ProgressEngine.getProgress();
+    const progress = CalendarSurfaceAdapter.getProgress();
     const monthName = new Date(this.currentYear, this.currentMonth).toLocaleString('default', { month: 'long' });
 
     let gridHTML = '';
