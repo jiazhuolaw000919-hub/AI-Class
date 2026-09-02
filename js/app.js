@@ -674,7 +674,6 @@ window.App = {
     },
 
     _registerCalendarRoute: function() {
-        // 等待 Router 可用
         var checkRouter = function(attempts) {
             attempts = attempts || 0;
             var router = safeGet(window, 'LawAIApp.Router') || window.LawAIApp?.Router;
@@ -682,8 +681,8 @@ window.App = {
             if (router && typeof router.register === 'function') {
                 console.log('[App] 📅 Registering Calendar route...');
             
-                // 注册 planner 路由
-                router.register('planner', function() {
+                // 🔥 主入口：calendar
+                router.register('calendar', function() {
                     if (window.LawAIApp?.Calendar) {
                         if (typeof window.LawAIApp.Calendar.init === 'function') {
                             window.LawAIApp.Calendar.init();
@@ -691,7 +690,6 @@ window.App = {
                         window.LawAIApp.Calendar.render();
                     } else {
                         console.warn('[App] ⚠️ Calendar not loaded yet');
-                        // 显示加载状态
                         var root = document.getElementById('app') || document.getElementById('law-runtime-root');
                         if (root) {
                             root.innerHTML = `
@@ -703,19 +701,17 @@ window.App = {
                                 </div>
                             `;
                         }
-                        // 尝试重新加载 Calendar
                         this._loadCalendar();
                     }
                 }.bind(this));
-                
-                // calendar 作为别名
-                router.register('calendar', function() {
-                    router.navigate('planner');
+            
+                // planner 作为别名（兼容旧链接）
+                router.register('planner', function() {
+                    router.navigate('calendar');
                 });
             
                 console.log('[App] ✅ Calendar route registered');
             } else if (attempts < 10) {
-                // 重试
                 setTimeout(function() {
                     this._registerCalendarRoute(attempts + 1);
                 }.bind(this), 300);
@@ -723,10 +719,10 @@ window.App = {
                 console.warn('[App] ⚠️ Router not available after 10 attempts');
             }
         }.bind(this);
-    
+
         checkRouter(0);
     },
-
+    
     _loadCalendar: function() {
         // 动态加载 Calendar 如果未加载
         if (window.LawAIApp?.Calendar) {
