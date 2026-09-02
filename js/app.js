@@ -69,6 +69,10 @@ window.App = {
             console.warn('⚠️ App destroyed, cannot init');
             return;
         }
+        this._renderImmediately();
+    
+        // 🔥 Part 106: 注册 Calendar 路由
+        this._registerCalendarRoute();
 
         if (this._state.initialized) {
             console.log("🔄 App already initialized, refreshing...");
@@ -667,6 +671,107 @@ window.App = {
                 }
             }, 2000);
         }
+    },
+
+    _registerCalendarRoute: function() {
+        // 等待 Router 可用
+        var checkRouter = function(attempts) {
+            attempts = attempts || 0;
+            var router = safeGet(window, 'LawAIApp.Router') || window.LawAIApp?.Router;
+        
+            if (router && typeof router.register === 'function') {
+                console.log('[App] 📅 Registering Calendar route...');
+            
+                // 注册 planner 路由
+                router.register('planner', function() {
+                    if (window.LawAIApp?.Calendar) {
+                        if (typeof window.LawAIApp.Calendar.init === 'function') {
+                            window.LawAIApp.Calendar.init();
+                        }
+                        window.LawAIApp.Calendar.render();
+                    } else {
+                        console.warn('[App] ⚠️ Calendar not loaded yet');
+                        // 显示加载状态
+                        var root = document.getElementById('app') || document.getElementById('law-runtime-root');
+                        if (root) {
+                            root.innerHTML = `
+                                <div style="display:flex;align-items:center;justify-content:center;min-height:60vh;color:#94a3b8;font-family:'Inter',sans-serif;">
+                                    <div style="text-align:center;">
+                                        <div style="font-size:48px;margin-bottom:16px;">📅</div>
+                                        <p>Loading Calendar...</p>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        // 尝试重新加载 Calendar
+                        this._loadCalendar();
+                    }
+                }.bind(this));
+                
+                // calendar 作为别名
+                router.register('calendar', function() {
+                    router.navigate('planner');
+                });
+            
+                console.log('[App] ✅ Calendar route registered');
+            } else if (attempts < 10) {
+                // 重试
+                setTimeout(function() {
+                    this._registerCalendarRoute(attempts + 1);
+                }.bind(this), 300);
+            } else {
+                console.warn('[App] ⚠️ Router not available after 10 attempts');
+            }
+        }.bind(this);
+    
+        checkRouter(0);
+    },
+
+    _loadCalendar: function() {
+        // 动态加载 Calendar 如果未加载
+        if (window.LawAIApp?.Calendar) {
+            return;
+        }
+    
+        console.log('[App] 📅 Loading Calendar...');
+        var files = [
+            '/js/calendarEngine.js',
+            '/js/calendarPlanner.js',
+            '/js/calendarTimeline.js',
+            '/js/calendarEngineAdapter.js',
+            '/js/calendar.js',
+            '/js/calendarDashboard.js',
+            '/js/calendar/CalendarSurfaceAdapter.js',
+            '/js/calendar/CalendarViewModel.js',
+            '/js/calendar/CalendarEventAdapter.js',
+            '/js/calendar/CalendarRenderer.js'
+        ];
+    
+        var loaded = 0;
+        var self = this;
+        files.forEach(function(file) {
+            var script = document.createElement('script');
+            script.src = file + '?v=' + Date.now();
+            script.onload = function() {
+                loaded++;
+                if (loaded === files.length) {
+                    console.log('[App] ✅ Calendar loaded');
+                    if (window.LawAIApp?.Calendar && typeof window.LawAIApp.Calendar.init === 'function') {
+                        window.LawAIApp.Calendar.init();
+                    }
+                    // 重新导航到 planner
+                    var router = safeGet(window, 'LawAIApp.Router') || window.LawAIApp?.Router;
+                    if (router && typeof router.navigate === 'function') {
+                        router.navigate('planner');
+                    }
+                }
+            };
+            script.onerror = function() {
+                loaded++;
+                console.warn('[App] ⚠️ Failed to load:', file);
+            };
+            document.head.appendChild(script);
+        });
     },
 
     _emit: function(eventName, data) {
