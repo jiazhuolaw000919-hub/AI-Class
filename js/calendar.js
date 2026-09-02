@@ -5,7 +5,25 @@ LawAIApp.Calendar = {
   currentMonth: new Date().getMonth(),
 
   render() {
-    const tabs = ['calendar', 'timeline', 'stats', 'secondbrain'];
+    var coreResult = LawAIApp.LearningJourneyAdapter 
+        ? LawAIApp.LearningJourneyAdapter.getJourneyContextSafe() 
+        : null;
+    
+    var surfaceData = LawAIApp.CalendarSurfaceAdapter 
+        ? LawAIApp.CalendarSurfaceAdapter.adapt(coreResult, this._getScheduleState())
+        : null;
+    
+    var viewModel = LawAIApp.CalendarViewModel 
+        ? LawAIApp.CalendarViewModel.toRenderModel(surfaceData)
+        : null;
+    
+    // 如果 ViewModel 可用，用它，否则回退到原有逻辑
+    if (viewModel && !viewModel.isEmpty) {
+        this._renderWithViewModel(viewModel);
+        return;
+    }
+    
+    const tabs = ['calendar', 'timeline', 'stats', 'secondbrain', 'planner'];
     const html = `
       <div class="page">
         <h2>📅 Learning Memory</h2>
