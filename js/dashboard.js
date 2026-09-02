@@ -32,7 +32,6 @@ LawAIApp.Dashboard = {
     // 🔥 Part 102: 从 Core 获取数据
     var coreResult = this._getCoreIntelligenceResult();
     
-    // 🔥 Part 102: 通过 Adapter 转换为 Dashboard 数据
     var surfaceData = LawAIApp.DashboardSurfaceAdapter 
         ? LawAIApp.DashboardSurfaceAdapter.adapt(coreResult)
         : null;
@@ -40,6 +39,54 @@ LawAIApp.Dashboard = {
     var viewModel = LawAIApp.DashboardViewModel
         ? LawAIApp.DashboardViewModel.toRenderModel(surfaceData)
         : null;
+    
+    // 获取原有数据（作为 fallback）
+    var progress = this._getProgress();
+    var streakData = this._getStreakData();
+    var levelInfo = this._getLevelInfo();
+    var achievements = this._getAchievements();
+    var allLessons = this._getAllLessons();
+    var favorites = this._getFavorites();
+    var noteCount = this._getNoteCount();
+    var heroData = this._getHeroData('not_started', progress, streakData);
+    
+    // 🔥 如果有 ViewModel，覆盖数据
+    if (viewModel && viewModel.hero) {
+        heroData = viewModel.hero;
+        progress.completionPercent = viewModel.progress?.overall || 0;
+    }
+    
+    // 如果有推荐，使用 Core 推荐
+    if (viewModel && viewModel.recommendation) {
+        // 稍后在 _buildHTML 中使用
+    }
+    
+    var html = this._buildHTML({
+        progress: progress,
+        streakData: streakData,
+        levelInfo: levelInfo,
+        achievements: achievements,
+        todayLesson: null,
+        favorites: favorites,
+        completionRate: '0.0',
+        currentStage: 'Foundation',
+        lastCompletedDate: 'Not started',
+        dailyBriefingHTML: '',
+        allLessons: allLessons,
+        noteCount: noteCount,
+        heroData: heroData,
+        learnerState: 'not_started',
+        // 🔥 传递 ViewModel 供 _buildHTML 使用
+        _viewModel: viewModel
+    });
+    
+    var app = document.getElementById('app') || document.getElementById('law-runtime-root');
+    if (app) {
+        app.innerHTML = html;
+        this._rendered = true;
+        this._initAnimations();
+      }
+    }
     
     var learningState = null;
     var adapter = window.LawAIApp?.LearningJourneyAdapter;
@@ -211,17 +258,17 @@ LawAIApp.Dashboard = {
   /**
    * 使用 ViewModel 渲染
    */
-  _renderWithViewModel: function(viewModel) {
-      // 构建 HTML 使用 viewModel 数据
-      var html = this._buildHTMLFromViewModel(viewModel);
+  __renderWithViewModel: function(viewModel) {
+    // 使用 ViewModel 构建 HTML
+    var html = this._buildHTMLFromViewModel(viewModel);
     
-      var app = document.getElementById('app') || document.getElementById('law-runtime-root');
-      if (app) {
-          app.innerHTML = html;
-          this._rendered = true;
-          this._initAnimations();
-      }
-  },
+    var app = document.getElementById('app') || document.getElementById('law-runtime-root');
+    if (app) {
+        app.innerHTML = html;
+        this._rendered = true;
+        this._initAnimations();
+    }
+},
 
   /**
    * 从 ViewModel 构建 HTML（简化版）
@@ -2203,16 +2250,22 @@ LawAIApp.Dashboard = {
           { icon: '📓', label: 'Notes', url: '/pages/academy.html#notes' },
           { icon: '🧠', label: 'Intelligence', url: null },
           { icon: '💬', label: 'Chat', url: null },
-          { icon: '📅', label: 'Calendar', url: null },
+          { icon: '📅', label: 'Calendar', url: null, route: 'calendar' },
           { icon: '🛠️', label: 'Tools', url: null },
           { icon: '📋', label: 'Prompts', url: null },
           { icon: '🎯', label: 'Goals', url: null },
           { icon: '🧠', label: 'Mentor', url: null },
           { icon: '🚀', label: 'Showcase', url: null }
         ].map(function(btn) {
-          var onClick = btn.url 
-            ? "window.location.href='" + btn.url + "'"
-            : "if(window.LawAIApp&&window.LawAIApp.Toast&&typeof window.LawAIApp.Toast.info==='function'){window.LawAIApp.Toast.info('" + btn.label + " coming soon! 🚧')}else{alert('" + btn.label + " coming soon! 🚧')}";
+          var onClick;
+          if (btn.url) {
+            onClick = "window.location.href='" + btn.url + "'";
+          } else if (btn.route) {
+            // 🔥 有 route 字段，用 Router 导航
+            onClick = "if(window.LawAIApp&&window.LawAIApp.Router){window.LawAIApp.Router.navigate('" + btn.route + "')}else{alert('Router not available')}";
+          } else {
+            onClick = "if(window.LawAIApp&&window.LawAIApp.Toast&&typeof window.LawAIApp.Toast.info==='function'){window.LawAIApp.Toast.info('" + btn.label + " coming soon! 🚧')}else{alert('" + btn.label + " coming soon! 🚧')}";
+          }
           
           return `
           <button onclick="${onClick}" style="
