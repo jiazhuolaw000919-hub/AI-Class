@@ -247,7 +247,13 @@ var STAGES = {
         "eventBus.js",
         "themeEngine.js",
         "systemComposer.js",
-        "app.js"
+        "app.js",
+        "calendarEngine.js",
+        "calendarPlanner.js",
+        "calendarTimeline.js",
+        "calendarEngineAdapter.js",
+        "calendar.js",
+        "calendarDashboard.js"
     ],
     ux: [
         "experienceComposer.js",
@@ -257,7 +263,11 @@ var STAGES = {
         "debug/devPanel.js",
         "debug/devPanelAIAssistant.js",
         "debug/devPanelKnowledgeGraph.js",
-        "debug/devPanelCognitive.js"
+        "debug/devPanelCognitive.js",
+        "calendar/CalendarSurfaceAdapter.js",
+        "calendar/CalendarViewModel.js",
+        "calendar/CalendarEventAdapter.js",
+        "calendar/CalendarRenderer.js"
     ],
     intelligence: [
         "academy/lessonEngine.js",
