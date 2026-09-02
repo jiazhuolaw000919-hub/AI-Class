@@ -334,7 +334,7 @@ LawAIApp.CalendarRenderer = {
                 itemId: optionId,
                 title: 'Learning Session',
                 duration: 30,
-                source: 'calendar-recommendation'
+                source: 'calendar'
             });
         }
         // Toast 反馈
