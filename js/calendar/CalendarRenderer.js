@@ -350,7 +350,7 @@ LawAIApp.CalendarRenderer = {
                 itemId: itemId,
                 title: 'Learning Session',
                 duration: 30,
-                source: 'calendar-suggested'
+                source: 'calendar'
             });
         }
         if (window.LawAIApp?.Toast) {
