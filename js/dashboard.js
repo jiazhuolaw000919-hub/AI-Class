@@ -156,6 +156,101 @@ LawAIApp.Dashboard = {
   },
 
   // ============================================================
+  // Part 102: Core Intelligence Consumer
+  // ============================================================
+
+  /**
+   * 从 Core Intelligence 获取权威结果
+   * 通过 LearningJourneyAdapter 的 pipeline 获取
+   */
+  _getCoreIntelligenceResult: function() {
+      var adapter = window.LawAIApp?.LearningJourneyAdapter;
+      if (!adapter || !adapter.initialized) {
+          return null;
+      }
+
+      try {
+          // 使用 Part 96 的 pipeline
+          if (typeof adapter.runPipeline === 'function') {
+              return adapter.runPipeline({
+                  context: this._getDashboardContext()
+              });
+          }
+        
+          // fallback: 使用 Journey Context
+          if (typeof adapter.getJourneyContext === 'function') {
+              return adapter.getJourneyContext();
+          }
+      } catch (e) {
+          console.warn('[Dashboard] Core Intelligence unavailable:', e);
+      }
+
+      return null;
+  },
+
+  /**
+   * 获取 Dashboard 上下文
+   */
+  _getDashboardContext: function() {
+      var lc = window.LawAIApp?.LearningContext;
+      var state = {};
+    
+      if (lc && lc.getContext) {
+          try {
+              state = lc.getContext() || {};
+          } catch (e) {}
+      }
+
+      return {
+          learningMode: 'dashboard',
+          context: state,
+          timestamp: new Date().toISOString()
+      };
+  },
+
+  /**
+   * 使用 ViewModel 渲染
+   */
+  _renderWithViewModel: function(viewModel) {
+      // 构建 HTML 使用 viewModel 数据
+      var html = this._buildHTMLFromViewModel(viewModel);
+    
+      var app = document.getElementById('app') || document.getElementById('law-runtime-root');
+      if (app) {
+          app.innerHTML = html;
+          this._rendered = true;
+          this._initAnimations();
+      }
+  },
+
+  /**
+   * 从 ViewModel 构建 HTML（简化版）
+   * 后续可逐步替换现有 _buildHTML
+   */
+  _buildHTMLFromViewModel: function(viewModel) {
+      // 这里先复用现有的 _buildHTML，但传入 viewModel 数据
+      // 或者逐步将 _buildHTML 改为接收 viewModel
+      return this._buildHTML({
+          progress: viewModel.progress || { overall: 0 },
+          streakData: { currentStreak: 0 },
+          levelInfo: { level: 1 },
+          achievements: [],
+          todayLesson: null,
+          favorites: [],
+          completionRate: '0.0',
+          currentStage: 'Foundation',
+          lastCompletedDate: 'Not started',
+          dailyBriefingHTML: '',
+          allLessons: [],
+          noteCount: 0,
+          heroData: viewModel.hero || { greeting: 'Welcome', message: 'Start learning', cta: 'Explore', ctaLink: '/pages/academy.html' },
+          learnerState: 'not_started',
+          // Part 102: 新增数据
+          _viewModel: viewModel
+      });
+  },
+
+  // ============================================================
   // Part 70: 状态感知 Hero
   // ============================================================
 
