@@ -1626,6 +1626,15 @@ LawAIApp.Dashboard = {
       });
       document.dispatchEvent(event);
     } catch (e) {}
+
+    // 🔥 Part 102: 发送事件到 Core
+    var eventAdapter = LawAIApp.DashboardEventAdapter;
+    if (eventAdapter) {
+        eventAdapter.sendRecommendationAccepted(choiceId, {
+            actionType: actionType,
+            source: 'dashboard-loop'
+        });
+    }
   },
 
   // ============================================================
