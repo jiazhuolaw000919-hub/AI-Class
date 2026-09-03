@@ -602,6 +602,19 @@ LawAIApp.Calendar = {
             <div>
               <h4 style="margin:0 0 4px;font-size:14px;color:#8b5cf6;">Mentor Suggestion</h4>
               <p style="margin:0;color:#cbd5e1;font-size:13px;">${memory < 70 ? '🧠 Prioritize reviews to protect your memory retention.' : '📚 You\'re ready for a challenge! Add a new topic to your learning path.'}</p>
+              // 在 </div> 结束前，Mentor Suggestion 下方添加
+        <button onclick="LawAIApp.Calendar._showCreateTaskModal()" style="
+          margin-top:12px;
+          padding:8px 20px;
+          background:rgba(74,158,255,0.08);
+          border:1px solid rgba(74,158,255,0.12);
+          border-radius:100px;
+          color:#4a9eff;
+          font-size:13px;
+          cursor:pointer;
+          font-family:inherit;
+          width:100%;
+        ">+ Add Learning Task</button>
             </div>
           </div>
         </div>
@@ -714,6 +727,246 @@ LawAIApp.Calendar = {
     
     this.render();
   }
+
+  // ============================================================
+  // Part 106: Schedule CRUD
+  // ============================================================
+
+  _getScheduleKey: function() {
+    return 'lawai_calendar_schedule_' + (this._userId || 'default');
+  },
+
+  _getAllSchedules: function() {
+    try {
+      var stored = localStorage.getItem(this._getScheduleKey());
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  _saveSchedules: function(schedules) {
+    try {
+      localStorage.setItem(this._getScheduleKey(), JSON.stringify(schedules));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+
+  _getScheduleForDate: function(dateStr) {
+    var schedules = this._getAllSchedules();
+    return schedules.filter(function(s) { return s.date === dateStr; });
+  },
+
+  _createSchedule: function(title, date, startTime, endTime, description) {
+    var schedule = {
+      id: 'sch_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+      title: title || 'Learning Session',
+      date: date || new Date().toISOString().split('T')[0],
+      startTime: startTime || '09:00',
+      endTime: endTime || '10:00',
+      description: description || '',
+      status: 'scheduled',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      source: 'calendar'
+    };
+
+    var schedules = this._getAllSchedules();
+    schedules.push(schedule);
+    this._saveSchedules(schedules);
+
+    // 发送事件到 Core
+    this._emitScheduleEvent('SCHEDULE_CREATED', schedule);
+
+    return schedule;
+  },
+
+  _updateSchedule: function(id, updates) {
+    var schedules = this._getAllSchedules();
+    var index = schedules.findIndex(function(s) { return s.id === id; });
+    if (index === -1) return null;
+
+    schedules[index] = {
+      ...schedules[index],
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+    this._saveSchedules(schedules);
+
+    this._emitScheduleEvent('SCHEDULE_UPDATED', schedules[index]);
+    return schedules[index];
+  },
+
+  _deleteSchedule: function(id) {
+    var schedules = this._getAllSchedules();
+    var deleted = schedules.find(function(s) { return s.id === id; });
+    schedules = schedules.filter(function(s) { return s.id !== id; });
+    this._saveSchedules(schedules);
+
+    if (deleted) {
+      this._emitScheduleEvent('SCHEDULE_CANCELLED', deleted);
+    }
+    return deleted;
+  },
+
+  _emitScheduleEvent: function(eventType, payload) {
+    try {
+      var event = new CustomEvent(eventType, {
+        detail: {
+          eventId: 'evt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+          source: 'calendar',
+          actor: 'learner',
+          timestamp: new Date().toISOString(),
+          eventType: eventType,
+          payload: payload || {},
+          schemaVersion: '1.0.0'
+        }
+      });
+      document.dispatchEvent(event);
+      window.dispatchEvent(event);
+      console.log('[Calendar] Event emitted:', eventType);
+    } catch (e) {}
+  },
+
+  _showCreateTaskModal: function() {
+    var container = this._getContainer();
+    if (!container) return;
+
+    var modalHtml = `
+      <div id="schedule-modal" style="
+        position:fixed;
+        top:0;left:0;right:0;bottom:0;
+        background:rgba(0,0,0,0.6);
+        backdrop-filter:blur(4px);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        z-index:1000;
+      ">
+        <div style="
+          background:#1a2639;
+          border-radius:16px;
+          padding:24px;
+          max-width:400px;
+          width:90%;
+          border:1px solid rgba(255,255,255,0.06);
+        ">
+          <h3 style="margin:0 0 16px;font-size:18px;">📅 New Learning Task</h3>
+          
+          <div style="margin-bottom:12px;">
+            <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:4px;">Title *</label>
+            <input id="modal-task-title" placeholder="e.g. Review AI Fundamentals" style="
+              width:100%;
+              padding:8px 12px;
+              background:rgba(255,255,255,0.04);
+              border:1px solid rgba(255,255,255,0.06);
+              border-radius:8px;
+              color:#e2e8f0;
+              font-family:inherit;
+              font-size:13px;
+            ">
+          </div>
+          
+          <div style="margin-bottom:12px;">
+            <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:4px;">Date *</label>
+            <input id="modal-task-date" type="date" value="${new Date().toISOString().split('T')[0]}" style="
+              width:100%;
+              padding:8px 12px;
+              background:rgba(255,255,255,0.04);
+              border:1px solid rgba(255,255,255,0.06);
+              border-radius:8px;
+              color:#e2e8f0;
+              font-family:inherit;
+              font-size:13px;
+            ">
+          </div>
+          
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div>
+              <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:4px;">Start</label>
+              <input id="modal-task-start" type="time" value="09:00" style="
+                width:100%;
+                padding:8px 12px;
+                background:rgba(255,255,255,0.04);
+                border:1px solid rgba(255,255,255,0.06);
+                border-radius:8px;
+                color:#e2e8f0;
+                font-family:inherit;
+                font-size:13px;
+              ">
+            </div>
+            <div>
+              <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:4px;">End</label>
+              <input id="modal-task-end" type="time" value="10:00" style="
+                width:100%;
+                padding:8px 12px;
+                background:rgba(255,255,255,0.04);
+                border:1px solid rgba(255,255,255,0.06);
+                border-radius:8px;
+                color:#e2e8f0;
+                font-family:inherit;
+                font-size:13px;
+              ">
+            </div>
+          </div>
+          
+          <div style="display:flex;gap:8px;margin-top:16px;">
+            <button onclick="LawAIApp.Calendar._confirmCreateTask()" style="
+              flex:1;
+              padding:10px;
+              background:#4a9eff;
+              border:none;
+              border-radius:8px;
+              color:white;
+              font-size:14px;
+              font-weight:600;
+              cursor:pointer;
+              font-family:inherit;
+            ">Create</button>
+            <button onclick="LawAIApp.Calendar._closeModal()" style="
+              flex:1;
+              padding:10px;
+              background:rgba(255,255,255,0.04);
+              border:1px solid rgba(255,255,255,0.06);
+              border-radius:8px;
+              color:#94a3b8;
+              font-size:14px;
+              cursor:pointer;
+              font-family:inherit;
+            ">Cancel</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // 移除旧 modal
+    var oldModal = document.getElementById('schedule-modal');
+    if (oldModal) oldModal.remove();
+
+    container.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  _closeModal: function() {
+    var modal = document.getElementById('schedule-modal');
+    if (modal) modal.remove();
+  },
+
+  _confirmCreateTask: function() {
+    var title = document.getElementById('modal-task-title')?.value || 'Learning Session';
+    var date = document.getElementById('modal-task-date')?.value || new Date().toISOString().split('T')[0];
+    var start = document.getElementById('modal-task-start')?.value || '09:00';
+    var end = document.getElementById('modal-task-end')?.value || '10:00';
+
+    this._createSchedule(title, date, start, end);
+    this._closeModal();
+
+    if (window.LawAIApp?.Toast?.success) {
+      LawAIApp.Toast.success('✅ Task created!');
+    }
+    this.render();
+  },
 };
 
 // ============================================================
