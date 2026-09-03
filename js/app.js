@@ -70,40 +70,14 @@ window.App = {
             return;
         }
 
-        // 🔥 Part 106: 注册 Calendar 路由（在 initialized 检查之前）
+        // 🔥 注册路由
         this._registerCalendarRoute();
+        this._registerSettingsRoute();
 
         if (this._state.initialized) {
             console.log("🔄 App already initialized, refreshing...");
             this.refresh(payload);
             return;
-        }
-
-        this._registerSettingsRoute();
-
-        _registerSettingsRoute: function() {
-            var router = safeGet(window, 'LawAIApp.Router') || window.LawAIApp?.Router;
-            if (router && typeof router.register === 'function') {
-                router.register('settings', function() {
-                    if (window.LawAIApp?.Settings) {
-                        window.LawAIApp.Settings.render();
-                    } else {
-                        this._loadSettings();
-                    }
-                }.bind(this));
-            }
-        }
-
-        _loadSettings: function() {
-            // 动态加载 settings.js
-            var script = document.createElement('script');
-            script.src = '/js/settings.js';
-            script.onload = function() {
-                if (window.LawAIApp?.Settings) {
-                    window.LawAIApp.Settings.render();
-                }
-            };
-            document.head.appendChild(script);
         }
 
         this._state.initialized = true;
@@ -153,7 +127,6 @@ window.App = {
         this._initPracticeModules();
         this._initNotesModule();
 
-        // 🔥 只调用一次渲染
         this._renderImmediately();
         this._setupComposerListener();
 
@@ -186,13 +159,11 @@ window.App = {
 
         console.log("⚡ Rendering immediately (no skeleton, no loading)...");
 
-        // 🔥 直接尝试渲染 S4 Dashboard
         if (this._renderS4Dashboard()) {
             console.log("✅ Dashboard rendered directly");
             return;
         }
 
-        // 🔥 如果没有 Dashboard，尝试 SystemComposer
         var composer = safeGet(window, 'LawAIApp.SystemComposer');
         if (composer && typeof composer.init === 'function') {
             try {
@@ -204,7 +175,6 @@ window.App = {
             }
         }
 
-        // ⚠️ 最后才显示 skeleton
         this._showMinimalSkeleton(root);
     },
 
@@ -691,14 +661,20 @@ window.App = {
         }
     },
 
+    // ============================================================
+    // 🔥 Calendar 路由注册
+    // ============================================================
     _registerCalendarRoute: function() {
-        var checkRouter = function(attempts) {
-            attempts = attempts || 0;
+        var self = this;
+        var attempts = 0;
+
+        function tryRegister() {
+            attempts++;
             var router = safeGet(window, 'LawAIApp.Router') || window.LawAIApp?.Router;
-        
+
             if (router && typeof router.register === 'function') {
                 console.log('[App] 📅 Registering Calendar route...');
-            
+
                 router.register('calendar', function() {
                     var app = document.getElementById('app') || document.getElementById('law-runtime-root');
                     if (window.LawAIApp?.Calendar) {
@@ -707,39 +683,64 @@ window.App = {
                         }
                         window.LawAIApp.Calendar.render();
                     } else if (app) {
-                        app.innerHTML = `
-                            <div style="display:flex;align-items:center;justify-content:center;min-height:60vh;color:#94a3b8;font-family:'Inter',sans-serif;">
-                                <div style="text-align:center;">
-                                    <div style="font-size:48px;margin-bottom:16px;">📅</div>
-                                    <p>Loading Calendar...</p>
-                                </div>
-                            </div>
-                        `;
-                        this._loadCalendar();
+                        app.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;">📅 Loading Calendar...</div>';
+                        self._loadCalendar();
                     }
-                }.bind(this));
-            
+                });
+
                 router.register('planner', function() {
                     router.navigate('calendar');
                 });
-            
+
                 console.log('[App] ✅ Calendar route registered');
             } else if (attempts < 10) {
-                setTimeout(function() {
-                    this._registerCalendarRoute(attempts + 1);
-                }.bind(this), 300);
+                setTimeout(tryRegister, 300);
             } else {
                 console.warn('[App] ⚠️ Router not available after 10 attempts');
             }
-        }.bind(this);
+        }
 
-        checkRouter(0);
+        tryRegister();
     },
 
-    _loadCalendar: function() {
-        if (window.LawAIApp?.Calendar) {
-            return;
+    // ============================================================
+    // 🔥 Settings 路由注册
+    // ============================================================
+    _registerSettingsRoute: function() {
+        var self = this;
+        var attempts = 0;
+
+        function tryRegister() {
+            attempts++;
+            var router = safeGet(window, 'LawAIApp.Router') || window.LawAIApp?.Router;
+
+            if (router && typeof router.register === 'function') {
+                console.log('[App] ⚙️ Registering Settings route...');
+
+                router.register('settings', function() {
+                    if (window.LawAIApp?.Settings) {
+                        window.LawAIApp.Settings.render();
+                    } else {
+                        self._loadSettings();
+                    }
+                });
+
+                console.log('[App] ✅ Settings route registered');
+            } else if (attempts < 10) {
+                setTimeout(tryRegister, 300);
+            } else {
+                console.warn('[App] ⚠️ Router not available after 10 attempts');
+            }
         }
+
+        tryRegister();
+    },
+
+    // ============================================================
+    // 🔥 动态加载 Calendar
+    // ============================================================
+    _loadCalendar: function() {
+        if (window.LawAIApp?.Calendar) return;
 
         console.log('[App] 📅 Loading Calendar...');
         var files = [
@@ -756,21 +757,19 @@ window.App = {
 
         var loaded = 0;
         var totalFiles = files.length;
-        
+
         files.forEach(function(file) {
             var script = document.createElement('script');
             script.src = file + '?v=' + Date.now();
+            script.async = true;
             script.onload = function() {
                 loaded++;
-                console.log('[App] ✅ Calendar file loaded:', file, '(' + loaded + '/' + totalFiles + ')');
-                if (loaded === totalFiles) {
-                    console.log('[App] ✅ All Calendar files loaded');
-                    if (window.LawAIApp?.Calendar) {
-                        if (typeof window.LawAIApp.Calendar.init === 'function') {
-                            window.LawAIApp.Calendar.init();
-                        }
-                        window.LawAIApp.Calendar.render();
+                console.log('[App] ✅ Calendar file loaded:', file);
+                if (loaded === totalFiles && window.LawAIApp?.Calendar) {
+                    if (typeof window.LawAIApp.Calendar.init === 'function') {
+                        window.LawAIApp.Calendar.init();
                     }
+                    window.LawAIApp.Calendar.render();
                 }
             };
             script.onerror = function() {
@@ -779,6 +778,26 @@ window.App = {
             };
             document.head.appendChild(script);
         });
+    },
+
+    // ============================================================
+    // 🔥 动态加载 Settings
+    // ============================================================
+    _loadSettings: function() {
+        console.log('[App] ⚙️ Loading Settings...');
+        var script = document.createElement('script');
+        script.src = '/js/settings.js?v=' + Date.now();
+        script.async = true;
+        script.onload = function() {
+            console.log('[App] ✅ Settings loaded');
+            if (window.LawAIApp?.Settings) {
+                window.LawAIApp.Settings.render();
+            }
+        };
+        script.onerror = function() {
+            console.warn('[App] ⚠️ Settings load failed');
+        };
+        document.head.appendChild(script);
     },
 
     _emit: function(eventName, data) {
