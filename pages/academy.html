@@ -178,6 +178,61 @@
             }
 
             // ============================================================
+            // 渲染 Calendar 到 academy-root
+            // ============================================================
+            function renderCalendar() {
+                var container = document.getElementById('academy-root');
+                if (!container) {
+                    console.warn('[Academy] ⚠️ academy-root not found');
+                    return false;
+                }
+
+                // 检查 Calendar 是否已加载
+                if (!window.LawAIApp?.Calendar) {
+                    console.warn('[Academy] ⚠️ Calendar not loaded');
+                    return false;
+                }
+
+                try {
+                    // 初始化 Calendar（如果需要）
+                    if (typeof window.LawAIApp.Calendar.init === 'function' && !window.LawAIApp.Calendar.initialized) {
+                        window.LawAIApp.Calendar.init();
+                    }
+
+                    // 🔥 关键：确保 Calendar.render 使用 academy-root 作为容器
+                    var originalGetRoot = window.LawAIApp.Calendar.getRoot;
+                    
+                    // 临时覆盖 getRoot，让 Calendar 渲染到 academy-root
+                    window.LawAIApp.Calendar.getRoot = function() {
+                        return document.getElementById('academy-root') || document.getElementById('app');
+                    };
+
+                    // 渲染 Calendar
+                    window.LawAIApp.Calendar.render();
+
+                    // 恢复 getRoot（如果有原始方法）
+                    if (originalGetRoot) {
+                        window.LawAIApp.Calendar.getRoot = originalGetRoot;
+                    }
+
+                    updateNavHighlight('calendar');
+                    console.log('[Academy] ✅ Calendar rendered to academy-root');
+                    return true;
+                } catch (e) {
+                    console.error('[Academy] ❌ Calendar render error:', e);
+                    // 显示错误信息
+                    container.innerHTML = `
+                        <div style="text-align:center;padding:60px 20px;color:#94a3b8;">
+                            <div style="font-size:48px;margin-bottom:16px;">📅</div>
+                            <h3 style="font-size:20px;font-weight:600;margin:0 0 8px;color:#e2e8f0;">Calendar Error</h3>
+                            <p style="font-size:14px;margin:0;">${e.message || 'Failed to load Calendar'}</p>
+                        </div>
+                    `;
+                    return false;
+                }
+            }
+
+            // ============================================================
             // 导航点击事件
             // ============================================================
             document.querySelectorAll('.nav-item').forEach(function(item) {
@@ -209,24 +264,9 @@
                         return;
                     }
 
-                    // Calendar — 直接渲染，不跳转页面
+                    // Calendar — 直接渲染
                     if (tab === 'calendar') {
-                        if (window.LawAIApp?.Calendar) {
-                            var app = document.getElementById('academy-root');
-                            if (app) {
-                                // 临时把 Calendar 渲染到 academy-root
-                                if (typeof window.LawAIApp.Calendar.init === 'function') {
-                                    window.LawAIApp.Calendar.init();
-                                }
-                                window.LawAIApp.Calendar.render();
-                                updateNavHighlight('calendar');
-                                console.log('[Academy] ✅ Calendar rendered');
-                            }
-                        } else {
-                            // Calendar 未加载，显示提示
-                            showComingSoon('📅 Calendar');
-                            console.warn('[Academy] ⚠️ Calendar not loaded');
-                        }
+                        renderCalendar();
                         return;
                     }
 
@@ -245,6 +285,12 @@
                 var targetView = 'dashboard';
                 if (window.location.hash === '#notes' || window.location.search.includes('view=notes')) {
                     targetView = 'notes';
+                }
+                
+                // 🔥 如果 URL 中有 calendar 参数，直接渲染 Calendar
+                if (window.location.search.includes('view=calendar')) {
+                    renderCalendar();
+                    return;
                 }
 
                 console.log('🔥 Initializing Academy, targetView:', targetView);
