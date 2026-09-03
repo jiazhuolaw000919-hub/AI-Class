@@ -2227,7 +2227,6 @@ LawAIApp.Dashboard = {
           { icon: '🧠', label: 'Mentor', url: null },
           { icon: '🚀', label: 'Showcase', url: null }
         ].map(function(btn) {
-          .map(function(btn) {
             var onClick;
             if (btn.url) {
               onClick = "window.location.href='" + btn.url + "'";
