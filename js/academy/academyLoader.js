@@ -1,6 +1,7 @@
 // js/academy/academyLoader.js
 // Part 57.4-57.6 REBUILD — AcademyLoader Architecture Reset
 // Law AI Academy Developer Bible
+// v2.1.0 — 添加 Calendar/Settings 懒加载支持
 
 (function() {
   'use strict';
@@ -12,7 +13,7 @@
 
   class AcademyLoader {
     constructor() {
-      this.version = '2.0.0';
+      this.version = '2.1.0';
       this.status = 'idle';
       this.health = 'pending';
 
@@ -26,6 +27,16 @@
       this.startPromise = null;
 
       this._manifest = null;
+
+      // 🔥 懒加载状态
+      this._lazyLoaded = {
+        calendar: false,
+        settings: false
+      };
+      this._lazyLoading = {
+        calendar: false,
+        settings: false
+      };
 
       this._moduleChecks = {
         academyExperienceManager: function() {
@@ -146,7 +157,145 @@
     }
 
     // ============================================================
-    // 2. PRIVATE — 启动逻辑
+    // 🔥 懒加载 API（Calendar / Settings）
+    // ============================================================
+
+    /**
+     * 懒加载 Calendar（点击时才加载）
+     * @param {Function} onReady - 加载完成后的回调
+     * @param {Function} onFail - 加载失败后的回调
+     */
+    loadCalendarLazy: function(onReady, onFail) {
+      var moduleName = 'calendar';
+      
+      if (this._lazyLoaded[moduleName]) {
+        console.log('[AcademyLoader] ⏭️ Calendar already lazy-loaded');
+        if (onReady) onReady(window.LawAIApp?.Calendar);
+        return;
+      }
+
+      if (this._lazyLoading[moduleName]) {
+        console.log('[AcademyLoader] ⏳ Calendar already loading...');
+        return;
+      }
+
+      this._lazyLoading[moduleName] = true;
+      console.log('[AcademyLoader] 🔄 Lazy loading Calendar...');
+
+      var files = [
+        '/js/calendarEngine.js',
+        '/js/calendarPlanner.js',
+        '/js/calendarTimeline.js',
+        '/js/calendarEngineAdapter.js',
+        '/js/calendar/CalendarSurfaceAdapter.js',
+        '/js/calendar/CalendarViewModel.js',
+        '/js/calendar/CalendarEventAdapter.js',
+        '/js/calendar/CalendarRenderer.js',
+        '/js/calendar.js'
+      ];
+
+      this._loadScriptsSequentially(files, function(success) {
+        this._lazyLoading[moduleName] = false;
+        
+        if (success && window.LawAIApp?.Calendar) {
+          this._lazyLoaded[moduleName] = true;
+          console.log('[AcademyLoader] ✅ Calendar lazy-loaded');
+          if (onReady) onReady(window.LawAIApp.Calendar);
+        } else {
+          console.warn('[AcademyLoader] ⚠️ Calendar lazy-load incomplete');
+          if (onFail) onFail('Calendar load incomplete');
+        }
+      }.bind(this));
+    },
+
+    /**
+     * 懒加载 Settings（点击时才加载）
+     * @param {Function} onReady - 加载完成后的回调
+     * @param {Function} onFail - 加载失败后的回调
+     */
+    loadSettingsLazy: function(onReady, onFail) {
+      var moduleName = 'settings';
+      
+      if (this._lazyLoaded[moduleName]) {
+        console.log('[AcademyLoader] ⏭️ Settings already lazy-loaded');
+        if (onReady) onReady(window.LawAIApp?.Settings);
+        return;
+      }
+
+      if (this._lazyLoading[moduleName]) {
+        console.log('[AcademyLoader] ⏳ Settings already loading...');
+        return;
+      }
+
+      this._lazyLoading[moduleName] = true;
+      console.log('[AcademyLoader] 🔄 Lazy loading Settings...');
+
+      var files = ['/js/settings.js'];
+
+      this._loadScriptsSequentially(files, function(success) {
+        this._lazyLoading[moduleName] = false;
+        
+        if (success && window.LawAIApp?.Settings) {
+          this._lazyLoaded[moduleName] = true;
+          console.log('[AcademyLoader] ✅ Settings lazy-loaded');
+          if (onReady) onReady(window.LawAIApp.Settings);
+        } else {
+          console.warn('[AcademyLoader] ⚠️ Settings lazy-load incomplete');
+          if (onFail) onFail('Settings load incomplete');
+        }
+      }.bind(this));
+    },
+
+    /**
+     * 检查模块是否已懒加载
+     */
+    isLazyLoaded: function(moduleName) {
+      return !!this._lazyLoaded[moduleName];
+    },
+
+    // ============================================================
+    // 🔥 内部：顺序加载脚本
+    // ============================================================
+    _loadScriptsSequentially: function(files, callback) {
+      var loaded = 0;
+      var failed = [];
+
+      files.forEach(function(file) {
+        var script = document.createElement('script');
+        script.src = file + '?v=' + Date.now();
+        script.async = true;
+        
+        script.onload = function() {
+          loaded++;
+          console.log('[AcademyLoader] ✅ Loaded:', file);
+          checkComplete();
+        };
+        
+        script.onerror = function() {
+          loaded++;
+          failed.push(file);
+          console.warn('[AcademyLoader] ❌ Failed:', file);
+          checkComplete();
+        };
+        
+        document.head.appendChild(script);
+      });
+
+      function checkComplete() {
+        if (loaded < files.length) return;
+        
+        var success = failed.length === 0;
+        if (success) {
+          console.log('[AcademyLoader] ✅ All files loaded');
+        } else {
+          console.warn('[AcademyLoader] ⚠️ Some files failed:', failed);
+        }
+        callback(success);
+      }
+    },
+
+    // ============================================================
+    // PRIVATE — 启动逻辑
     // ============================================================
 
     async _doStart() {
@@ -191,10 +340,10 @@
 
         throw error;
       }
-    }
+    },
 
     // ============================================================
-    // 3. PRIVATE — Manifest
+    // PRIVATE — Manifest
     // ============================================================
 
     async _loadManifest() {
@@ -211,10 +360,10 @@
       this._manifest = manifest;
       console.log('[AcademyLoader] ✅ Manifest loaded (v' + manifest.version + ')');
       console.log('[AcademyLoader] 📦 Modules defined:', manifest.modules?.length || 0);
-    }
+    },
 
     // ============================================================
-    // 4. PRIVATE — Module Loading
+    // PRIVATE — Module Loading
     // ============================================================
 
     async _loadModules() {
@@ -230,9 +379,8 @@
       for (let i = 0; i < modules.length; i++) {
         const module = modules[i];
         
-        // 🔥 修复：检查 module 是否有效
         if (!module || !module.id) {
-          console.warn('[AcademyLoader] ⚠️ Invalid module definition at index', i, ':', module);
+          console.warn('[AcademyLoader] ⚠️ Invalid module definition at index', i);
           continue;
         }
         
@@ -260,14 +408,13 @@
       if (loadedS4.length > 0) {
         console.log('[AcademyLoader] 🧩 S4 modules loaded:', loadedS4.join(', '));
       }
-    }
+    },
 
     // ============================================================
-    // 5. PRIVATE — Single Module Loader
+    // PRIVATE — Single Module Loader
     // ============================================================
 
     async _loadSingleModule(module) {
-      // 🔥 修复：确保 module.id 存在
       if (!module || !module.id) {
         return { success: false, error: 'Invalid module: missing id' };
       }
@@ -303,10 +450,6 @@
 
           const existsAfter = this._checkModuleExists(module.id);
           if (existsAfter) {
-            if (module.id === 'contentLoader' || module.id === 'contentRegistry' || 
-                module.id === 'subjectRegistry' || module.id === 'contentValidator') {
-              console.log('[AcademyLoader] ✅ S4 module loaded:', module.id);
-            }
             resolve({ success: true });
           } else {
             console.warn('[AcademyLoader] ⚠️ Module loaded but not registered:', module.id);
@@ -324,16 +467,14 @@
 
         document.head.appendChild(script);
       });
-    }
+    },
 
     // ============================================================
-    // 6. PRIVATE — Module Existence Check
+    // PRIVATE — Module Existence Check
     // ============================================================
 
     _checkModuleExists(moduleId) {
-      // 🔥 修复：检查 moduleId 是否为有效字符串
       if (!moduleId || typeof moduleId !== 'string') {
-        console.warn('[AcademyLoader] ⚠️ Invalid moduleId:', moduleId);
         return false;
       }
 
@@ -352,10 +493,10 @@
       }
 
       return false;
-    }
+    },
 
     // ============================================================
-    // 7. PRIVATE — 默认 Manifest
+    // PRIVATE — 默认 Manifest（移除 Calendar 相关，因为懒加载）
     // ============================================================
 
     _getDefaultManifest() {
@@ -383,14 +524,6 @@
           { id: 'knowledgeCard', path: '/js/academy/knowledgeCard.js' },
           { id: 'secondBrain', path: '/js/academy/secondBrain.js' },
           { id: 'notes', path: '/js/academy/notes.js' },
-          { id: 'memoryEngine', path: '/js/memoryEngine.js' },
-          { id: 'masteryEngine', path: '/js/masteryEngine.js' },
-          { id: 'memoryReview', path: '/js/memoryReview.js' },
-          { id: 'memoryScheduler', path: '/js/memoryScheduler.js' },
-          { id: 'recommendationEngine', path: '/js/recommendationEngine.js' },
-          { id: 'learnerModel', path: '/js/learnerModel.js' },
-          { id: 'knowledgeGraph', path: '/js/knowledgeGraph.js' },
-          { id: 'prerequisiteEngine', path: '/js/prerequisiteEngine.js' },
           { id: 'decisionOptionModel', path: '/js/academy/decisionOptionModel.js' },
           { id: 'decisionAuthority', path: '/js/academy/decisionAuthority.js' },
           { id: 'decisionPrimacy', path: '/js/academy/decisionPrimacy.js' },
@@ -434,10 +567,10 @@
           { id: 'surfaceIntegration', path: '/js/academy/surfaceIntegration.js' }
         ]
       };
-    }
+    },
 
     // ============================================================
-    // 8. PRIVATE — Event Helpers
+    // PRIVATE — Event Helpers
     // ============================================================
 
     _broadcast(event, data) {
@@ -457,11 +590,11 @@
         }
       } catch (e) {}
 
-      console.log('[AcademyLoader] 📡 Event:', event, data);
-    }
+      console.log('[AcademyLoader] 📡 Event:', event);
+    },
 
     // ============================================================
-    // 9. PRIVATE — Health Check
+    // Health Check
     // ============================================================
 
     healthCheck() {
@@ -470,9 +603,11 @@
         health: this.health,
         version: this.version,
         loadedModules: this.loadedModules,
-        failedModules: this.failedModules
+        failedModules: this.failedModules,
+        lazyLoaded: this._lazyLoaded,
+        lazyLoading: this._lazyLoading
       };
-    }
+    },
 
     async recover() {
       console.log('[AcademyLoader] 🔧 Attempting recovery...');
