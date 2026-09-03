@@ -3490,7 +3490,9 @@ LawAIApp.Dashboard = {
   // 🔥 直接渲染 Settings（不跳转）
   // ============================================================
     _renderSettingsView: function() {
-      console.log('[Dashboard] ⚙️ Rendering Settings inline...');
+      console.log('[Dashboard] ⚙️ Navigating to Settings...');
+      // 直接跳转到 Academy 页面的 Settings 视图
+      window.location.href = '/pages/academy.html?view=settings';
     
       var container = document.getElementById('app') || document.getElementById('law-runtime-root') || document.getElementById('dashboard-root');
       if (!container) return;
