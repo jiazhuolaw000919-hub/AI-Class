@@ -69,9 +69,8 @@ window.App = {
             console.warn('⚠️ App destroyed, cannot init');
             return;
         }
-        this._renderImmediately();
-    
-        // 🔥 Part 106: 注册 Calendar 路由
+
+        // 🔥 Part 106: 注册 Calendar 路由（在 initialized 检查之前）
         this._registerCalendarRoute();
 
         if (this._state.initialized) {
@@ -127,6 +126,7 @@ window.App = {
         this._initPracticeModules();
         this._initNotesModule();
 
+        // 🔥 只调用一次渲染
         this._renderImmediately();
         this._setupComposerListener();
 
@@ -177,26 +177,30 @@ window.App = {
             }
         }
 
-        // ⚠️ 最后才显示 skeleton（但改为立即消失）
+        // ⚠️ 最后才显示 skeleton
         this._showMinimalSkeleton(root);
     },
 
     _renderS4Dashboard: function() {
         var root = this.getRoot();
-        if (!root) return;
+        if (!root) return false;
 
-        // 如果 Dashboard 存在，直接渲染
         if (window.LawAIApp && window.LawAIApp.Dashboard && typeof window.LawAIApp.Dashboard.render === 'function') {
             console.log("📊 Rendering S4 Dashboard...");
-            // 清空 root
             root.innerHTML = '';
-            // 创建容器
             var container = document.createElement('div');
             container.id = 'systemComposerRoot';
             root.appendChild(container);
-            // 渲染 Dashboard
-            window.LawAIApp.Dashboard.render();
-            return true;
+            
+            try {
+                window.LawAIApp.Dashboard.render();
+                this._state.mounted = true;
+                this.markHealthy();
+                return true;
+            } catch (e) {
+                console.warn("⚠️ Dashboard render error:", e);
+                return false;
+            }
         }
         return false;
     },
@@ -208,39 +212,28 @@ window.App = {
         root.innerHTML = `
             <div style="
                 min-height: 100vh;
-                background: linear-gradient(145deg, #0b1220 0%, #141c2e 50%, #0f1a2e 100%);
+                background: #0b1220;
                 display: flex;
-                flex-direction: column;
                 align-items: center;
                 justify-content: center;
                 color: #e2e8f0;
                 font-family: 'Inter', -apple-system, sans-serif;
-                padding: 20px;
-                text-align: center;
             ">
-                <div style="font-size: 48px; margin-bottom: 16px;">🚀</div>
-                <h2 style="font-size: 22px; font-weight: 600; margin: 0 0 8px;">Law AI Academy</h2>
-                <p style="color: #94a3b8; font-size: 14px; margin: 0;">Preparing your learning environment...</p>
-                <div style="margin-top: 24px; width: 32px; height: 32px; border: 2px solid rgba(74,158,255,0.12); border-top-color: #4a9eff; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-                <style>
-                    @keyframes spin { to { transform: rotate(360deg); } }
-                </style>
+                <div style="text-align:center;">
+                    <div style="font-size:48px;margin-bottom:12px;">🚀</div>
+                    <p style="color:#94a3b8;font-size:14px;">Loading...</p>
+                </div>
             </div>
         `;
 
         setTimeout(function() {
-            var composer = safeGet(window, 'LawAIApp.SystemComposer');
-            if (composer && typeof composer.init === 'function') {
-                try {
+            if (!this._renderS4Dashboard()) {
+                var composer = safeGet(window, 'LawAIApp.SystemComposer');
+                if (composer && typeof composer.init === 'function') {
                     composer.init(this._boot);
-                    console.log("✅ Composer initialized (delayed fallback)");
-                } catch (err) {
-                    console.warn("⚠️ Composer init delayed fallback error:", err);
                 }
-            } else {
-                console.warn("⚠️ Composer still not available after 1s");
             }
-        }.bind(this), 1000);
+        }.bind(this), 100);
     },
 
     destroy: function() {
@@ -646,7 +639,6 @@ window.App = {
     },
 
     _initDecisionExperience: function() {
-        // 检查 DecisionExperience 是否已通过 AcademyLoader 加载
         var de = safeGet(window, 'LawAIApp.DecisionExperience');
         if (de && typeof de.init === 'function' && !de.initialized) {
             try {
@@ -658,7 +650,6 @@ window.App = {
         } else if (de && de.initialized) {
             console.log('[App] ✅ DecisionExperience already initialized');
         } else {
-            // 延迟重试（等待 AcademyLoader 加载完成）
             setTimeout(function() {
                 var de2 = safeGet(window, 'LawAIApp.DecisionExperience');
                 if (de2 && typeof de2.init === 'function' && !de2.initialized) {
@@ -681,31 +672,26 @@ window.App = {
             if (router && typeof router.register === 'function') {
                 console.log('[App] 📅 Registering Calendar route...');
             
-                // 🔥 主入口：calendar
                 router.register('calendar', function() {
+                    var app = document.getElementById('app') || document.getElementById('law-runtime-root');
                     if (window.LawAIApp?.Calendar) {
                         if (typeof window.LawAIApp.Calendar.init === 'function') {
                             window.LawAIApp.Calendar.init();
                         }
                         window.LawAIApp.Calendar.render();
-                    } else {
-                        console.warn('[App] ⚠️ Calendar not loaded yet');
-                        var root = document.getElementById('app') || document.getElementById('law-runtime-root');
-                        if (root) {
-                            root.innerHTML = `
-                                <div style="display:flex;align-items:center;justify-content:center;min-height:60vh;color:#94a3b8;font-family:'Inter',sans-serif;">
-                                    <div style="text-align:center;">
-                                        <div style="font-size:48px;margin-bottom:16px;">📅</div>
-                                        <p>Loading Calendar...</p>
-                                    </div>
+                    } else if (app) {
+                        app.innerHTML = `
+                            <div style="display:flex;align-items:center;justify-content:center;min-height:60vh;color:#94a3b8;font-family:'Inter',sans-serif;">
+                                <div style="text-align:center;">
+                                    <div style="font-size:48px;margin-bottom:16px;">📅</div>
+                                    <p>Loading Calendar...</p>
                                 </div>
-                            `;
-                        }
+                            </div>
+                        `;
                         this._loadCalendar();
                     }
                 }.bind(this));
             
-                // planner 作为别名（兼容旧链接）
                 router.register('planner', function() {
                     router.navigate('calendar');
                 });
@@ -722,43 +708,41 @@ window.App = {
 
         checkRouter(0);
     },
-    
+
     _loadCalendar: function() {
-        // 动态加载 Calendar 如果未加载
         if (window.LawAIApp?.Calendar) {
             return;
         }
-    
+
         console.log('[App] 📅 Loading Calendar...');
         var files = [
             '/js/calendarEngine.js',
             '/js/calendarPlanner.js',
             '/js/calendarTimeline.js',
             '/js/calendarEngineAdapter.js',
-            '/js/calendar.js',
-            '/js/calendarDashboard.js',
             '/js/calendar/CalendarSurfaceAdapter.js',
             '/js/calendar/CalendarViewModel.js',
             '/js/calendar/CalendarEventAdapter.js',
-            '/js/calendar/CalendarRenderer.js'
+            '/js/calendar/CalendarRenderer.js',
+            '/js/calendar.js'
         ];
-    
+
         var loaded = 0;
-        var self = this;
+        var totalFiles = files.length;
+        
         files.forEach(function(file) {
             var script = document.createElement('script');
             script.src = file + '?v=' + Date.now();
             script.onload = function() {
                 loaded++;
-                if (loaded === files.length) {
-                    console.log('[App] ✅ Calendar loaded');
-                    if (window.LawAIApp?.Calendar && typeof window.LawAIApp.Calendar.init === 'function') {
-                        window.LawAIApp.Calendar.init();
-                    }
-                    // 重新导航到 planner
-                    var router = safeGet(window, 'LawAIApp.Router') || window.LawAIApp?.Router;
-                    if (router && typeof router.navigate === 'function') {
-                        router.navigate('planner');
+                console.log('[App] ✅ Calendar file loaded:', file, '(' + loaded + '/' + totalFiles + ')');
+                if (loaded === totalFiles) {
+                    console.log('[App] ✅ All Calendar files loaded');
+                    if (window.LawAIApp?.Calendar) {
+                        if (typeof window.LawAIApp.Calendar.init === 'function') {
+                            window.LawAIApp.Calendar.init();
+                        }
+                        window.LawAIApp.Calendar.render();
                     }
                 }
             };
