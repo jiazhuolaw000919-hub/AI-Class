@@ -3495,10 +3495,10 @@ LawAIApp.Dashboard = {
     var container = document.getElementById('app') || document.getElementById('law-runtime-root') || document.getElementById('dashboard-root');
     if (!container) return;
 
-    // 🔥 检查 Settings 是否已加载
+    // 检查 Settings 是否已加载
     if (window.LawAIApp?.Settings && typeof window.LawAIApp.Settings.render === 'function') {
-        // 已加载，直接渲染
         try {
+            window.LawAIApp.Settings._root = container;
             window.LawAIApp.Settings.render();
             return;
         } catch (e) {
@@ -3506,37 +3506,21 @@ LawAIApp.Dashboard = {
         }
     }
 
-    // 🔥 未加载，动态加载 settings.js
-    console.log('[Dashboard] 📥 Loading settings.js...');
-    
-    // 先显示加载提示
+    // 动态加载 settings.js
     container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Settings...</div>';
     
     var script = document.createElement('script');
     script.src = '/js/settings.js?v=' + Date.now();
     script.async = true;
-    
     script.onload = function() {
-        console.log('[Dashboard] ✅ settings.js loaded');
-        if (window.LawAIApp?.Settings && typeof window.LawAIApp.Settings.render === 'function') {
-            try {
-                window.LawAIApp.Settings.render();
-                console.log('[Dashboard] ✅ Real Settings rendered');
-            } catch (e) {
-                console.warn('[Dashboard] Settings render error:', e);
-                container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">❌ Settings Error: ' + e.message + '</div>';
-            }
-        } else {
-            console.warn('[Dashboard] ⚠️ Settings not found after load');
-            container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">❌ Settings not available</div>';
+        if (window.LawAIApp?.Settings) {
+            window.LawAIApp.Settings._root = container;
+            window.LawAIApp.Settings.render();
         }
     };
-    
     script.onerror = function() {
-        console.warn('[Dashboard] ⚠️ settings.js load failed');
         container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">❌ Failed to load Settings</div>';
     };
-    
     document.head.appendChild(script);
   },
 
