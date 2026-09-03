@@ -754,11 +754,6 @@ LawAIApp.Calendar = {
     }
   },
 
-  _getScheduleForDate: function(dateStr) {
-    var schedules = this._getAllSchedules();
-    return schedules.filter(function(s) { return s.date === dateStr; });
-  },
-
   _createSchedule: function(title, date, startTime, endTime, description) {
     var schedule = {
       id: 'sch_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
@@ -777,9 +772,7 @@ LawAIApp.Calendar = {
     schedules.push(schedule);
     this._saveSchedules(schedules);
 
-    // 发送事件到 Core
     this._emitScheduleEvent('SCHEDULE_CREATED', schedule);
-
     return schedule;
   },
 
