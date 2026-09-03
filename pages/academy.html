@@ -357,7 +357,9 @@
                     }
 
                     if (tab === 'settings') {
-                        showComingSoon('⚙️ Settings');
+                        if (window.LawAIApp?.Router) {
+                            window.LawAIApp.Router.navigate('settings');
+                        }
                         return;
                     }
                 });
