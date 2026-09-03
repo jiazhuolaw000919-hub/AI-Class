@@ -2227,15 +2227,17 @@ LawAIApp.Dashboard = {
           { icon: '🧠', label: 'Mentor', url: null },
           { icon: '🚀', label: 'Showcase', url: null }
         ].map(function(btn) {
-          var onClick;
-          if (btn.url) {
-            onClick = "window.location.href='" + btn.url + "'";
-          } else if (btn.route) {
-            // 🔥 有 route 字段，用 Router 导航
-            onClick = "if(window.LawAIApp&&window.LawAIApp.Router){window.LawAIApp.Router.navigate('" + btn.route + "')}else{alert('Router not available')}";
-          } else {
-            onClick = "if(window.LawAIApp&&window.LawAIApp.Toast&&typeof window.LawAIApp.Toast.info==='function'){window.LawAIApp.Toast.info('" + btn.label + " coming soon! 🚧')}else{alert('" + btn.label + " coming soon! 🚧')}";
-          }
+          .map(function(btn) {
+            var onClick;
+            if (btn.url) {
+              onClick = "window.location.href='" + btn.url + "'";
+            } else if (btn.action === 'calendar') {
+              onClick = "LawAIApp.Dashboard._renderCalendarView()";
+            } else if (btn.action === 'settings') {
+              onClick = "LawAIApp.Dashboard._renderSettingsView()";
+            } else {
+              onClick = "if(window.LawAIApp&&window.LawAIApp.Toast&&typeof window.LawAIApp.Toast.info==='function'){window.LawAIApp.Toast.info('" + btn.label + " coming soon! 🚧')}else{alert('" + btn.label + " coming soon! 🚧')}";
+            }
           
           return `
           <button onclick="${onClick}" style="
