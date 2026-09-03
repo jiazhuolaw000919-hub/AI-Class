@@ -2246,8 +2246,8 @@ LawAIApp.Dashboard = {
               onClick = "LawAIApp.Dashboard._renderSettingsView()";
             } else if (btn.action === 'notes') {
               onClick = "LawAIApp.Dashboard._renderNotesView()";
-            } else if (btn.action === '_knowledgeGraph') {
-              onClick = "LawAIApp.Dashboard._renderKnowledgeGraphView()";
+            } else if (btn.action === 'knowledgeGraph') {
+              onClick = "LawAIApp.Dashboard._renderKnowledgeGraphView()"
             } else {
               onClick = "if(window.LawAIApp&&window.LawAIApp.Toast&&typeof window.LawAIApp.Toast.info==='function'){window.LawAIApp.Toast.info('" + btn.label + " coming soon! 🚧')}else{alert('" + btn.label + " coming soon! 🚧')}";
             }
