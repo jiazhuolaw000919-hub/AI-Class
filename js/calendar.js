@@ -14,6 +14,8 @@ LawAIApp.Calendar = {
   currentTab: 'calendar',
   currentYear: new Date().getFullYear(),
   currentMonth: new Date().getMonth(),
+  _initialized: false,
+  _root: null,
 
   // ============================================================
   // 安全存储辅助
@@ -44,9 +46,51 @@ LawAIApp.Calendar = {
   },
 
   // ============================================================
+  // 初始化
+  // ============================================================
+  init: function() {
+    if (this._initialized) return;
+    this._initialized = true;
+    console.log('[Calendar] ✅ Initialized');
+  },
+
+  // ============================================================
+  // 获取容器（优先 academy-root）
+  // ============================================================
+  _getContainer: function() {
+    // 1. 如果设置了 _root，使用它
+    if (this._root) {
+      return this._root;
+    }
+    
+    // 2. 优先 academy-root（Academy 页面）
+    var academyRoot = document.getElementById('academy-root');
+    if (academyRoot) {
+      return academyRoot;
+    }
+    
+    // 3. 然后 app
+    var app = document.getElementById('app');
+    if (app) {
+      return app;
+    }
+    
+    // 4. 最后 law-runtime-root
+    return document.getElementById('law-runtime-root');
+  },
+
+  // ============================================================
   // 主渲染入口
   // ============================================================
   render: function() {
+    var container = this._getContainer();
+    if (!container) {
+      console.warn('[Calendar] No container found');
+      return;
+    }
+
+    console.log('[Calendar] 🔥 Rendering to:', container.id);
+
     var coreResult = null;
     try {
       coreResult = LawAIApp.LearningJourneyAdapter 
@@ -75,13 +119,14 @@ LawAIApp.Calendar = {
     }
     
     // 如果 ViewModel 可用，使用它
-    if (viewModel && !viewModel.isEmpty) {
-      this._renderWithViewModel(viewModel);
+    if (viewModel && !viewModel.isEmpty && LawAIApp.CalendarRenderer) {
+      LawAIApp.CalendarRenderer.render(viewModel, container);
+      console.log('[Calendar] ✅ Rendered with ViewModel');
       return;
     }
     
     // Fallback: 使用原生日历视图（包含 tabs）
-    this._renderTabsView();
+    this._renderTabsView(container);
   },
 
   _getScheduleState: function() {
@@ -100,7 +145,7 @@ LawAIApp.Calendar = {
   // 渲染：ViewModel 版本（CalendarRenderer）
   // ============================================================
   _renderWithViewModel: function(viewModel) {
-    var container = document.getElementById('app') || document.getElementById('law-runtime-root');
+    var container = this._getContainer();
     if (!container) return;
     
     if (LawAIApp.CalendarRenderer) {
@@ -115,9 +160,11 @@ LawAIApp.Calendar = {
   // ============================================================
   // 渲染：Tabs 视图（原生）
   // ============================================================
-  _renderTabsView: function() {
-    var app = document.getElementById('app') || document.getElementById('law-runtime-root');
-    if (!app) return;
+  _renderTabsView: function(container) {
+    if (!container) {
+      container = this._getContainer();
+    }
+    if (!container) return;
 
     var html = `
       <div class="page" style="max-width:900px;margin:0 auto;padding:16px 20px 40px;color:#e2e8f0;">
@@ -139,7 +186,7 @@ LawAIApp.Calendar = {
       </div>
     `;
     
-    app.innerHTML = html;
+    container.innerHTML = html;
     this.attachTabEvents();
     this.renderCurrentTab();
   },
@@ -148,6 +195,8 @@ LawAIApp.Calendar = {
   // 简单日历（Fallback）
   // ============================================================
   _renderSimpleCalendar: function(container) {
+    if (!container) return;
+    
     var monthName = new Date(this.currentYear, this.currentMonth).toLocaleString('default', { month: 'long' });
     
     container.innerHTML = `
@@ -235,7 +284,6 @@ LawAIApp.Calendar = {
         self.renderCurrentTab();
         document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
         e.currentTarget.classList.add('active');
-        // 更新按钮样式
         document.querySelectorAll('.tab-btn').forEach(function(b) {
           b.style.background = 'rgba(255,255,255,0.04)';
           b.style.color = '#94a3b8';
@@ -486,7 +534,6 @@ LawAIApp.Calendar = {
       </div>
     `;
 
-    // 绑定事件
     var select = document.getElementById('time-block-select');
     if (select) {
       var self = this;
