@@ -189,5 +189,24 @@ LawAIApp.KnowledgeCapture = {
             pinned: pinned,
             byType: byType
         };
-    }
+    },
+        
+    // ============================================================
+    // 🔥 Part 114: 新增 — 按 Context 获取笔记
+    // ============================================================
+    getNotesByLesson: function(lessonId) {
+        return this.getNotes({ lessonId: lessonId });
+    },
+
+    getNotesBySubject: function(subjectId) {
+        return this.getNotes({ subjectId: subjectId });
+    },
+
+    getNotesByCourse: function(courseId) {
+        return this.getNotes({ courseId: courseId });
+    },
+
+    getNotesBySchool: function(schoolId) {
+        return this.getNotes({ schoolId: schoolId });
+    },
 };
