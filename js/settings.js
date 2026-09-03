@@ -43,8 +43,22 @@ LawAIApp.Settings = {
   // ============================================================
   goToDashboard: function() {
     console.log('[Settings] 📊 Back to Dashboard');
-    // 🔥 直接跳转首页，不走 Router
-    window.location.href = '/';
+    
+    // 🔥 不跳转页面，直接清除 Settings 并渲染 Dashboard
+    var container = this._getContainer();
+    if (container) {
+        container.innerHTML = '';  // 清空 Settings 内容
+    }
+    
+    // 调用 Dashboard 的强制渲染
+    if (window.LawAIApp?.Dashboard) {
+        // 重置 Dashboard 状态
+        window.LawAIApp.Dashboard._rendered = false;
+        window.LawAIApp.Dashboard.render();
+    } else {
+        // Fallback: 跳转首页
+        window.location.href = '/';
+    }
   },
 
   // ============================================================
