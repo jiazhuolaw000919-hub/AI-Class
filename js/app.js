@@ -79,6 +79,33 @@ window.App = {
             return;
         }
 
+        this._registerSettingsRoute();
+
+        _registerSettingsRoute: function() {
+            var router = safeGet(window, 'LawAIApp.Router') || window.LawAIApp?.Router;
+            if (router && typeof router.register === 'function') {
+                router.register('settings', function() {
+                    if (window.LawAIApp?.Settings) {
+                        window.LawAIApp.Settings.render();
+                    } else {
+                        this._loadSettings();
+                    }
+                }.bind(this));
+            }
+        }
+
+        _loadSettings: function() {
+            // 动态加载 settings.js
+            var script = document.createElement('script');
+            script.src = '/js/settings.js';
+            script.onload = function() {
+                if (window.LawAIApp?.Settings) {
+                    window.LawAIApp.Settings.render();
+                }
+            };
+            document.head.appendChild(script);
+        }
+
         this._state.initialized = true;
         this._state.started = true;
         this._state.booted = true;
