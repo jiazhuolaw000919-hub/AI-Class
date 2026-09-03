@@ -380,10 +380,43 @@
                     if (tab === 'notes') {
                         _isCalendarView = false;
                         _isSettingsView = false;
+    
+                        var container = document.getElementById('academy-root');
+    
+                        // 🔥 优先使用 LawAIApp.Notes（和 Dashboard 一致）
+                        if (window.LawAIApp?.Notes && typeof window.LawAIApp.Notes.render === 'function') {
+                            if (container) {
+                                window.LawAIApp.Notes._root = container;
+                            }
+                            window.LawAIApp.Notes.render();
+                            updateNavHighlight('notes');
+                            return;
+                        }
+    
+                        // Fallback: NotesView
+                        if (window.LawAIApp?.NotesView && typeof window.LawAIApp.NotesView.render === 'function') {
+                            window.LawAIApp.NotesView.render(container);
+                            updateNavHighlight('notes');
+                            return;
+                        }
+    
+                        // Fallback: AcademyExperienceManager
                         if (window.LawAIApp?.AcademyExperienceManager) {
                             window.LawAIApp.AcademyExperienceManager.navigateToNotes();
                             updateNavHighlight('notes');
+                            return;
                         }
+    
+                        // 最后：动态加载 notes.js
+                        var script = document.createElement('script');
+                        script.src = '/js/academy/notes.js?v=' + Date.now();
+                        script.onload = function() {
+                            if (window.LawAIApp?.Notes) {
+                                window.LawAIApp.Notes.render();
+                                updateNavHighlight('notes');
+                            }
+                        };
+                        document.head.appendChild(script);
                         return;
                     }
 
