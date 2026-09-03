@@ -43,11 +43,8 @@ LawAIApp.Settings = {
   // ============================================================
   goToDashboard: function() {
     console.log('[Settings] 📊 Back to Dashboard');
-    if (window.LawAIApp?.Router) {
-      window.LawAIApp.Router.navigate('dashboard');
-    } else {
-      window.location.href = '/';
-    }
+    // 🔥 直接跳转首页，不走 Router
+    window.location.href = '/';
   },
 
   // ============================================================
