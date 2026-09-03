@@ -274,60 +274,95 @@
             // 后台加载完整 Calendar
             // ============================================================
             function loadFullCalendar() {
-                console.log('[Academy] 🔄 Loading full Calendar...');
-                var files = [
-                    '/js/calendarEngine.js',
-                    '/js/calendarPlanner.js',
-                    '/js/calendarTimeline.js',
-                    '/js/calendarEngineAdapter.js',
-                    '/js/calendar/CalendarSurfaceAdapter.js',
-                    '/js/calendar/CalendarViewModel.js',
-                    '/js/calendar/CalendarEventAdapter.js',
-                    '/js/calendar/CalendarRenderer.js',
-                    '/js/calendar.js'
-                ];
-                var loaded = 0;
-                files.forEach(function(file) {
-                    var script = document.createElement('script');
-                    script.src = file + '?v=' + Date.now();
-                    script.async = true;
-                    script.onload = function() {
-                        loaded++;
-                        if (loaded === files.length) {
-                            _calendarLoading = false;
-                            if (window.LawAIApp?.Calendar) {
-                                _calendarLoaded = true;
-                                if (_isCalendarView) {
-                                    var c = document.getElementById('academy-root');
-                                    if (c) { window.LawAIApp.Calendar._root = c; window.LawAIApp.Calendar.render(); updateNavHighlight('calendar'); }
-                                }
+                console.log('[Academy] 🔄 Loading full Calendar via AcademyLoader...');
+    
+                if (window.LawAIApp?.AcademyLoader?.loadCalendarLazy) {
+                    window.LawAIApp.AcademyLoader.loadCalendarLazy(function(calendar) {
+                        _calendarLoading = false;
+                        _calendarLoaded = true;
+                        if (_isCalendarView) {
+                            var c = document.getElementById('academy-root');
+                            if (c) {
+                                calendar._root = c;
+                                calendar.render();
+                                updateNavHighlight('calendar');
                             }
                         }
-                    };
-                    script.onerror = function() { loaded++; };
-                    document.head.appendChild(script);
-                });
+                    }, function(error) {
+                        _calendarLoading = false;
+                        console.warn('[Academy] ⚠️ Calendar lazy load failed:', error);
+                    });
+                } else {
+                    // Fallback：手动加载
+                    var files = [
+                        '/js/calendarEngine.js',
+                        '/js/calendarPlanner.js',
+                        '/js/calendarTimeline.js',
+                        '/js/calendarEngineAdapter.js',
+                        '/js/calendar/CalendarSurfaceAdapter.js',
+                        '/js/calendar/CalendarViewModel.js',
+                        '/js/calendar/CalendarEventAdapter.js',
+                        '/js/calendar/CalendarRenderer.js',
+                        '/js/calendar.js'
+                    ];
+                    var loaded = 0;
+                    files.forEach(function(file) {
+                        var script = document.createElement('script');
+                        script.src = file + '?v=' + Date.now();
+                        script.async = true;
+                        script.onload = function() {
+                            loaded++;
+                            if (loaded === files.length) {
+                                _calendarLoading = false;
+                                if (window.LawAIApp?.Calendar) {
+                                    _calendarLoaded = true;
+                                    if (_isCalendarView) {
+                                        var c = document.getElementById('academy-root');
+                                        if (c) { window.LawAIApp.Calendar._root = c; window.LawAIApp.Calendar.render(); updateNavHighlight('calendar'); }
+                                    }
+                                }
+                            }
+                        };
+                        script.onerror = function() { loaded++; };
+                        document.head.appendChild(script);
+                    });        
+                }
             }
 
             // ============================================================
             // 后台加载完整 Settings
             // ============================================================
             function loadFullSettings() {
-                console.log('[Academy] 🔄 Loading full Settings...');
-                var script = document.createElement('script');
-                script.src = '/js/settings.js?v=' + Date.now();
-                script.async = true;
-                script.onload = function() {
-                    _settingsLoading = false;
-                    if (window.LawAIApp?.Settings) {
+                console.log('[Academy] 🔄 Loading full Settings via AcademyLoader...');
+    
+                if (window.LawAIApp?.AcademyLoader?.loadSettingsLazy) {
+                    window.LawAIApp.AcademyLoader.loadSettingsLazy(function(settings) {
+                        _settingsLoading = false;
                         _settingsLoaded = true;
                         if (_isSettingsView) {
-                            try { window.LawAIApp.Settings.render(); updateNavHighlight('settings'); } catch (e) {}
+                            try { settings.render(); updateNavHighlight('settings'); } catch (e) {}
                         }
-                    }
-                };
-                script.onerror = function() { _settingsLoading = false; };
-                document.head.appendChild(script);
+                    }, function(error) {
+                        _settingsLoading = false;
+                        console.warn('[Academy] ⚠️ Settings lazy load failed:', error);
+                    });
+                } else {
+                    // Fallback：手动加载
+                    var script = document.createElement('script');
+                    script.src = '/js/settings.js?v=' + Date.now();
+                    script.async = true;
+                    script.onload = function() {
+                        _settingsLoading = false;
+                        if (window.LawAIApp?.Settings) {
+                            _settingsLoaded = true;
+                            if (_isSettingsView) {
+                                try { window.LawAIApp.Settings.render(); updateNavHighlight('settings'); } catch (e) {}
+                            }
+                        }
+                    };
+                    script.onerror = function() { _settingsLoading = false; };
+                    document.head.appendChild(script);
+                }
             }
 
             // ============================================================
