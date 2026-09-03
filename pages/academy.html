@@ -13,68 +13,14 @@
     <link rel="stylesheet" href="/css/responsive.css">
     <link rel="stylesheet" href="/css/theme.css">
     <style>
-        body { 
-            margin: 0; 
-            background: #0b1220; 
-            color: #e2e8f0; 
-            font-family: 'Inter', -apple-system, sans-serif; 
-        }
-        html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-        #academy-root {
-            padding-top: 0 !important;
-            margin-top: 0 !important;
-            min-height: 100vh;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding-bottom: 80px;
-        }
-        #academy-root > *:first-child {
-            margin-top: 0 !important;
-            padding-top: 0 !important;
-        }
-        #law-runtime-root {
-            display: none !important;
-            height: 0 !important;
-            min-height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-            position: absolute !important;
-            opacity: 0 !important;
-            pointer-events: none !important;
-        }
-        body > *:not(#academy-root):not(.bottom-nav):not(style):not(script) {
-            display: none !important;
-        }
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(20,20,40,0.92);
-            backdrop-filter: blur(12px);
-            border-top: 1px solid rgba(255,255,255,0.06);
-            display: flex;
-            justify-content: space-around;
-            padding: 6px 0 12px;
-            z-index: 100;
-        }
-        .bottom-nav a {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1px;
-            color: #64748b;
-            text-decoration: none;
-            font-size: 9px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: color 0.2s;
-            padding: 2px 12px;
-        }
+        body { margin: 0; background: #0b1220; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; }
+        html, body { margin: 0 !important; padding: 0 !important; }
+        #academy-root { padding-top: 0 !important; margin-top: 0 !important; min-height: 100vh; max-width: 1200px; margin: 0 auto; padding-bottom: 80px; }
+        #academy-root > *:first-child { margin-top: 0 !important; padding-top: 0 !important; }
+        #law-runtime-root { display: none !important; height: 0 !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; position: absolute !important; opacity: 0 !important; pointer-events: none !important; }
+        body > *:not(#academy-root):not(.bottom-nav):not(style):not(script) { display: none !important; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(20,20,40,0.92); backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-around; padding: 6px 0 12px; z-index: 100; }
+        .bottom-nav a { display: flex; flex-direction: column; align-items: center; gap: 1px; color: #64748b; text-decoration: none; font-size: 9px; font-weight: 500; cursor: pointer; transition: color 0.2s; padding: 2px 12px; }
         .bottom-nav a:hover { color: #94a3b8; }
         .bottom-nav a.active { color: #4a9eff; }
         .bottom-nav a span:first-child { font-size: 18px; }
@@ -91,7 +37,7 @@
         <a href="#" class="nav-item" data-tab="settings"><span>⚙️</span><span>Settings</span></a>
     </nav>
 
-    <!-- 基础脚本（最少） -->
+    <!-- 基础脚本 -->
     <script src="/js/storageEngine.js"></script>
     <script src="/js/eventBus.js"></script>
     <script src="/js/profileEngine.js"></script>
@@ -122,14 +68,17 @@
         (function() {
             'use strict';
 
-            console.log('📄 Academy page loaded (v9.0 - Lazy Calendar)');
+            console.log('📄 Academy page loaded (v10.0 - Lazy Calendar + Settings)');
 
             // ============================================================
             // 状态
             // ============================================================
             var _isCalendarView = false;
+            var _isSettingsView = false;
             var _calendarLoaded = false;
             var _calendarLoading = false;
+            var _settingsLoaded = false;
+            var _settingsLoading = false;
 
             // ============================================================
             // 工具函数
@@ -155,7 +104,7 @@
             }
 
             // ============================================================
-            // 🔥 内联 Calendar（快速 fallback）
+            // 内联 Calendar（快速 fallback）
             // ============================================================
             function createInlineCalendar() {
                 return {
@@ -214,14 +163,49 @@
             }
 
             // ============================================================
-            // 🔥 渲染 Calendar（懒加载 + 内联 fallback）
+            // 内联 Settings（快速 fallback）
+            // ============================================================
+            function createInlineSettings() {
+                return {
+                    render: function() {
+                        var container = document.getElementById('academy-root');
+                        if (!container) return;
+
+                        container.innerHTML = `
+                            <div style="max-width:700px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
+                                <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
+                                    <button onclick="window.location.href='/pages/academy.html'" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">← Back to Academy</button>
+                                </div>
+                                <h2 style="margin:0 0 20px;font-size:24px;font-weight:700;">⚙️ Settings</h2>
+                                <div style="display:flex;flex-direction:column;gap:12px;">
+                                    <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+                                        <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">👤 Profile</h3>
+                                        <p style="margin:0;color:#94a3b8;font-size:13px;">Manage your profile settings</p>
+                                    </div>
+                                    <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+                                        <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">🎯 Learning Preferences</h3>
+                                        <p style="margin:0;color:#94a3b8;font-size:13px;">Adjust your learning preferences</p>
+                                    </div>
+                                    <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+                                        <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">🔔 Notifications</h3>
+                                        <p style="margin:0;color:#94a3b8;font-size:13px;">Manage notification settings</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                };
+            }
+
+            // ============================================================
+            // 渲染 Calendar（懒加载 + 内联 fallback）
             // ============================================================
             function renderCalendar() {
                 _isCalendarView = true;
+                _isSettingsView = false;
                 var container = document.getElementById('academy-root');
                 if (!container) return;
 
-                // 如果已经加载过，直接渲染
                 if (_calendarLoaded && window.LawAIApp?.Calendar) {
                     try {
                         window.LawAIApp.Calendar._root = container;
@@ -229,7 +213,6 @@
                         updateNavHighlight('calendar');
                         return;
                     } catch (e) {
-                        console.warn('[Academy] Full Calendar error, using inline:', e);
                         window.LawAIApp.Calendar = createInlineCalendar();
                         window.LawAIApp.Calendar.render();
                         updateNavHighlight('calendar');
@@ -237,29 +220,61 @@
                     }
                 }
 
-                // 如果正在加载，显示等待
                 if (_calendarLoading) {
                     container.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;">⏳ Loading Calendar...</div>';
                     return;
                 }
 
-                // 🔥 先用内联 Calendar 快速渲染（用户立即看到内容）
                 window.LawAIApp = window.LawAIApp || {};
                 window.LawAIApp.Calendar = createInlineCalendar();
                 window.LawAIApp.Calendar.render();
                 updateNavHighlight('calendar');
 
-                // 🔥 然后后台加载完整 Calendar
                 _calendarLoading = true;
                 loadFullCalendar();
             }
 
             // ============================================================
-            // 🔥 后台加载完整 Calendar
+            // 渲染 Settings（懒加载 + 内联 fallback）
+            // ============================================================
+            function renderSettings() {
+                _isSettingsView = true;
+                _isCalendarView = false;
+                var container = document.getElementById('academy-root');
+                if (!container) return;
+
+                if (_settingsLoaded && window.LawAIApp?.Settings) {
+                    try {
+                        window.LawAIApp.Settings.render();
+                        updateNavHighlight('settings');
+                        return;
+                    } catch (e) {
+                        window.LawAIApp.Settings = createInlineSettings();
+                        window.LawAIApp.Settings.render();
+                        updateNavHighlight('settings');
+                        return;
+                    }
+                }
+
+                if (_settingsLoading) {
+                    container.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;">⏳ Loading Settings...</div>';
+                    return;
+                }
+
+                window.LawAIApp = window.LawAIApp || {};
+                window.LawAIApp.Settings = createInlineSettings();
+                window.LawAIApp.Settings.render();
+                updateNavHighlight('settings');
+
+                _settingsLoading = true;
+                loadFullSettings();
+            }
+
+            // ============================================================
+            // 后台加载完整 Calendar
             // ============================================================
             function loadFullCalendar() {
-                console.log('[Academy] 🔄 Loading full Calendar in background...');
-
+                console.log('[Academy] 🔄 Loading full Calendar...');
                 var files = [
                     '/js/calendarEngine.js',
                     '/js/calendarPlanner.js',
@@ -271,55 +286,48 @@
                     '/js/calendar/CalendarRenderer.js',
                     '/js/calendar.js'
                 ];
-
                 var loaded = 0;
-                var failed = [];
-
                 files.forEach(function(file) {
                     var script = document.createElement('script');
                     script.src = file + '?v=' + Date.now();
                     script.async = true;
                     script.onload = function() {
                         loaded++;
-                        console.log('[Academy] ✅ Loaded:', file);
-                        checkComplete();
-                    };
-                    script.onerror = function() {
-                        loaded++;
-                        failed.push(file);
-                        console.warn('[Academy] ❌ Failed:', file);
-                        checkComplete();
-                    };
-                    document.head.appendChild(script);
-                });
-
-                function checkComplete() {
-                    if (loaded < files.length) return;
-
-                    _calendarLoading = false;
-
-                    if (window.LawAIApp?.Calendar && typeof window.LawAIApp.Calendar.render === 'function') {
-                        _calendarLoaded = true;
-                        console.log('[Academy] ✅ Full Calendar ready');
-                        
-                        // 如果用户还在 Calendar 视图，重新渲染完整版
-                        if (_isCalendarView) {
-                            var container = document.getElementById('academy-root');
-                            if (container) {
-                                try {
-                                    window.LawAIApp.Calendar._root = container;
-                                    window.LawAIApp.Calendar.render();
-                                    updateNavHighlight('calendar');
-                                    console.log('[Academy] ✅ Full Calendar rendered');
-                                } catch (e) {
-                                    console.warn('[Academy] ⚠️ Full render failed:', e);
+                        if (loaded === files.length) {
+                            _calendarLoading = false;
+                            if (window.LawAIApp?.Calendar) {
+                                _calendarLoaded = true;
+                                if (_isCalendarView) {
+                                    var c = document.getElementById('academy-root');
+                                    if (c) { window.LawAIApp.Calendar._root = c; window.LawAIApp.Calendar.render(); updateNavHighlight('calendar'); }
                                 }
                             }
                         }
-                    } else {
-                        console.warn('[Academy] ⚠️ Full Calendar not available after loading');
+                    };
+                    script.onerror = function() { loaded++; };
+                    document.head.appendChild(script);
+                });
+            }
+
+            // ============================================================
+            // 后台加载完整 Settings
+            // ============================================================
+            function loadFullSettings() {
+                console.log('[Academy] 🔄 Loading full Settings...');
+                var script = document.createElement('script');
+                script.src = '/js/settings.js?v=' + Date.now();
+                script.async = true;
+                script.onload = function() {
+                    _settingsLoading = false;
+                    if (window.LawAIApp?.Settings) {
+                        _settingsLoaded = true;
+                        if (_isSettingsView) {
+                            try { window.LawAIApp.Settings.render(); updateNavHighlight('settings'); } catch (e) {}
+                        }
                     }
-                }
+                };
+                script.onerror = function() { _settingsLoading = false; };
+                document.head.appendChild(script);
             }
 
             // ============================================================
@@ -329,21 +337,14 @@
                 item.addEventListener('click', function(e) {
                     var tab = this.dataset.tab;
 
-                    if (tab === 'home') { 
-                        _isCalendarView = false; 
-                        window.location.href = '/'; 
-                        return; 
-                    }
-                    if (tab === 'academy') { 
-                        _isCalendarView = false; 
-                        window.location.href = '/pages/academy.html'; 
-                        return; 
-                    }
+                    if (tab === 'home') { _isCalendarView = false; _isSettingsView = false; window.location.href = '/'; return; }
+                    if (tab === 'academy') { _isCalendarView = false; _isSettingsView = false; window.location.href = '/pages/academy.html'; return; }
 
                     e.preventDefault();
 
                     if (tab === 'notes') {
                         _isCalendarView = false;
+                        _isSettingsView = false;
                         if (window.LawAIApp?.AcademyExperienceManager) {
                             window.LawAIApp.AcademyExperienceManager.navigateToNotes();
                             updateNavHighlight('notes');
@@ -357,9 +358,7 @@
                     }
 
                     if (tab === 'settings') {
-                        if (window.LawAIApp?.Router) {
-                            window.LawAIApp.Router.navigate('settings');
-                        }
+                        renderSettings();
                         return;
                     }
                 });
@@ -369,11 +368,9 @@
             // 初始化 Academy
             // ============================================================
             function initAcademy() {
-                if (_isCalendarView) return;
-                if (window.location.search.includes('view=calendar')) {
-                    renderCalendar();
-                    return;
-                }
+                if (_isCalendarView || _isSettingsView) return;
+                if (window.location.search.includes('view=calendar')) { renderCalendar(); return; }
+                if (window.location.search.includes('view=settings')) { renderSettings(); return; }
 
                 try {
                     if (window.LawAIApp?.AcademyExperienceManager) {
@@ -393,7 +390,7 @@
                 window.addEventListener('load', function() { setTimeout(initAcademy, 200); });
             }
 
-            console.log('✅ Academy page ready (lazy Calendar)');
+            console.log('✅ Academy page ready (lazy Calendar + Settings)');
         })();
     </script>
 </body>
