@@ -59,11 +59,17 @@
          */
         render: function() {
             this.refresh();
-            var container = document.getElementById('academy-root');
+    
+            // 🔥 支持多种容器
+            var container = document.getElementById('academy-root') || 
+                            document.getElementById('app') ||
+                            document.getElementById('law-runtime-root');
+                    
             if (!container) {
-                console.warn('[Notes] #academy-root not found');
+                console.warn('[Notes] No container found');
                 return;
             }
+    
             container.innerHTML = this._renderHTML();
             this._bindEvents();
             this._renderList();
