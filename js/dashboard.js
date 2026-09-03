@@ -2217,7 +2217,7 @@ LawAIApp.Dashboard = {
         ">EXPLORE</span>
         ${[
           { icon: '📚', label: 'Academy', url: '/pages/academy.html' },
-          { icon: '📓', label: 'Notes', url: action: 'notes' },
+          { icon: '📓', label: 'Notes', action: 'notes' },
           { icon: '🧠', label: 'Intelligence', url: null },
           { icon: '💬', label: 'Chat', url: null },
           { icon: '📅', label: 'Calendar', action: 'calendar' },
