@@ -3489,7 +3489,7 @@ LawAIApp.Dashboard = {
   // ============================================================
   // 🔥 直接渲染 Settings（不跳转）
   // ============================================================
-  _renderSettingsView: function() {
+    _renderSettingsView: function() {
     console.log('[Dashboard] ⚙️ Rendering Settings inline...');
     
     var container = document.getElementById('app') || document.getElementById('law-runtime-root') || document.getElementById('dashboard-root');
@@ -3509,8 +3509,27 @@ LawAIApp.Dashboard = {
     // 先用内联 Settings 渲染
     container.innerHTML = `
       <div style="max-width:700px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
-          <button onclick="LawAIApp.Dashboard._forceRender()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">← Back to Dashboard</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+          <button onclick="window.location.href='/'" style="
+            background:rgba(74,158,255,0.08);
+            border:1px solid rgba(74,158,255,0.15);
+            color:#4a9eff;
+            padding:8px 16px;
+            border-radius:100px;
+            cursor:pointer;
+            font-family:inherit;
+            font-size:13px;
+          ">← Back to Dashboard</button>
+          <button onclick="history.back()" style="
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.06);
+            color:#94a3b8;
+            padding:8px 16px;
+            border-radius:100px;
+            cursor:pointer;
+            font-family:inherit;
+            font-size:13px;
+          ">⬅️ 返回上一页</button>
         </div>
         <h2 style="margin:0 0 20px;font-size:24px;font-weight:700;">⚙️ Settings</h2>
         <div style="display:flex;flex-direction:column;gap:12px;">
