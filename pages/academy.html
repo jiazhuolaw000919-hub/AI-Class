@@ -106,18 +106,34 @@
         </a>
     </nav>
 
+    <!-- 基础脚本 -->
     <script src="/js/storageEngine.js"></script>
     <script src="/js/eventBus.js"></script>
     <script src="/js/profileEngine.js"></script>
     <script src="/js/progressEngine.js"></script>
     <script src="/js/router.js"></script>
     <script src="/js/loader.js"></script>
+
+    <!-- Calendar 相关（按依赖顺序） -->
+    <script src="/js/calendarEngine.js"></script>
+    <script src="/js/calendarPlanner.js"></script>
+    <script src="/js/calendarTimeline.js"></script>
+    <script src="/js/calendarEngineAdapter.js"></script>
+    <script src="/js/calendar/CalendarSurfaceAdapter.js"></script>
+    <script src="/js/calendar/CalendarViewModel.js"></script>
+    <script src="/js/calendar/CalendarEventAdapter.js"></script>
+    <script src="/js/calendar/CalendarRenderer.js"></script>
+    <script src="/js/calendar.js"></script>
+
+    <!-- Academy 相关 -->
     <script src="/js/academy/academyManifest.js"></script>
     <script src="/js/academy/academyLoader.js"></script>
     <script src="/js/academy/academyExperienceManager.js"></script>
     <script src="/js/academy/notesView.js"></script>
     <script src="/js/academy/academyView.js"></script>
     <script src="/js/academy/learningJourneyAdapter.js"></script>
+
+    <!-- 学习引擎 -->
     <script src="/js/memoryEngine.js"></script>
     <script src="/js/memoryTracker.js"></script>
     <script src="/js/memoryScheduler.js"></script>
@@ -132,52 +148,43 @@
         (function() {
             'use strict';
 
-            console.log('📄 Academy page loaded (v6.2.0)');
+            console.log('📄 Academy page loaded (v7.0.0)');
 
-            function overrideAppFallback() {
-                if (window.App) {
-                    if (window.App._state) {
-                        window.App._state.mounted = true;
-                        window.App._state.healthy = true;
-                        window.App._state.booted = true;
-                        window.App._state.initialized = true;
-                    }
-                
-                    if (typeof window.App._scheduleFallbackCheck === 'function') {
-                        window.App._scheduleFallbackCheck = function() {
-                            console.log('[Academy] 🛡️ Fallback check blocked');
-                            this._state.mounted = true;
-                            this._state.healthy = true;
-                            this._state.booted = true;
-                        };
-                    }
-                
-                    var event = new CustomEvent('COMPOSER_MOUNTED', {
-                        detail: { version: 'academy', mounted: true }
-                    });
-                    window.dispatchEvent(event);
-                    document.dispatchEvent(event);
-                
-                    console.log('[Academy] ✅ App fallback overridden');
-                    return true;
+            // ============================================================
+            // 显示 Coming Soon 提示
+            // ============================================================
+            function showComingSoon(name) {
+                if (window.LawAIApp?.Toast && typeof window.LawAIApp.Toast.info === 'function') {
+                    LawAIApp.Toast.info(name + ' coming soon! 🚧');
+                } else {
+                    alert(name + ' coming soon! 🚧');
                 }
-                return false;
             }
 
-            if (!overrideAppFallback()) {
-                var checkInterval = setInterval(function() {
-                    if (overrideAppFallback()) {
-                        clearInterval(checkInterval);
+            // ============================================================
+            // 更新底部导航高亮
+            // ============================================================
+            function updateNavHighlight(activeTab) {
+                document.querySelectorAll('.nav-item').forEach(function(nav) {
+                    var tab = nav.dataset.tab;
+                    if (tab === activeTab) {
+                        nav.style.color = '#4a9eff';
+                        nav.classList.add('active');
+                    } else {
+                        nav.style.color = '#64748b';
+                        nav.classList.remove('active');
                     }
-                }, 100);
-                setTimeout(function() {
-                    clearInterval(checkInterval);
-                }, 3000);
+                });
             }
 
+            // ============================================================
+            // 导航点击事件
+            // ============================================================
             document.querySelectorAll('.nav-item').forEach(function(item) {
                 item.addEventListener('click', function(e) {
                     var tab = this.dataset.tab;
+
+                    // Home 和 Academy 直接跳转
                     if (tab === 'home') {
                         window.location.href = '/';
                         return;
@@ -186,11 +193,14 @@
                         window.location.href = '/pages/academy.html';
                         return;
                     }
+
                     e.preventDefault();
-                    
+
+                    // Notes
                     if (tab === 'notes') {
                         if (window.LawAIApp?.AcademyExperienceManager) {
                             window.LawAIApp.AcademyExperienceManager.navigateToNotes();
+                            updateNavHighlight('notes');
                         } else {
                             window.location.hash = '#notes';
                             var event = new CustomEvent('NAVIGATE_TO_NOTES', {});
@@ -199,429 +209,146 @@
                         return;
                     }
 
+                    // Calendar — 直接渲染，不跳转页面
                     if (tab === 'calendar') {
-                        // 🔥 使用 Router 导航到 Calendar
-                        if (window.LawAIApp?.Router) {
-                            window.LawAIApp.Router.navigate('calendar');
-                        } else if (window.Router) {
-                            window.Router.navigate('calendar');
-                        } else {
-                            // fallback: 尝试直接加载 Calendar
-                            if (window.LawAIApp?.Calendar) {
+                        if (window.LawAIApp?.Calendar) {
+                            var app = document.getElementById('academy-root');
+                            if (app) {
+                                // 临时把 Calendar 渲染到 academy-root
                                 if (typeof window.LawAIApp.Calendar.init === 'function') {
                                     window.LawAIApp.Calendar.init();
                                 }
                                 window.LawAIApp.Calendar.render();
-                            } else {
-                                showComingSoon('📅 Calendar');
+                                updateNavHighlight('calendar');
+                                console.log('[Academy] ✅ Calendar rendered');
                             }
+                        } else {
+                            // Calendar 未加载，显示提示
+                            showComingSoon('📅 Calendar');
+                            console.warn('[Academy] ⚠️ Calendar not loaded');
                         }
                         return;
                     }
 
+                    // Settings
                     if (tab === 'settings') {
                         showComingSoon('⚙️ Settings');
                         return;
                     }
-
-                    function showComingSoon(name) {
-                        if (window.LawAIApp?.Toast && typeof window.LawAIApp.Toast.info === 'function') {
-                            LawAIApp.Toast.info(name + ' coming soon! 🚧');
-                        } else {
-                            alert(name + ' coming soon! 🚧');
-                        }
-                    }
                 });
             });
 
+            // ============================================================
+            // 初始化 Academy
+            // ============================================================
             function initAcademy() {
                 var targetView = 'dashboard';
                 if (window.location.hash === '#notes' || window.location.search.includes('view=notes')) {
-                    targetView = 'notes';                   
+                    targetView = 'notes';
                 }
-    
+
                 console.log('🔥 Initializing Academy, targetView:', targetView);
 
                 try {
-                    // ============================================================
-                    // 1. REGISTRY LAYER
-                    // ============================================================
-                    if (window.LawAIApp?.SchoolRegistry && !window.LawAIApp.SchoolRegistry.initialized) {
-                        window.LawAIApp.SchoolRegistry.initialize();
-                    }
-                    if (window.LawAIApp?.ProgramRegistry && !window.LawAIApp.ProgramRegistry.initialized) {
-                        window.LawAIApp.ProgramRegistry.initialize();
-                    }
-                    if (window.LawAIApp?.CourseRegistry && !window.LawAIApp.CourseRegistry.initialized) {
-                        window.LawAIApp.CourseRegistry.initialize();
-                    }
-                    if (window.LawAIApp?.SubjectRegistry && !window.LawAIApp.SubjectRegistry.initialized) {
-                        window.LawAIApp.SubjectRegistry.initialize();
-                    }
+                    // ── 1. Registry Layer ──
+                    var registries = [
+                        'SchoolRegistry',
+                        'ProgramRegistry',
+                        'CourseRegistry',
+                        'SubjectRegistry'
+                    ];
+
+                    registries.forEach(function(name) {
+                        var registry = window.LawAIApp?.[name];
+                        if (registry && !registry.initialized && typeof registry.initialize === 'function') {
+                            try {
+                                registry.initialize();
+                                console.log('[Academy] ✅ ' + name + ' initialized');
+                            } catch (e) {
+                                console.warn('[Academy] ⚠️ ' + name + ' init failed:', e);
+                            }
+                        } else if (registry && typeof registry.init === 'function' && !registry.initialized) {
+                            try {
+                                registry.init();
+                                console.log('[Academy] ✅ ' + name + ' initialized (init)');
+                            } catch (e) {
+                                console.warn('[Academy] ⚠️ ' + name + ' init failed:', e);
+                            }
+                        }
+                    });
+
+                    // CurriculumSeed
                     if (window.LawAIApp?.CurriculumSeed && !window.LawAIApp.CurriculumSeed.loaded) {
-                        window.LawAIApp.CurriculumSeed.load();
+                        try {
+                            window.LawAIApp.CurriculumSeed.load();
+                            console.log('[Academy] ✅ CurriculumSeed loaded');
+                        } catch (e) {
+                            console.warn('[Academy] ⚠️ CurriculumSeed load failed:', e);
+                        }
                     }
 
-                    // ============================================================
-                    // 2. EXPERIENCE MANAGER
-                    // ============================================================
+                    // ── 2. Experience Manager ──
                     if (window.LawAIApp?.AcademyExperienceManager) {
                         if (!window.LawAIApp.AcademyExperienceManager.initialized) {
-                            window.LawAIApp.AcademyExperienceManager.init();
-                        }            
+                            try {
+                                window.LawAIApp.AcademyExperienceManager.init();
+                                console.log('[Academy] ✅ AcademyExperienceManager initialized');
+                            } catch (e) {
+                                console.warn('[Academy] ⚠️ AcademyExperienceManager init failed:', e);
+                            }
+                        }
+                        try {
                             window.LawAIApp.AcademyExperienceManager.render();
-                            console.log('✅ Academy rendered, viewMode:', window.LawAIApp.AcademyExperienceManager._state.viewMode);
-                        }
-
-                    // ============================================================
-                    // 3. PART 54 — DECISION EXPERIENCE
-                    // ============================================================
-                    if (window.LawAIApp?.DecisionExperience && !window.LawAIApp.DecisionExperience.initialized) {
-                        try {
-                            window.LawAIApp.DecisionExperience.init();
-                            console.log('[Academy] ✅ DecisionExperience initialized (Part 54)');
+                            console.log('[Academy] ✅ Academy rendered');
                         } catch (e) {
-                            console.warn('[Academy] ⚠️ DecisionExperience init failed:', e);
-                        }
-                        } else if (window.LawAIApp?.DecisionExperience && window.LawAIApp.DecisionExperience.initialized) {
-                        console.log('[Academy] ✅ DecisionExperience already initialized');
-                    }
-
-                    // ============================================================
-                    // 4. PART 55 — ACTION → OUTCOME → ADAPTATION
-                    // ============================================================
-
-                    // 4a. ActionTracker
-                    if (window.LawAIApp?.ActionTracker && !window.LawAIApp.ActionTracker.initialized) {
-                        try {
-                            window.LawAIApp.ActionTracker.init();
-                            console.log('[Academy] ✅ ActionTracker initialized (Part 55)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ ActionTracker init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.ActionTracker && window.LawAIApp.ActionTracker.initialized) {
-                        console.log('[Academy] ✅ ActionTracker already initialized');
-                    }
-
-                    // 4b. OutcomeNormalizer
-                    if (window.LawAIApp?.OutcomeNormalizer && !window.LawAIApp.OutcomeNormalizer.initialized) {
-                        try {
-                            window.LawAIApp.OutcomeNormalizer.init();
-                            console.log('[Academy] ✅ OutcomeNormalizer initialized (Part 55)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ OutcomeNormalizer init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.OutcomeNormalizer && window.LawAIApp.OutcomeNormalizer.initialized) {
-                        console.log('[Academy] ✅ OutcomeNormalizer already initialized');
-                    }
-
-                    // 4c. OutcomeLinker
-                    if (window.LawAIApp?.OutcomeLinker && !window.LawAIApp.OutcomeLinker.initialized) {
-                        try {
-                            window.LawAIApp.OutcomeLinker.init();
-                            console.log('[Academy] ✅ OutcomeLinker initialized (Part 55)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ OutcomeLinker init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.OutcomeLinker && window.LawAIApp.OutcomeLinker.initialized) {
-                        console.log('[Academy] ✅ OutcomeLinker already initialized');
-                    }
-
-                    // 4d. AdaptationSignal
-                    if (window.LawAIApp?.AdaptationSignal && !window.LawAIApp.AdaptationSignal.initialized) {
-                        try {
-                            window.LawAIApp.AdaptationSignal.init();
-                            console.log('[Academy] ✅ AdaptationSignal initialized (Part 55)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ AdaptationSignal init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.AdaptationSignal && window.LawAIApp.AdaptationSignal.initialized) {
-                        console.log('[Academy] ✅ AdaptationSignal already initialized');
-                    }
-
-                    // ============================================================
-                    // 5. PART 56 — ADAPTATION TRANSPARENCY
-                    // ============================================================
-    
-                    // 5a. AdaptationRecord
-                    if (window.LawAIApp?.AdaptationRecord && !window.LawAIApp.AdaptationRecord.initialized) {
-                        try {
-                            window.LawAIApp.AdaptationRecord.init();
-                            console.log('[Academy] ✅ AdaptationRecord initialized (Part 56)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ AdaptationRecord init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.AdaptationRecord && window.LawAIApp.AdaptationRecord.initialized) {
-                        console.log('[Academy] ✅ AdaptationRecord already initialized');
-                    }
-
-                    // 5b. AdaptationExplainer
-                    if (window.LawAIApp?.AdaptationExplainer && !window.LawAIApp.AdaptationExplainer.initialized) {
-                        try {
-                            window.LawAIApp.AdaptationExplainer.init();
-                            console.log('[Academy] ✅ AdaptationExplainer initialized (Part 56)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ AdaptationExplainer init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.AdaptationExplainer && window.LawAIApp.AdaptationExplainer.initialized) {
-                        console.log('[Academy] ✅ AdaptationExplainer already initialized');
-                    }
-
-                    // 5c. AdaptationGovernance
-                    if (window.LawAIApp?.AdaptationGovernance && !window.LawAIApp.AdaptationGovernance.initialized) {
-                        try {
-                            window.LawAIApp.AdaptationGovernance.init();
-                            console.log('[Academy] ✅ AdaptationGovernance initialized (Part 56)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ AdaptationGovernance init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.AdaptationGovernance && window.LawAIApp.AdaptationGovernance.initialized) {
-                        console.log('[Academy] ✅ AdaptationGovernance already initialized');
-                    }
-
-                    // ============================================================
-                    // 6. PART 57 — LEARNING LOOP VALIDATOR
-                    // ============================================================
-                    if (window.LawAIApp?.LearningLoopValidator && !window.LawAIApp.LearningLoopValidator.initialized) {
-                        try {
-                            window.LawAIApp.LearningLoopValidator.init();
-                            console.log('[Academy] ✅ LearningLoopValidator initialized (Part 57)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ LearningLoopValidator init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.LearningLoopValidator && window.LawAIApp.LearningLoopValidator.initialized) {
-                        console.log('[Academy] ✅ LearningLoopValidator already initialized');
-                    }
-
-                    // ============================================================
-                    // 7. PART 58 — LEARNER CONTROL & METACOGNITIVE EXPERIENCE
-                    // ============================================================
-
-                    // 7a. LearnerControl
-                    if (window.LawAIApp?.LearnerControl && !window.LawAIApp.LearnerControl.initialized) {
-                        try {
-                            window.LawAIApp.LearnerControl.init();
-                            console.log('[Academy] ✅ LearnerControl initialized (Part 58)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ LearnerControl init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.LearnerControl && window.LawAIApp.LearnerControl.initialized) {
-                        console.log('[Academy] ✅ LearnerControl already initialized');
-                    }
-
-                    // 7b. MetacognitiveExperience
-                    if (window.LawAIApp?.MetacognitiveExperience && !window.LawAIApp.MetacognitiveExperience.initialized) {
-                        try {
-                            window.LawAIApp.MetacognitiveExperience.init();
-                            console.log('[Academy] ✅ MetacognitiveExperience initialized (Part 58)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ MetacognitiveExperience init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.MetacognitiveExperience && window.LawAIApp.MetacognitiveExperience.initialized) {
-                        console.log('[Academy] ✅ MetacognitiveExperience already initialized');
-                    }
-
-                    // ============================================================
-                    // 8. PART 59 — LEARNING PATTERNS & SELF-AWARENESS
-                    // ============================================================
-
-                    // 8a. LearningPatternModel (纯数据契约，不需要 init)
-                    // 8b. PatternDetector
-                    if (window.LawAIApp?.PatternDetector && !window.LawAIApp.PatternDetector.initialized) {
-                        try {
-                            window.LawAIApp.PatternDetector.init();
-                            console.log('[Academy] ✅ PatternDetector initialized (Part 59)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ PatternDetector init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.PatternDetector && window.LawAIApp.PatternDetector.initialized) {
-                        console.log('[Academy] ✅ PatternDetector already initialized');
-                    }
-
-                    // 8c. PatternExplainer
-                    if (window.LawAIApp?.PatternExplainer && !window.LawAIApp.PatternExplainer.initialized) {
-                        try {
-                            window.LawAIApp.PatternExplainer.init();
-                            console.log('[Academy] ✅ PatternExplainer initialized (Part 59)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ PatternExplainer init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.PatternExplainer && window.LawAIApp.PatternExplainer.initialized) {
-                        console.log('[Academy] ✅ PatternExplainer already initialized');
-                    }
-
-                    // ============================================================
-                    // 9. PART 60 — EPISTEMIC JUDGMENT & AI LITERACY
-                    // ============================================================
-
-                    // 9a. EpistemicStatus (纯数据模型，不需要 init)
-                    // 9b. SourceDistinguisher
-                    if (window.LawAIApp?.SourceDistinguisher && !window.LawAIApp.SourceDistinguisher.initialized) {
-                        try {
-                            window.LawAIApp.SourceDistinguisher.init();
-                            console.log('[Academy] ✅ SourceDistinguisher initialized (Part 60)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ SourceDistinguisher init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.SourceDistinguisher && window.LawAIApp.SourceDistinguisher.initialized) {
-                        console.log('[Academy] ✅ SourceDistinguisher already initialized');
-                    }
-
-                    // 9c. AILiteracyHelper
-                    if (window.LawAIApp?.AILiteracyHelper && !window.LawAIApp.AILiteracyHelper.initialized) {
-                        try {
-                            window.LawAIApp.AILiteracyHelper.init();
-                            console.log('[Academy] ✅ AILiteracyHelper initialized (Part 60)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ AILiteracyHelper init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.AILiteracyHelper && window.LawAIApp.AILiteracyHelper.initialized) {
-                        console.log('[Academy] ✅ AILiteracyHelper already initialized');
-                    }
-
-                    // ============================================================
-                    // 10. PART 61 — LEARNING TRANSFER & INDEPENDENCE
-                    // ============================================================
-
-                    // 10a. TransferObserver
-                    if (window.LawAIApp?.TransferObserver && !window.LawAIApp.TransferObserver.initialized) {
-                        try {
-                            window.LawAIApp.TransferObserver.init();
-                            console.log('[Academy] ✅ TransferObserver initialized (Part 61)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ TransferObserver init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.TransferObserver && window.LawAIApp.TransferObserver.initialized) {
-                        console.log('[Academy] ✅ TransferObserver already initialized');
-                    }
-
-                    // 10b. TransferRecommender
-                    if (window.LawAIApp?.TransferRecommender && !window.LawAIApp.TransferRecommender.initialized) {
-                        try {
-                            window.LawAIApp.TransferRecommender.init();
-                            console.log('[Academy] ✅ TransferRecommender initialized (Part 61)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ TransferRecommender init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.TransferRecommender && window.LawAIApp.TransferRecommender.initialized) {
-                        console.log('[Academy] ✅ TransferRecommender already initialized');
-                    }
-
-                    // ============================================================
-                    // 11. PART 62 — CALIBRATION & EVALUATIVE JUDGMENT
-                    // ============================================================
-
-                    // 11a. CalibrationObserver
-                    if (window.LawAIApp?.CalibrationObserver && !window.LawAIApp.CalibrationObserver.initialized) {
-                        try {
-                            window.LawAIApp.CalibrationObserver.init();
-                            console.log('[Academy] ✅ CalibrationObserver initialized (Part 62)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ CalibrationObserver init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.CalibrationObserver && window.LawAIApp.CalibrationObserver.initialized) {
-                        console.log('[Academy] ✅ CalibrationObserver already initialized');
-                    }
-
-                    // 11b. CalibrationRecommender
-                    if (window.LawAIApp?.CalibrationRecommender && !window.LawAIApp.CalibrationRecommender.initialized) {
-                        try {
-                            window.LawAIApp.CalibrationRecommender.init();
-                            console.log('[Academy] ✅ CalibrationRecommender initialized (Part 62)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ CalibrationRecommender init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.CalibrationRecommender && window.LawAIApp.CalibrationRecommender.initialized) {
-                        console.log('[Academy] ✅ CalibrationRecommender already initialized');
-                    }
-
-                    // ============================================================
-                    // 12. PART 63 — BOUNDED AUTONOMY & JOURNEY ORCHESTRATION
-                    // ============================================================
-
-                    if (window.LawAIApp?.JourneyOrchestrator && !window.LawAIApp.JourneyOrchestrator.initialized) {
-                        try {
-                            window.LawAIApp.JourneyOrchestrator.init();
-                            console.log('[Academy] ✅ JourneyOrchestrator initialized (Part 63)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ JourneyOrchestrator init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.JourneyOrchestrator && window.LawAIApp.JourneyOrchestrator.initialized) {
-                        console.log('[Academy] ✅ JourneyOrchestrator already initialized');
-                    }
-
-                    // ============================================================
-                    // 13. PART 64 — AGENCY CAPABILITY & DECISION QUALITY
-                    // ============================================================
-
-                    if (window.LawAIApp?.AgencySupport && !window.LawAIApp.AgencySupport.initialized) {
-                        try {
-                            window.LawAIApp.AgencySupport.init();
-                            console.log('[Academy] ✅ AgencySupport initialized (Part 64)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ AgencySupport init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.AgencySupport && window.LawAIApp.AgencySupport.initialized) {
-                        console.log('[Academy] ✅ AgencySupport already initialized');
-                    }
-
-                    // ============================================================
-                    // 14. PART 65 — LEARNING JOURNEY EXPERIENCE CONTRACT
-                    // ============================================================
-
-                    if (window.LawAIApp?.ExperienceContract && !window.LawAIApp.ExperienceContract.initialized) {
-                        try {
-                            window.LawAIApp.ExperienceContract.init();
-                            console.log('[Academy] ✅ ExperienceContract initialized (Part 65)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ ExperienceContract init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.ExperienceContract && window.LawAIApp.ExperienceContract.initialized) {
-                        console.log('[Academy] ✅ ExperienceContract already initialized');
-                    }
-
-                    // ============================================================
-                    // 15. PART 66 — CROSS-SURFACE INTEGRATION & AUTHORITY VALIDATION
-                    // ============================================================
-
-                    if (window.LawAIApp?.SurfaceIntegration && !window.LawAIApp.SurfaceIntegration.initialized) {
-                        try {
-                            window.LawAIApp.SurfaceIntegration.init();
-                            console.log('[Academy] ✅ SurfaceIntegration initialized (Part 66)');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ SurfaceIntegration init failed:', e);
-                        }
-                    } else if (window.LawAIApp?.SurfaceIntegration && window.LawAIApp.SurfaceIntegration.initialized) {
-                        console.log('[Academy] ✅ SurfaceIntegration already initialized');
-                    }
-
-                    // ============================================================
-                    // 5. LEGACY — Learning Journey Adapter
-                    // ============================================================
-                    if (window.LawAIApp?.LearningJourneyAdapter && !window.LawAIApp.LearningJourneyAdapter.initialized) {
-                        try {
-                            window.LawAIApp.LearningJourneyAdapter.init();
-                            console.log('[Academy] ✅ LearningJourneyAdapter initialized');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ LearningJourneyAdapter init failed:', e);
+                            console.warn('[Academy] ⚠️ Academy render failed:', e);
                         }
                     }
 
-                    // ============================================================
-                    // 6. LEGACY — Experience Intelligence
-                    // ============================================================
-                    if (window.LawAIApp?.ExperienceIntelligence && !window.LawAIApp.ExperienceIntelligence.initialized) {
-                        try {
-                            window.LawAIApp.ExperienceIntelligence.init();
-                            console.log('[Academy] ✅ ExperienceIntelligence initialized');
-                        } catch (e) {
-                            console.warn('[Academy] ⚠️ ExperienceIntelligence init failed:', e);
-                        }
-                    }
+                    // ── 3. 初始化所有 Part 模块（通用处理） ──
+                    var initModules = [
+                        'DecisionExperience',
+                        'ActionTracker',
+                        'OutcomeNormalizer',
+                        'OutcomeLinker',
+                        'AdaptationSignal',
+                        'AdaptationRecord',
+                        'AdaptationExplainer',
+                        'AdaptationGovernance',
+                        'LearningLoopValidator',
+                        'LearnerControl',
+                        'MetacognitiveExperience',
+                        'PatternDetector',
+                        'PatternExplainer',
+                        'SourceDistinguisher',
+                        'AILiteracyHelper',
+                        'TransferObserver',
+                        'TransferRecommender',
+                        'CalibrationObserver',
+                        'CalibrationRecommender',
+                        'JourneyOrchestrator',
+                        'AgencySupport',
+                        'ExperienceContract',
+                        'SurfaceIntegration',
+                        'LearningJourneyAdapter',
+                        'ExperienceIntelligence'
+                    ];
 
-                    // ============================================================
-                    // 7. 如果有 Notes 视图，跳转
-                    // ============================================================
+                    initModules.forEach(function(name) {
+                        var module = window.LawAIApp?.[name];
+                        if (module && !module.initialized && typeof module.init === 'function') {
+                            try {
+                                module.init();
+                                console.log('[Academy] ✅ ' + name + ' initialized');
+                            } catch (e) {
+                                console.warn('[Academy] ⚠️ ' + name + ' init failed:', e.message);
+                            }
+                        } else if (module && module.initialized) {
+                            console.log('[Academy] ✅ ' + name + ' already initialized');
+                        }
+                    });
+
+                    // ── 4. Notes 视图跳转 ──
                     if (targetView === 'notes' && window.LawAIApp?.AcademyExperienceManager) {
                         window.LawAIApp.AcademyExperienceManager.navigateToNotes();
                     }
@@ -630,7 +357,10 @@
                     console.error('❌ Academy init error:', error);
                 }
             }
-                    
+
+            // ============================================================
+            // 启动
+            // ============================================================
             if (document.readyState === 'complete') {
                 setTimeout(initAcademy, 200);
             } else {
