@@ -2217,7 +2217,7 @@ LawAIApp.Dashboard = {
         ">EXPLORE</span>
         ${[
           { icon: '📚', label: 'Academy', url: '/pages/academy.html' },
-          { icon: '📓', label: 'Notes', url: '/pages/academy.html#notes' },
+          { icon: '📓', label: 'Notes', url: action: 'notes' },
           { icon: '🧠', label: 'Intelligence', url: null },
           { icon: '💬', label: 'Chat', url: null },
           { icon: '📅', label: 'Calendar', action: 'calendar' },
@@ -2234,6 +2234,8 @@ LawAIApp.Dashboard = {
               onClick = "LawAIApp.Dashboard._renderCalendarView()";
             } else if (btn.action === 'settings') {
               onClick = "LawAIApp.Dashboard._renderSettingsView()";
+            } else if (btn.action === 'notes') {
+              onClick = "LawAIApp.Dashboard._renderNotesView()";
             } else {
               onClick = "if(window.LawAIApp&&window.LawAIApp.Toast&&typeof window.LawAIApp.Toast.info==='function'){window.LawAIApp.Toast.info('" + btn.label + " coming soon! 🚧')}else{alert('" + btn.label + " coming soon! 🚧')}";
             }
@@ -3390,7 +3392,7 @@ LawAIApp.Dashboard = {
     return html;
   },
 
-    // ============================================================
+  // ============================================================
   // 🔥 直接渲染 Calendar（不跳转）
   // ============================================================
   _renderCalendarView: function() {
@@ -3514,6 +3516,30 @@ LawAIApp.Dashboard = {
           <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
             <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">🔔 Notifications</h3>
             <p style="margin:0;color:#94a3b8;font-size:13px;">Manage notification settings</p>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  // ============================================================
+  // 🔥 直接渲染 Notes（不跳转）
+  // ============================================================
+  _renderNotesView: function() {
+    console.log('[Dashboard] 📝 Rendering Notes inline...');
+    
+    var container = document.getElementById('app') || document.getElementById('law-runtime-root') || document.getElementById('dashboard-root');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div style="max-width:700px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
+          <button onclick="LawAIApp.Dashboard.render()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">← Back to Dashboard</button>
+        </div>
+        <h2 style="margin:0 0 20px;font-size:24px;font-weight:700;">📝 Notes</h2>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+            <p style="margin:0;color:#94a3b8;font-size:13px;">No notes yet. Create your first note!</p>
           </div>
         </div>
       </div>
