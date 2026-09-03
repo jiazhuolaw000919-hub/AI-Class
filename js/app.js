@@ -73,6 +73,7 @@ window.App = {
         // 🔥 注册路由
         this._registerCalendarRoute();
         this._registerSettingsRoute();
+        this._registerNotesRoute();
 
         if (this._state.initialized) {
             console.log("🔄 App already initialized, refreshing...");
@@ -734,6 +735,118 @@ window.App = {
         }
 
         tryRegister();
+    },
+
+    // ============================================================
+    // 🔥 Notes 路由注册
+    // ============================================================
+    _registerNotesRoute: function() {
+        var self = this;
+        var attempts = 0;
+
+        function tryRegister() {
+            attempts++;
+            var router = safeGet(window, 'LawAIApp.Router') || window.LawAIApp?.Router;
+
+            if (router && typeof router.register === 'function') {
+                console.log('[App] 📝 Registering Notes route...');
+
+                router.register('notes', function() {
+                    if (window.LawAIApp?.Notes) {
+                        if (typeof window.LawAIApp.Notes.init === 'function') {
+                            window.LawAIApp.Notes.init();
+                        }
+                        window.LawAIApp.Notes.render();
+                    } else {
+                        self._loadNotes();
+                    }
+                });
+
+                router.register('knowledge-editor', function(params) {
+                    if (window.LawAIApp?.KnowledgeEditor) {
+                        window.LawAIApp.KnowledgeEditor.render(params || { noteId: 'new' });
+                    } else {
+                        self._loadKnowledgeEditor(params);
+                    }
+                });
+
+                console.log('[App] ✅ Notes route registered');
+            } else if (attempts < 10) {
+                setTimeout(tryRegister, 300);
+            } else {
+                console.warn('[App] ⚠️ Router not available after 10 attempts');
+            }
+        }
+
+        tryRegister();
+    },
+
+    // ============================================================
+    // 🔥 动态加载 Notes
+    // ============================================================
+    _loadNotes: function() {
+        console.log('[App] 📝 Loading Notes...');
+        var files = [
+            '/js/academy/knowledgeCapture.js',
+            '/js/academy/knowledgeEditor.js',
+            '/js/academy/notes.js'
+        ];
+
+        var loaded = 0;
+        var totalFiles = files.length;
+
+        files.forEach(function(file) {
+            var script = document.createElement('script');
+            script.src = file + '?v=' + Date.now();
+            script.async = true;
+            script.onload = function() {
+                loaded++;
+                console.log('[App] ✅ Notes file loaded:', file);
+                if (loaded === totalFiles && window.LawAIApp?.Notes) {
+                    if (typeof window.LawAIApp.Notes.init === 'function') {
+                        window.LawAIApp.Notes.init();
+                    }
+                    window.LawAIApp.Notes.render();
+                }
+            };
+            script.onerror = function() {
+                loaded++;
+                console.warn('[App] ⚠️ Failed to load:', file);
+            };
+            document.head.appendChild(script);
+        });
+    },
+
+    // ============================================================
+    // 🔥 动态加载 KnowledgeEditor
+    // ============================================================
+    _loadKnowledgeEditor: function(params) {
+        console.log('[App] 📝 Loading KnowledgeEditor...');
+        var files = [
+            '/js/academy/knowledgeCapture.js',
+            '/js/academy/knowledgeEditor.js'
+        ];
+
+        var loaded = 0;
+        var totalFiles = files.length;
+
+        files.forEach(function(file) {
+            var script = document.createElement('script');
+            script.src = file + '?v=' + Date.now();
+            script.async = true;
+            script.onload = function() {
+                loaded++;
+                console.log('[App] ✅ Editor file loaded:', file);
+                if (loaded === totalFiles && window.LawAIApp?.KnowledgeEditor) {
+                    window.LawAIApp.KnowledgeEditor.render(params || { noteId: 'new' });
+                }
+            };
+            script.onerror = function() {
+                loaded++;
+                console.warn('[App] ⚠️ Failed to load:', file);
+            };
+            document.head.appendChild(script);
+        });
     },
 
     // ============================================================
