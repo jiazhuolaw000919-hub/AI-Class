@@ -232,7 +232,7 @@
             };
             var color = typeColors[note.type] || '#4a9eff';
 
-            // 🔥 构建 Context 显示
+            // 🔥 Part 115: 构建 Context 显示
             var contextHTML = '';
             var hasContext = note.lessonId || note.courseId || note.subjectId;
     
@@ -244,37 +244,41 @@
                 if (note.lessonId) contextParts.push('📝 ' + note.lessonId);
         
                 var contextDisplay = contextParts.join(' → ');
-            
+        
                 contextHTML = `
                     <div style="
                         display:flex;
                         align-items:center;
                         gap:8px;
                         margin:6px 0 8px;
-                        padding:4px 10px;
+                        padding:6px 12px;
                         background:rgba(74,158,255,0.04);
                         border-radius:6px;
                         border-left:2px solid #4a9eff;
-                    ">    
+                    ">
                         <span style="font-size:11px;color:#64748b;">🔗</span>
-                        <span style="font-size:11px;color:#94a3b8;">${contextDisplay}</span>
+                        <span style="font-size:11px;color:#94a3b8;flex:1;">${contextDisplay}</span>
                         ${note.lessonId ? `
                             <button onclick="LawAIApp.Notes.navigateToLesson('${note.lessonId}')" style="
-                                padding:2px 10px;
+                                padding:3px 14px;
                                 background:rgba(74,158,255,0.08);
                                 border:1px solid rgba(74,158,255,0.12);
                                 border-radius:100px;
                                 color:#4a9eff;
-                                font-size:9px;
+                                font-size:10px;
                                 cursor:pointer;
                                 font-family:inherit;
-                                margin-left:auto;
-                            ">Open Lesson →</button>
+                                transition:all 0.2s;
+                                white-space:nowrap;
+                            " onmouseover="this.style.background='rgba(74,158,255,0.15)'" onmouseout="this.style.background='rgba(74,158,255,0.08)'">
+                                📖 Open Lesson →
+                            </button>
                         ` : ''}
                     </div>
                 `;
             }
 
+            // 返回完整卡片 HTML
             return `
                 <div style="
                     background:rgba(255,255,255,0.03);
@@ -283,24 +287,61 @@
                     border:1px solid rgba(255,255,255,0.04);
                     border-left:3px solid ${color};
                     margin-bottom:8px;
-                ">
+                    transition:all 0.2s;
+                " onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <strong style="font-size:14px;">${note.title || 'Untitled'}</strong>
                         <span style="font-size:10px;background:${color}22;color:${color};padding:2px 10px;border-radius:100px;">${note.type || 'KEY_POINT'}</span>
                     </div>
-                    ${note.content ? `<p style="color:#94a3b8;font-size:13px;margin:0 0 8px;">${this._truncate(note.content, 150)}</p>` : ''}
+                    ${note.content ? `<p style="color:#94a3b8;font-size:13px;margin:0 0 8px;line-height:1.5;">${this._truncate(note.content, 150)}</p>` : ''}
                     ${note.tags && note.tags.length > 0 ? `
                         <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">
-                            ${note.tags.map(function(t) { return `<span style="font-size:10px;color:#64748b;">#${t}</span>`; }).join('')}
+                            ${note.tags.map(function(t) { return `<span style="font-size:10px;color:#64748b;background:rgba(255,255,255,0.03);padding:2px 8px;border-radius:100px;">#${t}</span>`; }).join('')}
                         </div>
                     ` : ''}
                     ${contextHTML}
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
                         <span style="font-size:11px;color:#64748b;">🕐 ${new Date(note.updatedAt).toLocaleDateString()}</span>
-                        <div style="display:flex;gap:6px;">
-                            <button onclick="LawAIApp.Notes.togglePin('${note.id}')" style="padding:2px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;font-size:10px;cursor:pointer;font-family:inherit;">${note.isPinned ? '📌 Unpin' : '📌 Pin'}</button>
-                            <button onclick="LawAIApp.Notes.editNote('${note.id}')" style="padding:2px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;font-size:10px;cursor:pointer;font-family:inherit;">✏️ Edit</button>
-                            <button onclick="LawAIApp.Notes.deleteNote('${note.id}')" style="padding:2px 10px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.08);border-radius:100px;color:#ef4444;font-size:10px;cursor:pointer;font-family:inherit;">🗑️</button>
+                        <div style="display:flex;gap:4px;">
+                            <button onclick="LawAIApp.Notes.togglePin('${note.id}')" style="
+                                padding:2px 10px;
+                                background:rgba(255,255,255,0.04);
+                                border:1px solid rgba(255,255,255,0.06);
+                                border-radius:100px;
+                                color:#94a3b8;
+                                font-size:10px;
+                                cursor:pointer;
+                                font-family:inherit;
+                                transition:all 0.2s;
+                            " onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
+                                ${note.isPinned ? '📌 Unpin' : '📌 Pin'}
+                            </button>
+                            <button onclick="LawAIApp.Notes.editNote('${note.id}')" style="
+                                padding:2px 10px;
+                                background:rgba(255,255,255,0.04);
+                                border:1px solid rgba(255,255,255,0.06);
+                                border-radius:100px;
+                                color:#94a3b8;
+                                font-size:10px;
+                                cursor:pointer;
+                                font-family:inherit;
+                                transition:all 0.2s;
+                            " onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
+                                ✏️ Edit
+                            </button>
+                            <button onclick="LawAIApp.Notes.deleteNote('${note.id}')" style="
+                                padding:2px 10px;
+                                background:rgba(239,68,68,0.06);
+                                border:1px solid rgba(239,68,68,0.08);
+                                border-radius:100px;
+                                color:#ef4444;
+                                font-size:10px;
+                                cursor:pointer;
+                                font-family:inherit;
+                                transition:all 0.2s;
+                            " onmouseover="this.style.background='rgba(239,68,68,0.12)'" onmouseout="this.style.background='rgba(239,68,68,0.06)'">
+                                🗑️
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -343,15 +384,20 @@
                     var container = document.getElementById('notes-list');
                     if (!container) return;
                     if (!q) { this._renderList(); return; }
+            
                     var filtered = this.notes.filter(function(n) {
                         return (n.title && n.title.toLowerCase().indexOf(q) !== -1) ||
                                (n.content && n.content.toLowerCase().indexOf(q) !== -1) ||
                                (n.tags && n.tags.some(function(t) { return t.toLowerCase().indexOf(q) !== -1; }));
                     }.bind(this));
+            
                     if (filtered.length === 0) {
                         container.innerHTML = '<div style="text-align:center;padding:40px;color:#64748b;">🔍 No results found</div>';
                     } else {
-                        container.innerHTML = filtered.map(function(note) { return this._renderNoteCard(note); }.bind(this)).join('');
+                        // 🔥 Part 115: 搜索结果也显示 Context
+                        container.innerHTML = filtered.map(function(note) {
+                            return this._renderNoteCard(note);
+                        }.bind(this)).join('');
                     }
                 }.bind(this));
             }
@@ -426,23 +472,51 @@
     var Notes = {
     // ... 所有现有方法 (init, refresh, render, _renderHTML, _renderList, _renderNoteCard, _getFilteredNotes, _getSortedNotes, _getStats, _truncate, _bindEvents, filterBy, createNew, editNote, deleteNote, togglePin, getStats, getNotes) ...
 
-    // ============================================================
-    // 🔥 新增: 导航到 Lesson (Part 114)
-    // ============================================================
+
+     * 导航到 Lesson (从 Context 链接)
+     * Part 115: 增强返回路径
+     */
     navigateToLesson: function(lessonId) {
         console.log('[Notes] 📖 Navigating to lesson:', lessonId);
-        
+    
+        // 保存当前状态，以便返回
+        try {
+            localStorage.setItem('lawai_notes_return_context', JSON.stringify({
+                from: 'notes',
+                timestamp: Date.now(),
+                lessonId: lessonId
+            }));
+        } catch (e) {}
+    
+        // 方法 1: 通过 Router
         var router = window.LawAIApp?.Router;
         if (router && typeof router.navigate === 'function') {
             try {
-                router.navigate('academy', { view: 'lesson', id: lessonId });
+                // 传递 returnTo 参数，让 Academy 知道从哪里来的
+                router.navigate('academy', { 
+                    view: 'lesson', 
+                    id: lessonId,
+                    returnTo: 'notes'
+                });
                 return;
             } catch (e) {
                 console.warn('[Notes] Router navigation failed:', e);
             }
         }
-        
-        window.location.href = '/pages/academy.html?view=lesson&id=' + lessonId;
+    
+        // 方法 2: 通过 AcademyView
+        var academyView = window.LawAIApp?.AcademyView;
+        if (academyView && typeof academyView.showLesson === 'function') {
+            try {
+                academyView.showLesson(lessonId, { returnTo: 'notes' });
+                return;
+            } catch (e) {
+                console.warn('[Notes] AcademyView.showLesson failed:', e);
+            }
+        }
+    
+        // 方法 3: 直接跳转 (带 return 参数)
+        window.location.href = '/pages/academy.html?view=lesson&id=' + lessonId + '&returnTo=notes';
     },
 
     // ============================================================
