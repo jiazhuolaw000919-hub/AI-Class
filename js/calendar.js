@@ -619,8 +619,6 @@ LawAIApp.Calendar = {
             width:100%;
           ">+ Add Learning Task</button>
           </div>
-        </div>
-      </div>
     `;
 
     var select = document.getElementById('time-block-select');
