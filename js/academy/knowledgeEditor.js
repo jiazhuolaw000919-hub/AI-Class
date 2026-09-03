@@ -246,6 +246,9 @@ LawAIApp.KnowledgeEditor = {
                         ${note && note.updatedAt ? `<div style="font-size:11px;color:#475569;">Updated: ${new Date(note.updatedAt).toLocaleString()}</div>` : ''}
                         <div style="font-size:10px;color:#475569;margin-top:6px;border-top:1px solid rgba(255,255,255,0.03);padding-top:6px;">
                             🔒 Note Authority · Learner-created knowledge
+                        <div style="font-size:11px;color:#64748b;margin-top:4px;">
+                        ${note && note.provenance ? `📌 Source: ${note.provenance.type || 'Unknown'}` : '📌 Source: Learner-created'}
+                        ${note && note.provenance && note.provenance.sourceId ? ` · ID: ${note.provenance.sourceId}` : ''}
                         </div>
                     </div>
                 ` : ''}
