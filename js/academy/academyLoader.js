@@ -154,7 +154,7 @@
       this._manifest = null;
 
       return this.start();
-    }
+    },
 
     // ============================================================
     // 🔥 懒加载 API（Calendar / Settings）
