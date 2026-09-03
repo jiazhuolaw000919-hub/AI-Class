@@ -293,6 +293,12 @@
                     return;
                 }
 
+                // 🔥 如果 URL 中有 calendar 参数，直接渲染 Calendar
+                if (window.location.search.includes('view=calendar')) {
+                    renderCalendar();
+                    return;
+                }
+
                 console.log('🔥 Initializing Academy, targetView:', targetView);
 
                 try {
