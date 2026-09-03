@@ -38,6 +38,16 @@ LawAIApp.KnowledgeEditor = {
         var noteId = params.noteId;
         var isNew = noteId === 'new';
         var note = isNew ? null : LawAIApp.KnowledgeCapture.getById(noteId);
+        
+        // 🔥 Part 114: 获取 Context (从 params 或从 note)
+        var context = params.context || {};
+        if (note) {
+            context.lessonId = note.lessonId || context.lessonId;
+            context.subjectId = note.subjectId || context.subjectId;
+            context.courseId = note.courseId || context.courseId;
+            context.schoolId = note.schoolId || context.schoolId;
+        }
+        
         var title = note ? note.title : '';
         var content = note ? note.content : '';
         var tags = note && note.tags ? note.tags.join(', ') : '';
@@ -47,6 +57,51 @@ LawAIApp.KnowledgeEditor = {
             'KEY_POINT', 'DEFINITION', 'EXAMPLE', 'SUMMARY',
             'PERSONAL_NOTE', 'QUESTION', 'MISTAKE', 'INSIGHT', 'BOOKMARK'
         ];
+
+        // 🔥 Part 114: 构建 Context 显示 HTML
+        var contextDisplayHTML = '';
+        var hasContext = context.lessonId || context.courseId || context.subjectId;
+
+        if (hasContext) {
+            var parts = [];
+            if (context.schoolId) parts.push('🏫 ' + context.schoolId);
+            if (context.courseId) parts.push('📚 ' + context.courseId);
+            if (context.subjectId) parts.push('📖 ' + context.subjectId);
+            if (context.lessonId) parts.push('📝 ' + context.lessonId);
+
+            var contextDisplay = parts.join(' → ');
+
+            contextDisplayHTML = `
+                <div style="
+                    padding:8px 12px;
+                    background:rgba(74,158,255,0.04);
+                    border-radius:6px;
+                    border-left:2px solid #4a9eff;
+                    margin-bottom:12px;
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                    flex-wrap:wrap;
+                    gap:8px;
+                ">
+                    <span style="font-size:12px;color:#94a3b8;">
+                        🔗 ${contextDisplay}
+                    </span>
+                    ${!isNew && note && note.lessonId ? `
+                        <button onclick="LawAIApp.Notes.navigateToLesson('${note.lessonId}')" style="
+                            padding:2px 12px;
+                            background:rgba(74,158,255,0.08);
+                            border:1px solid rgba(74,158,255,0.12);
+                            border-radius:100px;
+                            color:#4a9eff;
+                            font-size:10px;
+                            cursor:pointer;
+                            font-family:inherit;
+                        ">Open Lesson →</button>
+                    ` : ''}
+                </div>
+            `;
+        }
 
         var html = `
             <div class="page" style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
@@ -68,6 +123,9 @@ LawAIApp.KnowledgeEditor = {
                 </button>
 
                 <h2 style="margin:0 0 16px;font-size:24px;font-weight:700;">${isNew ? '📝 New Note' : '✏️ Edit Note'}</h2>
+
+                <!-- 🔥 Part 114: Context 显示 -->
+                ${contextDisplayHTML}
 
                 <!-- Type -->
                 <div style="margin-bottom:12px;">
@@ -235,6 +293,12 @@ LawAIApp.KnowledgeEditor = {
                         tags: tags,
                         type: type
                     });
+                    
+                    // 🔥 Part 114: 保存时保留 Context
+                    if (context.lessonId) noteData.lessonId = context.lessonId;
+                    if (context.subjectId) noteData.subjectId = context.subjectId;
+                    if (context.courseId) noteData.courseId = context.courseId;
+                    if (context.schoolId) noteData.schoolId = context.schoolId;
                 }
 
                 // 返回 Notes
