@@ -200,7 +200,22 @@
                     }
 
                     if (tab === 'calendar') {
-                        showComingSoon('📅 Calendar');
+                        // 🔥 使用 Router 导航到 Calendar
+                        if (window.LawAIApp?.Router) {
+                            window.LawAIApp.Router.navigate('calendar');
+                        } else if (window.Router) {
+                            window.Router.navigate('calendar');
+                        } else {
+                            // fallback: 尝试直接加载 Calendar
+                            if (window.LawAIApp?.Calendar) {
+                                if (typeof window.LawAIApp.Calendar.init === 'function') {
+                                    window.LawAIApp.Calendar.init();
+                                }
+                                window.LawAIApp.Calendar.render();
+                            } else {
+                                showComingSoon('📅 Calendar');
+                            }
+                        }
                         return;
                     }
 
