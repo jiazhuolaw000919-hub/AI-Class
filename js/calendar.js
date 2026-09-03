@@ -148,15 +148,16 @@ LawAIApp.Calendar = {
   _getScheduleState: function() {
     var events = this._getAllSchedules();
     return {
-        currentTab: this.currentTab,
-        currentYear: this.currentYear,
-        currentMonth: this.currentMonth,
-        events: events,
-        availableWindows: [],
-        conflicts: [],
-        hasSchedule: events.length > 0,
-        lastUpdated: null
+      currentTab: this.currentTab,
+      currentYear: this.currentYear,
+      currentMonth: this.currentMonth,
+      events: events,
+      availableWindows: [],
+      conflicts: [],
+      hasSchedule: events.length > 0,
+      lastUpdated: null
     };
+},
   },
 
   // ============================================================
@@ -601,22 +602,23 @@ LawAIApp.Calendar = {
         <div style="background:rgba(139,92,246,0.05);border-radius:12px;padding:16px 18px;border:1px solid rgba(139,92,246,0.1);">
           <div style="display:flex;align-items:center;gap:12px;">
             <span style="font-size:24px;">🤖</span>
-            <div>
+            <div style="flex:1;">
               <h4 style="margin:0 0 4px;font-size:14px;color:#8b5cf6;">Mentor Suggestion</h4>
               <p style="margin:0;color:#cbd5e1;font-size:13px;">${memory < 70 ? '🧠 Prioritize reviews to protect your memory retention.' : '📚 You\'re ready for a challenge! Add a new topic to your learning path.'}</p>
-              // 在 </div> 结束前，Mentor Suggestion 下方添加
-        <button onclick="LawAIApp.Calendar._showCreateTaskModal()" style="
-          margin-top:12px;
-          padding:8px 20px;
-          background:rgba(74,158,255,0.08);
-          border:1px solid rgba(74,158,255,0.12);
-          border-radius:100px;
-          color:#4a9eff;
-          font-size:13px;
-          cursor:pointer;
-          font-family:inherit;
-          width:100%;
-        ">+ Add Learning Task</button>
+            </div>
+              </div>
+              <button onclick="LawAIApp.Calendar._showCreateTaskModal()" style="
+                margin-top:12px;
+                padding:8px 20px;
+                background:rgba(74,158,255,0.08);
+                border:1px solid rgba(74,158,255,0.12);
+                border-radius:100px;
+                color:#4a9eff;
+                font-size:13px;
+                cursor:pointer;
+                font-family:inherit;
+                width:100%;
+              ">+ Add Learning Task</button>
             </div>
           </div>
         </div>
@@ -734,8 +736,10 @@ LawAIApp.Calendar = {
   // Part 106: Schedule CRUD
   // ============================================================
 
+  _userId: 'default',  // 在对象顶部添加
+
   _getScheduleKey: function() {
-    return 'lawai_calendar_schedule';
+      return 'lawai_calendar_schedule_' + this._userId;
   },
 
   _getAllSchedules: function() {
