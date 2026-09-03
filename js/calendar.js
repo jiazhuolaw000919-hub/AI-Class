@@ -58,25 +58,41 @@ LawAIApp.Calendar = {
   // 获取容器（优先 academy-root）
   // ============================================================
   _getContainer: function() {
-    // 1. 如果设置了 _root，使用它
     if (this._root) {
       return this._root;
     }
     
-    // 2. 优先 academy-root（Academy 页面）
     var academyRoot = document.getElementById('academy-root');
     if (academyRoot) {
       return academyRoot;
     }
     
-    // 3. 然后 app
     var app = document.getElementById('app');
     if (app) {
       return app;
     }
     
-    // 4. 最后 law-runtime-root
     return document.getElementById('law-runtime-root');
+  },
+
+  // ============================================================
+  // 🔥 返回 Academy
+  // ============================================================
+  goToAcademy: function() {
+    console.log('[Calendar] 📚 Back to Academy');
+    window.location.href = '/pages/academy.html';
+  },
+
+  // ============================================================
+  // 🔥 返回上一页
+  // ============================================================
+  goBack: function() {
+    console.log('[Calendar] ⬅️ Go back');
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = '/';
+    }
   },
 
   // ============================================================
@@ -153,7 +169,6 @@ LawAIApp.Calendar = {
       return;
     }
     
-    // Fallback: 简单日历
     this._renderSimpleCalendar(container);
   },
 
@@ -168,9 +183,43 @@ LawAIApp.Calendar = {
 
     var html = `
       <div class="page" style="max-width:900px;margin:0 auto;padding:16px 20px 40px;color:#e2e8f0;">
-        <button class="back-btn" onclick="LawAIApp.Router?.goBack ? LawAIApp.Router.goBack() : history.back()" style="background:rgba(255,255,255,0.06);border:none;color:#4a9eff;padding:10px 16px;border-radius:10px;cursor:pointer;margin-bottom:16px;display:flex;align-items:center;gap:8px;font-size:14px;font-family:inherit;">
-          ← Back to Dashboard
-        </button>
+        
+        <!-- 🔥 导航按钮组：Back to Academy + 返回上一页 -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+          <button onclick="LawAIApp.Calendar.goToAcademy()" style="
+            background:rgba(74,158,255,0.08);
+            border:1px solid rgba(74,158,255,0.15);
+            color:#4a9eff;
+            padding:10px 16px;
+            border-radius:10px;
+            cursor:pointer;
+            display:flex;
+            align-items:center;
+            gap:8px;
+            font-size:14px;
+            font-family:inherit;
+            transition:all 0.2s;
+          " onmouseover="this.style.background='rgba(74,158,255,0.15)'" onmouseout="this.style.background='rgba(74,158,255,0.08)'">
+            ← Back to Academy
+          </button>
+          
+          <button onclick="LawAIApp.Calendar.goBack()" style="
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.06);
+            color:#94a3b8;
+            padding:10px 16px;
+            border-radius:10px;
+            cursor:pointer;
+            display:flex;
+            align-items:center;
+            gap:8px;
+            font-size:14px;
+            font-family:inherit;
+            transition:all 0.2s;
+          " onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
+            ⬅️ 返回上一页
+          </button>
+        </div>
 
         <h2 style="margin:0 0 16px;font-size:24px;font-weight:700;">📅 Learning Memory</h2>
         
@@ -201,6 +250,31 @@ LawAIApp.Calendar = {
     
     container.innerHTML = `
       <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;">
+        
+        <!-- 🔥 导航按钮 -->
+        <div style="display:flex;justify-content:space-between;margin-bottom:16px;gap:12px;">
+          <button onclick="LawAIApp.Calendar.goToAcademy()" style="
+            background:rgba(74,158,255,0.08);
+            border:1px solid rgba(74,158,255,0.15);
+            color:#4a9eff;
+            padding:8px 16px;
+            border-radius:100px;
+            cursor:pointer;
+            font-family:inherit;
+            font-size:13px;
+          ">← Back to Academy</button>
+          <button onclick="LawAIApp.Calendar.goBack()" style="
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.06);
+            color:#94a3b8;
+            padding:8px 16px;
+            border-radius:100px;
+            cursor:pointer;
+            font-family:inherit;
+            font-size:13px;
+          ">⬅️ 返回上一页</button>
+        </div>
+
         <h2 style="margin:0 0 4px;">📅 Calendar</h2>
         <p style="color:#94a3b8;margin:0 0 16px;">Your learning schedule</p>
         
@@ -442,7 +516,7 @@ LawAIApp.Calendar = {
   },
 
   // ============================================================
-  // Planner 视图（智能学习规划器）
+  // Planner 视图
   // ============================================================
   renderPlannerView: function(container) {
     var plan = this._getPlan();
