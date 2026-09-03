@@ -232,6 +232,49 @@
             };
             var color = typeColors[note.type] || '#4a9eff';
 
+            // 🔥 构建 Context 显示
+            var contextHTML = '';
+            var hasContext = note.lessonId || note.courseId || note.subjectId;
+    
+            if (hasContext) {
+                var contextParts = [];
+                if (note.schoolId) contextParts.push('🏫 ' + note.schoolId);
+                if (note.courseId) contextParts.push('📚 ' + note.courseId);
+                if (note.subjectId) contextParts.push('📖 ' + note.subjectId);
+                if (note.lessonId) contextParts.push('📝 ' + note.lessonId);
+        
+                var contextDisplay = contextParts.join(' → ');
+            
+                contextHTML = `
+                    <div style="
+                        display:flex;
+                        align-items:center;
+                        gap:8px;
+                        margin:6px 0 8px;
+                        padding:4px 10px;
+                        background:rgba(74,158,255,0.04);
+                        border-radius:6px;
+                        border-left:2px solid #4a9eff;
+                    ">    
+                        <span style="font-size:11px;color:#64748b;">🔗</span>
+                        <span style="font-size:11px;color:#94a3b8;">${contextDisplay}</span>
+                        ${note.lessonId ? `
+                            <button onclick="LawAIApp.Notes.navigateToLesson('${note.lessonId}')" style="
+                                padding:2px 10px;
+                                background:rgba(74,158,255,0.08);
+                                border:1px solid rgba(74,158,255,0.12);
+                                border-radius:100px;
+                                color:#4a9eff;
+                                font-size:9px;
+                                cursor:pointer;
+                                font-family:inherit;
+                                margin-left:auto;
+                            ">Open Lesson →</button>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
             return `
                 <div style="
                     background:rgba(255,255,255,0.03);
@@ -251,8 +294,9 @@
                             ${note.tags.map(function(t) { return `<span style="font-size:10px;color:#64748b;">#${t}</span>`; }).join('')}
                         </div>
                     ` : ''}
+                    ${contextHTML}
                     <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <span style="font-size:11px;color:#64748b;">📖 ${note.lessonId || 'No Lesson'} · 🕐 ${new Date(note.updatedAt).toLocaleDateString()}</span>
+                        <span style="font-size:11px;color:#64748b;">🕐 ${new Date(note.updatedAt).toLocaleDateString()}</span>
                         <div style="display:flex;gap:6px;">
                             <button onclick="LawAIApp.Notes.togglePin('${note.id}')" style="padding:2px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;font-size:10px;cursor:pointer;font-family:inherit;">${note.isPinned ? '📌 Unpin' : '📌 Pin'}</button>
                             <button onclick="LawAIApp.Notes.editNote('${note.id}')" style="padding:2px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;font-size:10px;cursor:pointer;font-family:inherit;">✏️ Edit</button>
@@ -332,10 +376,22 @@
             this._renderList();
         },
 
-        createNew: function() {
+        // ============================================================
+        // 原有 createNew 方法 - 替换为支持 Context
+        // ============================================================
+        createNew: function(context) {
+            // 如果传入了 context，使用增强版
+            if (context && (context.lessonId || context.courseId)) {
+                this.createNoteWithContext(context);
+                return;
+            }
+    
+            // 原有逻辑: 直接打开编辑器 (无 Context)
             var editor = window.LawAIApp?.KnowledgeEditor;
             if (editor && typeof editor.render === 'function') {
                 editor.render({ noteId: 'new' });
+            } else {
+                console.warn('[Notes] KnowledgeEditor not available');
             }
         },
         editNote: function(noteId) {
@@ -364,6 +420,53 @@
         getStats: function() { this.refresh(); return this._getStats(); },
         getNotes: function() { this.refresh(); return this.notes; }
     };
+
+    // notes.js — 在 Notes 对象内部，所有方法之后
+
+    var Notes = {
+    // ... 所有现有方法 (init, refresh, render, _renderHTML, _renderList, _renderNoteCard, _getFilteredNotes, _getSortedNotes, _getStats, _truncate, _bindEvents, filterBy, createNew, editNote, deleteNote, togglePin, getStats, getNotes) ...
+
+    // ============================================================
+    // 🔥 新增: 导航到 Lesson (Part 114)
+    // ============================================================
+    navigateToLesson: function(lessonId) {
+        console.log('[Notes] 📖 Navigating to lesson:', lessonId);
+        
+        var router = window.LawAIApp?.Router;
+        if (router && typeof router.navigate === 'function') {
+            try {
+                router.navigate('academy', { view: 'lesson', id: lessonId });
+                return;
+            } catch (e) {
+                console.warn('[Notes] Router navigation failed:', e);
+            }
+        }
+        
+        window.location.href = '/pages/academy.html?view=lesson&id=' + lessonId;
+    },
+
+    // ============================================================
+    // 🔥 新增: 创建笔记支持 Context (Part 114)
+    // ============================================================
+    createNoteWithContext: function(context) {
+        console.log('[Notes] 📝 Creating note with context:', context);
+        
+        var editor = window.LawAIApp?.KnowledgeEditor;
+        if (editor && typeof editor.render === 'function') {
+            editor.render({ 
+                noteId: 'new',
+                context: context || {}
+            });
+        } else {
+            console.warn('[Notes] KnowledgeEditor not available');
+            // fallback: 用原有的 createNew
+            this.createNew();
+        }
+    }
+};
+
+// 挂载到全局
+window.LawAIApp.Notes = Notes;
 
     window.LawAIApp.Notes = Notes;
     console.log('[Notes] 📝 S4 module loaded');
