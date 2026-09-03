@@ -3527,25 +3527,85 @@ LawAIApp.Dashboard = {
   // ============================================================
   // 🔥 直接渲染 Notes（不跳转）
   // ============================================================
-  _renderNotesView: function() {
-    console.log('[Dashboard] 📝 Rendering Notes inline...');
+    _renderNotesView: function() {
+    console.log('[Dashboard] 📝 Loading real Notes...');
     
     var container = document.getElementById('app') || document.getElementById('law-runtime-root') || document.getElementById('dashboard-root');
     if (!container) return;
 
-    container.innerHTML = `
-      <div style="max-width:700px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
-          <button onclick="LawAIApp.Dashboard.render()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">← Back to Dashboard</button>
-        </div>
-        <h2 style="margin:0 0 20px;font-size:24px;font-weight:700;">📝 Notes</h2>
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
-            <p style="margin:0;color:#94a3b8;font-size:13px;">No notes yet. Create your first note!</p>
-          </div>
-        </div>
-      </div>
-    `;
+    // 🔥 检查 Notes 是否已加载
+    if (window.LawAIApp?.Notes && typeof window.LawAIApp.Notes.render === 'function') {
+      try {
+        window.LawAIApp.Notes._root = container;
+        window.LawAIApp.Notes.render();
+        console.log('[Dashboard] ✅ Real Notes rendered');
+        return;
+      } catch (e) {
+        console.warn('[Dashboard] Notes render error:', e);
+      }
+    }
+
+    // 🔥 检查 NotesView 是否已加载（Academy 的 NotesView）
+    if (window.LawAIApp?.NotesView && typeof window.LawAIApp.NotesView.render === 'function') {
+      try {
+        window.LawAIApp.NotesView.render(container);
+        console.log('[Dashboard] ✅ NotesView rendered');
+        return;
+      } catch (e) {
+        console.warn('[Dashboard] NotesView render error:', e);
+      }
+    }
+
+    // 🔥 检查 KnowledgeCapture 是否已加载
+    if (window.LawAIApp?.KnowledgeCapture && typeof window.LawAIApp.KnowledgeCapture.render === 'function') {
+      try {
+        window.LawAIApp.KnowledgeCapture.render(container);
+        console.log('[Dashboard] ✅ KnowledgeCapture rendered');
+        return;
+      } catch (e) {
+        console.warn('[Dashboard] KnowledgeCapture render error:', e);
+      }
+    }
+
+    // 🔥 未加载，动态加载 notes.js
+    console.log('[Dashboard] 📥 Loading notes.js...');
+    
+    container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Notes...</div>';
+    
+    var files = [
+      '/js/academy/knowledgeCapture.js',
+      '/js/academy/notes.js'
+    ];
+    
+    var loaded = 0;
+    var self = this;
+    
+    files.forEach(function(file) {
+      var script = document.createElement('script');
+      script.src = file + '?v=' + Date.now();
+      script.async = true;
+      script.onload = function() {
+        loaded++;
+        console.log('[Dashboard] ✅ Loaded:', file);
+        if (loaded === files.length) {
+          // 所有文件加载完成
+          if (window.LawAIApp?.Notes && typeof window.LawAIApp.Notes.render === 'function') {
+            window.LawAIApp.Notes._root = container;
+            window.LawAIApp.Notes.render();
+          } else if (window.LawAIApp?.NotesView && typeof window.LawAIApp.NotesView.render === 'function') {
+            window.LawAIApp.NotesView.render(container);
+          } else {
+            console.warn('[Dashboard] ⚠️ Notes not found after load');
+            container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">❌ Notes not available</div>';
+          }
+        }
+      };
+      script.onerror = function() {
+        loaded++;
+        console.warn('[Dashboard] ⚠️ Failed:', file);
+      };
+      document.head.appendChild(script);
+    });
   },
 
   /**
