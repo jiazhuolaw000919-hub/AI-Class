@@ -2234,7 +2234,8 @@ LawAIApp.Dashboard = {
           { icon: '📋', label: 'Prompts', url: null },
           { icon: '🎯', label: 'Goals', url: null },
           { icon: '🧠', label: 'Mentor', url: null },
-          { icon: '🚀', label: 'Showcase', url: null }
+          { icon: '🚀', label: 'Showcase', url: null },
+          { icon: '🕸️', label: 'Knowledge Graph', action: 'knowledgeGraph' }
         ].map(function(btn) {
             var onClick;
             if (btn.url) {
@@ -2245,6 +2246,8 @@ LawAIApp.Dashboard = {
               onClick = "LawAIApp.Dashboard._renderSettingsView()";
             } else if (btn.action === 'notes') {
               onClick = "LawAIApp.Dashboard._renderNotesView()";
+            } else if (btn.action === '_knowledgeGraph') {
+              onClick = "LawAIApp.Dashboard._renderKnowledgeGraphView()";
             } else {
               onClick = "if(window.LawAIApp&&window.LawAIApp.Toast&&typeof window.LawAIApp.Toast.info==='function'){window.LawAIApp.Toast.info('" + btn.label + " coming soon! 🚧')}else{alert('" + btn.label + " coming soon! 🚧')}";
             }
@@ -3523,6 +3526,347 @@ LawAIApp.Dashboard = {
     };
     document.head.appendChild(script);
   },
+
+  // ============================================================
+  // 🔥 Part 118: 知识图谱视图 (入口)
+  // ============================================================
+  _renderKnowledgeGraphView: function() {
+      console.log('[Dashboard] 🕸️ Rendering Knowledge Graph...');
+  
+      var container = document.getElementById('app') || 
+                      document.getElementById('law-runtime-root') || 
+                      document.getElementById('dashboard-root');
+      if (!container) return;
+  
+      // 获取 KnowledgeGraph 数据
+      var kg = window.LawAIApp?.KnowledgeGraph;
+      var stats = kg ? kg.getGraphStats() : null;
+
+      var html = `
+          <div style="max-width:960px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
+  
+              <!-- 返回按钮 -->
+              <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
+                  <button onclick="LawAIApp.Dashboard.render()" style="
+                      background:rgba(74,158,255,0.08);
+                      border:1px solid rgba(74,158,255,0.15);
+                      color:#4a9eff;
+                      padding:10px 16px;
+                      border-radius:10px;
+                      cursor:pointer;
+                      font-family:inherit;
+                      font-size:14px;
+                  ">
+                      ← Back to Dashboard
+                  </button>
+              </div>
+  
+              <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">🕸️ Knowledge Graph</h2>
+              <p style="color:#94a3b8;margin:0 0 20px;">Your connected knowledge network</p>
+
+              <!-- 统计信息 -->
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
+                  <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+                      <div style="font-size:11px;color:#64748b;">Entities</div>
+                      <div style="font-size:28px;font-weight:700;color:#e2e8f0;">${stats ? stats.totalEntities : 0}</div>
+                  </div>
+                  <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+                      <div style="font-size:11px;color:#64748b;">Relationships</div>
+                      <div style="font-size:28px;font-weight:700;color:#4a9eff;">${stats ? stats.totalRelationships : 0}</div>
+                  </div>
+                  <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+                      <div style="font-size:11px;color:#64748b;">Node Types</div>
+                      <div style="font-size:28px;font-weight:700;color:#8b5cf6;">${stats ? Object.keys(stats.typeStats || {}).length : 0}</div>
+                  </div>
+                  <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+                      <div style="font-size:11px;color:#64748b;">Status</div>
+                      <div style="font-size:16px;font-weight:600;color:${stats && stats.valid ? '#22c55e' : '#ef4444'};">${stats && stats.valid ? '✅ Healthy' : '⚠️ Needs Attention'}</div>
+                  </div>
+              </div>
+
+              <!-- 节点列表 -->
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                  <h3 style="margin:0;font-size:16px;font-weight:600;">📌 Nodes</h3>
+                  <button onclick="LawAIApp.Dashboard._refreshKnowledgeGraph()" style="
+                      padding:4px 14px;
+                      background:rgba(255,255,255,0.04);
+                      border:1px solid rgba(255,255,255,0.06);
+                      border-radius:100px;
+                      color:#94a3b8;
+                      font-size:11px;
+                      cursor:pointer;
+                      font-family:inherit;
+                  ">🔄 Refresh</button>
+              </div>
+              <div id="kg-node-list" style="
+                  background:rgba(255,255,255,0.02);
+                  border-radius:12px;
+                  border:1px solid rgba(255,255,255,0.04);
+                  padding:12px;
+                  max-height:300px;
+                  overflow-y:auto;
+              ">  
+                  ${this._renderNodeList()}
+              </div>
+  
+              <!-- 关系列表 -->
+              <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0 12px;">
+                  <h3 style="margin:0;font-size:16px;font-weight:600;">🔗 Relationships</h3>
+              </div>
+              <div id="kg-relation-list" style="
+                  background:rgba(255,255,255,0.02);
+                  border-radius:12px;
+                  border:1px solid rgba(255,255,255,0.04);
+                  padding:12px;
+                  max-height:200px;
+                  overflow-y:auto;
+              ">
+                  ${this._renderRelationList()}
+              </div>
+  
+              <!-- 操作按钮 -->
+              <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
+                  <button onclick="LawAIApp.Dashboard._exportGraph()" style="
+                      padding:8px 20px;
+                      background:rgba(74,158,255,0.08);
+                      border:1px solid rgba(74,158,255,0.12);
+                      border-radius:100px;
+                      color:#4a9eff;
+                      font-size:13px;
+                      cursor:pointer;
+                      font-family:inherit;
+                  ">📤 Export Graph</button>
+                  <button onclick="LawAIApp.Dashboard._rebuildGraph()" style="
+                      padding:8px 20px;
+                      background:rgba(245,158,11,0.08);
+                      border:1px solid rgba(245,158,11,0.12);
+                      border-radius:100px;
+                      color:#f59e0b;
+                      font-size:13px;
+                      cursor:pointer;
+                      font-family:inherit;
+                  ">🔄 Rebuild Graph</button>
+                  <button onclick="LawAIApp.Dashboard._importGraph()" style="
+                      padding:8px 20px;
+                      background:rgba(139,92,246,0.08);
+                      border:1px solid rgba(139,92,246,0.12);
+                      border-radius:100px;
+                      color:#8b5cf6;
+                      font-size:13px;
+                      cursor:pointer;
+                      font-family:inherit;
+                  ">📥 Import Graph</button>
+              </div>
+
+              <div style="
+                  margin-top:16px;
+                  padding:8px 14px;
+                  background:rgba(255,255,255,0.02);
+                  border-radius:8px;
+                  border:1px solid rgba(255,255,255,0.03);
+                  font-size:10px;
+                  color:#475569;
+              ">
+                  🔒 Knowledge Graph Authority · ${kg ? 'v' + kg._version : 'Not available'}
+              </div>
+          </div>
+      `;  
+
+      container.innerHTML = html;
+  },
+
+  // ============================================================
+  // Part 118: 渲染节点列表
+  // ============================================================
+  _renderNodeList: function() {
+      var kg = window.LawAIApp?.KnowledgeGraph;
+      if (!kg) return '<div style="color:#64748b;text-align:center;padding:20px;">Knowledge Graph not available</div>';
+
+      var nodes = kg.getAllNodes();
+      if (!nodes || nodes.length === 0) {
+          return '<div style="color:#64748b;text-align:center;padding:20px;">No nodes yet. Start learning to build your knowledge graph.</div>';
+      }
+
+      return nodes.slice(0, 20).map(function(node) {
+          var typeColors = {
+              KNOWLEDGE: '#4a9eff',
+              SKILL: '#10b981',
+              LESSON: '#f59e0b',
+              RESOURCE: '#8b5cf6',
+              COURSE: '#ec4899',
+              PROJECT: '#14b8a6',
+              ASSESSMENT: '#ef4444'
+          };
+          var color = typeColors[node.type] || '#64748b';
+  
+          return `
+              <div style="
+                  display:flex;
+                  justify-content:space-between;
+                  align-items:center;
+                  padding:6px 10px;
+                  border-bottom:1px solid rgba(255,255,255,0.03);
+                  font-size:12px;
+              ">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};"></span>
+                      <span style="color:#e2e8f0;">${node.title || node.id}</span>
+                  </div>
+                  <div style="display:flex;gap:8px;align-items:center;">
+                      <span style="font-size:9px;color:#64748b;background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:100px;">${node.type}</span>
+                      <span style="font-size:9px;color:#475569;">${node.status || 'active'}</span>
+                  </div>
+              </div>
+          `;
+      }).join('');
+  },
+
+  // ============================================================
+  // Part 118: 渲染关系列表
+  // ============================================================
+  _renderRelationList: function() {
+      var kg = window.LawAIApp?.KnowledgeGraph;
+      if (!kg) return '<div style="color:#64748b;text-align:center;padding:20px;">Knowledge Graph not available</div>';
+
+      var nodes = kg.getAllNodes();
+      if (!nodes || nodes.length === 0) {
+          return '<div style="color:#64748b;text-align:center;padding:20px;">No relationships yet.</div>';
+      }  
+
+      var allRels = [];
+      nodes.forEach(function(node) {
+          var rels = kg.getRelations(node.id);
+          rels.forEach(function(rel) {
+              allRels.push(rel);
+          });
+      });
+
+      if (allRels.length === 0) {
+          return '<div style="color:#64748b;text-align:center;padding:20px;">No relationships yet.</div>';
+      }  
+
+      return allRels.slice(0, 15).map(function(rel) {
+          var fromNode = kg.getNode(rel.from);
+          var toNode = kg.getNode(rel.to);
+          var fromLabel = fromNode ? fromNode.title : rel.from;
+          var toLabel = toNode ? toNode.title : rel.to;
+  
+          return `
+              <div style="
+                  display:flex;
+                  justify-content:space-between;
+                  align-items:center;
+                  padding:4px 10px;
+                  border-bottom:1px solid rgba(255,255,255,0.02);
+                  font-size:11px;
+                  color:#94a3b8;
+              ">
+                  <span>${fromLabel}</span>
+                  <span style="color:#4a9eff;font-size:9px;">→ ${rel.type} →</span>
+                  <span>${toLabel}</span>
+              </div>
+          `;
+      }).join('');
+  },
+
+  // ============================================================
+  // Part 118: 操作函数
+  // ============================================================
+  _refreshKnowledgeGraph: function() {
+      var kg = window.LawAIApp?.KnowledgeGraph;
+      if (kg) {
+          kg.validateGraph();
+          console.log('[Dashboard] 🔄 Knowledge Graph refreshed');
+      }
+      this._renderKnowledgeGraphView();
+  },
+
+  _exportGraph: function() {
+      var kg = window.LawAIApp?.KnowledgeGraph;
+      if (!kg) return;
+  
+      var data = kg.exportGraph();
+      var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'knowledge_graph_export_' + new Date().toISOString().split('T')[0] + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+
+      if (window.LawAIApp?.Toast?.success) {
+          LawAIApp.Toast.success('📤 Graph exported');
+      }
+  },
+
+  _rebuildGraph: function() {
+      var kg = window.LawAIApp?.KnowledgeGraph;
+      if (!kg) return;
+  
+      if (confirm('⚠️ Rebuild the Knowledge Graph from source data? This will reset all graph data.')) {
+          // 重置图谱
+          kg.reset();
+
+          // 从 Notes 重建
+          var notes = window.LawAIApp?.KnowledgeCapture?.getNotes() || [];
+          notes.forEach(function(note) {
+              if (!kg.hasNode(note.id)) {
+                  kg.registerNode({
+                      id: note.id,
+                      type: kg.NODE_TYPES.KNOWLEDGE,
+                      title: note.title || 'Untitled',
+                      description: note.content || '',
+                      metadata: {
+                          tags: note.tags || [],
+                          type: note.type,
+                          lessonId: note.lessonId,
+                          courseId: note.courseId,
+                          subjectId: note.subjectId
+                      }
+                  });
+              }
+          });
+
+          if (window.LawAIApp?.Toast?.success) {
+              LawAIApp.Toast.success('🔄 Graph rebuilt from ' + notes.length + ' notes');
+          }
+          this._renderKnowledgeGraphView();
+      }  
+  },
+
+  _importGraph: function() {
+      var input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = function(e) {
+          var file = e.target.files[0];
+          if (!file) return;
+  
+          var reader = new FileReader();
+          reader.onload = function(ev) {
+              try {
+                  var data = JSON.parse(ev.target.result);
+                  var kg = window.LawAIApp?.KnowledgeGraph;
+                  if (kg && kg.importGraph(data)) {
+                      if (window.LawAIApp?.Toast?.success) {
+                          LawAIApp.Toast.success('📥 Graph imported');
+                      }
+                      LawAIApp.Dashboard._renderKnowledgeGraphView();
+                  } else {
+                      if (window.LawAIApp?.Toast?.error) {
+                          LawAIApp.Toast.error('❌ Import failed');
+                      }
+                  }
+              } catch (err) {
+                  if (window.LawAIApp?.Toast?.error) {
+                      LawAIApp.Toast.error('❌ Invalid file format');
+                  }
+              }
+          };
+          reader.readAsText(file);
+      };
+      input.click();
+  },  
 
   // ============================================================
   // 🔥 直接渲染 Notes（不跳转）
