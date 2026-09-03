@@ -28,66 +28,15 @@ LawAIApp.Dashboard = {
     'background': 3
   },
 
-  render: function() {
-    // 🔥 Part 102: 从 Core 获取数据
-    var coreResult = this._getCoreIntelligenceResult();
-    
-    var surfaceData = LawAIApp.DashboardSurfaceAdapter 
-        ? LawAIApp.DashboardSurfaceAdapter.adapt(coreResult)
-        : null;
-    
-    var viewModel = LawAIApp.DashboardViewModel
-        ? LawAIApp.DashboardViewModel.toRenderModel(surfaceData)
-        : null;
-    
-    // 获取原有数据（作为 fallback）
-    var progress = this._getProgress();
-    var streakData = this._getStreakData();
-    var levelInfo = this._getLevelInfo();
-    var achievements = this._getAchievements();
-    var allLessons = this._getAllLessons();
-    var favorites = this._getFavorites();
-    var noteCount = this._getNoteCount();
-    var heroData = this._getHeroData('not_started', progress, streakData);
-    
-    // 🔥 如果有 ViewModel，覆盖数据
-    if (viewModel && viewModel.hero) {
-        heroData = viewModel.hero;
-        progress.completionPercent = viewModel.progress?.overall || 0;
-    }
-    
-    // 如果有推荐，使用 Core 推荐
-    if (viewModel && viewModel.recommendation) {
-        // 稍后在 _buildHTML 中使用
-    }
-    
-    var html = this._buildHTML({
-        progress: progress,
-        streakData: streakData,
-        levelInfo: levelInfo,
-        achievements: achievements,
-        todayLesson: null,
-        favorites: favorites,
-        completionRate: '0.0',
-        currentStage: 'Foundation',
-        lastCompletedDate: 'Not started',
-        dailyBriefingHTML: '',
-        allLessons: allLessons,
-        noteCount: noteCount,
-        heroData: heroData,
-        learnerState: 'not_started',
-        // 🔥 传递 ViewModel 供 _buildHTML 使用
-        _viewModel: viewModel
-    });
-    
-    var app = document.getElementById('app') || document.getElementById('law-runtime-root');
-    if (app) {
-        app.innerHTML = html;
-        this._rendered = true;
-        this._initAnimations();
-      }
-    }
-    
+    render: function() {
+    const contract = window.LawAIApp?.ExperienceContract;
+    const orchestrator = window.LawAIApp?.JourneyOrchestrator;
+    const lc = window.LawAIApp?.LearningContext;
+
+    let progress, streakData, levelInfo, achievements, contractState;
+    let learnerState = 'unknown';
+
+    // 🔥 获取 LearningState（从 LearningJourneyAdapter）
     var learningState = null;
     var adapter = window.LawAIApp?.LearningJourneyAdapter;
     if (adapter && adapter.initialized && typeof adapter.getLearningState === 'function') {
@@ -97,13 +46,6 @@ LawAIApp.Dashboard = {
             console.warn('[Dashboard] LearningState unavailable:', e);
         }
     }
-    
-    const contract = window.LawAIApp?.ExperienceContract;
-    const orchestrator = window.LawAIApp?.JourneyOrchestrator;
-    const lc = window.LawAIApp?.LearningContext;
-
-    let progress, streakData, levelInfo, achievements, contractState;
-    let learnerState = 'unknown';
 
     if (lc && lc.getContext) {
       try {
@@ -176,6 +118,34 @@ LawAIApp.Dashboard = {
     const noteCount = this._getNoteCount();
 
     const heroData = this._getHeroData(learnerState, progress, streakData);
+
+    // 🔥 Part 102: 尝试通过 ViewModel 覆盖数据
+    try {
+      var coreResult = this._getCoreIntelligenceResult();
+      var surfaceData = LawAIApp.DashboardSurfaceAdapter 
+          ? LawAIApp.DashboardSurfaceAdapter.adapt(coreResult)
+          : null;
+      var viewModel = LawAIApp.DashboardViewModel
+          ? LawAIApp.DashboardViewModel.toRenderModel(surfaceData)
+          : null;
+      
+      if (viewModel && viewModel.hero) {
+        // 使用 ViewModel 的 Hero 数据
+        var vmHero = viewModel.hero;
+        heroData = {
+          greeting: vmHero.greeting || heroData.greeting,
+          message: vmHero.message || heroData.message,
+          cta: vmHero.cta || heroData.cta,
+          ctaLink: vmHero.ctaLink || heroData.ctaLink,
+          showStreak: vmHero.showStreak !== undefined ? vmHero.showStreak : true
+        };
+        if (viewModel.progress && viewModel.progress.overall !== undefined) {
+          progress.completionPercent = viewModel.progress.overall;
+        }
+      }
+    } catch (e) {
+      console.warn('[Dashboard] ViewModel error:', e);
+    }
 
     const html = this._buildHTML({
       progress,
