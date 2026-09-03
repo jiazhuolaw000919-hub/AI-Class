@@ -199,8 +199,9 @@ var STAGES = {
         "calendar/CalendarViewModel.js",
         "calendar/CalendarEventAdapter.js",
         "calendar/CalendarRenderer.js",
-        "calendar.js"
-        // ❌ 已删除 "calendarDashboard.js"（合并到 calendar.js）
+        "calendar.js",
+        "themeEngine.js",
+        "settings.js"
     ],
     ux: [
         "experienceComposer.js",
