@@ -41,6 +41,95 @@ LawAIApp.Calendar = {
     this.renderCurrentTab();
   },
 
+  _renderWithViewModel: function(viewModel) {
+    var container = document.getElementById('app');
+    if (!container) return;
+    
+    // 如果有 CalendarRenderer，使用它
+    if (LawAIApp.CalendarRenderer) {
+        LawAIApp.CalendarRenderer.render(viewModel, container);
+        return;
+    }
+    
+    // Fallback: 显示空状态 + 日历网格
+    var monthName = new Date(this.currentYear, this.currentMonth).toLocaleString('default', { month: 'long' });
+    
+    container.innerHTML = `
+        <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;">
+            <h2 style="margin:0 0 4px;">📅 Calendar</h2>
+            <p style="color:#94a3b8;margin:0 0 16px;">${viewModel.isEmpty ? 'No scheduled events yet.' : 'Your learning schedule'}</p>
+            
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <button onclick="LawAIApp.Calendar.changeMonth(-1)" style="padding:6px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:6px;color:#94a3b8;cursor:pointer;">←</button>
+                <span style="font-weight:600;">${monthName} ${this.currentYear}</span>
+                <button onclick="LawAIApp.Calendar.changeMonth(1)" style="padding:6px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:6px;color:#94a3b8;cursor:pointer;">→</button>
+            </div>
+            
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px;color:#64748b;margin-bottom:4px;">
+                <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">
+                ${this._generateCalendarGrid()}
+            </div>
+            
+            ${viewModel.isEmpty ? `
+                <div style="text-align:center;padding:30px 0;color:#94a3b8;">
+                    <div style="font-size:32px;margin-bottom:8px;">📅</div>
+                    <p>No events scheduled yet.</p>
+                    <button onclick="window.location.href='/pages/academy.html'" style="
+                        padding:6px 20px;
+                        background:#4a9eff;
+                        border:none;
+                        border-radius:100px;
+                        color:white;
+                        font-size:13px;
+                        cursor:pointer;
+                        margin-top:8px;
+                    ">Explore Academy</button>
+                </div>
+            ` : `
+                <div style="margin-top:12px;padding:12px 16px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid rgba(255,255,255,0.04);">
+                    <div style="font-size:12px;color:#64748b;">📋 ${viewModel.events?.length || 0} events scheduled</div>
+                </div>
+            `}
+        </div>
+    `;
+},
+
+_generateCalendarGrid: function() {
+    const { daysInMonth, firstDay } = LawAIApp.CalendarEngine.getMonthData(this.currentYear, this.currentMonth);
+    let html = '';
+    for (let i = 0; i < firstDay; i++) {
+        html += '<div style="padding:8px 4px;border-radius:6px;"></div>';
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+        const isToday = d === new Date().getDate() && 
+                        this.currentMonth === new Date().getMonth() && 
+                        this.currentYear === new Date().getFullYear();
+        html += `
+            <div style="
+                padding:8px 4px;
+                text-align:center;
+                border-radius:6px;
+                background:${isToday ? 'rgba(74,158,255,0.12)' : 'transparent'};
+                border:${isToday ? '1px solid rgba(74,158,255,0.2)' : 'none'};
+                color:${isToday ? '#4a9eff' : '#e2e8f0'};
+                font-size:14px;
+                cursor:pointer;
+            " onclick="LawAIApp.Calendar._onDayClick(${d})">
+                ${d}
+            </div>
+        `;
+    }
+    return html;
+},
+
+_onDayClick: function(day) {
+    if (window.LawAIApp?.Toast) {
+        LawAIApp.Toast.info('Day ' + day + ' selected');
+    }
+},
+
   attachTabEvents() {
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
