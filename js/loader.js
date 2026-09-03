@@ -38,9 +38,8 @@ window.LawAIApp = window.LawAIApp || {};
 // 精简阶段分组
 // ============================================================
 var STAGES = {
-    // 🆕 Runtime Core - MUST load before everything!
     runtime: [
-        // Part 40-42: Observation / Metrics / Tracing
+        // ... 保持不变（所有 runtime core 文件）...
         "core/runtimeObservationManifest.js",
         "core/runtimeObservationCollector.js",
         "core/runtimeObservationValidator.js",
@@ -53,8 +52,6 @@ var STAGES = {
         "core/runtimeTraceCollector.js",
         "core/runtimeTraceValidator.js",
         "core/runtimeTraceHealth.js",
-        
-        // Part 43: Performance Framework
         "core/runtimePerformanceManifest.js",
         "core/runtimeMetricRegistry.js",
         "core/runtimePerformanceCollector.js",
@@ -64,8 +61,6 @@ var STAGES = {
         "core/runtimePerformanceReport.js",
         "core/runtimePerformanceAPI.js",
         "core/runtimePerformanceDashboard.js",
-        
-        // Part 44: Event Intelligence
         "core/runtimeEventRegistry.js",
         "core/runtimeEventCollector.js",
         "core/runtimeEventStore.js",
@@ -73,8 +68,6 @@ var STAGES = {
         "core/runtimeEventIntelligence.js",
         "core/runtimeEventTimeline.js",
         "core/runtimeEventAPI.js",
-        
-        // Part 45: State Synchronization
         "core/stateSyncManifest.js",
         "core/stateSchema.js",
         "core/stateRegistry.js",
@@ -83,42 +76,30 @@ var STAGES = {
         "core/statePersistence.js",
         "core/stateIntelligence.js",
         "core/runtimeStateIntegration.js",
-        
-        // Part 39: Boot Core (after state/events are ready)
         "core/bootManager.js",
         "core/bootPipeline.js",
         "core/bootStageRegistry.js",
         "core/bootStageHandlers.js",
         "core/bootDiagnostics.js",
         "core/bootReporter.js",
-        
-        // Part 46: AI Runtime Assistant
         "core/aiContextEngine.js",
         "core/aiRuntimeKnowledge.js",
         "core/aiReasoningEngine.js",
         "core/aiRecommendationEngine.js",
         "core/aiRuntimeAssistant.js",
         "core/aiRuntimeInteraction.js",
-        
-        // Part 47: Knowledge Graph
         "core/runtimeKnowledgeGraph.js",
         "core/runtimeEntityRegistry.js",
         "core/runtimeRelationshipEngine.js",
         "core/knowledgeGraphAnalyzer.js",
         "core/impactAnalysisEngine.js",
         "core/aiKnowledgeIntegration.js",
-        
-        // Part 48: Cognitive Engine
         "core/runtimeCognitiveEngine.js",
         "core/dependencyIntelligenceEngine.js",
         "core/rootCauseAnalysisEngine.js",
         "core/runtimePredictionEngine.js",
         "core/decisionSupportEngine.js",
         "core/aiCognitiveIntegration.js",
-        
-        // ═══════════════════════════════════════
-        // Part 49: Runtime Governance Layer
-        // ═══════════════════════════════════════
         "core/runtimeGovernanceFoundation.js",
         "core/runtimePolicyEngine.js",
         "core/runtimePermissionSystem.js",
@@ -126,10 +107,6 @@ var STAGES = {
         "core/runtimeSafetyCompliance.js",
         "core/aiGovernanceIntegration.js",
         "core/unifiedGovernanceDashboard.js",
-
-        // ═══════════════════════════════════════ 🆕 PART 50
-        // Part 50: Autonomous Runtime Layer
-        // ═══════════════════════════════════════
         "autonomous/autonomousCore.js",
         "autonomous/autonomousLifecycle.js",
         "autonomous/autonomousDecisionEngine.js",
@@ -138,15 +115,9 @@ var STAGES = {
         "autonomous/autonomousActionPlanner.js",
         "autonomous/autonomousDashboard.js",
         "autonomous/autonomousSimulation.js",
-        
-        // ═══════════════════════════════════════
-        // Part 49.8: DevPanel Core + Panels
-        // ═══════════════════════════════════════
         "core/panelRegistry.js",
         "core/panelManager.js",
         "core/devPanelCore.js",
-        
-        // ── DevPanel Panels ──
         "debug/panels/runtimePanel.js",
         "debug/panels/performancePanel.js",
         "debug/panels/metricsPanel.js",
@@ -164,33 +135,19 @@ var STAGES = {
         "debug/panels/evolutionPanel.js",
         "debug/panels/orchestrationPanel.js",
         "debug/panels/productionPanel.js",
-        
-        // ── Components ──
         "components/panelCard.js",
         "components/statusBadge.js",
-        
-        // ═══════════════════════════════════════
-        // Part 49.9: Runtime Explorer Layer
-        // ═══════════════════════════════════════
         "runtime/runtimeExplorer.js",
         "runtime/runtimeRegistry.js",
         "runtime/runtimeInspector.js",
         "runtime/runtimeSearch.js",
         "runtime/runtimeSnapshot.js",
-
-        // ═══════════════════════════════════════
-        // Part 51: Adaptive Decision Loop 🆕
-        // ═══════════════════════════════════════
         "core/decisionIntelligence.js",
         "core/historicalMemory.js",
         "core/reasoningEngine.js",
         "core/decisionConfidence.js",
         "core/decisionExplanation.js",
         "core/adaptiveDecisionLoop.js",
-
-        // ═══════════════════════════════════════
-        // Part 52.6: Optimization Feedback 🆕
-        // ═══════════════════════════════════════
         "core/runtimeOptimization.js",
         "core/optimizationIntelligence.js",
         "core/performanceAnalyzer.js",
@@ -198,10 +155,6 @@ var STAGES = {
         "core/architectureAdvisor.js",
         "core/optimizationRecommendation.js",
         "core/optimizationFeedback.js",
-
-        // ═══════════════════════════════════════
-        // Part 53.6: Predictive Feedback 🆕
-        // ═══════════════════════════════════════
         "core/predictiveRuntime.js",
         "core/predictiveIntelligence.js",
         "core/trendPrediction.js",
@@ -209,10 +162,6 @@ var STAGES = {
         "core/failurePrediction.js",
         "core/predictiveRecommendation.js",
         "core/predictiveFeedback.js",
-
-        // ═══════════════════════════════════════
-        // Part 54.6: Evolution Feedback 🆕
-        // ═══════════════════════════════════════
         "core/runtimeEvolution.js",
         "core/evolutionIntelligence.js",
         "core/runtimeAdaptation.js",
@@ -220,10 +169,6 @@ var STAGES = {
         "core/moduleEvolution.js",
         "core/evolutionGovernance.js",
         "core/evolutionFeedback.js",
-
-        // ═══════════════════════════════════════
-        // Part 55: AI Orchestration Layer 🆕
-        // ═══════════════════════════════════════
         "core/aiOrchestration.js",
         "core/orchestrationIntelligence.js",
         "core/intelligenceCoordination.js",
@@ -231,9 +176,6 @@ var STAGES = {
         "core/intelligencePriority.js",
         "core/orchestrationGovernance.js",
         "core/orchestrationFeedback.js",
-
-        // Part 56.6: Runtime OS Completion 🆕
-        // ═══════════════════════════════════════
         "core/runtimeOS.js",
         "core/runtimeOSIntegration.js",
         "core/unifiedRuntimeArchitecture.js",
@@ -248,12 +190,17 @@ var STAGES = {
         "themeEngine.js",
         "systemComposer.js",
         "app.js",
+        // 🔥 Calendar 相关（按依赖顺序）
         "calendarEngine.js",
         "calendarPlanner.js",
         "calendarTimeline.js",
         "calendarEngineAdapter.js",
-        "calendar.js",
-        "calendarDashboard.js"
+        "calendar/CalendarSurfaceAdapter.js",
+        "calendar/CalendarViewModel.js",
+        "calendar/CalendarEventAdapter.js",
+        "calendar/CalendarRenderer.js",
+        "calendar.js"
+        // ❌ 已删除 "calendarDashboard.js"（合并到 calendar.js）
     ],
     ux: [
         "experienceComposer.js",
@@ -263,11 +210,7 @@ var STAGES = {
         "debug/devPanel.js",
         "debug/devPanelAIAssistant.js",
         "debug/devPanelKnowledgeGraph.js",
-        "debug/devPanelCognitive.js",
-        "calendar/CalendarSurfaceAdapter.js",
-        "calendar/CalendarViewModel.js",
-        "calendar/CalendarEventAdapter.js",
-        "calendar/CalendarRenderer.js"
+        "debug/devPanelCognitive.js"
     ],
     intelligence: [
         "academy/lessonEngine.js",
@@ -329,12 +272,11 @@ function loadModule(src) {
     }
 
     var promise = new Promise(function(resolve) {
-        // 🔥 路径顺序：先尝试正确的 js/core/ 路径
         var paths = [
-            BASE_PATH + src,        // js/core/bootManager.js
-            'js/' + src,            // js/core/bootManager.js
-            '/' + src,              // /core/bootManager.js
-            '../' + src             // ../core/bootManager.js
+            BASE_PATH + src,
+            'js/' + src,
+            '/' + src,
+            '../' + src
         ];
         var unique = [];
         for (var i = 0; i < paths.length; i++) {
@@ -527,8 +469,6 @@ async function boot() {
 
     console.log('[Loader] ✅ Composer Ready');
 
-    // ── 🔥 延迟初始化 DevPanel (确保所有 Panel 已加载) ──
-    // ── 🔥 延迟初始化 DevPanel (确保所有 Panel 已加载) ──
     setTimeout(function() {
         if (window.LawAIApp.Debug && window.LawAIApp.Debug.DevPanel) {
             if (typeof window.LawAIApp.Debug.DevPanel.init === 'function') {
@@ -536,7 +476,6 @@ async function boot() {
                 console.log('[Loader] ✅ DevPanel initialized after all panels loaded');
             } else {
                 console.warn('[Loader] ⚠️ DevPanel.init not ready, retrying in 500ms...');
-                // 重试一次 (延迟增加)
                 setTimeout(function() {
                     if (window.LawAIApp.Debug && window.LawAIApp.Debug.DevPanel) {
                         if (typeof window.LawAIApp.Debug.DevPanel.init === 'function') {
@@ -544,7 +483,6 @@ async function boot() {
                             console.log('[Loader] ✅ DevPanel initialized (retry)');
                         } else {
                             console.warn('[Loader] ❌ DevPanel.init still not available after retry');
-                            // 再试最后一次 (延迟更长)
                             setTimeout(function() {
                                 if (window.LawAIApp.Debug && window.LawAIApp.Debug.DevPanel) {
                                     if (typeof window.LawAIApp.Debug.DevPanel.init === 'function') {
@@ -557,7 +495,7 @@ async function boot() {
                             }, 500);
                         }
                     }
-                }, 500);  // 从 300ms 增加到 500ms
+                }, 500);
             }
         } else {
             console.warn('[Loader] ⚠️ DevPanel not available');
