@@ -209,4 +209,51 @@ LawAIApp.KnowledgeCapture = {
     getNotesBySchool: function(schoolId) {
         return this.getNotes({ schoolId: schoolId });
     },
+
+    // ============================================================
+    // 🔥 Part 116: 反思 (Reflection) 支持
+    // ============================================================
+
+    /**
+     * 添加反思到笔记
+     * @param {string} noteId - 笔记 ID
+     * @param {string} reflection - 反思内容
+     * @returns {Object} 更新后的笔记
+     */
+    addReflection: function(noteId, reflection) {
+        if (!reflection || reflection.trim() === '') return null;
+    
+        var note = this.getById(noteId);
+        if (!note) return null;
+    
+        // 获取现有反思列表
+        var reflections = note.reflections || [];
+    
+        // 添加新反思 (包含时间戳)
+        reflections.push({
+            content: reflection.trim(),
+            createdAt: new Date().toISOString()
+        });
+    
+        // 只保留最近 10 条反思
+        if (reflections.length > 10) {
+            reflections = reflections.slice(-10);
+        }
+    
+        return this.update(noteId, { 
+            reflections: reflections,
+            lastReflectionAt: new Date().toISOString()
+        });
+    },
+
+    /**
+     * 获取笔记的所有反思
+     * @param {string} noteId - 笔记 ID
+     * @returns {Array} 反思列表
+     */
+    getReflections: function(noteId) {
+        var note = this.getById(noteId);
+        if (!note) return [];
+        return note.reflections || [];
+    },
 };
