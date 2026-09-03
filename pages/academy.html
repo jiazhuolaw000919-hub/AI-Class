@@ -13,73 +13,14 @@
     <link rel="stylesheet" href="/css/responsive.css">
     <link rel="stylesheet" href="/css/theme.css">
     <style>
-        body { 
-            margin: 0; 
-            background: #0b1220; 
-            color: #e2e8f0; 
-            font-family: 'Inter', -apple-system, sans-serif; 
-        }
-
-        html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-
-        #academy-root {
-            padding-top: 0 !important;
-            margin-top: 0 !important;
-            min-height: 100vh;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding-bottom: 80px;
-        }
-        #academy-root > *:first-child {
-            margin-top: 0 !important;
-            padding-top: 0 !important;
-        }
-
-        #law-runtime-root {
-            display: none !important;
-            height: 0 !important;
-            min-height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-            position: absolute !important;
-            opacity: 0 !important;
-            pointer-events: none !important;
-        }
-
-        body > *:not(#academy-root):not(.bottom-nav):not(style):not(script) {
-            display: none !important;
-        }
-
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(20,20,40,0.92);
-            backdrop-filter: blur(12px);
-            border-top: 1px solid rgba(255,255,255,0.06);
-            display: flex;
-            justify-content: space-around;
-            padding: 6px 0 12px;
-            z-index: 100;
-        }
-        .bottom-nav a {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1px;
-            color: #64748b;
-            text-decoration: none;
-            font-size: 9px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: color 0.2s;
-            padding: 2px 12px;
-        }
+        body { margin: 0; background: #0b1220; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; }
+        html, body { margin: 0 !important; padding: 0 !important; }
+        #academy-root { padding-top: 0 !important; margin-top: 0 !important; min-height: 100vh; max-width: 1200px; margin: 0 auto; padding-bottom: 80px; }
+        #academy-root > *:first-child { margin-top: 0 !important; padding-top: 0 !important; }
+        #law-runtime-root { display: none !important; height: 0 !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; position: absolute !important; opacity: 0 !important; pointer-events: none !important; }
+        body > *:not(#academy-root):not(.bottom-nav):not(style):not(script) { display: none !important; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(20,20,40,0.92); backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-around; padding: 6px 0 12px; z-index: 100; }
+        .bottom-nav a { display: flex; flex-direction: column; align-items: center; gap: 1px; color: #64748b; text-decoration: none; font-size: 9px; font-weight: 500; cursor: pointer; transition: color 0.2s; padding: 2px 12px; }
         .bottom-nav a:hover { color: #94a3b8; }
         .bottom-nav a.active { color: #4a9eff; }
         .bottom-nav a span:first-child { font-size: 18px; }
@@ -89,41 +30,18 @@
     <div id="academy-root"></div>
 
     <nav class="bottom-nav">
-        <a href="/" class="nav-item" data-tab="home">
-            <span>🏠</span><span>Home</span>
-        </a>
-        <a href="/pages/academy.html" class="nav-item active" data-tab="academy">
-            <span>📚</span><span>Academy</span>
-        </a>
-        <a href="#" class="nav-item" data-tab="calendar">
-            <span>📅</span><span>Calendar</span>
-        </a>
-        <a href="#" class="nav-item" data-tab="notes">
-            <span>📝</span><span>Notes</span>
-        </a>
-        <a href="#" class="nav-item" data-tab="settings">
-            <span>⚙️</span><span>Settings</span>
-        </a>
+        <a href="/" class="nav-item" data-tab="home"><span>🏠</span><span>Home</span></a>
+        <a href="/pages/academy.html" class="nav-item active" data-tab="academy"><span>📚</span><span>Academy</span></a>
+        <a href="#" class="nav-item" data-tab="calendar"><span>📅</span><span>Calendar</span></a>
+        <a href="#" class="nav-item" data-tab="notes"><span>📝</span><span>Notes</span></a>
+        <a href="#" class="nav-item" data-tab="settings"><span>⚙️</span><span>Settings</span></a>
     </nav>
 
-    <!-- 基础脚本 -->
+    <!-- 基础脚本（最少） -->
     <script src="/js/storageEngine.js"></script>
     <script src="/js/eventBus.js"></script>
-    <script src="/js/profileEngine.js"></script>
-    <script src="/js/progressEngine.js"></script>
     <script src="/js/router.js"></script>
     <script src="/js/loader.js"></script>
-
-    <!-- Calendar 相关（按依赖顺序） -->
-    <script src="/js/calendarEngine.js"></script>
-    <script src="/js/calendarPlanner.js"></script>
-    <script src="/js/calendarTimeline.js"></script>
-    <script src="/js/calendarEngineAdapter.js"></script>
-    <script src="/js/calendar/CalendarSurfaceAdapter.js"></script>
-    <script src="/js/calendar/CalendarViewModel.js"></script>
-    <script src="/js/calendar/CalendarEventAdapter.js"></script>
-    <script src="/js/calendar/CalendarRenderer.js"></script>
-    <script src="/js/calendar.js"></script>
 
     <!-- Academy 相关 -->
     <script src="/js/academy/academyManifest.js"></script>
@@ -133,47 +51,31 @@
     <script src="/js/academy/academyView.js"></script>
     <script src="/js/academy/learningJourneyAdapter.js"></script>
 
-    <!-- 学习引擎 -->
+    <!-- 核心学习引擎 -->
     <script src="/js/memoryEngine.js"></script>
-    <script src="/js/memoryTracker.js"></script>
-    <script src="/js/memoryScheduler.js"></script>
-    <script src="/js/memoryAnalytics.js"></script>
     <script src="/js/masteryEngine.js"></script>
-    <script src="/js/memoryReview.js"></script>
     <script src="/js/recommendationEngine.js"></script>
     <script src="/js/learnerModel.js"></script>
-    <script src="/js/adaptiveMemory.js"></script>
 
     <script>
         (function() {
             'use strict';
 
-            console.log('📄 Academy page loaded (v7.1.0)');
+            console.log('📄 Academy page loaded (v8.0 - Lazy Calendar)');
 
-            // ============================================================
-            // 🔥 关键：Calendar 视图状态标志
-            // ============================================================
             var _isCalendarView = false;
-            var _isNotesView = false;
 
-            // ============================================================
-            // 显示 Coming Soon 提示
-            // ============================================================
             function showComingSoon(name) {
-                if (window.LawAIApp?.Toast && typeof window.LawAIApp.Toast.info === 'function') {
+                if (window.LawAIApp?.Toast?.info) {
                     LawAIApp.Toast.info(name + ' coming soon! 🚧');
                 } else {
                     alert(name + ' coming soon! 🚧');
                 }
             }
 
-            // ============================================================
-            // 更新底部导航高亮
-            // ============================================================
             function updateNavHighlight(activeTab) {
                 document.querySelectorAll('.nav-item').forEach(function(nav) {
-                    var tab = nav.dataset.tab;
-                    if (tab === activeTab) {
+                    if (nav.dataset.tab === activeTab) {
                         nav.style.color = '#4a9eff';
                         nav.classList.add('active');
                     } else {
@@ -184,18 +86,12 @@
             }
 
             // ============================================================
-            // 🔥 内联 Calendar（如果外部 calendar.js 加载失败时使用）
+            // 🔥 内联 Calendar（不加载外部文件，瞬间渲染）
             // ============================================================
             function createInlineCalendar() {
                 return {
                     currentYear: new Date().getFullYear(),
                     currentMonth: new Date().getMonth(),
-                    _initialized: false,
-
-                    init: function() {
-                        this._initialized = true;
-                        console.log('[InlineCalendar] ✅ Initialized');
-                    },
 
                     render: function() {
                         var container = document.getElementById('academy-root');
@@ -206,76 +102,35 @@
                         var firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
 
                         var gridHTML = '';
-                        for (var i = 0; i < firstDay; i++) {
-                            gridHTML += '<div></div>';
-                        }
+                        for (var i = 0; i < firstDay; i++) gridHTML += '<div></div>';
                         for (var d = 1; d <= daysInMonth; d++) {
-                            var isToday = d === new Date().getDate() &&
-                                            this.currentMonth === new Date().getMonth() &&
+                            var isToday = d === new Date().getDate() && 
+                                            this.currentMonth === new Date().getMonth() && 
                                             this.currentYear === new Date().getFullYear();
-                            gridHTML += `
-                                <div style="
-                                    padding:12px 6px;
-                                    text-align:center;
-                                    border-radius:8px;
-                                    background:${isToday ? 'rgba(74,158,255,0.15)' : 'rgba(255,255,255,0.03)'};
-                                    border:${isToday ? '1px solid rgba(74,158,255,0.3)' : '1px solid rgba(255,255,255,0.04)'};
-                                    color:${isToday ? '#4a9eff' : '#e2e8f0'};
-                                    font-size:14px;
-                                    font-weight:${isToday ? '600' : '400'};
-                                    cursor:pointer;
-                                " onclick="alert('📅 Day ${d}')">${d}</div>
-                            `;
+                            gridHTML += '<div style="padding:12px 6px;text-align:center;border-radius:8px;background:' + 
+                                (isToday ? 'rgba(74,158,255,0.15)' : 'rgba(255,255,255,0.03)') + 
+                                ';border:1px solid ' + (isToday ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.04)') + 
+                                ';color:' + (isToday ? '#4a9eff' : '#e2e8f0') + 
+                                ';font-size:14px;cursor:pointer;font-family:inherit;">' + d + '</div>';
                         }
 
                         container.innerHTML = `
                             <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
+                                <div style="display:flex;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+                                    <button onclick="window.location.href='/pages/academy.html'" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">← Back to Academy</button>
+                                    <button onclick="history.back()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">⬅️ 返回上一页</button>
+                                </div>
                                 <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">📅 Calendar</h2>
                                 <p style="color:#94a3b8;margin:0 0 20px;">${monthName} ${this.currentYear}</p>
-                                
                                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                                    <button onclick="LawAIApp.Calendar.changeMonth(-1)" style="
-                                        padding:8px 20px;
-                                        background:rgba(255,255,255,0.04);
-                                        border:1px solid rgba(255,255,255,0.06);
-                                        border-radius:100px;
-                                        color:#94a3b8;
-                                        cursor:pointer;
-                                        font-family:inherit;
-                                        font-size:14px;
-                                    ">←</button>
+                                    <button onclick="LawAIApp.Calendar.changeMonth(-1)" style="padding:8px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;cursor:pointer;font-family:inherit;font-size:14px;">←</button>
                                     <span style="font-weight:600;font-size:18px;">${monthName} ${this.currentYear}</span>
-                                    <button onclick="LawAIApp.Calendar.changeMonth(1)" style="
-                                        padding:8px 20px;
-                                        background:rgba(255,255,255,0.04);
-                                        border:1px solid rgba(255,255,255,0.06);
-                                        border-radius:100px;
-                                        color:#94a3b8;
-                                        cursor:pointer;
-                                        font-family:inherit;
-                                        font-size:14px;
-                                    ">→</button>
+                                    <button onclick="LawAIApp.Calendar.changeMonth(1)" style="padding:8px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;cursor:pointer;font-family:inherit;font-size:14px;">→</button>
                                 </div>
-                                
                                 <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:12px;color:#64748b;margin-bottom:8px;">
                                     <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
                                 </div>
-                                <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">
-                                    ${gridHTML}
-                                </div>
-                                
-                                <div style="text-align:center;margin-top:24px;">
-                                    <button onclick="window.location.href='/'" style="
-                                        padding:8px 24px;
-                                        background:#4a9eff;
-                                        border:none;
-                                        border-radius:100px;
-                                        color:white;
-                                        font-size:14px;
-                                        cursor:pointer;
-                                        font-family:inherit;
-                                    ">🏠 Go Home</button>
-                                </div>
+                                <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">${gridHTML}</div>
                             </div>
                         `;
                     },
@@ -290,96 +145,42 @@
             }
 
             // ============================================================
-            // 渲染 Calendar 到 academy-root
+            // 渲染 Calendar
             // ============================================================
             function renderCalendar() {
-                var container = document.getElementById('academy-root');
-                if (!container) {
-                    console.warn('[Academy] ⚠️ academy-root not found');
-                    return;
-                }
-
-                // 🔥 设置标志
                 _isCalendarView = true;
-                _isNotesView = false;
-
-                // 🔥 如果 Calendar 未加载，内联创建
-                if (!window.LawAIApp?.Calendar) {
-                    console.log('[Academy] 📅 Creating inline Calendar...');
-                    window.LawAIApp = window.LawAIApp || {};
-                    window.LawAIApp.Calendar = createInlineCalendar();
-                }
-
-                try {
-                    // 初始化
-                    if (typeof window.LawAIApp.Calendar.init === 'function' && !window.LawAIApp.Calendar.initialized) {
-                        window.LawAIApp.Calendar.init();
-                    }
-
-                    // 渲染
-                    window.LawAIApp.Calendar.render();
-
-                    updateNavHighlight('calendar');
-                    console.log('[Academy] ✅ Calendar rendered');
-                } catch (e) {
-                    console.error('[Academy] ❌ Calendar error:', e);
-                    container.innerHTML = `
-                        <div style="text-align:center;padding:60px 20px;color:#94a3b8;">
-                            <div style="font-size:48px;margin-bottom:16px;">📅</div>
-                            <h3 style="font-size:20px;font-weight:600;margin:0 0 8px;color:#e2e8f0;">Calendar Error</h3>
-                            <p style="font-size:14px;margin:0;">${e.message || 'Failed'}</p>
-                        </div>
-                    `;
-                }
+                if (!window.LawAIApp) window.LawAIApp = {};
+                window.LawAIApp.Calendar = createInlineCalendar();
+                window.LawAIApp.Calendar.render();
+                updateNavHighlight('calendar');
+                console.log('[Academy] ✅ Calendar rendered (inline, fast)');
             }
 
             // ============================================================
-            // 导航点击事件
+            // 导航点击
             // ============================================================
             document.querySelectorAll('.nav-item').forEach(function(item) {
                 item.addEventListener('click', function(e) {
                     var tab = this.dataset.tab;
 
-                    // Home
-                    if (tab === 'home') {
-                        _isCalendarView = false;
-                        _isNotesView = false;
-                        window.location.href = '/';
-                        return;
-                    }
-
-                    // Academy — 清除 Calendar 标志
-                    if (tab === 'academy') {
-                        _isCalendarView = false;
-                        _isNotesView = false;
-                        window.location.href = '/pages/academy.html';
-                        return;
-                    }
+                    if (tab === 'home') { window.location.href = '/'; return; }
+                    if (tab === 'academy') { _isCalendarView = false; window.location.href = '/pages/academy.html'; return; }
 
                     e.preventDefault();
 
-                    // Notes
                     if (tab === 'notes') {
-                        _isNotesView = true;
-                        _isCalendarView = false;
                         if (window.LawAIApp?.AcademyExperienceManager) {
                             window.LawAIApp.AcademyExperienceManager.navigateToNotes();
                             updateNavHighlight('notes');
-                        } else {
-                            window.location.hash = '#notes';
-                            var event = new CustomEvent('NAVIGATE_TO_NOTES', {});
-                            document.dispatchEvent(event);
                         }
                         return;
                     }
 
-                    // Calendar — 直接渲染
                     if (tab === 'calendar') {
                         renderCalendar();
                         return;
                     }
 
-                    // Settings
                     if (tab === 'settings') {
                         showComingSoon('⚙️ Settings');
                         return;
@@ -391,99 +192,31 @@
             // 初始化 Academy
             // ============================================================
             function initAcademy() {
-                // 🔥 如果已经在 Calendar 视图，跳过 Academy 初始化
-                if (_isCalendarView) {
-                    console.log('[Academy] ⏭️ Calendar view active, skipping Academy render');
-                    return;
-                }
-
-                // 🔥 如果已经在 Notes 视图，跳过 Academy 初始化
-                if (_isNotesView) {
-                    console.log('[Academy] ⏭️ Notes view active, skipping Academy render');
-                    return;
-                }
-
-                var targetView = 'dashboard';
-                if (window.location.hash === '#notes' || window.location.search.includes('view=notes')) {
-                    targetView = 'notes';
-                }
-
-                // 🔥 如果 URL 中有 calendar 参数，直接渲染 Calendar
+                if (_isCalendarView) return;
                 if (window.location.search.includes('view=calendar')) {
                     renderCalendar();
                     return;
                 }
 
-                console.log('🔥 Initializing Academy, targetView:', targetView);
-
                 try {
-                    // ── Registry Layer ──
-                    var registries = ['SchoolRegistry', 'ProgramRegistry', 'CourseRegistry', 'SubjectRegistry'];
-                    registries.forEach(function(name) {
-                        var registry = window.LawAIApp?.[name];
-                        if (registry && !registry.initialized && typeof registry.initialize === 'function') {
-                            try { registry.initialize(); console.log('[Academy] ✅ ' + name + ' initialized'); } catch (e) {}
-                        } else if (registry && typeof registry.init === 'function' && !registry.initialized) {
-                            try { registry.init(); console.log('[Academy] ✅ ' + name + ' initialized (init)'); } catch (e) {}
-                        }
-                    });
-
-                    // CurriculumSeed
-                    if (window.LawAIApp?.CurriculumSeed && !window.LawAIApp.CurriculumSeed.loaded) {
-                        try { window.LawAIApp.CurriculumSeed.load(); } catch (e) {}
-                    }
-
-                    // ── Experience Manager ──
                     if (window.LawAIApp?.AcademyExperienceManager) {
                         if (!window.LawAIApp.AcademyExperienceManager.initialized) {
-                            try { window.LawAIApp.AcademyExperienceManager.init(); } catch (e) {}
+                            window.LawAIApp.AcademyExperienceManager.init();
                         }
-                        try {
-                            window.LawAIApp.AcademyExperienceManager.render();
-                            console.log('[Academy] ✅ Academy rendered');
-                        } catch (e) {}
+                        window.LawAIApp.AcademyExperienceManager.render();
                     }
-
-                    // ── 初始化所有 Part 模块 ──
-                    var initModules = [
-                        'DecisionExperience', 'ActionTracker', 'OutcomeNormalizer', 'OutcomeLinker',
-                        'AdaptationSignal', 'AdaptationRecord', 'AdaptationExplainer', 'AdaptationGovernance',
-                        'LearningLoopValidator', 'LearnerControl', 'MetacognitiveExperience',
-                        'PatternDetector', 'PatternExplainer', 'SourceDistinguisher', 'AILiteracyHelper',
-                        'TransferObserver', 'TransferRecommender', 'CalibrationObserver', 'CalibrationRecommender',
-                        'JourneyOrchestrator', 'AgencySupport', 'ExperienceContract', 'SurfaceIntegration',
-                        'LearningJourneyAdapter', 'ExperienceIntelligence'
-                    ];
-
-                    initModules.forEach(function(name) {
-                        var module = window.LawAIApp?.[name];
-                        if (module && !module.initialized && typeof module.init === 'function') {
-                            try { module.init(); } catch (e) {}
-                        }
-                    });
-
-                    // ── Notes 视图跳转 ──
-                    if (targetView === 'notes' && window.LawAIApp?.AcademyExperienceManager) {
-                        window.LawAIApp.AcademyExperienceManager.navigateToNotes();
-                    }
-
-                } catch (error) {
-                    console.error('❌ Academy init error:', error);
+                } catch (e) {
+                    console.warn('[Academy] Init error:', e);
                 }
             }
 
-            // ============================================================
-            // 启动
-            // ============================================================
             if (document.readyState === 'complete') {
                 setTimeout(initAcademy, 200);
             } else {
-                window.addEventListener('load', function() {
-                    setTimeout(initAcademy, 200);
-                });
+                window.addEventListener('load', function() { setTimeout(initAcademy, 200); });
             }
 
-            console.log('✅ Academy page ready');
+            console.log('✅ Academy page ready (fast)');
         })();
     </script>
 </body>
