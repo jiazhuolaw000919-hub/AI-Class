@@ -14,6 +14,7 @@ LawAIApp.KnowledgeCapture = {
     },
 
     // 创建笔记
+    // knowledgeCapture.js — 在 create() 方法中
     create: function(noteData) {
         var notes = this._getAll();
         var note = {
@@ -30,20 +31,57 @@ LawAIApp.KnowledgeCapture = {
             isPinned: false,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            // S4 新增：来源元数据
+            // 🔥 Part 117: 确保 source 被正确设置
             source: noteData.source || {
                 type: noteData.lessonId ? 'lesson' : 'manual',
                 lessonId: noteData.lessonId || null,
                 subjectId: noteData.subjectId || null,
-                courseId: noteData.courseId || null
+                courseId: noteData.courseId || null,
+                schoolId: noteData.schoolId || null,
+                createdAt: new Date().toISOString()
             },
-            // S4 新增：内容类型
-            type: noteData.type || 'KEY_POINT'
+            type: noteData.type || 'KEY_POINT',
+            // 🔥 Part 117: 添加 provenance 字段 (可派生)
+            provenance: noteData.provenance || this._inferProvenance(noteData)
         };
         notes.unshift(note);
         this._saveAll(notes);
         LawAIApp.EventBus?.emit?.('NOTE_CREATED', { note: note });
         return note;
+    },
+
+    /**
+     * 🔥 Part 117: 推断来源 (Provenance)
+     */
+    _inferProvenance: function(noteData) {
+        if (noteData.lessonId) {
+            return {
+                type: 'lesson_context',
+                sourceId: noteData.lessonId,
+                sourceType: 'lesson'
+            };    
+        } else if (noteData.courseId) {
+            return {
+                type: 'course_context',
+                sourceId: noteData.courseId,
+                sourceType: 'course'
+            };    
+        } else {
+            return {
+                type: 'learner_created',
+                sourceId: null,
+                sourceType: 'manual'
+            };
+        }
+    },
+
+    /**
+     * 🔥 Part 117: 获取笔记的来源信息
+     */
+    getProvenance: function(noteId) {
+        var note = this.getById(noteId);
+        if (!note) return null;
+        return note.provenance || this._inferProvenance(note);
     },
 
     // 更新笔记
