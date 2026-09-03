@@ -18,10 +18,10 @@ LawAIApp.Calendar = {
         : null;
     
     // 如果 ViewModel 可用，用它，否则回退到原有逻辑
-    if (viewModel && !viewModel.isEmpty) {
-        this._renderWithViewModel(viewModel);
-        return;
-    }
+    if (viewModel) {
+      this._renderWithViewModel(viewModel);
+      return;
+  }
     
     const tabs = ['calendar', 'timeline', 'stats', 'secondbrain', 'planner'];
     const html = `
@@ -233,7 +233,8 @@ _onDayClick: function(day) {
     this.currentMonth += delta;
     if (this.currentMonth > 11) { this.currentMonth = 0; this.currentYear++; }
     if (this.currentMonth < 0) { this.currentMonth = 11; this.currentYear--; }
-    this.renderCalendarView(document.getElementById('calendar-tab-content'));
+    // 🔥 重新调用 render，而不是直接渲染子视图
+    this.render();
   },
 
   // ========== 时间线视图 ==========
