@@ -230,7 +230,37 @@
                         <button onclick="LawAIApp.Notes.toggleReflection('${note.id}')" style="padding:4px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:6px;color:#94a3b8;font-size:11px;cursor:pointer;font-family:inherit;">Cancel</button>
                     </div>
                 </div>
-            `;    
+            `;
+
+            // 🔥 Part 117: Provenance 显示
+            var provenanceHTML = '';
+            if (note.provenance) {
+                var provenanceLabels = {
+                    'lesson_context': '📖 From Lesson',
+                    'course_context': '📚 From Course',
+                    'learner_created': '✏️ Created by you'
+                };
+                var label = provenanceLabels[note.provenance.type] || '📝 Note';
+                provenanceHTML = `
+                    <div style="
+                        margin:2px 0 6px;
+                        font-size:10px;
+                        color:#64748b;
+                    ">
+                        ${label} · ${new Date(note.createdAt).toLocaleDateString()}
+                    </div>
+                `;    
+            } else {
+                provenanceHTML = `
+                    <div style="
+                        margin:2px 0 6px;
+                        font-size:10px;
+                        color:#64748b;
+                    ">
+                        ✏️ Created by you · ${new Date(note.createdAt).toLocaleDateString()}
+                    </div>
+                `;
+            }
 
             // 返回完整卡片
             return `
@@ -246,6 +276,7 @@
                         </div>
                     ` : ''}
                     ${contextHTML}
+                    ${provenanceHTML}
                     ${reflectionHTML}
                     ${reflectionInputHTML}
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;flex-wrap:wrap;gap:4px;">
