@@ -146,14 +146,16 @@ LawAIApp.Calendar = {
   },
 
   _getScheduleState: function() {
+    var events = this._getAllSchedules();
     return {
-      currentTab: this.currentTab,
-      currentYear: this.currentYear,
-      currentMonth: this.currentMonth,
-      events: [],
-      availableWindows: [],
-      conflicts: [],
-      lastUpdated: null
+        currentTab: this.currentTab,
+        currentYear: this.currentYear,
+        currentMonth: this.currentMonth,
+        events: events,
+        availableWindows: [],
+        conflicts: [],
+        hasSchedule: events.length > 0,
+        lastUpdated: null
     };
   },
 
@@ -733,7 +735,7 @@ LawAIApp.Calendar = {
   // ============================================================
 
   _getScheduleKey: function() {
-    return 'lawai_calendar_schedule_' + (this._userId || 'default');
+    return 'lawai_calendar_schedule';
   },
 
   _getAllSchedules: function() {
