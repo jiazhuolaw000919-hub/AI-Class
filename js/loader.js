@@ -201,7 +201,10 @@ var STAGES = {
         "calendar/CalendarRenderer.js",
         "calendar.js",
         "themeEngine.js",
-        "settings.js"
+        "settings.js",
+        "academy/knowledgeCapture.js",
+        "academy/notes.js",
+        "academy/secondBrain.js",
     ],
     ux: [
         "experienceComposer.js",
