@@ -3490,59 +3490,54 @@ LawAIApp.Dashboard = {
   // 🔥 直接渲染 Settings（不跳转）
   // ============================================================
   _renderSettingsView: function() {
-    console.log('[Dashboard] ⚙️ Rendering Settings inline...');
+    console.log('[Dashboard] ⚙️ Loading real Settings...');
     
     var container = document.getElementById('app') || document.getElementById('law-runtime-root') || document.getElementById('dashboard-root');
     if (!container) return;
 
-    // 🔥 只用内联渲染，不调用懒加载，不加载 settings.js
-    container.innerHTML = `
-      <div style="max-width:700px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
-          <button onclick="LawAIApp.Dashboard._forceRender()" style="
-            background:rgba(74,158,255,0.08);
-            border:1px solid rgba(74,158,255,0.15);
-            color:#4a9eff;
-            padding:10px 16px;
-            border-radius:10px;
-            cursor:pointer;
-            font-family:inherit;
-            font-size:14px;
-            transition:all 0.2s;
-          " onmouseover="this.style.background='rgba(74,158,255,0.15)'" onmouseout="this.style.background='rgba(74,158,255,0.08)'">
-            ← Back to Dashboard
-          </button>
-          <button onclick="history.back()" style="
-            background:rgba(255,255,255,0.04);
-            border:1px solid rgba(255,255,255,0.06);
-            color:#94a3b8;
-            padding:10px 16px;
-            border-radius:10px;
-            cursor:pointer;
-            font-family:inherit;
-            font-size:14px;
-            transition:all 0.2s;
-          " onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
-            ⬅️ 返回上一页
-          </button>
-        </div>
-        <h2 style="margin:0 0 20px;font-size:24px;font-weight:700;">⚙️ Settings</h2>
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
-            <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">👤 Profile</h3>
-            <p style="margin:0;color:#94a3b8;font-size:13px;">Manage your profile settings</p>
-          </div>
-          <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
-            <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">🎯 Learning Preferences</h3>
-            <p style="margin:0;color:#94a3b8;font-size:13px;">Adjust your learning preferences</p>
-          </div>
-          <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
-            <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">🔔 Notifications</h3>
-            <p style="margin:0;color:#94a3b8;font-size:13px;">Manage notification settings</p>
-          </div>
-        </div>
-      </div>
-    `;
+    // 🔥 检查 Settings 是否已加载
+    if (window.LawAIApp?.Settings && typeof window.LawAIApp.Settings.render === 'function') {
+        // 已加载，直接渲染
+        try {
+            window.LawAIApp.Settings.render();
+            return;
+        } catch (e) {
+            console.warn('[Dashboard] Settings render error:', e);
+        }
+    }
+
+    // 🔥 未加载，动态加载 settings.js
+    console.log('[Dashboard] 📥 Loading settings.js...');
+    
+    // 先显示加载提示
+    container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Settings...</div>';
+    
+    var script = document.createElement('script');
+    script.src = '/js/settings.js?v=' + Date.now();
+    script.async = true;
+    
+    script.onload = function() {
+        console.log('[Dashboard] ✅ settings.js loaded');
+        if (window.LawAIApp?.Settings && typeof window.LawAIApp.Settings.render === 'function') {
+            try {
+                window.LawAIApp.Settings.render();
+                console.log('[Dashboard] ✅ Real Settings rendered');
+            } catch (e) {
+                console.warn('[Dashboard] Settings render error:', e);
+                container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">❌ Settings Error: ' + e.message + '</div>';
+            }
+        } else {
+            console.warn('[Dashboard] ⚠️ Settings not found after load');
+            container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">❌ Settings not available</div>';
+        }
+    };
+    
+    script.onerror = function() {
+        console.warn('[Dashboard] ⚠️ settings.js load failed');
+        container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">❌ Failed to load Settings</div>';
+    };
+    
+    document.head.appendChild(script);
   },
 
   // ============================================================
