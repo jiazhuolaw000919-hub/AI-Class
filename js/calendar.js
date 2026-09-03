@@ -157,7 +157,6 @@ LawAIApp.Calendar = {
       hasSchedule: events.length > 0,
       lastUpdated: null
     };
-},
   },
 
   // ============================================================
@@ -606,20 +605,19 @@ LawAIApp.Calendar = {
               <h4 style="margin:0 0 4px;font-size:14px;color:#8b5cf6;">Mentor Suggestion</h4>
               <p style="margin:0;color:#cbd5e1;font-size:13px;">${memory < 70 ? '🧠 Prioritize reviews to protect your memory retention.' : '📚 You\'re ready for a challenge! Add a new topic to your learning path.'}</p>
             </div>
-              </div>
-              <button onclick="LawAIApp.Calendar._showCreateTaskModal()" style="
-                margin-top:12px;
-                padding:8px 20px;
-                background:rgba(74,158,255,0.08);
-                border:1px solid rgba(74,158,255,0.12);
-                border-radius:100px;
-                color:#4a9eff;
-                font-size:13px;
-                cursor:pointer;
-                font-family:inherit;
-                width:100%;
-              ">+ Add Learning Task</button>
-            </div>
+          </div>
+          <button onclick="LawAIApp.Calendar._showCreateTaskModal()" style="
+            margin-top:12px;
+            padding:8px 20px;
+            background:rgba(74,158,255,0.08);
+            border:1px solid rgba(74,158,255,0.12);
+            border-radius:100px;
+            color:#4a9eff;
+            font-size:13px;
+            cursor:pointer;
+            font-family:inherit;
+            width:100%;
+          ">+ Add Learning Task</button>
           </div>
         </div>
       </div>
@@ -730,7 +728,7 @@ LawAIApp.Calendar = {
     }
     
     this.render();
-  }
+  },
 
   // ============================================================
   // Part 106: Schedule CRUD
