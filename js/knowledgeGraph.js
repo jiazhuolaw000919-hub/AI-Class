@@ -693,130 +693,121 @@
 
         getStatus: getStatus,
 
-    // ============================================================
-    // PART 118: 增强查询 API
+        // ============================================================
+    // PART 118: 增强查询 API（在 KnowledgeGraph 对象内）
     // ============================================================
 
-    /**
-     * 获取实体 (统一查询接口)
-     * @param {string} id - 实体 ID
-     * @returns {Object} 实体信息
-     */
-    getEntity: function(id) {
-        var node = this.getNode(id);
-        if (!node) return null;
-    
-        return {
-            id: node.id,
-            type: node.type,
-            label: node.title,
-            description: node.description,
-            status: node.status,
-            source: {
-                type: node.type,
-                id: node.id
-            },
-            provenance: {
-                createdAt: node.createdAt,
-                updatedAt: node.updatedAt
-            }    
-        };
-    },
+    var KnowledgeGraph = {
+        _upgraded: true,
+        _version: '2.0.0',
 
-    /**
-     * 获取实体的所有关系
-     * @param {string} entityId - 实体 ID
-     * @returns {Array} 关系列表
-     */
-    getRelationships: function(entityId) {
-        var rels = this.getRelations(entityId);
-        return rels.map(function(rel) {
+        RELATION_TYPES: RELATION_TYPES,
+        NODE_TYPES: NODE_TYPES,
+
+        init: init,
+        reset: reset,
+
+        registerNode: registerNode,
+        getNode: getNode,
+        hasNode: hasNode,
+        getAllNodes: getAllNodes,
+        getNodesByType: getNodesByType,
+        getActiveNodes: getActiveNodes,
+        deprecateNode: deprecateNode,
+        removeNode: removeNode,
+
+        registerRelation: registerRelation,
+        hasRelation: hasRelation,
+        getRelations: getRelations,
+        getRelationsByType: getRelationsByType,
+
+        getPrerequisites: getPrerequisites,
+        getDependents: getDependents,
+        getPrerequisiteChain: getPrerequisiteChain,
+        getDependencyDepth: getDependencyDepth,
+        getTopologicalOrder: getTopologicalOrder,
+
+        getUnmetPrerequisites: getUnmetPrerequisites,
+
+        validateGraph: validateGraph,
+
+        exportGraph: exportGraph,
+        importGraph: importGraph,
+
+        getStatus: getStatus,
+
+        // PART 118
+        getEntity: function(id) {
+            var node = this.getNode(id);
+            if (!node) return null;
             return {
-                id: rel.id,
-                source: rel.from,
-                target: rel.to,
-                type: rel.type,
-                direction: rel.direction,
-                weight: rel.weight,
-                confidence: rel.confidence,
-                sourceType: rel.source,
-                provenance: {
-                    createdAt: rel.createdAt,
-                    updatedAt: rel.updatedAt
-                }
+                id: node.id,
+                type: node.type,
+                label: node.title,
+                description: node.description,
+                status: node.status,
+                source: { type: node.type, id: node.id },
+                provenance: { createdAt: node.createdAt, updatedAt: node.updatedAt }
             };
-        });
-    },
+        },
 
-    /**
-     * 获取图谱统计信息
-     * @returns {Object} 统计信息
-     */
-    getGraphStats: function() {
-        var nodes = Object.keys(_nodes).length;
-        var relations = Object.keys(_relations).length;
-        var validation = this.validateGraph();
-    
-        // 按类型统计
-        var typeStats = {};
-        for (var type in _indexes.byType) {
-            typeStats[type] = _indexes.byType[type].length;
-        }    
-    
-        // 按关系类型统计
-        var relTypeStats = {};
-        for (var relType in _indexes.byRelationType) {
-            relTypeStats[relType] = _indexes.byRelationType[relType].length;
-        }    
-    
-        return {
-            totalEntities: nodes,
-            totalRelationships: relations,
-            typeStats: typeStats,
-            relationTypeStats: relTypeStats,
-            orphanCount: validation.orphanCount || 0,
-            valid: validation.valid,
-            errors: validation.errors || [],
-            warnings: validation.warnings || []
-        };
-    },
+        getRelationships: function(entityId) {
+            var rels = this.getRelations(entityId);
+            return rels.map(function(rel) {
+                return {
+                    id: rel.id,
+                    source: rel.from,
+                    target: rel.to,
+                    type: rel.type,
+                    direction: rel.direction,
+                    weight: rel.weight,
+                    confidence: rel.confidence,
+                    sourceType: rel.source,
+                    provenance: { createdAt: rel.createdAt, updatedAt: rel.updatedAt }
+                };
+            });
+        },
 
-    /**
-     * 获取实体的所有标签 (去重)
-     * @param {string} entityId - 实体 ID
-     * @returns {Array} 标签列表
-     */    
-    getEntityTags: function(entityId) {
-        var node = this.getNode(entityId);
-        if (!node) return [];
-        
-        var tags = node.metadata?.tags || [];
-    
-        // 从相关实体收集标签
-        var rels = this.getRelations(entityId);
-        rels.forEach(function(rel) {
-            var target = this.getNode(rel.to);
-            if (target && target.metadata?.tags) {
-                target.metadata.tags.forEach(function(tag) {
-                    if (tags.indexOf(tag) === -1) {
-                        tags.push(tag);
-                    }
-                });
-            }
-        }.bind(this));
-        
-        return tags;
-    },
+        getGraphStats: function() {
+            var validation = this.validateGraph();
+            var typeStats = {};
+            for (var type in _indexes.byType) { typeStats[type] = _indexes.byType[type].length; }
+            var relTypeStats = {};
+            for (var relType in _indexes.byRelationType) { relTypeStats[relType] = _indexes.byRelationType[relType].length; }
+            return {
+                totalEntities: Object.keys(_nodes).length,
+                totalRelationships: Object.keys(_relations).length,
+                typeStats: typeStats,
+                relationTypeStats: relTypeStats,
+                orphanCount: validation.orphanCount || 0,
+                valid: validation.valid,
+                errors: validation.errors || [],
+                warnings: validation.warnings || []
+            };
+        },
 
-    /**
-     * 获取概念节点 (type = CONCEPT 或 KNOWLEDGE)
-     * @returns {Array} 概念节点列表
-     */
-    getConcepts: function() {
-        var knowledgeNodes = this.getNodesByType(this.NODE_TYPES.KNOWLEDGE);
-        var lessonNodes = this.getNodesByType(this.NODE_TYPES.LESSON);
-        return knowledgeNodes.concat(lessonNodes);
-    },
+        getEntityTags: function(entityId) {
+            var node = this.getNode(entityId);
+            if (!node) return [];
+            var tags = node.metadata?.tags || [];
+            var rels = this.getRelations(entityId);
+            rels.forEach(function(rel) {
+                var target = this.getNode(rel.to);
+                if (target && target.metadata?.tags) {
+                    target.metadata.tags.forEach(function(tag) {
+                        if (tags.indexOf(tag) === -1) tags.push(tag);
+                    });
+                }
+            }.bind(this));
+            return tags;
+        },
+
+        getConcepts: function() {
+            var knowledgeNodes = this.getNodesByType(this.NODE_TYPES.KNOWLEDGE);
+            var lessonNodes = this.getNodesByType(this.NODE_TYPES.LESSON);
+            return knowledgeNodes.concat(lessonNodes);
+        }
+    };
 
     // ============================================================
     // EXPORT
