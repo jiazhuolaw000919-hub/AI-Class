@@ -691,9 +691,10 @@
         exportGraph: exportGraph,
         importGraph: importGraph,
 
-        getStatus: getStatus,
+        getStatus: getStatus
+    },
 
-        // ============================================================
+    // ============================================================
     // PART 118: 增强查询 API（在 KnowledgeGraph 对象内）
     // ============================================================
 
