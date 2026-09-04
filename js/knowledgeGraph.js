@@ -75,11 +75,11 @@
         SIMILAR: 'undirected',
         EXTENDS: 'directed',
         APPLIES_TO: 'directed',
-        TEACHES: 90,
-        REFERENCES: 80,
-        RELATES_TO: 50,
-        DERIVED_FROM: 70,
-        REFLECTS_ON: 60
+        TEACHES: 'directed',
+        REFERENCES: 'directed',
+        RELATES_TO: 'undirected',
+        DERIVED_FROM: 'directed',
+        REFLECTS_ON: 'directed'
     };
 
     var RELATION_PRIORITY = {
@@ -90,7 +90,12 @@
         NEXT: 50,
         APPLIES_TO: 40,
         RELATED: 30,
-        SIMILAR: 20
+        SIMILAR: 20,
+        TEACHES: 90,
+        REFERENCES: 80,
+        RELATES_TO: 50,
+        DERIVED_FROM: 70,
+        REFLECTS_ON: 60 
     };
 
     // ============================================================
@@ -468,14 +473,6 @@
             }
         }
 
-        return {
-            valid: errors.length === 0,
-            errors: errors,
-            warnings: warnings,
-            nodeCount: Object.keys(_nodes).length,
-            relationCount: Object.keys(_relations).length,
-            orphanCount: orphanNodes.length
-        };
 
         // 🔥 PART 120: 概念验证
         var concepts = this.getConcepts();
@@ -791,8 +788,8 @@
                 label: node.title,
                 description: node.description,
                 status: node.status,
-                source: { type: node.type, id: node.id },
-                provenance: { createdAt: node.createdAt, updatedAt: node.updatedAt }
+                source: node.metadata?.source || { type: node.type, id: node.id },
+                provenance: node.metadata?.provenance || { createdAt: node.createdAt, updatedAt: node.updatedAt }
             };
         },
 
@@ -848,9 +845,10 @@
         },
 
         getConcepts: function() {
-            var knowledgeNodes = this.getNodesByType(this.NODE_TYPES.KNOWLEDGE);
-            var lessonNodes = this.getNodesByType(this.NODE_TYPES.LESSON);
-            return knowledgeNodes.concat(lessonNodes);
+            var allNodes = this.getAllNodes();
+            return allNodes.filter(function(node) {
+                return node.metadata && node.metadata.type === 'concept';
+            });
         },
     
     // ============================================================
