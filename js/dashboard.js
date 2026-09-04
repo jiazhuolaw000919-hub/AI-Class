@@ -3658,6 +3658,24 @@ LawAIApp.Dashboard = {
                   ">📥 Import Graph</button>
               </div>
 
+              <!-- 导入状态 -->
+              <div style="
+                  background:rgba(255,255,255,0.02);
+                  border-radius:8px;
+                  padding:8px 14px;
+                  margin-bottom:16px;
+                  border:1px solid rgba(255,255,255,0.03);
+                  font-size:10px;
+                  color:#475569;
+                  display:flex;
+                  justify-content:space-between;
+                  flex-wrap:wrap;
+              ">
+                  <span>📚 Academy: ${this._getIngestionStatus('academy')}</span>
+                  <span>📓 Notes: ${this._getIngestionStatus('notes')}</span>
+                  <span>🕸️ Total: ${stats ? stats.totalEntities : 0} nodes · ${stats ? stats.totalRelationships : 0} edges</span>
+              </div>
+
               <div style="
                   margin-top:16px;
                   padding:8px 14px;
@@ -3673,6 +3691,21 @@ LawAIApp.Dashboard = {
       `;  
 
       container.innerHTML = html;
+    
+    _getIngestionStatus: function(sourceType) {
+      var kg = window.LawAIApp?.KnowledgeGraph;
+      if (!kg) return 'Not available';
+
+      var report = kg._getLastIngestion(sourceType);
+      if (!report) return 'Not ingested';
+      if (report.status === 'completed') {
+          return '✅ ' + report.entitiesCreated + ' entities, ' + report.relationshipsCreated + ' relations';
+      }
+      if (report.status === 'failed') {
+          return '❌ Failed';
+      }
+      return '⏳ Pending';
+    },
   },
 
   // ============================================================
@@ -3867,6 +3900,123 @@ LawAIApp.Dashboard = {
       };
       input.click();
   },  
+
+  // ============================================================
+  // PART 119: 图谱导入方法
+  // ============================================================
+
+  _ingestFromAcademy: function() {
+      var kg = window.LawAIApp?.KnowledgeGraph;
+      if (!kg) {
+          if (window.LawAIApp?.Toast?.error) {
+              LawAIApp.Toast.error('Knowledge Graph not available');
+          }
+          return;
+      }
+
+      if (!confirm('📚 Ingest Academy data into Knowledge Graph? This will add all Schools, Courses, Modules, Subjects, and Lessons.')) {
+          return;
+      }
+
+      console.log('[Dashboard] 📚 Starting Academy ingestion...');
+      if (window.LawAIApp?.Toast?.info) {
+          LawAIApp.Toast.info('🔄 Ingesting Academy data...');
+      }
+
+      try {
+          var report = kg.ingestFromAcademy();
+          console.log('[Dashboard] ✅ Academy ingestion completed:', report);
+
+          if (window.LawAIApp?.Toast?.success) {
+              LawAIApp.Toast.success('📚 Academy ingested: ' + report.entitiesCreated + ' entities, ' + report.relationshipsCreated + ' relationships');
+          }
+
+          this._renderKnowledgeGraphView();
+      } catch (e) {
+          console.error('[Dashboard] ❌ Academy ingestion failed:', e);
+          if (window.LawAIApp?.Toast?.error) {
+              LawAIApp.Toast.error('❌ Academy ingestion failed');
+          }
+      }
+  },
+
+  _ingestFromNotes: function() {
+      var kg = window.LawAIApp?.KnowledgeGraph;
+      if (!kg) {
+          if (window.LawAIApp?.Toast?.error) {
+              LawAIApp.Toast.error('Knowledge Graph not available');
+          }
+          return;
+      }
+
+      var notes = window.LawAIApp?.KnowledgeCapture?.getNotes() || [];
+      if (notes.length === 0) {
+          if (window.LawAIApp?.Toast?.info) {
+              LawAIApp.Toast.info('No notes to ingest. Create some notes first!');
+          }
+          return;
+      }
+
+      if (!confirm('📓 Ingest ' + notes.length + ' notes into Knowledge Graph?')) {
+          return;
+      }
+
+      console.log('[Dashboard] 📓 Starting Notes ingestion...');
+      if (window.LawAIApp?.Toast?.info) {
+          LawAIApp.Toast.info('🔄 Ingesting Notes...');
+      }
+
+      try {
+          var report = kg.ingestFromNotes();
+          console.log('[Dashboard] ✅ Notes ingestion completed:', report);
+
+          if (window.LawAIApp?.Toast?.success) {
+              LawAIApp.Toast.success('📓 Notes ingested: ' + report.entitiesCreated + ' entities, ' + report.relationshipsCreated + ' relationships');
+          }
+
+          this._renderKnowledgeGraphView();
+      } catch (e) {
+          console.error('[Dashboard] ❌ Notes ingestion failed:', e);
+          if (window.LawAIApp?.Toast?.error) {
+              LawAIApp.Toast.error('❌ Notes ingestion failed');
+          }
+      }
+  },
+
+  _ingestAll: function() {
+      var kg = window.LawAIApp?.KnowledgeGraph;
+      if (!kg) {
+          if (window.LawAIApp?.Toast?.error) {
+              LawAIApp.Toast.error('Knowledge Graph not available');
+          }
+          return;
+      }
+
+      if (!confirm('🔄 Ingest ALL data (Academy + Notes) into Knowledge Graph?')) {
+          return;
+      }
+
+      console.log('[Dashboard] 🔥 Starting full ingestion...');
+      if (window.LawAIApp?.Toast?.info) {
+          LawAIApp.Toast.info('🔄 Ingesting all data...');
+      }
+
+      try {
+          var result = kg.ingestAll();
+          console.log('[Dashboard] ✅ Full ingestion completed:', result);
+  
+          if (window.LawAIApp?.Toast?.success) {
+              LawAIApp.Toast.success('✅ Full ingestion: ' + result.totalEntities + ' entities, ' + result.totalRelationships + ' relationships');
+          }
+
+          this._renderKnowledgeGraphView();
+      } catch (e) {
+          console.error('[Dashboard] ❌ Full ingestion failed:', e);
+          if (window.LawAIApp?.Toast?.error) {
+              LawAIApp.Toast.error('❌ Full ingestion failed');
+          }
+      }
+  },
 
   // ============================================================
   // 🔥 直接渲染 Notes（不跳转）
