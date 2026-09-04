@@ -650,52 +650,8 @@
         console.log('[KnowledgeGraph] Reset complete');
     }
 
-    // ============================================================
-    // PUBLIC API
-    // ============================================================
-
-    var KnowledgeGraph = {
-        _upgraded: true,
-        _version: '2.0.0',
-
-        RELATION_TYPES: RELATION_TYPES,
-        NODE_TYPES: NODE_TYPES,
-
-        init: init,
-        reset: reset,
-
-        registerNode: registerNode,
-        getNode: getNode,
-        hasNode: hasNode,
-        getAllNodes: getAllNodes,
-        getNodesByType: getNodesByType,
-        getActiveNodes: getActiveNodes,
-        deprecateNode: deprecateNode,
-        removeNode: removeNode,
-
-        registerRelation: registerRelation,
-        hasRelation: hasRelation,
-        getRelations: getRelations,
-        getRelationsByType: getRelationsByType,
-
-        getPrerequisites: getPrerequisites,
-        getDependents: getDependents,
-        getPrerequisiteChain: getPrerequisiteChain,
-        getDependencyDepth: getDependencyDepth,
-        getTopologicalOrder: getTopologicalOrder,
-
-        getUnmetPrerequisites: getUnmetPrerequisites,
-
-        validateGraph: validateGraph,
-
-        exportGraph: exportGraph,
-        importGraph: importGraph,
-
-        getStatus: getStatus
-    },
-
-    // ============================================================
-    // PART 118: 增强查询 API（在 KnowledgeGraph 对象内）
+        // ============================================================
+    // PUBLIC API（包含 PART 118 增强查询）
     // ============================================================
 
     var KnowledgeGraph = {
@@ -737,7 +693,9 @@
 
         getStatus: getStatus,
 
-        // PART 118
+        // ============================================================
+        // PART 118: 增强查询 API
+        // ============================================================
         getEntity: function(id) {
             var node = this.getNode(id);
             if (!node) return null;
