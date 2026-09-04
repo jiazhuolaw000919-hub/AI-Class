@@ -766,7 +766,7 @@
             var lessonNodes = this.getNodesByType(this.NODE_TYPES.LESSON);
             return knowledgeNodes.concat(lessonNodes);
         }
-    };
+    },
     
     // ============================================================
     // PART 119: 真实数据导入
