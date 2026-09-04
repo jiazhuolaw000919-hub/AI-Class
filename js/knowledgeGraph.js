@@ -765,7 +765,7 @@
             var lessonNodes = this.getNodesByType(this.NODE_TYPES.LESSON);
             return knowledgeNodes.concat(lessonNodes);
         }
-    }
+    },
     
     // ============================================================
     // PART 119: 真实数据导入
@@ -1194,35 +1194,24 @@
         } catch (e) {}
     },
 
-    /**
-     * 完整导入 (从所有源)
-     */
-    ingestAll: function(options) {
-        options = options || {};
-
-        // 如果指定清空现有图谱
-        if (options.clearExisting) {
-            this.reset();
+     ingestAll: function(options) {
+            options = options || {};
+            if (options.clearExisting) this.reset();
+            var academyReport = this.ingestFromAcademy(options);
+            this._saveIngestionReport('academy', academyReport);
+            var notesReport = this.ingestFromNotes(options);
+            this._saveIngestionReport('notes', notesReport);
+            var validation = this.validateGraph();
+            return {
+                academy: academyReport,
+                notes: notesReport,
+                validation: validation,
+                totalEntities: Object.keys(_nodes).length,
+                totalRelationships: Object.keys(_relations).length,
+                valid: validation.valid
+            };
         }
-
-        var academyReport = this.ingestFromAcademy(options);
-        this._saveIngestionReport('academy', academyReport);
-
-        var notesReport = this.ingestFromNotes(options);
-        this._saveIngestionReport('notes', notesReport);
-
-        // 验证图谱
-        var validation = this.validateGraph();
-
-        return {
-            academy: academyReport,
-            notes: notesReport,
-            validation: validation,
-            totalEntities: Object.keys(_nodes).length,
-            totalRelationships: Object.keys(_relations).length,
-            valid: validation.valid
-        };
-    },
+    };
 
     // ============================================================
     // EXPORT
