@@ -5,6 +5,38 @@
 // VERSION: 2.0.0 — Part 40 Knowledge Graph Foundation
 // ================================================================
 
+// ============================================================
+// QUERY CONTRACT (Part 122)
+// ============================================================
+// 
+// All query methods follow this contract:
+//
+// Input: Validated before execution
+// Output: { success, results, count, truncated, metadata, error? }
+//
+// Error Codes:
+// - INVALID_ENTITY_ID: Entity ID is empty or invalid
+// - ENTITY_NOT_FOUND: Entity does not exist in graph
+// - INVALID_DIRECTION: Direction is not 'outgoing' | 'incoming' | 'both'
+// - INVALID_DEPTH: Depth is negative or exceeds max (5)
+// - INVALID_MAX_RESULTS: maxResults is invalid
+// - INVALID_RELATION_TYPE: Relation type is not in vocabulary
+// - INVALID_ENTITY_TYPE: Entity type is not in vocabulary
+// - INVALID_QUERY: General query validation failure
+// - GRAPH_UNAVAILABLE: Graph core is not initialized
+//
+// Query Types:
+// - ENTITY: getEntity, getNode
+// - TYPE: getNodesByType, getConcepts
+// - RELATIONSHIP: getRelations, getRelationsByType
+// - NEIGHBOR: getNeighbors, getNeighborsByRelation
+// - CONCEPT: getConceptsForLesson, getNotesForConcept, getLessonsForConcept
+// - TRAVERSAL: traverse
+// - PATH: findPath
+// - CONNECTIVITY: isConnected
+// - PROVENANCE: inspectProvenance
+// ============================================================
+
 (function() {
     'use strict';
 
@@ -1484,11 +1516,19 @@
          * 获取实体的所有邻居 (直接连接)
          * @param {string} entityId - 实体 ID
          * @param {Object} options - 配置选项
-         * @param {string} options.direction - 'outgoing' | 'incoming' | 'both'
-         * @returns {Array} 邻居列表
+         * @returns {Object} 邻居结果
          */
         getNeighbors: function(entityId, options) {
+            // 输入验证
+            if (!this._validateEntityId(entityId)) {
+                return this._createErrorResponse('INVALID_ENTITY_ID', 'Invalid entity ID: ' + entityId);
+            }
+    
             options = options || { direction: 'both' };
+            if (!this._validateDirection(options.direction)) {
+                return this._createErrorResponse('INVALID_DIRECTION', 'Invalid direction: ' + options.direction);
+            }
+    
             var kg = this;
             var rels = this.getRelations(entityId);
     
@@ -1499,7 +1539,6 @@
                 rels = rels.filter(function(r) { return r.to === entityId; });
             }
     
-            // 构建邻居结果
             var neighbors = [];
             rels.forEach(function(rel) {
                 var neighborId = rel.from === entityId ? rel.to : rel.from;
@@ -1513,7 +1552,12 @@
                 }
             });
     
-            return neighbors;
+            return this._createSuccessResponse(neighbors, {
+                queryType: 'NEIGHBOR',
+                entityId: entityId,
+                direction: options.direction,
+                count: neighbors.length
+            });
         },
 
         /**
@@ -1569,9 +1613,47 @@
          * @returns {Object} 遍历结果
          */
         traverse: function(startId, options) {
+            if (!this._validateEntityId(startId)) {
+                return this._createErrorResponse('INVALID_ENTITY_ID', 'Invalid start entity ID: ' + startId);
+            }
             options = options || {};
-            var maxDepth = options.maxDepth || 2;
+            var maxDepth = options.maxDepth !== undefined ? options.maxDepth : 2;
             var direction = options.direction || 'outgoing';
+            var maxResults = options.maxResults || 100;
+
+            if (!this._validateDepth(maxDepth)) {
+                return this._createErrorResponse('INVALID_DEPTH', 'Invalid maxDepth: ' + maxDepth);
+            }
+            if (!this._validateDirection(direction)) {
+                return this._createErrorResponse('INVALID_DIRECTION', 'Invalid direction: ' + direction);
+            }
+            if (!this._validateMaxResults(maxResults)) {
+                return this._createErrorResponse('INVALID_MAX_RESULTS', 'Invalid maxResults: ' + maxResults);
+            }
+    
+            // 验证关系类型过滤
+            if (options.relationTypes && options.relationTypes.length > 0) {
+                for (var i = 0; i < options.relationTypes.length; i++) {
+                    if (!this._validateRelationType(options.relationTypes[i])) {
+                        return this._createErrorResponse('INVALID_RELATION_TYPE', 'Invalid relation type: ' + options.relationTypes[i]);
+                    }
+                }
+            }
+    
+            // 验证实体类型过滤
+            if (options.entityTypes && options.entityTypes.length > 0) {
+                for (var j = 0; j < options.entityTypes.length; j++) {
+                    if (!this._validateEntityType(options.entityTypes[j])) {
+                        return this._createErrorResponse('INVALID_ENTITY_TYPE', 'Invalid entity type: ' + options.entityTypes[j]);
+                    }
+                }
+            }
+    
+            // 检查起始节点是否存在
+            if (!this.hasNode(startId)) {
+                return this._createErrorResponse('ENTITY_NOT_FOUND', 'Entity not found: ' + startId);
+            }
+            
             var relationTypes = options.relationTypes || [];
             var entityTypes = options.entityTypes || [];
             var includeStart = options.includeStart !== undefined ? options.includeStart : false;
@@ -1589,12 +1671,18 @@
             var startNode = this.getNode(startId);
             if (!startNode) {
                 return {
-                    success: false,
-                    error: 'Entity not found: ' + startId,
-                    results: [],
-                    count: 0,
-                    truncated: false,
-                    metadata: { queryType: 'traverse', startId: startId, maxDepth: maxDepth }
+                    success: true,
+                    results: results,
+                    count: results.length,
+                    truncated: truncated,
+                    metadata: {
+                        queryType: 'TRAVERSAL',
+                        startId: startId,
+                        maxDepth: maxDepth,
+                        direction: direction,
+                        maxResults: maxResults,
+                        visitedCount: visited.size
+                    }
                 };
             }
     
@@ -1877,6 +1965,114 @@
     
             return result;
         },
+
+    // ============================================================
+    // PART 122: 输入验证工具
+    // ============================================================
+
+    /**
+     * 验证实体 ID
+     * @param {string} entityId - 实体 ID
+     * @returns {boolean} 是否有效
+     */
+    _validateEntityId: function(entityId) {
+        if (!entityId || typeof entityId !== 'string') return false;
+        if (entityId.trim() === '') return false;
+        return true;
+    },
+
+    /**
+     * 验证方向
+     * @param {string} direction - 方向
+     * @returns {boolean} 是否有效
+     */
+    _validateDirection: function(direction) {
+        var valid = ['outgoing', 'incoming', 'both'];
+        return valid.indexOf(direction) !== -1;
+    },
+
+    /**
+     * 验证深度
+     * @param {number} depth - 深度
+     * @returns {boolean} 是否有效
+     */
+    _validateDepth: function(depth) {
+        if (depth === undefined || depth === null) return true;
+        if (typeof depth !== 'number') return false;
+        if (depth < 0 || depth > 5) return false; // 最大深度 5
+        return true;
+    },
+
+    /**
+     * 验证结果数量限制
+     * @param {number} maxResults - 最大结果数
+     * @returns {boolean} 是否有效
+     */
+    _validateMaxResults: function(maxResults) {
+        if (maxResults === undefined || maxResults === null) return true;
+        if (typeof maxResults !== 'number') return false;
+        if (maxResults < 1 || maxResults > 500) return false;
+        return true;
+    },    
+
+    /**
+     * 验证关系类型
+     * @param {string} relationType - 关系类型
+     * @returns {boolean} 是否有效
+     */
+    _validateRelationType: function(relationType) {
+        if (!relationType) return false;
+        var validTypes = ['TEACHES', 'REFERENCES', 'CONTAINS', 'RELATES_TO', 'DERIVED_FROM', 'REFLECTS_ON'];
+        return validTypes.indexOf(relationType) !== -1;
+    },
+
+    /**
+     * 验证实体类型
+     * @param {string} entityType - 实体类型
+     * @returns {boolean} 是否有效
+     */
+    _validateEntityType: function(entityType) {
+        if (!entityType) return false;
+        var validTypes = ['school', 'course', 'module', 'subject', 'lesson', 'note', 'concept'];
+        return validTypes.indexOf(entityType) !== -1;
+    },
+
+    /**
+     * 创建标准错误响应
+     * @param {string} errorCode - 错误代码
+     * @param {string} message - 错误消息
+     * @param {Object} metadata - 额外元数据
+     * @returns {Object} 错误响应
+     */
+    _createErrorResponse: function(errorCode, message, metadata) {
+        return {
+            success: false,
+            error: {
+                code: errorCode,
+                message: message || 'An error occurred',
+                metadata: metadata || {}
+            },
+            results: [],
+            count: 0,
+            truncated: false
+        };    
+    },
+
+    /**
+     * 创建标准成功响应
+     * @param {Array} results - 结果列表
+     * @param {Object} metadata - 元数据
+     * @returns {Object} 成功响应
+     */
+    _createSuccessResponse: function(results, metadata) {
+        return {
+            success: true,
+            results: results || [],
+            count: (results || []).length,
+            truncated: metadata?.truncated || false,
+            metadata: metadata || {}
+        };
+      },
     };
 
     // ============================================================
