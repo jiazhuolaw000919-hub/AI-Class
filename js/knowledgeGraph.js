@@ -767,6 +767,463 @@
             return knowledgeNodes.concat(lessonNodes);
         }
     };
+    
+    // ============================================================
+    // PART 119: 真实数据导入
+    // ============================================================
+
+    /**
+     * 从 Academy 导入数据到图谱
+     * @param {Object} options - 配置选项
+     * @param {boolean} options.clearExisting - 是否清空现有图谱
+     * @param {boolean} options.dryRun - 是否只预览不实际写入
+     * @returns {Object} 导入报告
+     */
+    ingestFromAcademy: function(options) {
+        options = options || {};
+        var report = this._createIngestionReport('academy');
+
+        try {
+            // 1. 获取 Academy 数据
+            var schools = this._getAllSchools();
+            report.sourceCounts.schools = schools.length;
+    
+            // 2. 构建图谱
+            schools.forEach(function(school) {
+                // School → Course
+                var schoolEntity = this._upsertEntity({
+                    id: 'school:' + school.id,
+                    type: this.NODE_TYPES.COURSE,
+                    label: school.title || school.name || school.id,
+                    sourceType: 'school',
+                    sourceId: school.id,
+                    provenance: {
+                        sourceSystem: 'academy',
+                        sourceType: 'school',
+                        sourceId: school.id
+                    }
+                });
+                report.entitiesCreated++;
+
+                var courses = this._getCoursesBySchool(school.id);
+                courses.forEach(function(course) {
+                    var courseEntity = this._upsertEntity({
+                        id: 'course:' + course.id,
+                        type: this.NODE_TYPES.COURSE,
+                        label: course.title || course.name || course.id,
+                        sourceType: 'course',
+                        sourceId: course.id,
+                        provenance: {
+                            sourceSystem: 'academy',
+                            sourceType: 'course',
+                            sourceId: course.id
+                        }
+                    });
+                    report.entitiesCreated++;
+    
+                    // Course → Module
+                    var modules = this._getModulesByCourse(course.id);
+                    modules.forEach(function(module) {
+                        var moduleEntity = this._upsertEntity({
+                            id: 'module:' + module.id,
+                            type: this.NODE_TYPES.KNOWLEDGE,
+                            label: module.title || module.name || module.id,
+                            sourceType: 'module',
+                            sourceId: module.id,
+                            provenance: {
+                                sourceSystem: 'academy',
+                                sourceType: 'module',
+                                sourceId: module.id
+                            }
+                        });
+                        report.entitiesCreated++;
+    
+                        // Module → Subject
+                        var subjects = this._getSubjectsByModule(module.id);
+                        subjects.forEach(function(subject) {
+                            var subjectEntity = this._upsertEntity({
+                                id: 'subject:' + subject.id,
+                                type: this.NODE_TYPES.KNOWLEDGE,
+                                label: subject.title || subject.name || subject.id,
+                                sourceType: 'subject',
+                                sourceId: subject.id,
+                                provenance: {
+                                    sourceSystem: 'academy',
+                                    sourceType: 'subject',
+                                    sourceId: subject.id
+                                }
+                            });
+                            report.entitiesCreated++;
+    
+                            // Subject → Lesson
+                            var lessons = this._getLessonsBySubject(subject.id);
+                            lessons.forEach(function(lesson) {
+                                var lessonEntity = this._upsertEntity({
+                                    id: 'lesson:' + lesson.id,
+                                    type: this.NODE_TYPES.LESSON,
+                                    label: lesson.title || lesson.name || lesson.id,
+                                    sourceType: 'lesson',
+                                    sourceId: lesson.id,
+                                    provenance: {
+                                        sourceSystem: 'academy',
+                                        sourceType: 'lesson',
+                                        sourceId: lesson.id
+                                    }
+                                });
+                                report.entitiesCreated++;
+
+                                // 创建关系: Subject → CONTAINS → Lesson
+                                var rel = this._upsertRelationship({
+                                    from: 'subject:' + subject.id,
+                                    to: 'lesson:' + lesson.id,
+                                    type: this.RELATION_TYPES.PART_OF,
+                                    weight: 1,
+                                    confidence: 1.0,
+                                    source: 'academy',
+                                    provenance: {
+                                        sourceSystem: 'academy',
+                                        sourceType: 'hierarchy',
+                                        sourceId: subject.id + '→' + lesson.id
+                                    }
+                                });
+                                if (rel) report.relationshipsCreated++;
+                            }.bind(this));
+                        }.bind(this));
+                    }.bind(this));
+                }.bind(this));
+            }.bind(this));
+
+            report.status = 'completed';
+            report.completedAt = Date.now();
+
+        } catch (e) {
+            report.status = 'failed';
+            report.error = e.message;
+            console.error('[KnowledgeGraph] Academy ingestion failed:', e);
+        }
+
+        return report;
+    },
+
+    /**
+     * 从 Notes 导入数据到图谱
+     * @param {Object} options
+     * @returns {Object} 导入报告
+     */
+    ingestFromNotes: function(options) {
+        options = options || {};
+        var report = this._createIngestionReport('notes');
+
+        try {
+            var notes = window.LawAIApp?.KnowledgeCapture?.getNotes() || [];
+            report.sourceCounts.notes = notes.length;
+    
+            notes.forEach(function(note) {
+                // 创建 Note 实体
+                var noteEntity = this._upsertEntity({
+                    id: 'note:' + note.id,
+                    type: this.NODE_TYPES.KNOWLEDGE,
+                    label: note.title || 'Untitled Note',
+                    sourceType: 'note',
+                    sourceId: note.id,
+                    metadata: {
+                        type: note.type,
+                        tags: note.tags || [],
+                        hasReflection: !!(note.reflections && note.reflections.length > 0),
+                        reflectionCount: note.reflections ? note.reflections.length : 0
+                    },    
+                    provenance: {
+                        sourceSystem: 'notes',
+                        sourceType: 'note',
+                        sourceId: note.id
+                    }    
+                });
+                report.entitiesCreated++;
+
+                // 如果 Note 有 Lesson Context，创建关系
+                if (note.lessonId) {
+                    var targetId = 'lesson:' + note.lessonId;
+                    // 检查目标是否存在
+                    if (this.hasNode(targetId)) {
+                        var rel = this._upsertRelationship({
+                            from: 'note:' + note.id,
+                            to: targetId,
+                            type: this.RELATION_TYPES.REFERENCES,
+                            weight: 1,
+                            confidence: 0.9,
+                            source: 'notes',
+                            provenance: {
+                                sourceSystem: 'notes',
+                                sourceType: 'context',
+                                sourceId: note.id + '→' + note.lessonId
+                            }
+                        });
+                        if (rel) report.relationshipsCreated++;
+                    } else {
+                        report.brokenReferences++;
+                    }
+                }    
+
+                // 如果 Note 有 Course Context
+                if (note.courseId) {
+                    var targetId = 'course:' + note.courseId;
+                    if (this.hasNode(targetId)) {
+                        var rel = this._upsertRelationship({
+                            from: 'note:' + note.id,
+                            to: targetId,
+                            type: this.RELATION_TYPES.RELATED,
+                            weight: 0.7,
+                            confidence: 0.7,
+                            source: 'notes',
+                            provenance: {
+                                sourceSystem: 'notes',
+                                sourceType: 'context',
+                                sourceId: note.id + '→' + note.courseId
+                            }
+                        });
+                        if (rel) report.relationshipsCreated++;
+                    }
+                }
+            }.bind(this));
+
+            report.status = 'completed';
+            report.completedAt = Date.now();
+    
+        } catch (e) {
+            report.status = 'failed';
+            report.error = e.message;
+            console.error('[KnowledgeGraph] Notes ingestion failed:', e);
+        }
+
+        return report;
+    },
+
+    // ============================================================
+    // PART 119: 辅助方法
+    // ============================================================
+
+    /**
+     * 创建导入报告
+     */
+    _createIngestionReport: function(sourceType) {
+        return {
+            sourceType: sourceType,
+            status: 'pending',
+            startedAt: Date.now(),
+            completedAt: null,
+            sourceCounts: {
+                schools: 0,
+                courses: 0,
+                modules: 0,
+                subjects: 0,
+                lessons: 0,
+                notes: 0
+            },
+            entitiesCreated: 0,
+            entitiesUpdated: 0,
+            relationshipsCreated: 0,
+            relationshipsUpdated: 0,
+            duplicatesPrevented: 0,
+            brokenReferences: 0,
+            errors: [],
+            error: null
+        };    
+    },
+
+    /**
+     * 获取所有 Schools
+     */
+    _getAllSchools: function() {
+        try {
+            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            if (loader && typeof loader.getSchools === 'function') {
+                return loader.getSchools() || [];
+            }    
+        } catch (e) {
+            console.warn('[KnowledgeGraph] Failed to get schools:', e);
+        }
+        return [];
+    },    
+
+    /**
+     * 获取 Courses by School
+     */    
+    _getCoursesBySchool: function(schoolId) {
+        try {
+            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            if (loader && typeof loader.getCoursesBySchool === 'function') {
+                return loader.getCoursesBySchool(schoolId) || [];
+            }    
+        } catch (e) {
+            console.warn('[KnowledgeGraph] Failed to get courses:', e);
+        }    
+        return [];
+    },
+
+    /**
+     * 获取 Modules by Course
+     */
+    _getModulesByCourse: function(courseId) {
+        try {
+            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            if (loader && typeof loader.getModulesByCourse === 'function') {
+                return loader.getModulesByCourse(courseId) || [];
+            }
+        } catch (e) {
+            console.warn('[KnowledgeGraph] Failed to get modules:', e);
+        }    
+        return [];
+    },    
+
+    /**
+     * 获取 Subjects by Module
+     */
+    _getSubjectsByModule: function(moduleId) {
+        try {
+            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            if (loader && typeof loader.getSubjectsByModule === 'function') {
+                return loader.getSubjectsByModule(moduleId) || [];
+            }
+        } catch (e) {
+            console.warn('[KnowledgeGraph] Failed to get subjects:', e);
+        }
+        return [];
+    },
+
+    /**
+     * 获取 Lessons by Subject
+     */
+    _getLessonsBySubject: function(subjectId) {
+        try {
+            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            if (loader && typeof loader.getLessonsBySubject === 'function') {
+                return loader.getLessonsBySubject(subjectId) || [];
+            }    
+        } catch (e) {
+            console.warn('[KnowledgeGraph] Failed to get lessons:', e);
+        }
+        return [];
+    },
+
+    /**
+     * 更新或创建实体 (idempotent)
+     */
+    _upsertEntity: function(entityData) {
+        // 检查是否已存在
+        if (this.hasNode(entityData.id)) {
+            var existing = this.getNode(entityData.id);
+            // 更新 label 和 metadata
+            existing.label = entityData.label || existing.label;
+            existing.metadata = { ...existing.metadata, ...entityData.metadata };
+            existing.updatedAt = Date.now();
+            return existing;
+        }
+
+        // 创建新实体
+        return this.registerNode({
+            id: entityData.id,
+            type: entityData.type || this.NODE_TYPES.KNOWLEDGE,
+            title: entityData.label,
+            description: '',
+            metadata: entityData.metadata || {},
+            sourceType: entityData.sourceType,
+            sourceId: entityData.sourceId,
+            provenance: entityData.provenance
+        });
+    },
+
+    /**
+     * 更新或创建关系 (idempotent)
+     */
+    _upsertRelationship: function(relData) {
+        // 检查是否已存在
+        if (this.hasRelation(relData.from, relData.to, relData.type)) {
+            return null; // 已存在，不重复创建
+        }
+
+        // 检查节点是否存在
+        if (!this.hasNode(relData.from) || !this.hasNode(relData.to)) {
+            console.warn('[KnowledgeGraph] Cannot create relationship: missing node(s)', relData.from, relData.to);
+            return null;
+        }
+
+        return this.registerRelation({
+            from: relData.from,
+            to: relData.to,
+            type: relData.type || this.RELATION_TYPES.RELATED,
+            weight: relData.weight || 1,
+            confidence: relData.confidence || 0.8,
+            source: relData.source || 'SYSTEM',
+            metadata: relData.provenance || {}
+        });
+    },
+
+    /**
+     * 获取导入报告摘要
+     */
+    getIngestionReport: function() {
+        var status = this.getStatus();
+        return {
+            graphStatus: status,
+            lastIngestion: {
+                academy: this._getLastIngestion('academy'),
+                notes: this._getLastIngestion('notes')
+            }
+        };
+    },
+
+    /**
+     * 获取最后一次导入记录
+     */
+    _getLastIngestion: function(sourceType) {
+        try {
+            var key = 'lawai_graph_ingestion_' + sourceType;
+            var stored = localStorage.getItem(key);
+            return stored ? JSON.parse(stored) : null;
+        } catch (e) {
+            return null;
+        }
+    },
+
+    /**
+     * 保存导入记录
+     */
+    _saveIngestionReport: function(sourceType, report) {
+        try {
+            var key = 'lawai_graph_ingestion_' + sourceType;
+            localStorage.setItem(key, JSON.stringify(report));
+        } catch (e) {}
+    },
+
+    /**
+     * 完整导入 (从所有源)
+     */
+    ingestAll: function(options) {
+        options = options || {};
+
+        // 如果指定清空现有图谱
+        if (options.clearExisting) {
+            this.reset();
+        }
+
+        var academyReport = this.ingestFromAcademy(options);
+        this._saveIngestionReport('academy', academyReport);
+
+        var notesReport = this.ingestFromNotes(options);
+        this._saveIngestionReport('notes', notesReport);
+
+        // 验证图谱
+        var validation = this.validateGraph();
+
+        return {
+            academy: academyReport,
+            notes: notesReport,
+            validation: validation,
+            totalEntities: Object.keys(_nodes).length,
+            totalRelationships: Object.keys(_relations).length,
+            valid: validation.valid
+        };
+    },
 
     // ============================================================
     // EXPORT
