@@ -691,8 +691,7 @@
         exportGraph: exportGraph,
         importGraph: importGraph,
 
-        getStatus: getStatus
-    };
+        getStatus: getStatus,
 
     // ============================================================
     // PART 118: 增强查询 API
