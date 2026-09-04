@@ -1451,6 +1451,432 @@
             traverse(conceptId, 0);
             return result;
         },
+
+        // ============================================================
+        // PART 121: 查询与发现层
+        // ============================================================
+
+        /**
+         * 获取实体的出向关系
+         * @param {string} entityId - 实体 ID
+         * @returns {Array} 关系列表
+         */
+        getOutgoingRelationships: function(entityId) {
+            var allRels = this.getRelations(entityId);
+            return allRels.filter(function(rel) {
+                return rel.from === entityId;
+            });
+        },
+
+        /**
+         * 获取实体的入向关系
+         * @param {string} entityId - 实体 ID
+         * @returns {Array} 关系列表
+         */
+        getIncomingRelationships: function(entityId) {
+            var allRels = this.getRelations(entityId);
+            return allRels.filter(function(rel) {
+                return rel.to === entityId;
+            });
+        },
+
+        /**
+         * 获取实体的所有邻居 (直接连接)
+         * @param {string} entityId - 实体 ID
+         * @param {Object} options - 配置选项
+         * @param {string} options.direction - 'outgoing' | 'incoming' | 'both'
+         * @returns {Array} 邻居列表
+         */
+        getNeighbors: function(entityId, options) {
+            options = options || { direction: 'both' };
+            var kg = this;
+            var rels = this.getRelations(entityId);
+    
+            // 按方向过滤
+            if (options.direction === 'outgoing') {
+                rels = rels.filter(function(r) { return r.from === entityId; });
+            } else if (options.direction === 'incoming') {
+                rels = rels.filter(function(r) { return r.to === entityId; });
+            }
+    
+            // 构建邻居结果
+            var neighbors = [];
+            rels.forEach(function(rel) {
+                var neighborId = rel.from === entityId ? rel.to : rel.from;
+                var entity = kg.getNode(neighborId);
+                if (entity) {
+                    neighbors.push({
+                        entity: entity,
+                        relationship: rel,
+                        direction: rel.from === entityId ? 'outgoing' : 'incoming'
+                    });
+                }
+            });
+    
+            return neighbors;
+        },
+
+        /**
+         * 按关系类型获取邻居
+         * @param {string} entityId - 实体 ID
+         * @param {string} relationType - 关系类型
+         * @param {Object} options - 配置选项
+         * @returns {Array} 邻居列表
+         */
+        getNeighborsByRelation: function(entityId, relationType, options) {
+            options = options || { direction: 'both' };
+            var kg = this;
+            var rels = this.getRelations(entityId);
+    
+            // 按关系类型过滤
+            rels = rels.filter(function(r) { return r.type === relationType; });
+    
+            // 按方向过滤
+            if (options.direction === 'outgoing') {
+                rels = rels.filter(function(r) { return r.from === entityId; });
+            } else if (options.direction === 'incoming') {
+                rels = rels.filter(function(r) { return r.to === entityId; });
+            }
+    
+            var neighbors = [];
+            rels.forEach(function(rel) {
+                var neighborId = rel.from === entityId ? rel.to : rel.from;
+                var entity = kg.getNode(neighborId);
+                if (entity) {
+                    neighbors.push({
+                        entity: entity,
+                        relationship: rel,
+                        direction: rel.from === entityId ? 'outgoing' : 'incoming'
+                    });
+                }
+            });
+    
+            return neighbors;
+        },
+
+        /**
+         * 多跳遍历
+         * @param {string} startId - 起始实体 ID
+         * @param {Object} options - 配置选项
+         * @param {number} options.maxDepth - 最大深度 (默认 2)
+         * @param {string} options.direction - 'outgoing' | 'incoming' | 'both'
+         * @param {Array} options.relationTypes - 关系类型过滤
+         * @param {Array} options.entityTypes - 实体类型过滤
+         * @param {boolean} options.includeStart - 是否包含起始节点
+         * @param {boolean} options.includeRelationships - 是否包含关系
+         * @param {boolean} options.includeProvenance - 是否包含溯源
+         * @param {number} options.maxResults - 最大结果数
+         * @returns {Object} 遍历结果
+         */
+        traverse: function(startId, options) {
+            options = options || {};
+            var maxDepth = options.maxDepth || 2;
+            var direction = options.direction || 'outgoing';
+            var relationTypes = options.relationTypes || [];
+            var entityTypes = options.entityTypes || [];
+            var includeStart = options.includeStart !== undefined ? options.includeStart : false;
+            var includeRelationships = options.includeRelationships !== undefined ? options.includeRelationships : true;
+            var includeProvenance = options.includeProvenance !== undefined ? options.includeProvenance : true;
+            var maxResults = options.maxResults || 100;
+            var kg = this;
+        
+            var visited = new Set();
+            var results = [];
+            var queue = [];
+            var depthMap = {};
+    
+            // 检查起始节点是否存在
+            var startNode = this.getNode(startId);
+            if (!startNode) {
+                return {
+                    success: false,
+                    error: 'Entity not found: ' + startId,
+                    results: [],
+                    count: 0,
+                    truncated: false,
+                    metadata: { queryType: 'traverse', startId: startId, maxDepth: maxDepth }
+                };
+            }
+    
+            // 添加起始节点
+            if (includeStart) {
+                results.push({
+                    entity: startNode,
+                    depth: 0,
+                    path: [startId]
+                });
+                visited.add(startId);
+            }
+    
+            // 初始化队列
+            queue.push({ id: startId, depth: 0, path: [startId] });
+            depthMap[startId] = 0;
+    
+            while (queue.length > 0 && results.length < maxResults) {
+                var current = queue.shift();
+                var currentId = current.id;
+                var currentDepth = current.depth;
+                var currentPath = current.path;
+        
+                if (currentDepth >= maxDepth) continue;
+        
+                // 获取邻居
+                var neighbors = this.getNeighbors(currentId, { direction: direction });
+        
+                for (var i = 0; i < neighbors.length; i++) {
+                    if (results.length >= maxResults) break;
+            
+                    var neighbor = neighbors[i];
+                    var neighborId = neighbor.entity.id;
+            
+                    // 跳过已访问的
+                    if (visited.has(neighborId)) continue;
+            
+                    // 跳过不是实体类型
+                    if (entityTypes.length > 0) {
+                        var matched = false;
+                        for (var j = 0; j < entityTypes.length; j++) {
+                            if (neighbor.entity.type === entityTypes[j]) {
+                                matched = true;
+                                break;
+                            }
+                        }
+                        if (!matched) continue;
+                    }
+            
+                    // 跳过不是关系类型
+                    if (relationTypes.length > 0) {
+                        var matchedRel = false;
+                        for (var k = 0; k < relationTypes.length; k++) {
+                            if (neighbor.relationship.type === relationTypes[k]) {
+                                matchedRel = true;
+                                break;
+                            }
+                        }
+                        if (!matchedRel) continue;
+                    }
+            
+                    visited.add(neighborId);
+                    var newPath = currentPath.concat([neighborId]);
+            
+                    var resultItem = {
+                        entity: neighbor.entity,
+                        depth: currentDepth + 1,
+                        path: newPath
+                    };
+            
+                    if (includeRelationships) {
+                        resultItem.relationship = neighbor.relationship;
+                        resultItem.direction = neighbor.direction;
+                    }
+            
+                    if (includeProvenance && neighbor.relationship.provenance) {
+                        resultItem.provenance = neighbor.relationship.provenance;
+                    }
+            
+                    results.push(resultItem);
+            
+                    // 添加到队列
+                    queue.push({
+                        id: neighborId,
+                        depth: currentDepth + 1,
+                        path: newPath
+                    });
+                }
+            }
+    
+            var truncated = results.length >= maxResults || queue.length > 0;
+    
+            return {
+                success: true,
+                results: results,
+                count: results.length,
+                truncated: truncated,
+                metadata: {
+                    queryType: 'traverse',
+                    startId: startId,
+                    maxDepth: maxDepth,
+                    direction: direction,
+                    visitedCount: visited.size,
+                    maxResults: maxResults
+                }
+            };
+        },
+
+        /**
+         * 查找路径
+         * @param {string} sourceId - 源实体 ID
+         * @param {string} targetId - 目标实体 ID
+         * @param {Object} options - 配置选项
+         * @param {number} options.maxDepth - 最大深度 (默认 3)
+         * @param {string} options.direction - 'outgoing' | 'incoming' | 'both'
+         * @returns {Object} 路径结果
+         */
+        findPath: function(sourceId, targetId, options) {
+            options = options || {};
+            var maxDepth = options.maxDepth || 3;
+            var direction = options.direction || 'outgoing';
+            var kg = this;
+    
+            // 检查节点是否存在
+            if (!this.hasNode(sourceId)) {
+                return { success: false, error: 'Source not found: ' + sourceId, path: null };
+            }
+            if (!this.hasNode(targetId)) {
+                return { success: false, error: 'Target not found: ' + targetId, path: null };
+            }
+    
+            if (sourceId === targetId) {
+                return { success: true, path: [sourceId], depth: 0 };
+            }
+    
+            var visited = new Set();
+            var queue = [{ id: sourceId, path: [sourceId] }];
+            visited.add(sourceId);
+    
+            while (queue.length > 0) {
+                var current = queue.shift();
+                var currentId = current.id;
+                var currentPath = current.path;
+        
+                if (currentPath.length > maxDepth) continue;
+        
+                var neighbors = this.getNeighbors(currentId, { direction: direction });
+        
+                for (var i = 0; i < neighbors.length; i++) {
+                    var neighbor = neighbors[i];
+                    var neighborId = neighbor.entity.id;
+            
+                    if (visited.has(neighborId)) continue;
+            
+                    var newPath = currentPath.concat([neighborId]);
+            
+                    if (neighborId === targetId) {
+                        // 构建路径详情
+                        var pathDetails = [];
+                        for (var j = 0; j < newPath.length - 1; j++) {
+                            var fromId = newPath[j];
+                            var toId = newPath[j + 1];
+                            var rels = kg.getRelations(fromId);
+                            var foundRel = null;
+                            for (var k = 0; k < rels.length; k++) {
+                                if (rels[k].from === fromId && rels[k].to === toId) {
+                                    foundRel = rels[k];
+                                    break;
+                                }
+                            }
+                            pathDetails.push({
+                                from: fromId,
+                                to: toId,
+                                relationship: foundRel
+                            });
+                        }
+                
+                        return {
+                            success: true,
+                            path: newPath,
+                            depth: newPath.length - 1,
+                            details: pathDetails,
+                            sourceId: sourceId,
+                            targetId: targetId
+                        };
+                    }
+            
+                    visited.add(neighborId);
+                    queue.push({ id: neighborId, path: newPath });
+                }
+            }
+    
+            return {
+                success: false,
+                error: 'No path found within depth ' + maxDepth,
+                path: null
+            };
+        },
+
+        /**
+         * 检查两个实体是否连通
+         * @param {string} sourceId - 源实体 ID
+         * @param {string} targetId - 目标实体 ID
+         * @param {Object} options - 配置选项
+         * @param {number} options.maxDepth - 最大深度 (默认 3)
+         * @returns {Object} 连通性结果
+         */
+        isConnected: function(sourceId, targetId, options) {
+            var result = this.findPath(sourceId, targetId, options);
+            return {
+                connected: result.success,
+                path: result.path,
+                depth: result.depth || 0,
+                error: result.error || null
+            };
+        },
+
+        /**
+         * 按标签查找实体 (精确匹配)
+         * @param {string} label - 标签
+         * @returns {Array} 实体列表
+         */
+        getEntitiesByLabel: function(label) {
+            if (!label) return [];
+            var allNodes = this.getAllNodes();
+            var q = label.toLowerCase();
+            return allNodes.filter(function(node) {
+                return node.title && node.title.toLowerCase() === q;
+            });
+        },
+
+        /**
+         * 按标签模糊查找 (包含匹配)
+         * @param {string} label - 标签
+         * @returns {Array} 实体列表
+         */
+        searchEntitiesByLabel: function(label) {
+            if (!label) return [];
+            var allNodes = this.getAllNodes();
+            var q = label.toLowerCase();
+            return allNodes.filter(function(node) {
+                return node.title && node.title.toLowerCase().indexOf(q) !== -1;
+            });
+        },
+
+        /**
+         * 检查实体的溯源信息
+         * @param {string} entityId - 实体 ID
+         * @returns {Object} 溯源信息
+         */
+        inspectProvenance: function(entityId) {
+            var node = this.getNode(entityId);
+            if (!node) return null;
+    
+            var result = {
+                entity: {
+                    id: node.id,
+                    type: node.type,
+                    label: node.title
+                },
+            provenance: node.provenance || null,
+                source: {
+                    sourceType: node.sourceType || null,
+                    sourceId: node.sourceId || null
+                },
+                relationships: []
+            };
+    
+            var rels = this.getRelations(entityId);
+            rels.forEach(function(rel) {
+                result.relationships.push({
+                    id: rel.id,
+                    type: rel.type,
+                    direction: rel.from === entityId ? 'outgoing' : 'incoming',
+                    target: rel.from === entityId ? rel.to : rel.from,
+                    provenance: rel.provenance || null,
+                    confidence: rel.confidence || null
+                });
+            });
+    
+            return result;
+        },
     };
 
     // ============================================================
