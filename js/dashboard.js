@@ -3692,6 +3692,49 @@ LawAIApp.Dashboard = {
                   ${this._renderConceptList()}
               </div>
 
+              <!-- 查询测试 -->
+              <div style="margin-top:16px;">
+                  <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">🔍 Query Test</h3>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                      <input id="kg-query-entity" placeholder="Entity ID (e.g. lesson:001)" style="
+                          flex:1;
+                          min-width:200px;
+                          padding:8px 12px;
+                          background:rgba(255,255,255,0.04);
+                          border:1px solid rgba(255,255,255,0.06);
+                          border-radius:8px;
+                          color:#e2e8f0;
+                          font-family:inherit;
+                          font-size:12px;
+                      ">
+                      <button onclick="LawAIApp.Dashboard._testGraphQuery()" style="
+                          padding:8px 16px;
+                          background:rgba(74,158,255,0.08);
+                          border:1px solid rgba(74,158,255,0.12);
+                          border-radius:8px;
+                          color:#4a9eff;
+                          font-size:12px;
+                          cursor:pointer;
+                          font-family:inherit;
+                      ">🔍 Query</button>
+                  </div>
+                  <div id="kg-query-result" style="
+                      margin-top:8px;
+                      padding:8px 12px;
+                      background:rgba(255,255,255,0.02);
+                      border-radius:8px;
+                      border:1px solid rgba(255,255,255,0.04);
+                      font-size:11px;
+                      color:#94a3b8;
+                      min-height:40px;
+                      max-height:200px;
+                      overflow-y:auto;
+                      font-family:monospace;
+                  ">
+                      Enter an entity ID to query its neighbors.
+                  </div>
+              </div>
+
               <div style="
                   margin-top:16px;
                   padding:8px 14px;
@@ -4081,6 +4124,56 @@ LawAIApp.Dashboard = {
       if (!kg) return 0;
       var concepts = kg.getConcepts ? kg.getConcepts() : [];
       return concepts.length;
+  },
+
+  // ============================================================
+  // PART 121: 查询测试
+  // ============================================================
+  _testGraphQuery: function() {
+      var input = document.getElementById('kg-query-entity');
+      var resultDiv = document.getElementById('kg-query-result');
+      if (!input || !resultDiv) return;
+    
+      var entityId = input.value.trim();
+      if (!entityId) {
+          resultDiv.innerHTML = 'Please enter an entity ID.';
+          return;
+      }
+    
+      var kg = window.LawAIApp?.KnowledgeGraph;
+      if (!kg) {
+          resultDiv.innerHTML = 'Knowledge Graph not available.';
+          return;
+      }
+    
+      // 检查实体是否存在
+      var entity = kg.getNode(entityId);
+      if (!entity) {
+          resultDiv.innerHTML = '❌ Entity not found: ' + entityId;
+          return;
+      }
+    
+      // 获取邻居
+      var neighbors = kg.getNeighbors(entityId, { direction: 'both' });
+    
+      if (neighbors.length === 0) {
+          resultDiv.innerHTML = '✅ Entity found: ' + entityId + '\nNo neighbors found.';
+          return;
+      }
+    
+      var html = '✅ Entity: ' + entityId + ' (' + entity.title + ')\n';
+      html += '📊 ' + neighbors.length + ' neighbors:\n\n';
+    
+      neighbors.slice(0, 20).forEach(function(n) {
+          var dir = n.direction === 'outgoing' ? '→' : '←';
+          html += '  ' + dir + ' ' + n.relationship.type + ' → ' + n.entity.id + ' (' + n.entity.title + ')\n';
+      });
+    
+      if (neighbors.length > 20) {
+          html += '... and ' + (neighbors.length - 20) + ' more';
+      }  
+    
+      resultDiv.innerHTML = html;
   },
 
   // ============================================================
