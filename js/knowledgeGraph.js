@@ -26,7 +26,12 @@
         NEXT: 'NEXT',
         SIMILAR: 'SIMILAR',
         EXTENDS: 'EXTENDS',
-        APPLIES_TO: 'APPLIES_TO'
+        APPLIES_TO: 'APPLIES_TO',
+        TEACHES: 'TEACHES',
+        REFERENCES: 'REFERENCES',
+        RELATES_TO: 'RELATES_TO',
+        DERIVED_FROM: 'DERIVED_FROM',
+        REFLECTS_ON: 'REFLECTS_ON'
     };
 
     var RELATION_DIRECTIONS = {
@@ -37,7 +42,12 @@
         NEXT: 'directed',
         SIMILAR: 'undirected',
         EXTENDS: 'directed',
-        APPLIES_TO: 'directed'
+        APPLIES_TO: 'directed',
+        TEACHES: 90,
+        REFERENCES: 80,
+        RELATES_TO: 50,
+        DERIVED_FROM: 70,
+        REFLECTS_ON: 60
     };
 
     var RELATION_PRIORITY = {
@@ -433,6 +443,51 @@
             nodeCount: Object.keys(_nodes).length,
             relationCount: Object.keys(_relations).length,
             orphanCount: orphanNodes.length
+        };
+
+        // 🔥 PART 120: 概念验证
+        var concepts = this.getConcepts();
+        var conceptIds = concepts.map(function(c) { return c.id; });
+    
+        // 检查概念是否有关系
+        var orphanConcepts = concepts.filter(function(c) {
+            var rels = this.getRelations(c.id);
+            return rels.length === 0;
+        }.bind(this));
+    
+        if (orphanConcepts.length > 0) {
+            warnings.push('Orphan concepts: ' + orphanConcepts.map(function(c) { return c.id; }).join(', '));
+        }
+
+        // 检查语义关系是否指向有效的概念
+        var allRels = [];
+        for (var relId in _relations) {
+            allRels.push(_relations[relId]);
+        }
+    
+        var invalidSemanticRels = allRels.filter(function(rel) {
+            var semanticTypes = ['TEACHES', 'REFERENCES', 'RELATES_TO', 'DERIVED_FROM', 'REFLECTS_ON'];
+            if (semanticTypes.indexOf(rel.type) === -1) return false;
+        
+            // 检查目标是否为概念
+            var target = _nodes[rel.to];
+            if (!target) return true;
+            return target.metadata?.type !== 'concept' && target.type !== 'KNOWLEDGE';
+        });
+    
+        if (invalidSemanticRels.length > 0) {
+            errors.push('Invalid semantic relationships: ' + invalidSemanticRels.map(function(r) { return r.id; }).join(', '));
+        }
+
+        return {
+            valid: errors.length === 0,
+            errors: errors,
+            warnings: warnings,
+            nodeCount: Object.keys(_nodes).length,
+            relationCount: Object.keys(_relations).length,
+            conceptCount: concepts.length,
+            orphanConcepts: orphanConcepts.length,
+            invalidSemanticRelationships: invalidSemanticRels.length
         };
     }
 
@@ -1210,6 +1265,192 @@
                 valid: validation.valid
             };
         }
+
+        // ============================================================
+        // PART 120: 概念层 (Concept Layer)
+        // ============================================================
+
+        /**
+         * 注册概念 (Concept)
+         * @param {Object} conceptData - 概念数据
+         * @param {string} conceptData.id - 概念 ID (如 'concept:prompt-engineering')
+         * @param {string} conceptData.label - 概念标签
+         * @param {string} conceptData.definition - 概念定义 (可选)
+         * @param {Array} conceptData.aliases - 别名列表 (可选)
+         * @param {string} conceptData.provenance - 来源 (academy, curated, learner)
+         * @returns {Object} 注册的概念
+         */
+        registerConcept: function(conceptData) {
+            if (!conceptData || !conceptData.id) {
+                console.warn('[KnowledgeGraph] Concept requires id');
+                return null;
+            }
+
+            // 检查是否已存在
+            if (this.hasNode(conceptData.id)) {
+                var existing = this.getNode(conceptData.id);
+                // 更新标签和定义
+                existing.title = conceptData.label || existing.title;
+                existing.description = conceptData.definition || existing.description;
+                existing.metadata = {
+                    ...existing.metadata,
+                    aliases: conceptData.aliases || existing.metadata?.aliases || [],
+                    provenance: conceptData.provenance || existing.metadata?.provenance || 'curated',
+                    type: 'concept'
+                };
+                existing.updatedAt = Date.now();
+                return existing;
+            }
+
+            // 创建新概念节点
+            return this.registerNode({
+                id: conceptData.id,
+                type: this.NODE_TYPES.KNOWLEDGE,
+                title: conceptData.label || conceptData.id,
+                description: conceptData.definition || '',
+                metadata: {
+                    aliases: conceptData.aliases || [],
+                    provenance: conceptData.provenance || 'curated',
+                    type: 'concept'
+                },
+                sourceType: 'concept',
+                sourceId: conceptData.id
+            });
+        },
+
+        /**
+         * 获取概念
+         * @param {string} conceptId - 概念 ID
+         * @returns {Object} 概念对象
+         */
+        getConcept: function(conceptId) {
+            return this.getNode(conceptId);
+        },
+
+        /**
+         * 获取所有概念
+         * @returns {Array} 概念列表
+         */
+        getConcepts: function() {
+            var allNodes = this.getAllNodes();
+            return allNodes.filter(function(node) {
+                return node.metadata?.type === 'concept' || node.type === this.NODE_TYPES.KNOWLEDGE;
+            }.bind(this));
+        },
+
+        /**
+         * 获取某个 Lesson 教授的所有概念
+         * @param {string} lessonId - Lesson ID
+         * @returns {Array} 概念列表
+         */
+        getConceptsForLesson: function(lessonId) {
+            var kg = this;
+            var relations = this.getRelations(lessonId);
+            var conceptIds = relations
+                .filter(function(rel) {
+                    return rel.type === this.RELATION_TYPES.TEACHES;
+                }.bind(this))
+                .map(function(rel) {
+                    return rel.to;
+                });
+        
+            return conceptIds
+                .map(function(id) {
+                    return kg.getConcept(id);
+                })
+                .filter(function(c) { return c; });
+        },
+
+        /**
+         * 获取引用某个概念的所有 Notes
+         * @param {string} conceptId - 概念 ID
+         * @returns {Array} Note 列表
+         */
+        getNotesForConcept: function(conceptId) {
+            var kg = this;
+            var relations = this.getRelations(conceptId);
+            var noteIds = relations
+                .filter(function(rel) {
+                    return rel.type === this.RELATION_TYPES.REFERENCES && rel.to === conceptId;
+                }.bind(this))
+                .map(function(rel) {
+                    return rel.from;
+                });
+    
+            // 从 KnowledgeCapture 获取实际的 Note 对象
+            var notes = window.LawAIApp?.KnowledgeCapture?.getNotes() || [];
+            return notes.filter(function(note) {
+                return noteIds.indexOf(note.id) !== -1;
+            });
+        },
+
+        /**
+         * 获取教授某个概念的所有 Lessons
+         * @param {string} conceptId - 概念 ID
+         * @returns {Array} Lesson 列表
+         */
+        getLessonsForConcept: function(conceptId) {
+            var kg = this;
+            var relations = this.getRelations(conceptId);
+            var lessonIds = relations
+                .filter(function(rel) {
+                    return rel.type === this.RELATION_TYPES.TEACHES && rel.to === conceptId;
+                }.bind(this))
+                .map(function(rel) {
+                    return rel.from;
+                });
+    
+            // 从 Academy 获取实际的 Lesson 对象
+            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            if (!loader) return [];
+    
+            var lessons = [];
+            lessonIds.forEach(function(id) {
+                try {
+                    var lesson = loader.getLessonManifest ? loader.getLessonManifest(id) : null;
+                    if (lesson) lessons.push(lesson);
+                } catch (e) {
+                    console.warn('[KnowledgeGraph] Failed to load lesson:', id);
+                }
+            });
+            return lessons;
+        },
+
+        /**
+         * 获取与某个概念相关的所有概念
+         * @param {string} conceptId - 概念 ID
+         * @param {number} maxDepth - 最大深度 (默认 1)
+         * @returns {Array} 相关概念列表
+         */
+        getRelatedConcepts: function(conceptId, maxDepth) {
+            maxDepth = maxDepth || 1;
+            var kg = this;
+            var result = [];
+            var visited = {};
+    
+            function traverse(id, depth) {
+                if (depth > maxDepth) return;
+                if (visited[id]) return;
+                visited[id] = true;
+        
+                var relations = kg.getRelations(id);
+                relations
+                    .filter(function(rel) {
+                        return rel.type === this.RELATION_TYPES.RELATES_TO;
+                    }.bind(this))
+                    .forEach(function(rel) {
+                        var targetId = rel.from === id ? rel.to : rel.from;
+                        var concept = kg.getConcept(targetId);
+                        if (concept) {
+                            result.push(concept);
+                            traverse(targetId, depth + 1);
+                        }
+                    }.bind(this));
+            }
+    
+            traverse(conceptId, 0);
+            return result;
+        },
     };
 
     // ============================================================
