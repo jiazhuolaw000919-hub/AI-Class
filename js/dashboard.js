@@ -3676,6 +3676,22 @@ LawAIApp.Dashboard = {
                   <span>🕸️ Total: ${stats ? stats.totalEntities : 0} nodes · ${stats ? stats.totalRelationships : 0} edges</span>
               </div>
 
+              <!-- 概念列表 -->
+              <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0 12px;">
+                  <h3 style="margin:0;font-size:16px;font-weight:600;">🧠 Concepts</h3>
+                  <span style="font-size:11px;color:#64748b;">${this._getConceptCount()} total</span>
+              </div>
+              <div id="kg-concept-list" style="
+                  background:rgba(255,255,255,0.02);
+                  border-radius:12px;
+                  border:1px solid rgba(255,255,255,0.04);
+                  padding:12px;
+                  max-height:200px;
+                  overflow-y:auto;
+              ">
+                  ${this._renderConceptList()}
+              </div>
+
               <div style="
                   margin-top:16px;
                   padding:8px 14px;
@@ -4016,6 +4032,55 @@ LawAIApp.Dashboard = {
         return '❌ Failed';
     }
     return '⏳ Pending';
+  },
+
+  // ============================================================
+  // PART 120: 渲染概念列表
+  // ============================================================
+  _renderConceptList: function() {
+      var kg = window.LawAIApp?.KnowledgeGraph;
+      if (!kg) return '<div style="color:#64748b;text-align:center;padding:20px;">Knowledge Graph not available</div>';
+
+      var concepts = kg.getConcepts ? kg.getConcepts() : [];
+      if (!concepts || concepts.length === 0) {
+          return '<div style="color:#64748b;text-align:center;padding:20px;">No concepts yet. Concepts represent knowledge ideas.</div>';
+      }
+
+      return concepts.slice(0, 15).map(function(concept) {
+          // 获取关系数量
+          var rels = kg.getRelations(concept.id);
+          var relCount = rels.length;
+          var teachCount = rels.filter(function(r) { return r.type === 'TEACHES'; }).length;
+          var refCount = rels.filter(function(r) { return r.type === 'REFERENCES'; }).length;
+
+          return `
+              <div style="
+                  display:flex;
+                  justify-content:space-between;
+                  align-items:center;
+                  padding:6px 10px;
+                  border-bottom:1px solid rgba(255,255,255,0.03);
+                  font-size:12px;
+              ">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#8b5cf6;"></span>
+                      <span style="color:#e2e8f0;">${concept.title || concept.id}</span>
+                  </div>
+                  <div style="display:flex;gap:8px;align-items:center;">
+                      ${teachCount > 0 ? `<span style="font-size:9px;color:#4a9eff;">📚 ${teachCount}</span>` : ''}
+                      ${refCount > 0 ? `<span style="font-size:9px;color:#10b981;">📓 ${refCount}</span>` : ''}
+                      <span style="font-size:9px;color:#64748b;">${relCount} relations</span>
+                  </div>
+              </div>
+          `;
+      }).join('');
+  },
+
+  _getConceptCount: function() {
+      var kg = window.LawAIApp?.KnowledgeGraph;
+      if (!kg) return 0;
+      var concepts = kg.getConcepts ? kg.getConcepts() : [];
+      return concepts.length;
   },
 
   // ============================================================
