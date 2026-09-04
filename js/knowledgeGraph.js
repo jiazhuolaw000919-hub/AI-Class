@@ -650,10 +650,9 @@
         console.log('[KnowledgeGraph] Reset complete');
     }
 
-        // ============================================================
+    // ============================================================
     // PUBLIC API（包含 PART 118 增强查询）
     // ============================================================
-
     var KnowledgeGraph = {
         _upgraded: true,
         _version: '2.0.0',
@@ -766,7 +765,7 @@
             var lessonNodes = this.getNodesByType(this.NODE_TYPES.LESSON);
             return knowledgeNodes.concat(lessonNodes);
         }
-    },
+    }
     
     // ============================================================
     // PART 119: 真实数据导入
