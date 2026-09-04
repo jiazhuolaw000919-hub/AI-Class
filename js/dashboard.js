@@ -3691,21 +3691,6 @@ LawAIApp.Dashboard = {
       `;  
 
       container.innerHTML = html;
-    
-    _getIngestionStatus: function(sourceType) {
-      var kg = window.LawAIApp?.KnowledgeGraph;
-      if (!kg) return 'Not available';
-
-      var report = kg._getLastIngestion(sourceType);
-      if (!report) return 'Not ingested';
-      if (report.status === 'completed') {
-          return '✅ ' + report.entitiesCreated + ' entities, ' + report.relationshipsCreated + ' relations';
-      }
-      if (report.status === 'failed') {
-          return '❌ Failed';
-      }
-      return '⏳ Pending';
-    },
   },
 
   // ============================================================
@@ -4016,6 +4001,21 @@ LawAIApp.Dashboard = {
               LawAIApp.Toast.error('❌ Full ingestion failed');
           }
       }
+  },
+
+  _getIngestionStatus: function(sourceType) {
+    var kg = window.LawAIApp?.KnowledgeGraph;
+    if (!kg) return 'Not available';
+
+    var report = kg._getLastIngestion(sourceType);
+    if (!report) return 'Not ingested';
+    if (report.status === 'completed') {
+        return '✅ ' + report.entitiesCreated + ' entities, ' + report.relationshipsCreated + ' relations';
+    }
+    if (report.status === 'failed') {
+        return '❌ Failed';
+    }
+    return '⏳ Pending';
   },
 
   // ============================================================
