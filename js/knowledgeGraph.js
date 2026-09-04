@@ -848,8 +848,8 @@
             var allNodes = this.getAllNodes();
             return allNodes.filter(function(node) {
                 return node.metadata && node.metadata.type === 'concept';
-            });
-        },
+        });
+    },
     
     // ============================================================
     // PART 119: 真实数据导入
@@ -2071,6 +2071,227 @@
             metadata: metadata || {}
         };
       },
+
+    // ============================================================
+    // PART 123: 别名发现
+    // ============================================================
+
+    /**
+     * 通过别名查找实体
+     * @param {string} alias - 别名
+     * @param {string} entityType - 可选实体类型过滤
+     * @returns {Array} 匹配的实体列表
+     */
+    getEntityByAlias: function(alias, entityType) {
+        if (!alias) return [];
+        var allNodes = this.getAllNodes();
+        var q = alias.toLowerCase().trim();
+        var results = [];
+    
+        allNodes.forEach(function(node) {
+            // 检查节点的别名列表
+            var aliases = node.metadata?.aliases || [];
+            if (Array.isArray(aliases)) {
+                var matched = aliases.some(function(a) {
+                    return a.toLowerCase().trim() === q;
+                });
+                if (matched) {
+                    results.push(node);
+                }
+            }
+        });
+    
+        // 按实体类型过滤
+        if (entityType) {
+            results = results.filter(function(node) {
+                return node.type === entityType || node.metadata?.type === entityType;
+            });
+        }
+    
+        return results;
+    },
+
+    /**
+     * 通过标签或别名查找实体 (统一发现)
+     * @param {string} query - 查询字符串
+     * @param {Object} options - 配置选项
+     * @param {string} options.entityType - 实体类型过滤
+     * @param {string} options.relationType - 关系类型过滤
+     * @param {string} options.conceptId - 概念 ID 过滤
+     * @param {boolean} options.includeContext - 是否包含上下文
+     * @param {number} options.maxDepth - 上下文深度 (默认 1)
+     * @param {number} options.maxResults - 最大结果数 (默认 50)
+     * @returns {Object} 发现结果
+     */
+    discover: function(query, options) {
+        options = options || {};
+        var kg = this;
+    
+        // 输入验证
+        if (!query || typeof query !== 'string' || query.trim() === '') {
+            return this._createErrorResponse('INVALID_QUERY', 'Query cannot be empty');
+        }
+    
+        var trimmedQuery = query.trim();
+        var entityType = options.entityType || null;
+        var relationType = options.relationType || null;
+        var conceptId = options.conceptId || null;
+        var includeContext = options.includeContext || false;
+        var maxDepth = options.maxDepth || 1;
+        var maxResults = options.maxResults || 50;
+    
+        // 验证深度
+        if (!this._validateDepth(maxDepth)) {
+            return this._createErrorResponse('INVALID_DEPTH', 'Invalid maxDepth: ' + maxDepth);
+        }
+        if (!this._validateMaxResults(maxResults)) {
+            return this._createErrorResponse('INVALID_MAX_RESULTS', 'Invalid maxResults: ' + maxResults);
+        }
+        if (entityType && !this._validateEntityType(entityType)) {
+            return this._createErrorResponse('INVALID_ENTITY_TYPE', 'Invalid entity type: ' + entityType);
+        }
+        if (relationType && !this._validateRelationType(relationType)) {
+            return this._createErrorResponse('INVALID_RELATION_TYPE', 'Invalid relation type: ' + relationType);
+        }
+    
+        var results = [];
+        var matchTypes = [];
+    
+        // 1. 精确 ID 匹配
+        if (this.hasNode(trimmedQuery)) {
+            var node = this.getNode(trimmedQuery);
+            if (!entityType || node.type === entityType || node.metadata?.type === entityType) {
+                results.push({ entity: node, matchType: 'ID' });
+                matchTypes.push('ID');
+            }
+        }
+    
+        // 2. 精确标签匹配
+        if (results.length === 0) {
+            var labelMatches = this.getEntitiesByLabel(trimmedQuery);
+            if (entityType) {
+                labelMatches = labelMatches.filter(function(n) {
+                    return n.type === entityType || n.metadata?.type === entityType;
+                });
+            }
+            labelMatches.forEach(function(node) {
+                results.push({ entity: node, matchType: 'LABEL' });
+            });
+            if (labelMatches.length > 0) matchTypes.push('LABEL');
+        }
+    
+        // 3. 精确别名匹配
+        if (results.length === 0) {
+            var aliasMatches = this.getEntityByAlias(trimmedQuery, entityType);
+            aliasMatches.forEach(function(node) {
+                results.push({ entity: node, matchType: 'ALIAS' });
+            });
+            if (aliasMatches.length > 0) matchTypes.push('ALIAS');
+        }
+    
+        // 4. 按关系类型过滤 (如果指定)
+        if (relationType && results.length > 0) {
+            var filtered = [];
+            results.forEach(function(result) {
+                var entityId = result.entity.id;
+                var rels = kg.getRelations(entityId);
+                var hasRelation = rels.some(function(rel) {
+                    return rel.type === relationType;
+                });
+                if (hasRelation) {
+                    filtered.push(result);
+                }
+            });
+            results = filtered;
+        }
+    
+        // 5. 按概念 ID 过滤 (如果指定)
+        if (conceptId && results.length > 0) {
+            var filtered = [];
+            results.forEach(function(result) {
+                var entityId = result.entity.id;
+                var rels = kg.getRelations(entityId);
+                var hasConcept = rels.some(function(rel) {
+                    return rel.to === conceptId || rel.from === conceptId;
+                });
+                if (hasConcept) {
+                    filtered.push(result);
+                }
+            });
+            results = filtered;
+        }
+    
+        // 6. 限制结果数量
+        var truncated = results.length > maxResults;
+        if (truncated) {
+            results = results.slice(0, maxResults);
+        }
+    
+        // 7. 上下文扩展 (如果请求)
+        var contextResults = results;
+        if (includeContext && results.length > 0) {
+            contextResults = [];
+            results.forEach(function(result) {
+                var entityId = result.entity.id;
+                var neighbors = kg.getNeighbors(entityId, { direction: 'both' });
+                var context = neighbors.slice(0, 20).map(function(n) {
+                    return {
+                        entity: n.entity,
+                        relationship: n.relationship,
+                        direction: n.direction
+                    };
+                });
+                contextResults.push({
+                    entity: result.entity,
+                    matchType: result.matchType,
+                    context: context
+                });
+            });
+        }
+    
+        return this._createSuccessResponse(contextResults, {
+            queryType: 'DISCOVERY',
+            query: trimmedQuery,
+            entityType: entityType,
+            relationType: relationType,
+            conceptId: conceptId,
+            matchTypes: matchTypes,
+            maxResults: maxResults,
+            truncated: truncated,
+            includeContext: includeContext,
+            maxDepth: maxDepth
+        });
+    },
+
+    /**
+     * 便捷发现方法: 查找概念
+     * @param {string} query - 查询字符串
+     * @param {Object} options - 配置选项
+     * @returns {Object} 发现结果
+     */
+    discoverConcept: function(query, options) {
+        options = options || {};
+        options.entityType = 'concept';
+        return this.discover(query, options);
+    },
+
+    /**
+     * 便捷发现方法: 查找课程
+     */
+    discoverLesson: function(query, options) {
+        options = options || {};
+        options.entityType = 'lesson';
+        return this.discover(query, options);
+    },
+
+    /**
+     * 便捷发现方法: 查找笔记
+     */
+    discoverNote: function(query, options) {
+        options = options || {};
+        options.entityType = 'note';
+        return this.discover(query, options);
+    },
     };
 
     // ============================================================
