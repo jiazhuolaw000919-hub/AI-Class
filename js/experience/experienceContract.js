@@ -267,4 +267,94 @@ LawAIApp.ExperienceContract = {
             }
         };
     },
+
+    // ============================================================
+    // 🔥 PART 127: Completion & Skip Semantics
+    // ============================================================
+
+    /**
+     * 获取 Activity 的完成标准
+     * @param {string} activityType - Activity 类型
+     * @returns {string} 完成标准描述
+     */
+    getCompletionCriteria: function(activityType) {
+        var criteria = {
+            'READING': 'content_consumed',
+            'VIDEO': 'threshold_reached',
+            'PRACTICE': 'submission_completed',
+            'QUIZ': 'attempt_submitted',
+            'FLASHCARD': 'session_completed',
+            'RECALL': 'attempt_submitted',
+            'REFLECTION': 'saved'
+        };
+        return criteria[activityType] || 'interaction_completed';
+    },
+
+    /**
+     * 检查 Activity 是否可以被跳过
+     * @param {string} activityType - Activity 类型
+     * @param {Object} context - 上下文
+     * @returns {boolean} 是否可以跳过
+     */
+    canSkip: function(activityType, context) {
+        // 默认所有 activity 都可以跳过
+        // 未来可以基于 context 添加规则
+        return true;
+    },
+
+    /**
+     * 检查是否满足完成条件
+     * @param {Object} activity - Activity 对象
+     * @param {Object} interactionData - 交互数据
+     * @returns {boolean} 是否完成
+     */
+    isActivityComplete: function(activity, interactionData) {
+        if (!activity) return false;
+
+        var type = activity.type;
+        var criteria = this.getCompletionCriteria(type);
+
+        switch (criteria) {
+            case 'content_consumed':
+                // READING: 内容已消费
+                return !!(interactionData && interactionData.consumed);
+            case 'threshold_reached':
+                // VIDEO: 达到阈值
+                var threshold = activity.metadata?.threshold || 80;
+                var progress = interactionData?.progress || 0;
+                return progress >= threshold;
+            case 'submission_completed':
+                // PRACTICE: 已提交
+                return !!(interactionData && interactionData.submitted);
+            case 'attempt_submitted':
+                // QUIZ / RECALL: 已提交
+                return !!(interactionData && interactionData.submitted);
+            case 'session_completed':
+                // FLASHCARD: 会话完成
+                return !!(interactionData && interactionData.sessionComplete);
+            case 'saved':
+                // REFLECTION: 已保存
+                return !!(interactionData && interactionData.saved);
+            default:
+                return !!(interactionData && interactionData.completed);
+        }
+    },
+
+    /**
+     * 获取 Activity 的跳过影响
+     * @param {string} activityType - Activity 类型
+     * @returns {Object} 影响描述
+     */
+    getSkipImpact: function(activityType) {
+        var impacts = {
+            'READING': { learningLoss: 'low', recommendation: 'Consider reading later' },
+            'VIDEO': { learningLoss: 'low', recommendation: 'Watch when you have time' },
+            'PRACTICE': { learningLoss: 'medium', recommendation: 'Practice is important for mastery' },
+            'QUIZ': { learningLoss: 'medium', recommendation: 'Quiz helps assess understanding' },
+            'FLASHCARD': { learningLoss: 'low', recommendation: 'Flashcards help retention' },
+            'RECALL': { learningLoss: 'medium', recommendation: 'Recall strengthens memory' },
+            'REFLECTION': { learningLoss: 'low', recommendation: 'Reflection deepens learning' }
+        };
+        return impacts[activityType] || { learningLoss: 'unknown', recommendation: 'Skip if needed' };
+    }
 };
