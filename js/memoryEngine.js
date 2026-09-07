@@ -174,7 +174,9 @@ LawAIApp.MemoryEngine = (function() {
             confidence: 0,
             retentionEstimate: 0,
             createdAt: Date.now(),
-            updatedAt: Date.now()
+            updatedAt: Date.now(),
+            interpretationVersion: '1.0.0',
+            history: []
         };
     }
 
