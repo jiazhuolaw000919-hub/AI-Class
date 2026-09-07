@@ -1294,7 +1294,7 @@
                 totalRelationships: Object.keys(_relations).length,
                 valid: validation.valid
             };
-        }
+        },
 
         // ============================================================
         // PART 120: 概念层 (Concept Layer)
