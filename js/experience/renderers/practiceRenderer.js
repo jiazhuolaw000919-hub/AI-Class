@@ -84,8 +84,9 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
         function _createAttempt() {
             _attemptNumber++;
             var contract = window.LawAIApp?.Experience?.PracticeEvidenceContract;
+            var attempt;
             if (contract && typeof contract.createAttempt === 'function') {
-                var attempt = contract.createAttempt({
+                attempt = contract.createAttempt({
                     activityId: _activity.id,
                     questionId: _activity.metadata?.questionId || _activity.id + ':q1',
                     attemptNumber: _attemptNumber,
@@ -94,36 +95,42 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                 _attemptHistory.push(attempt);
                 _attemptId = attempt.attemptId;
                 _startedAt = attempt.startedAt;
-                return attempt;
+            } else {
+                // Fallback
+                var now = new Date().toISOString();
+                var attemptId = 'att_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+                attempt = {
+                    attemptId: attemptId,
+                    attemptNumber: _attemptNumber,
+                    activityId: _activity.id,
+                    questionId: _activity.metadata?.questionId || _activity.id + ':q1',
+                    startedAt: now,
+                    submittedAt: null,
+                    completedAt: null,
+                    response: null,
+                    evaluation: null,
+                    feedback: null,
+                    status: 'started',
+                    validity: null,
+                    evidence: null,
+                    provenance: {
+                        source: 'practice-activity',
+                        activityId: _activity.id,
+                        lessonId: _activity.metadata?.lessonId || null,
+                        attemptId: attemptId
+                    }
+                };
+                _attemptHistory.push(attempt);
+                _attemptId = attemptId;
+                _startedAt = now;
             }
 
-            // Fallback: 手动创建
-            var now = new Date().toISOString();
-            var attemptId = 'att_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
-            var attempt = {
-                attemptId: attemptId,
+            // 🔥 发射 ATTEMPT_STARTED 信号
+            _emitAttemptSignal('ATTEMPT_STARTED', {
                 attemptNumber: _attemptNumber,
-                activityId: _activity.id,
-                questionId: _activity.metadata?.questionId || _activity.id + ':q1',
-                startedAt: now,
-                submittedAt: null,
-                completedAt: null,
-                response: null,
-                evaluation: null,
-                feedback: null,
-                status: 'started',
-                validity: null,
-                evidence: null,
-                provenance: {
-                    source: 'practice-activity',
-                    activityId: _activity.id,
-                    lessonId: _activity.metadata?.lessonId || null,
-                    attemptId: attemptId
-                }
-            };
-            _attemptHistory.push(attempt);
-            _attemptId = attemptId;
-            _startedAt = now;
+                question: _question
+            });
+
             return attempt;
         }
 
@@ -158,8 +165,12 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
         }
 
         function _evaluate() {
-                // 🔥 Part 130: 使用 Contract 创建 evidence
-                var contract = window.LawAIApp?.Experience?.PracticeEvidenceContract;
+            var isCorrect = false;
+            var evaluation = null;
+            var evidence = null;  // ← 🔥 添加这一行
+
+            // 🔥 Part 130: 检查是否有有效响应
+            if (_selectedOption === null || _selectedOption === undefined) {
                 if (contract && typeof contract.createEvidence === 'function') {
                     var tempAttempt = {
                         attemptId: _attemptId,
