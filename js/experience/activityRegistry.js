@@ -67,7 +67,7 @@ LawAIApp.Experience.ActivityRegistry = {
             registeredCount: Object.keys(this._renderers).length,
             types: this.getTypes()
         };
-    }
+    },
 
     /**
      * 🔥 PART 127: Renderer 接口规范
