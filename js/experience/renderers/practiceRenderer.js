@@ -1,5 +1,8 @@
 // js/experience/renderers/practiceRenderer.js
 // Part 129: Practice Activity Renderer
+// Part 130: Integrated with PracticeEvidenceContract
+// Part 131: Evidence Integration & Validation
+// Part 132: PracticeCompleted Event Emission
 
 window.LawAIApp = window.LawAIApp || {};
 window.LawAIApp.Experience = window.LawAIApp.Experience || {};
@@ -65,6 +68,38 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                             ...data
                         }
                     });
+                    document.dispatchEvent(event);
+                    window.dispatchEvent(event);
+                }
+            } catch (e) {
+                // 忽略
+            }
+        }
+
+        // ============================================================
+        // 🔥 Part 132: 发射 PracticeCompleted 事件 (统一辅助方法)
+        // ============================================================
+
+        function _emitPracticeCompletedEvent(correct, score, evidence) {
+            var lessonId = _activity.metadata?.lessonId || _activity.id?.split(':')[0] || null;
+            var eventBus = window.LawAIApp?.EventBus || window.EventBus;
+            var payload = {
+                lessonId: lessonId,
+                practiceId: _activity.id,
+                score: score,
+                accuracy: score * 100,
+                correct: correct,
+                attemptNumber: _attemptNumber,
+                totalAttempts: _attemptHistory.length,
+                evidence: evidence || null,
+                source: 'practice-renderer'
+            };
+
+            try {
+                if (eventBus && typeof eventBus.emit === 'function') {
+                    eventBus.emit('PracticeCompleted', payload);
+                } else {
+                    var event = new CustomEvent('PracticeCompleted', { detail: payload });
                     document.dispatchEvent(event);
                     window.dispatchEvent(event);
                 }
@@ -164,6 +199,10 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
             });
         }
 
+        // ============================================================
+        // 🔥 Part 131: 修复后的 _evaluate()
+        // ============================================================
+
         function _evaluate() {
             var isCorrect = false;
             var evaluation = null;
@@ -172,7 +211,6 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
 
             // ─── 1. 检查是否有有效响应 ───
             if (_selectedOption === null || _selectedOption === undefined) {
-                // 更新 attempt 为 UNANSWERED
                 _updateAttempt({
                     status: 'evaluated',
                     validity: 'INVALID',
@@ -181,7 +219,6 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                     completedAt: new Date().toISOString()
                 });
 
-                // 创建 evidence
                 if (contract && typeof contract.createEvidence === 'function') {
                     var tempAttempt = {
                         attemptId: _attemptId,
@@ -312,6 +349,10 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
             };
         }
 
+        // ============================================================
+        // Render HTML
+        // ============================================================
+
         function _renderHTML() {
             var html = '';
             html += `<div class="practice-activity" style="font-family:'Inter',sans-serif;color:#e2e8f0;">`;
@@ -419,6 +460,10 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
             return html;
         }
 
+        // ============================================================
+        // Bind Events
+        // ============================================================
+
         function _bindEvents() {
             // Radio 按钮事件
             var radios = _container.querySelectorAll('input[name="practice-option"]');
@@ -433,7 +478,7 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                 });
             }
 
-                        // 提交按钮
+            // 提交按钮
             var submitBtn = _container.querySelector('#practice-submit-btn');
             if (submitBtn) {
                 submitBtn.addEventListener('click', function() {
@@ -508,24 +553,34 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                         attemptNumber: _attemptNumber
                     });
 
-                    // 如果正确，发射完成信号
+                    // ──────────────────────────────────────────────────────
+                    // 🔥 Part 132: 发射 PracticeCompleted 事件
+                    // ──────────────────────────────────────────────────────
                     if (_result.correct) {
                         _emitAttemptSignal('ACTIVITY_COMPLETED', {
                             correct: true,
                             feedback: _result.feedback,
                             attemptNumber: _attemptNumber,
-                            totalAttempts: _attemptHistory.length
+                            totalAttempts: _attemptHistory.length,
+                            evidence: _result.evidence
                         });
+
+                        // 正确：发射 PracticeCompleted
+                        _emitPracticeCompletedEvent(true, 1, _result.evidence);
 
                         var runtime = window.LawAIApp?.Experience?.Runtime;
                         if (runtime && typeof runtime.complete === 'function') {
-                            runtime.complete(_activity.id, { 
-                                correct: true, 
+                            runtime.complete(_activity.id, {
+                                correct: true,
                                 feedback: _result.feedback,
                                 attemptNumber: _attemptNumber,
-                                totalAttempts: _attemptHistory.length
+                                totalAttempts: _attemptHistory.length,
+                                evidence: _result.evidence
                             });
                         }
+                    } else {
+                        // 不正确：也发射 PracticeCompleted (供 MasteryEngine 记录失败)
+                        _emitPracticeCompletedEvent(false, 0, _result.evidence);
                     }
 
                     // 重新渲染
@@ -651,7 +706,7 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
              */
             isComplete: function() {
                 return _submitted && _evaluated && _result && _result.correct;
-            }
+            },
 
             /**
              * 🔥 Part 130: 获取 Attempt 历史
@@ -698,6 +753,22 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                     lastOutcome: last ? last.isCorrect : null,
                     lastValidity: last ? last.validity : null
                 };
+            },
+
+            /**
+             * 🔥 Part 131: 获取证据 (用于 Core Intelligence 消费)
+             */
+            getEvidence: function() {
+                return _result ? _result.evidence : null;
+            },
+
+            /**
+             * 🔥 Part 131: 获取所有证据
+             */
+            getAllEvidence: function() {
+                return _attemptHistory
+                    .filter(function(a) { return a.evidence; })
+                    .map(function(a) { return a.evidence; });
             }
         };
     }
@@ -721,4 +792,4 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
     console.log('✏️ PracticeRenderer registered (Part 129)');
 })();
 
-console.log('✏️ PracticeRenderer loaded (Part 129)');
+console.log('✏️ PracticeRenderer loaded (Part 129 + Part 130 + Part 131 + Part 132)');
