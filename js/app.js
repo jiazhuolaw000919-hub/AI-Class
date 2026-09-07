@@ -782,9 +782,6 @@ window.App = {
         tryRegister();
     },
 
-    // 在 app.js 的 init() 中调用
-    this._registerLessonRoute();
-
     // 添加方法
     _registerLessonRoute: function() {
         var self = this;
