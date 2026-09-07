@@ -938,6 +938,206 @@
         invalidateCache: function() {
             this._cacheInvalidated = true;
         }
+
+        // ============================================================
+        // 🔥 Part 136: Skill Interpretation
+        // ============================================================
+
+        /**
+         * 获取 Skill Interpretation
+         * @param {string} skillId - Skill ID
+         * @param {Object} options - 选项
+         * @returns {Object} Skill 状态
+         */
+        getSkillState: function(skillId, options) {
+            options = options || {};
+    
+            // 1. 获取相关知识点的 Mastery
+            var relatedKnowledge = this._getRelatedKnowledge(skillId);
+            var masteries = [];
+            for (var i = 0; i < relatedKnowledge.length; i++) {
+                var mastery = window.LawAIApp?.MasteryEngine?.getMastery(relatedKnowledge[i]);
+                if (mastery) masteries.push(mastery);
+            }
+    
+            // 2. 获取相关记忆状态
+            var memories = [];
+            for (var i = 0; i < relatedKnowledge.length; i++) {
+                var memory = window.LawAIApp?.MemoryEngine?.getMemory(relatedKnowledge[i]);
+                if (memory) memories.push(memory);
+            }
+    
+            // 3. 计算 Skill 状态
+            var skillState = this._interpretSkillState(masteries, memories, options);
+    
+            return {
+                skillId: skillId,
+                state: skillState.state,
+                confidence: skillState.confidence,
+                evidenceStrength: skillState.evidenceStrength,
+                evidenceRefs: skillState.evidenceRefs,
+                masteries: masteries,
+                memories: memories,
+                interpretedAt: new Date().toISOString(),
+                interpretationVersion: '1.0.0'
+            };        
+        },
+
+        /**
+         * 解释 Skill 状态
+         * @private
+         */
+        _interpretSkillState: function(masteries, memories, options) {
+            if (!masteries || masteries.length === 0) {
+                return {
+                    state: 'unknown',
+                    confidence: 'low',
+                    evidenceStrength: 'none',
+                    evidenceRefs: [],
+                    reason: 'insufficient_evidence'
+                };
+            }
+    
+            // 计算平均 mastery level
+            var totalLevel = 0;
+            var totalConfidence = 0;
+            var evidenceCount = 0;
+            var masteredCount = 0;
+            var proficientCount = 0;
+            var developingCount = 0;
+    
+            for (var i = 0; i < masteries.length; i++) {
+                var m = masteries[i];
+                if (!m) continue;
+                totalLevel += (m.masteryLevel || 0);
+                totalConfidence += (m.confidence || 0);
+                evidenceCount += (m.evidenceCount || 0);
+                if (m.state === 'MASTERED') masteredCount++;
+                if (m.state === 'PROFICIENT') proficientCount++;
+                if (m.state === 'DEVELOPING') developingCount++;
+            }
+    
+            var avgLevel = masteries.length > 0 ? totalLevel / masteries.length : 0;
+            var avgConfidence = masteries.length > 0 ? totalConfidence / masteries.length : 0;
+        
+            // 判断 Skill 状态
+            var state = 'unknown';
+            var confidence = 'low';
+            var evidenceStrength = 'low';
+            var evidenceRefs = [];
+    
+            if (evidenceCount === 0) {
+                state = 'unknown';
+                confidence = 'low';
+                evidenceStrength = 'none';
+            } else if (masteredCount > 0 && avgLevel >= 0.8 && avgConfidence >= 0.7) {
+                state = 'strong';
+                confidence = 'medium';
+                evidenceStrength = 'moderate';
+            } else if (proficientCount > 0 && avgLevel >= 0.6 && avgConfidence >= 0.5) {
+                state = 'proficient';
+                confidence = 'medium';
+                evidenceStrength = 'moderate';
+            } else if (developingCount > 0 || avgLevel >= 0.3) {
+                state = 'developing';
+                confidence = 'low';
+                evidenceStrength = 'low';
+            } else if (avgLevel > 0) {
+                state = 'emerging';
+                confidence = 'low';
+                evidenceStrength = 'low';
+            } else {
+                state = 'unknown';
+                confidence = 'low';
+                evidenceStrength = 'none';
+            }
+    
+            return {
+                state: state,
+                confidence: confidence,
+                evidenceStrength: evidenceStrength,
+                evidenceRefs: evidenceRefs,
+                reason: 'based_on_' + masteries.length + '_knowledge_targets'
+            };
+        },
+
+        /**
+         * 获取 Skill 定义
+         * @param {string} skillId - Skill ID
+         * @returns {Object} Skill 定义
+         */
+        getSkillDefinition: function(skillId) {
+            // 从 Knowledge Graph 或 Registry 获取
+            // 如果不存在，返回默认定义
+            var definitions = this._skillDefinitions || {};
+            return definitions[skillId] || {
+                skillId: skillId,
+                name: skillId,
+                description: 'Skill: ' + skillId,
+                relatedKnowledge: [],
+                version: '1.0.0'
+            };
+        },
+
+        /**
+         * 注册 Skill 定义
+         * @param {Object} definition - Skill 定义
+         */
+        registerSkillDefinition: function(definition) {
+            if (!this._skillDefinitions) {
+                this._skillDefinitions = {};
+            }        
+            this._skillDefinitions[definition.skillId] = definition;
+        },
+
+        /**
+         * 获取所有 Skill 状态
+         */
+        getAllSkillStates: function() {
+            var definitions = this._skillDefinitions || {};
+            var result = [];
+            for (var skillId in definitions) {
+                result.push(this.getSkillState(skillId));
+            }
+            return result;
+        },
+
+        /**
+         * 获取 Skill 总结 (用于 Dashboard/Recommendation)
+         */
+        getSkillSummary: function() {
+            var all = this.getAllSkillStates();
+            if (all.length === 0) {
+                return {
+                    total: 0,
+                    strong: 0,
+                    proficient: 0,
+                    developing: 0,
+                    emerging: 0,
+                    unknown: 0
+                };
+            }
+    
+            var summary = {
+                total: all.length,
+                strong: 0,
+                proficient: 0,
+                developing: 0,
+                emerging: 0,
+                unknown: 0
+            };    
+    
+            for (var i = 0; i < all.length; i++) {
+                var state = all[i].state || 'unknown';
+                if (summary[state] !== undefined) {
+                    summary[state]++;
+                } else {
+                    summary.unknown++;
+                }
+            }
+    
+            return summary;
+        }
     };
 
     // ============================================================
