@@ -167,10 +167,21 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
         function _evaluate() {
             var isCorrect = false;
             var evaluation = null;
-            var evidence = null;  // ← 🔥 添加这一行
+            var evidence = null;
+            var contract = window.LawAIApp?.Experience?.PracticeEvidenceContract;
 
-            // 🔥 Part 130: 检查是否有有效响应
+            // ─── 1. 检查是否有有效响应 ───
             if (_selectedOption === null || _selectedOption === undefined) {
+                // 更新 attempt 为 UNANSWERED
+                _updateAttempt({
+                    status: 'evaluated',
+                    validity: 'INVALID',
+                    evaluation: { status: 'UNANSWERED', isCorrect: null },
+                    feedback: 'Please select an answer first.',
+                    completedAt: new Date().toISOString()
+                });
+
+                // 创建 evidence
                 if (contract && typeof contract.createEvidence === 'function') {
                     var tempAttempt = {
                         attemptId: _attemptId,
@@ -179,18 +190,27 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                         questionId: _activity.metadata?.questionId || _activity.id + ':q1',
                         completedAt: new Date().toISOString()
                     };
-                    evidence = contract.createEvidence(tempAttempt, evaluation);
+                    evidence = contract.createEvidence(tempAttempt, { status: 'UNANSWERED', isCorrect: null });
                 } else {
                     evidence = {
                         type: 'PRACTICE_PERFORMANCE',
-                        outcome: isCorrect ? 'CORRECT' : 'INCORRECT',
+                        outcome: 'UNANSWERED',
                         attemptNumber: _attemptNumber,
                         activityId: _activity.id,
                         questionId: _activity.metadata?.questionId || _activity.id + ':q1'
                     };
                 }
 
-            // 🔥 Part 130: 检查响应是否有效（选项范围检查）
+                return {
+                    correct: false,
+                    feedback: 'Please select an answer first.',
+                    evaluated: false,
+                    validity: 'INVALID',
+                    evidence: evidence
+                };
+            }
+
+            // ─── 2. 检查响应是否有效（选项范围检查）───
             if (_hasOptions && (typeof _selectedOption !== 'number' || _selectedOption < 0 || _selectedOption >= _options.length)) {
                 _updateAttempt({
                     status: 'evaluated',
@@ -199,15 +219,36 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                     feedback: 'Invalid option selected.',
                     completedAt: new Date().toISOString()
                 });
+
+                if (contract && typeof contract.createEvidence === 'function') {
+                    var tempAttempt = {
+                        attemptId: _attemptId,
+                        attemptNumber: _attemptNumber,
+                        activityId: _activity.id,
+                        questionId: _activity.metadata?.questionId || _activity.id + ':q1',
+                        completedAt: new Date().toISOString()
+                    };
+                    evidence = contract.createEvidence(tempAttempt, { status: 'INVALID', isCorrect: null });
+                } else {
+                    evidence = {
+                        type: 'PRACTICE_PERFORMANCE',
+                        outcome: 'INVALID',
+                        attemptNumber: _attemptNumber,
+                        activityId: _activity.id,
+                        questionId: _activity.metadata?.questionId || _activity.id + ':q1'
+                    };
+                }
+
                 return {
                     correct: false,
                     feedback: 'Invalid option selected.',
                     evaluated: false,
-                    validity: 'INVALID'
+                    validity: 'INVALID',
+                    evidence: evidence
                 };
             }
 
-            var isCorrect = false;
+            // ─── 3. 评价逻辑 ───
             if (_isMultipleChoice) {
                 isCorrect = (_selectedOption === _correctAnswer);
             } else {
@@ -224,34 +265,50 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                 }
             }
 
-            var evaluation = {
+            evaluation = {
                 status: isCorrect ? 'CORRECT' : 'INCORRECT',
                 isCorrect: isCorrect
             };
 
-            // 🔥 Part 130: 更新 attempt 为 VALID
-            _updateAttempt({
-                status: 'evaluated',
-                validity: 'VALID',
-                evaluation: evaluation,
-                feedback: isCorrect ? '✅ Correct! Well done.' : '❌ Not quite. Review the concept and try again.',
-                completedAt: new Date().toISOString(),
-                evidence: {
+            // ─── 4. 创建 evidence ───
+            if (contract && typeof contract.createEvidence === 'function') {
+                var tempAttempt = {
+                    attemptId: _attemptId,
+                    attemptNumber: _attemptNumber,
+                    activityId: _activity.id,
+                    questionId: _activity.metadata?.questionId || _activity.id + ':q1',
+                    completedAt: new Date().toISOString()
+                };
+                evidence = contract.createEvidence(tempAttempt, evaluation);
+            } else {
+                evidence = {
                     type: 'PRACTICE_PERFORMANCE',
                     outcome: isCorrect ? 'CORRECT' : 'INCORRECT',
                     attemptNumber: _attemptNumber,
                     activityId: _activity.id,
                     questionId: _activity.metadata?.questionId || _activity.id + ':q1'
-                }
+                };
+            }
+
+            // ─── 5. 更新 attempt ───
+            var feedback = isCorrect ? '✅ Correct! Well done.' : '❌ Not quite. Review the concept and try again.';
+            _updateAttempt({
+                status: 'evaluated',
+                validity: 'VALID',
+                evaluation: evaluation,
+                feedback: feedback,
+                completedAt: new Date().toISOString(),
+                evidence: evidence
             });
 
             return {
                 correct: isCorrect,
-                feedback: isCorrect ? '✅ Correct! Well done.' : '❌ Not quite. Review the concept and try again.',
+                feedback: feedback,
                 evaluated: true,
                 explanation: _explanation,
                 validity: 'VALID',
-                evaluation: evaluation
+                evaluation: evaluation,
+                evidence: evidence
             };
         }
 
