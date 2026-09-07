@@ -319,6 +319,55 @@ LawAIApp.Views.LessonView = {
         var hasNext = nav.nextDay > dayNum;
         var hasPrev = nav.prevDay < dayNum;
 
+        // 在 _renderContent() 中，构建 activities
+        var activities = [
+            {
+                id: 'reading-' + lesson.lessonId,
+                type: 'READING',
+                order: 1,
+                title: 'Read',
+                content: lesson.summary || lesson.description || 'Lesson content.',
+                metadata: { lessonId: lesson.lessonId }
+            },
+            {
+                id: 'reflection-' + lesson.lessonId,
+                type: 'REFLECTION',
+                order: 2,
+                title: 'Reflect',
+                metadata: { lessonId: lesson.lessonId }
+            },    
+            {
+                id: 'practice-' + lesson.lessonId,
+                type: 'PRACTICE',
+                order: 3,
+                title: 'Practice',
+                metadata: { lessonId: lesson.lessonId }
+            }
+        ];
+
+        // 如果有 video link，添加 VIDEO activity
+        if (lesson.officialVideo && lesson.officialVideo !== 'https://example.com/video/day-' + dayNum) {
+            activities.push({
+                id: 'video-' + lesson.lessonId,
+                type: 'VIDEO',
+                order: 0,
+                title: 'Watch',
+                content: lesson.officialVideo,
+                metadata: { lessonId: lesson.lessonId, url: lesson.officialVideo }
+            });
+        }
+
+        // 如果有 quiz，添加 QUIZ activity
+        if (lesson.quiz && lesson.quiz.length > 0) {
+            activities.push({
+                id: 'quiz-' + lesson.lessonId,
+                type: 'QUIZ',
+                order: 4,
+                title: 'Quiz',
+                metadata: { lessonId: lesson.lessonId, questions: lesson.quiz }
+            });    
+        }
+
         var html = `
         <div class="lesson-classroom" style="
             max-width: 740px;
@@ -748,6 +797,121 @@ LawAIApp.Views.LessonView = {
                         to { opacity: 1; transform: translateY(0); }
                     }
                 </style>
+            </div>
+        `;
+    },
+
+    // 在 _renderContent() 中，使用 Activity Renderer 渲染每个 activity
+    _renderActivity: function(activity) {
+        var renderers = {
+            'READING': this._renderReadingActivity,
+            'VIDEO': this._renderVideoActivity,
+            'PRACTICE': this._renderPracticeActivity,
+            'QUIZ': this._renderQuizActivity,
+            'REFLECTION': this._renderReflectionActivity
+        };
+        var renderer = renderers[activity.type];
+        if (renderer) {
+            return renderer.call(this, activity);
+        }
+        return '<div style="color:#64748b;padding:8px;">Unknown activity: ' + activity.type + '</div>';
+    },
+
+    _renderReadingActivity: function(activity) {
+        return `
+            <div style="background:rgba(255,255,255,0.02);border-radius:12px;padding:16px 18px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04);line-height:1.7;font-size:15px;color:#e2e8f0;">
+                <p style="margin:0;">${activity.content}</p>
+            </div>
+        `;
+    },
+
+    _renderVideoActivity: function(activity) {
+        var url = activity.metadata?.url || activity.content;
+        return `
+            <div style="background:rgba(74,158,255,0.04);border-radius:12px;padding:12px 16px;margin-bottom:16px;border:1px solid rgba(74,158,255,0.06);">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                    <span style="font-size:14px;">🎬</span>
+                    <span style="font-size:11px;color:#4a9eff;font-weight:500;">Video</span>
+                </div>
+                <a href="${url}" target="_blank" style="color:#4a9eff;text-decoration:none;font-size:13px;">
+                    Watch on YouTube →
+                </a>
+                <p style="margin:4px 0 0;font-size:11px;color:#64748b;">Video content will be embedded in the future.</p>
+            </div>
+        `;
+    },
+
+    _renderPracticeActivity: function(activity) {
+        // 复用现有 Practice 逻辑
+        return `
+            <div style="background:rgba(34,197,94,0.04);border-radius:12px;padding:12px 16px;margin-bottom:16px;border:1px solid rgba(34,197,94,0.06);">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                    <span style="font-size:14px;">✏️</span>
+                    <span style="font-size:11px;color:#22c55e;font-weight:400;">Practice</span>
+                </div>
+                <p style="margin:0 0 6px;font-size:12px;color:#94a3b8;" id="practice-description-${activity.id}">
+                    Test your understanding.
+                </p>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button onclick="LawAIApp.Views.LessonView.startPracticeForActivity('${activity.id}')" style="
+                        padding:4px 14px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.1);border-radius:6px;color:#22c55e;font-size:11px;cursor:pointer;font-family:inherit;
+                    ">Start</button>
+                    <button onclick="LawAIApp.Views.LessonView.submitPracticeForActivity('${activity.id}')" style="
+                        padding:4px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:6px;color:#64748b;font-size:11px;cursor:pointer;font-family:inherit;
+                    ">Submit</button>
+                </div>
+                <input type="text" id="practice-answer-${activity.id}" style="
+                    width:100%;margin-top:4px;padding:6px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;color:#e2e8f0;font-size:12px;font-family:inherit;
+                " placeholder="Type your answer...">
+                <div id="practice-feedback-${activity.id}" style="margin-top:4px;font-size:11px;color:#94a3b8;"></div>
+            </div>
+        `;
+    },
+
+    _renderQuizActivity: function(activity) {
+        var questions = activity.metadata?.questions || [];
+        if (questions.length === 0) return '';
+        return `
+            <div style="background:rgba(139,92,246,0.04);border-radius:12px;padding:12px 16px;margin-bottom:16px;border:1px solid rgba(139,92,246,0.06);">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                    <span style="font-size:14px;">🧠</span>
+                    <span style="font-size:11px;color:#8b5cf6;font-weight:400;">Quick Quiz</span>
+                </div>
+                ${questions.map(function(q, i) {
+                    return `
+                        <div style="margin-bottom:8px;padding:8px 10px;background:rgba(255,255,255,0.02);border-radius:6px;">
+                            <p style="margin:0 0 4px;font-size:12px;font-weight:500;">${i+1}. ${q.question}</p>
+                            ${q.options.map(function(opt, j) {
+                                return `
+                                    <label style="display:block;font-size:11px;color:#94a3b8;padding:2px 0;">
+                                        <input type="radio" name="quiz-${activity.id}-${i}" value="${j}"> ${opt}
+                                    </label>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                }).join('')}
+                <button onclick="LawAIApp.Views.LessonView.submitQuiz('${activity.id}')" style="
+                    padding:4px 14px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.1);border-radius:6px;color:#8b5cf6;font-size:11px;cursor:pointer;font-family:inherit;
+                ">Submit Quiz</button>
+                <div id="quiz-feedback-${activity.id}" style="margin-top:4px;font-size:11px;color:#94a3b8;"></div>
+            </div>
+        `;
+    },
+
+    _renderReflectionActivity: function(activity) {
+        return `
+            <div style="background:rgba(255,255,255,0.02);border-radius:12px;padding:12px 16px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.04);">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                    <span style="font-size:14px;">💭</span>
+                    <span style="font-size:11px;color:#64748b;font-weight:400;">Quick reflection</span>
+                </div>
+                <textarea id="reflection-${activity.id}" style="
+                    width:100%;padding:8px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;font-size:13px;resize:vertical;min-height:40px;font-family:inherit;
+                " placeholder="What stood out to you?"></textarea>
+                <button onclick="LawAIApp.Views.LessonView.saveReflectionForActivity('${activity.id}')" style="
+                    margin-top:4px;padding:3px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:6px;color:#64748b;font-size:10px;cursor:pointer;font-family:inherit;
+                ">💾 Save</button>
             </div>
         `;
     },
