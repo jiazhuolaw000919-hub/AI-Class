@@ -2,8 +2,7 @@
 LawAIApp.EventRegistry = (function() {
   const subscribers = {}; // eventType -> Set of callbacks
 
-  // eventRegistry.js — 在 validTypes 中添加
-const validTypes = new Set([
+  const validTypes = new Set([
     'LessonOpened','LessonStarted','LessonPaused','LessonResumed','LessonCompleted',
     'QuizStarted','QuizCompleted','PracticeStarted','PracticeCompleted',
     'BookmarkAdded','FavoriteAdded','ReviewCreated','SecondBrainCreated',
@@ -17,8 +16,9 @@ const validTypes = new Set([
     'ACTIVITY_OPENED','ACTIVITY_STARTED','ACTIVITY_PROGRESS','ACTIVITY_INTERACTION',
     'ACTIVITY_COMPLETED','ACTIVITY_SKIPPED','ACTIVITY_FAILED','ACTIVITY_UNMOUNTED',
     'RESPONSE_SELECTED','ACTIVITY_SUBMITTED','ACTIVITY_EVALUATED',
+    // 🔥 Part 130: Attempt 事件
     'ATTEMPT_STARTED','ATTEMPT_SUBMITTED','ATTEMPT_EVALUATED','ATTEMPT_COMPLETED'
-]);
+  ]);
 
   function registerType(eventType) {
     validTypes.add(eventType);
