@@ -74,6 +74,7 @@ window.App = {
         this._registerCalendarRoute();
         this._registerSettingsRoute();
         this._registerNotesRoute();
+        this._registerLessonRoute();
 
         if (this._state.initialized) {
             console.log("🔄 App already initialized, refreshing...");
@@ -779,6 +780,64 @@ window.App = {
         }
 
         tryRegister();
+    },
+
+    // 在 app.js 的 init() 中调用
+    this._registerLessonRoute();
+
+    // 添加方法
+    _registerLessonRoute: function() {
+        var self = this;
+        var attempts = 0;
+
+        function tryRegister() {
+            attempts++;
+            var router = safeGet(window, 'LawAIApp.Router') || window.LawAIApp?.Router;
+
+            if (router && typeof router.register === 'function') {
+                console.log('[App] 📖 Registering Lesson route...');
+    
+                router.register('lesson', function(params) {
+                    var day = params?.day || 1;
+                    var container = document.getElementById('app') || 
+                                    document.getElementById('law-runtime-root') || 
+                                    document.getElementById('academy-root');
+                
+                    if (window.LawAIApp?.Views?.LessonView) {
+                        window.LawAIApp.Views.LessonView.render('day-' + day, container);
+                    } else {
+                        self._loadLessonView(day);
+                    }
+                });
+
+                console.log('[App] ✅ Lesson route registered');
+            } else if (attempts < 10) {
+                setTimeout(tryRegister, 300);
+            } else {
+                console.warn('[App] ⚠️ Router not available after 10 attempts');
+            }
+        }
+
+        tryRegister();
+    },
+
+    _loadLessonView: function(day) {
+        console.log('[App] 📖 Loading LessonView...');
+        var script = document.createElement('script');
+        script.src = '/js/lessonView.js?v=' + Date.now();
+        script.async = true;
+        script.onload = function() {
+            if (window.LawAIApp?.Views?.LessonView) {
+                var container = document.getElementById('app') || 
+                                document.getElementById('law-runtime-root') || 
+                                document.getElementById('academy-root');
+                window.LawAIApp.Views.LessonView.render('day-' + day, container);
+            }
+        };
+        script.onerror = function() {
+            console.warn('[App] ⚠️ LessonView load failed');
+        };
+        document.head.appendChild(script);
     },
 
     // ============================================================
