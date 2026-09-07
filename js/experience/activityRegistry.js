@@ -68,6 +68,32 @@ LawAIApp.Experience.ActivityRegistry = {
             types: this.getTypes()
         };
     }
+
+    /**
+     * 🔥 PART 127: Renderer 接口规范
+     * 
+     * 每个注册的 renderer 应该返回一个对象，包含以下方法：
+     * 
+     * {
+     *   mount: function()     - 渲染到容器
+     *   unmount: function()   - 清理 DOM 和事件
+     *   update: function(data) - 更新内容 (可选)
+     *   getStatus: function()  - 返回 'active'|'idle'|'completed' (可选)
+     * }
+     * 
+     * 或者 renderer 可以是简单的函数：
+     * function(activity, container) { ... }
+     * 
+     * 简单函数模式不支持 unmount 清理。
+     */
+    getRendererInterface: function() {
+        return {
+            mount: 'function(activity, container)',
+            unmount: 'function()',
+            update: 'function(data) [optional]',
+            getStatus: 'function() [optional]'
+        };
+    },
 };
 
 // 自动初始化
