@@ -617,6 +617,33 @@ LawAIApp.Views.LessonView = {
         if (this._container.scrollTop !== undefined) {
             this._container.scrollTop = 0;
         }
+
+         // 🔥 Part 126: 使用 Experience Runtime
+        var runtime = window.LawAIApp?.Experience?.Runtime;
+        var contract = window.LawAIApp?.ExperienceContract;
+    
+        if (runtime && contract) {
+            var result = runtime.open(lesson.lessonId);
+            if (result.success && result.data.activities.length > 0) {
+                // 渲染 Activities
+                var container = document.getElementById('lesson-activities') || document.getElementById('lesson-content');
+                if (container) {
+                    // 清除旧内容
+                    container.innerHTML = '';
+                
+                    result.data.activities.forEach(function(activity) {
+                        // 创建 Activity 容器
+                        var wrapper = document.createElement('div');
+                        wrapper.id = 'activity-' + activity.id;
+                        wrapper.style.marginBottom = '16px';
+                    
+                        // 使用 Runtime 渲染
+                        runtime.renderActivity(activity.id, wrapper);
+                        container.appendChild(wrapper);
+                    });
+                }
+            }
+        }
     },
 
     // ============================================================
