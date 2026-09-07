@@ -22,6 +22,13 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
         var _selectedOption = null;
         var _result = null;
         var _startEmitted = false;
+        var _attemptId = null;
+        var _attemptNumber = 0;
+        var _startedAt = null;
+        var _submittedAt = null;
+        var _completedAt = null;
+        var _attemptHistory = [];  // 存储所有 attempt
+        var _isDuplicateSubmit = false;
 
         // 解析 Practice 数据
         var _question = activity.metadata?.question || 'Practice question';
@@ -63,12 +70,105 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
             }
         }
 
-        function _evaluate() {
+                // ============================================================
+        // 🔥 Part 130: Attempt 管理
+        // ============================================================
+
+        function _generateAttemptId() {
+            return 'att_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+        }
+
+        function _createAttempt() {
+            _attemptNumber++;
+            _attemptId = _generateAttemptId();
+            _startedAt = new Date().toISOString();
+            _submittedAt = null;
+            _completedAt = null;
+            _isDuplicateSubmit = false;
+            
+            var attempt = {
+                attemptId: _attemptId,
+                attemptNumber: _attemptNumber,
+                activityId: _activity.id,
+                questionId: _activity.metadata?.questionId || _activity.id + ':q1',
+                startedAt: _startedAt,
+                submittedAt: null,
+                completedAt: null,
+                response: null,
+                evaluation: null,
+                feedback: null,
+                status: 'started',  // started | submitted | evaluated | completed
+                validity: null,     // 'VALID' | 'INVALID'
+                evidence: null,
+                provenance: {
+                    source: 'practice-activity',
+                    activityId: _activity.id,
+                    lessonId: _activity.metadata?.lessonId || null,
+                    attemptId: _attemptId
+                }
+            };
+            
+            _attemptHistory.push(attempt);
+            return attempt;
+        }
+
+        function _getCurrentAttempt() {
+            return _attemptHistory[_attemptHistory.length - 1] || null;
+        }
+
+        function _updateAttempt(fields) {
+            var current = _getCurrentAttempt();
+            if (current) {
+                for (var key in fields) {
+                    if (fields.hasOwnProperty(key)) {
+                        current[key] = fields[key];
+                    }
+                }
+            }
+        }
+
+        function _emitAttemptSignal(signalType, data) {
+            var current = _getCurrentAttempt();
+            _emitSignal(signalType, {
+                attemptId: current ? current.attemptId : null,
+                attemptNumber: current ? current.attemptNumber : null,
+                ...data
+            });
+        }
+
+                function _evaluate() {
+            // 🔥 Part 130: 检查是否有有效响应
             if (_selectedOption === null || _selectedOption === undefined) {
+                // 更新当前 attempt 为 INVALID
+                _updateAttempt({
+                    status: 'evaluated',
+                    validity: 'INVALID',
+                    evaluation: { status: 'UNANSWERED', isCorrect: null },
+                    feedback: 'Please select an answer first.',
+                    completedAt: new Date().toISOString()
+                });
                 return {
                     correct: false,
                     feedback: 'Please select an answer first.',
-                    evaluated: false
+                    evaluated: false,
+                    validity: 'INVALID'
+                };
+            }
+
+            // 🔥 Part 130: 检查响应是否有效（选项范围检查）
+            if (_hasOptions && (typeof _selectedOption !== 'number' || _selectedOption < 0 || _selectedOption >= _options.length)) {
+                _updateAttempt({
+                    status: 'evaluated',
+                    validity: 'INVALID',
+                    evaluation: { status: 'INVALID', isCorrect: null },
+                    feedback: 'Invalid option selected.',
+                    completedAt: new Date().toISOString()
+                });
+                return {
+                    correct: false,
+                    feedback: 'Invalid option selected.',
+                    evaluated: false,
+                    validity: 'INVALID'
                 };
             }
 
@@ -76,7 +176,6 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
             if (_isMultipleChoice) {
                 isCorrect = (_selectedOption === _correctAnswer);
             } else {
-                // 自由文本：使用 PracticeEngine
                 var engine = window.LawAIApp?.PracticeEngine;
                 if (engine && typeof engine.checkAnswer === 'function') {
                     var result = engine.checkAnswer(
@@ -86,16 +185,38 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                     isCorrect = result.isCorrect;
                     _explanation = result.explanation || _explanation;
                 } else {
-                    // Fallback: 简单检查
                     isCorrect = (_selectedOption === _correctAnswer);
                 }
             }
+
+            var evaluation = {
+                status: isCorrect ? 'CORRECT' : 'INCORRECT',
+                isCorrect: isCorrect
+            };
+
+            // 🔥 Part 130: 更新 attempt 为 VALID
+            _updateAttempt({
+                status: 'evaluated',
+                validity: 'VALID',
+                evaluation: evaluation,
+                feedback: isCorrect ? '✅ Correct! Well done.' : '❌ Not quite. Review the concept and try again.',
+                completedAt: new Date().toISOString(),
+                evidence: {
+                    type: 'PRACTICE_PERFORMANCE',
+                    outcome: isCorrect ? 'CORRECT' : 'INCORRECT',
+                    attemptNumber: _attemptNumber,
+                    activityId: _activity.id,
+                    questionId: _activity.metadata?.questionId || _activity.id + ':q1'
+                }
+            });
 
             return {
                 correct: isCorrect,
                 feedback: isCorrect ? '✅ Correct! Well done.' : '❌ Not quite. Review the concept and try again.',
                 evaluated: true,
-                explanation: _explanation
+                explanation: _explanation,
+                validity: 'VALID',
+                evaluation: evaluation
             };
         }
 
@@ -220,11 +341,18 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                 });
             }
 
-            // 提交按钮
+                        // 提交按钮
             var submitBtn = _container.querySelector('#practice-submit-btn');
             if (submitBtn) {
                 submitBtn.addEventListener('click', function() {
-                    if (_evaluated) return;
+                    if (_evaluated) {
+                        // 🔥 Part 130: 已评价，防重复
+                        _isDuplicateSubmit = true;
+                        return;
+                    }
+                    if (_isDuplicateSubmit) {
+                        return;
+                    }
 
                     // 检查是否有选择
                     var selected = _container.querySelector('input[name="practice-option"]:checked');
@@ -232,15 +360,10 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
 
                     if (_hasOptions) {
                         if (!selected) {
-                            // 显示提示
-                            var feedbackDiv = _container.querySelector('.practice-activity > div:last-child');
-                            if (feedbackDiv && feedbackDiv.tagName !== 'DIV') {
-                                // 创建反馈
-                                var msg = document.createElement('div');
-                                msg.style.cssText = 'margin-top:12px;padding:10px 16px;border-radius:8px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.12);color:#f59e0b;font-size:13px;';
-                                msg.textContent = 'Please select an answer before submitting.';
-                                _container.querySelector('.practice-activity').appendChild(msg);
-                            }
+                            var msg = document.createElement('div');
+                            msg.style.cssText = 'margin-top:12px;padding:10px 16px;border-radius:8px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.12);color:#f59e0b;font-size:13px;';
+                            msg.textContent = 'Please select an answer before submitting.';
+                            _container.querySelector('.practice-activity').appendChild(msg);
                             return;
                         }
                         _selectedOption = parseInt(selected.value);
@@ -255,10 +378,20 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                         _selectedOption = textInput.value.trim();
                     }
 
-                    // 提交信号
-                    _emitSignal('ACTIVITY_SUBMITTED', {
+                    // 🔥 Part 130: 创建新的 Attempt
+                    var attempt = _createAttempt();
+                    _submittedAt = new Date().toISOString();
+                    _updateAttempt({
+                        submittedAt: _submittedAt,
+                        status: 'submitted',
+                        response: _selectedOption
+                    });
+
+                    // 提交信号 (带 attempt 上下文)
+                    _emitAttemptSignal('ACTIVITY_SUBMITTED', {
                         selectedOption: _selectedOption,
-                        question: _question
+                        question: _question,
+                        attemptNumber: _attemptNumber
                     });
 
                     // 评价
@@ -266,24 +399,40 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                     _evaluated = true;
                     _submitted = true;
 
-                    // 评价信号
-                    _emitSignal('ACTIVITY_EVALUATED', {
+                    // 更新 attempt 为 evaluated
+                    _updateAttempt({
+                        status: 'evaluated',
+                        evaluation: _result.evaluation || { status: _result.correct ? 'CORRECT' : 'INCORRECT', isCorrect: _result.correct },
+                        feedback: _result.feedback,
+                        completedAt: new Date().toISOString()
+                    });
+
+                    // 评价信号 (带 attempt 上下文)
+                    _emitAttemptSignal('ACTIVITY_EVALUATED', {
                         correct: _result.correct,
                         feedback: _result.feedback,
-                        explanation: _result.explanation
+                        explanation: _result.explanation,
+                        validity: _result.validity || 'VALID',
+                        attemptNumber: _attemptNumber
                     });
 
                     // 如果正确，发射完成信号
                     if (_result.correct) {
-                        _emitSignal('ACTIVITY_COMPLETED', {
+                        _emitAttemptSignal('ACTIVITY_COMPLETED', {
                             correct: true,
-                            feedback: _result.feedback
+                            feedback: _result.feedback,
+                            attemptNumber: _attemptNumber,
+                            totalAttempts: _attemptHistory.length
                         });
 
-                        // 调用 Runtime.complete()
                         var runtime = window.LawAIApp?.Experience?.Runtime;
                         if (runtime && typeof runtime.complete === 'function') {
-                            runtime.complete(_activity.id, { correct: true, feedback: _result.feedback });
+                            runtime.complete(_activity.id, { 
+                                correct: true, 
+                                feedback: _result.feedback,
+                                attemptNumber: _attemptNumber,
+                                totalAttempts: _attemptHistory.length
+                            });
                         }
                     }
 
@@ -390,7 +539,11 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                     isSubmitted: _submitted,
                     isEvaluated: _evaluated,
                     isCorrect: _result ? _result.correct : null,
-                    hasResult: !!_result
+                    hasResult: !!_result,
+                    attemptCount: _attemptHistory.length,
+                    currentAttemptNumber: _attemptNumber,
+                    hasAttempts: _attemptHistory.length > 0,
+                    isDuplicateSubmit: _isDuplicateSubmit
                 };
             },
 
@@ -406,6 +559,53 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
              */
             isComplete: function() {
                 return _submitted && _evaluated && _result && _result.correct;
+            }
+
+            /**
+             * 🔥 Part 130: 获取 Attempt 历史
+             */
+            getAttemptHistory: function() {
+                return _attemptHistory.slice();
+            },
+
+            /**
+             * 🔥 Part 130: 获取当前 Attempt
+             */
+            getCurrentAttempt: function() {
+                return _getCurrentAttempt();
+            },
+
+            /**
+             * 🔥 Part 130: 获取 Attempt 数量
+             */
+            getAttemptCount: function() {
+                return _attemptHistory.length;
+            },
+
+            /**
+             * 🔥 Part 130: 获取 Attempt 结果摘要
+             */
+            getAttemptSummary: function() {
+                var total = _attemptHistory.length;
+                if (total === 0) {
+                    return { total: 0, attempts: [], lastOutcome: null };
+                }
+                var attempts = _attemptHistory.map(function(a) {
+                    return {
+                        attemptNumber: a.attemptNumber,
+                        status: a.status,
+                        validity: a.validity,
+                        isCorrect: a.evaluation ? a.evaluation.isCorrect : null,
+                        submittedAt: a.submittedAt
+                    };
+                });
+                var last = attempts[attempts.length - 1];
+                return {
+                    total: total,
+                    attempts: attempts,
+                    lastOutcome: last ? last.isCorrect : null,
+                    lastValidity: last ? last.validity : null
+                };
             }
         };
     }
