@@ -179,14 +179,66 @@ LawAIApp.ExperienceContract = {
             metadata: { lessonId: lessonId }
         });
     
-        // Practice
-        activities.push({
-            id: lessonId + ':practice',
-            type: 'PRACTICE',
-            order: order++,
-            title: 'Practice',
-            metadata: { lessonId: lessonId }
-        });    
+        // Practice — 🔥 Part 129: 从 lesson.practice 或 lesson.quiz 提取
+        var practiceData = null;
+
+        // 1. 优先从 lesson.practice 获取
+        if (lesson.practice && lesson.practice.question) {
+            practiceData = lesson.practice;
+        } 
+        // 2. 从 lesson.quiz 获取 (兼容旧结构)
+        else if (lesson.quiz && lesson.quiz.length > 0) {
+            var firstQuiz = lesson.quiz[0];
+            practiceData = {
+                question: firstQuiz.question || 'Quiz question',
+                options: firstQuiz.options || [],
+                correctAnswer: firstQuiz.answer || firstQuiz.correctAnswer || 0,
+                explanation: firstQuiz.explanation || ''
+            };
+        }
+        // 3. 如果有 practice 字段但没有 question，用默认
+        else if (lesson.practice) {
+            practiceData = {
+                question: lesson.practice.description || 'Practice exercise',
+                options: lesson.practice.options || [],
+                correctAnswer: lesson.practice.answer !== undefined ? lesson.practice.answer : null,
+                explanation: lesson.practice.explanation || ''
+            };    
+        }
+
+        if (practiceData) {
+            activities.push({
+                id: lessonId + ':practice',
+                type: 'PRACTICE',
+                order: order++,
+                title: 'Practice',
+                content: practiceData.question,
+                metadata: {
+                    lessonId: lessonId,
+                    question: practiceData.question,
+                    options: practiceData.options || [],
+                    correctAnswer: practiceData.correctAnswer !== undefined ? practiceData.correctAnswer : null,
+                    explanation: practiceData.explanation || '',
+                    type: practiceData.type || 'multiple_choice'
+                }
+            });
+        } else {
+            // Fallback: 空的 Practice (显示 "No practice available")
+            activities.push({
+                id: lessonId + ':practice',
+                type: 'PRACTICE',
+                order: order++,
+                title: 'Practice',
+                content: 'Practice exercise coming soon.',
+                metadata: { 
+                    lessonId: lessonId,
+                    question: 'Practice exercise coming soon.',
+                    options: [],
+                    correctAnswer: null,
+                    explanation: ''
+                }
+            });
+        }
     
         // Quiz
         if (lesson.quiz && lesson.quiz.length > 0) {
