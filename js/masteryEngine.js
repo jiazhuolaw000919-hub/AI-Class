@@ -270,6 +270,7 @@ LawAIApp.MasteryEngine = (function() {
             createdAt: Date.now(),
             updatedAt: Date.now(),
             evidenceHistory: [],
+            interpretationVersion: '1.0.0',
             _schemaVersion: _schemaVersion
         };
     }
