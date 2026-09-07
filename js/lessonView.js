@@ -618,6 +618,12 @@ LawAIApp.Views.LessonView = {
             this._container.scrollTop = 0;
         }
 
+        // 🔥 PART 127: 在重新渲染前清理旧的 Runtime
+        var oldRuntime = window.LawAIApp?.Experience?.Runtime;
+        if (oldRuntime && typeof oldRuntime.cleanup === 'function') {
+            oldRuntime.cleanup();
+        }
+
          // 🔥 Part 126: 使用 Experience Runtime
         var runtime = window.LawAIApp?.Experience?.Runtime;
         var contract = window.LawAIApp?.ExperienceContract;
@@ -806,17 +812,26 @@ LawAIApp.Views.LessonView = {
     // ============================================================
 
     completeLesson: function(lessonId) {
-        try {
-            if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.completeLesson === 'function') {
-                var result = LawAIApp.ProgressEngine.completeLesson(lessonId);
-                if (result) {
-                    var xpGain = result.xpGain || 20;
-                    this._showCompletionEffect();
-                    if (LawAIApp.Toast && typeof LawAIApp.Toast.success === 'function') {
-                        LawAIApp.Toast.success('✅ Lesson completed! +' + xpGain + ' XP');
-                    }
-                    this.render(lessonId, this._container);
-                    LawAIApp.EventBus?.emit?.('LessonCompleted', { lessonId: lessonId });
+    try {
+        // 🔥 PART 127: 先通知 Runtime
+        var runtime = window.LawAIApp?.Experience?.Runtime;
+        if (runtime && typeof runtime.complete === 'function') {
+            var currentActivity = runtime.getCurrentActivity();
+            if (currentActivity) {
+                runtime.complete(currentActivity.id, { submitted: true });
+            }
+        }
+
+        if (LawAIApp.ProgressEngine && typeof LawAIApp.ProgressEngine.completeLesson === 'function') {
+            var result = LawAIApp.ProgressEngine.completeLesson(lessonId);
+            if (result) {
+                var xpGain = result.xpGain || 20;
+                this._showCompletionEffect();
+                if (LawAIApp.Toast && typeof LawAIApp.Toast.success === 'function') {
+                    LawAIApp.Toast.success('✅ Lesson completed! +' + xpGain + ' XP');
+                }
+                this.render(lessonId, this._container);
+                LawAIApp.EventBus?.emit?.('LessonCompleted', { lessonId: lessonId });
                 }
             } else {
                 console.warn('⚠️ ProgressEngine.completeLesson not available');
