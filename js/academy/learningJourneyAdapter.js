@@ -5403,7 +5403,12 @@
                 gap: null,
                 need: null,
                 trend: null,
-                goalAlignment: null
+                goalAlignment: null,
+                // 🔥 Part 133: 新增 Claims
+                claims: [],
+                confidence: 'low',
+                generatedAt: new Date().toISOString(),
+                evidenceCount: 0
             };
 
             if (!state || !evidence) {
@@ -5411,33 +5416,99 @@
                 return interpretation;
             }
 
-            var stateConfidence = state.metadata && state.metadata.confidence;
             var hasSufficientData = state.metadata && state.metadata.hasSufficientEvidence;
 
             if (!hasSufficientData) {
                 interpretation.message = 'Not enough evidence to interpret learning state.';
                 interpretation.hasInterpretation = true;
+                interpretation.claims.push({
+                    claim: 'Insufficient evidence',
+                    confidence: 'unknown',
+                    evidenceRefs: [],
+                    type: 'INSUFFICIENT_EVIDENCE'
+                });
                 return interpretation;
             }
 
             // 构建解释
             var parts = [];
+            var claims = [];
+
+            // 1. Knowledge 状态 → Claim
             if (state.knowledge && state.knowledge.status !== 'unknown') {
                 parts.push('Knowledge: ' + state.knowledge.status);
+                claims.push({
+                    claim: 'Knowledge state: ' + state.knowledge.status,
+                    confidence: state.knowledge.confidence || 'medium',
+                    evidenceRefs: state.knowledge.evidenceCount > 0 ? ['evidence_' + Date.now()] : [],
+                    type: 'KNOWLEDGE_STATE',
+                    dimension: 'knowledge',
+                    status: state.knowledge.status,
+                    description: state.knowledge.description || null
+                });
             }
+
+            // 2. Transfer 状态 → Claim
             if (state.transfer && state.transfer.status !== 'unknown') {
                 parts.push('Transfer: ' + state.transfer.status);
+                claims.push({
+                    claim: 'Transfer ability: ' + state.transfer.status,
+                    confidence: state.transfer.confidence || 'medium',
+                    evidenceRefs: state.transfer.evidenceCount > 0 ? ['evidence_' + Date.now()] : [],
+                    type: 'TRANSFER_STATE',
+                    dimension: 'transfer',
+                    status: state.transfer.status,
+                    description: state.transfer.description || null
+                });
             }
+
+            // 3. Independence 状态 → Claim
             if (state.independence && state.independence.status !== 'unknown') {
                 parts.push('Independence: ' + state.independence.status);
+                claims.push({
+                    claim: 'Learning independence: ' + state.independence.status,
+                    confidence: state.independence.confidence || 'medium',
+                    evidenceRefs: state.independence.evidenceCount > 0 ? ['evidence_' + Date.now()] : [],
+                    type: 'INDEPENDENCE_STATE',
+                    dimension: 'independence',
+                    status: state.independence.status,
+                    description: state.independence.description || null
+                });
+            }
+
+            // 4. Gap 检测 → Claim
+            if (interpretation.gap && interpretation.gap.exists) {
+                claims.push({
+                    claim: interpretation.gap.description || 'Learning gap detected',
+                    confidence: interpretation.gap.severity === 'high' ? 'high' : 'medium',
+                    evidenceRefs: ['evidence_' + Date.now()],
+                    type: 'GAP',
+                    severity: interpretation.gap.severity || 'low',
+                    description: interpretation.gap.description || null
+                });
+            }
+
+            // 5. 如果 claims 为空，添加默认
+            if (claims.length === 0) {
+                claims.push({
+                    claim: 'Learning state is developing',
+                    confidence: 'low',
+                    evidenceRefs: [],
+                    type: 'DEVELOPING',
+                    description: 'Continue learning to build more evidence.'
+                });
             }
 
             interpretation.message = parts.length > 0 ? parts.join(' · ') : 'Learning state is developing.';
             interpretation.hasInterpretation = true;
+            interpretation.claims = claims;
+            interpretation.confidence = claims.length > 0 ? claims[0].confidence || 'low' : 'low';
+            interpretation.evidenceCount = claims.length;
             interpretation.gap = this._identifyGap(state, context);
             interpretation.trend = state.momentum ? state.momentum.status : 'unknown';
             interpretation.goalAlignment = state.goalAlignment ? state.goalAlignment.status : 'unknown';
-
+            interpretation.generatedAt = new Date().toISOString();
+    
             return interpretation;
         },
 
