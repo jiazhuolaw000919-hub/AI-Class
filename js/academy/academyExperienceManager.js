@@ -391,7 +391,23 @@
                 adapter.selectLesson(lessonId);
             }
 
-            this.render();
+            // ═══════════════════════════════════════════════════════════
+            // 🔥 修改这里：用 LessonView 渲染，而不是 AcademyView
+            // ═══════════════════════════════════════════════════════════
+            var container = document.getElementById('academy-root');
+            if (window.LawAIApp?.Views?.LessonView) {
+                // ✅ 使用完整的 LessonView
+                window.LawAIApp.Views.LessonView.render(lessonId, container);
+            } else {
+                // ⚠️ Fallback: 使用 AcademyView 的内部渲染
+                var academyView = window.LawAIApp?.AcademyView;
+                if (academyView && typeof academyView._renderLessonView === 'function') {
+                    academyView._renderLessonView(container, lessonId);
+                } else {
+                    container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">Lesson not available</div>';
+                }
+            }
+
             this._emit('ACADEMY_VIEW_CHANGED', {
                 viewMode: 'lesson',
                 currentLessonId: lessonId,
