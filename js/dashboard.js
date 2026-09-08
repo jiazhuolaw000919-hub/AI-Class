@@ -1545,33 +1545,6 @@ LawAIApp.Dashboard = {
         document.dispatchEvent(event);
       } catch (e) {}
     
-      // 执行操作 (导航等)
-      var actionMap = {
-        'continue': function() {
-          var lc = window.LawAIApp?.LearningContext;
-          if (lc && lc.initialized) {
-            var ctx = lc.getContext();
-            if (ctx && ctx.lesson) {
-              window.location.href = '/pages/academy.html?view=lesson&id=' + ctx.lesson.id;
-            } else {
-              window.location.href = '/pages/academy.html';
-            }
-          } else {
-            window.location.href = '/pages/academy.html';
-          }
-        },
-        // ... rest of actionMap unchanged
-      };
-    
-      var action = actionMap[choiceId] || actionMap['continue'];
-      try {
-        action();
-      } catch (e) {
-        console.warn('[Dashboard][Part74] Action execution error:', e);
-        window.location.href = '/pages/academy.html';
-      }
-    },
-    
     // 3. 根据选择类型执行具体操作
     var actionMap = {
       'continue': function() {
@@ -3395,7 +3368,7 @@ LawAIApp.Dashboard = {
     `;
   
     return html;
-  }
+  },
 
   // ============================================================
   // Part 162: Architecture Fitness Check
@@ -3463,7 +3436,7 @@ LawAIApp.Dashboard = {
   _hasPrerequisiteLogic: false,
   _mutatesCalendar: false,
   _mutatesSettings: false,
-  _mutatesRecommendation: false
+  _mutatesRecommendation: false,
 
     var result = adapter.getAdaptiveRecommendation({ maxCandidates: 4 });
 
@@ -3578,30 +3551,17 @@ LawAIApp.Dashboard = {
   // ============================================================
   // 🔥 直接渲染 Calendar（不跳转）
   // ============================================================
-   _renderCalendarView: function() {
-      console.log('[Dashboard] 📅 Navigating to Calendar...');
-      
-      // 🔥 Part 162: 使用导航命令，而非直接变异
-      var eventAdapter = LawAIApp.DashboardEventAdapter;
-      if (eventAdapter) {
-        eventAdapter.sendPrimaryActionSelected('view_calendar', null, {
-          source: 'dashboard'
-        });
-      }
-      
-      // 通过事件让 Calendar 自己处理
-      var event = new CustomEvent('NAVIGATE_TO_CALENDAR', {
-        detail: { source: 'dashboard' }
-      });
-      document.dispatchEvent(event);
-      
-      // Fallback: 如果没有 Calendar 监听，用路由
-      if (window.LawAIApp?.Router) {
-        window.LawAIApp.Router.navigate('/calendar');
-      } else {
-        window.location.href = '/pages/academy.html?view=calendar';
-      }
+  _renderCalendarView: function() {
+    console.log('[Dashboard] 📅 Navigating to Calendar...');
+    var eventAdapter = LawAIApp.DashboardEventAdapter;
+    if (eventAdapter) eventAdapter.sendPrimaryActionSelected('view_calendar', null, { source: 'dashboard' });
+    try { var event = new CustomEvent('NAVIGATE_TO_CALENDAR', { detail: { source: 'dashboard' } }); document.dispatchEvent(event); } catch (e) {}
+    if (window.LawAIApp?.Router) {
+      window.LawAIApp.Router.navigate('/calendar');
+    } else {
+      window.location.href = '/pages/academy.html?view=calendar';
     }
+  },
 
     // 懒加载完整 Calendar
     if (window.LawAIApp?.AcademyLoader?.loadCalendarLazy) {
