@@ -258,7 +258,7 @@
                 if (onFail) onFail('Timeout waiting for CalendarAuthority');
             }
         }, 100);
-    }
+    },
 
     // ============================================================
     // Part 164: NotesAuthority 懒加载
