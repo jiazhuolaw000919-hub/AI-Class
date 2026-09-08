@@ -1548,6 +1548,330 @@
             summary.averageCoverage = coverageCount > 0 ? Math.round(totalCoverage / coverageCount) : 0;
     
             return summary;
+        },
+
+        // ============================================================
+        // 🔥 Part 138: Trajectory Interpretation
+        // ============================================================
+
+        /**
+         * 获取 Trajectory Interpretation
+         * @param {string} scopeId - Scope ID
+         * @param {string} scopeType - 'course' | 'skill' | 'subject'
+         * @param {Object} options - 选项
+         * @returns {Object} Trajectory 状态
+         */
+        getTrajectoryState: function(scopeId, scopeType, options) {
+            options = options || {};
+    
+            // 1. 获取历史状态
+            var history = this._getScopeHistory(scopeId, scopeType);
+    
+            // 2. 获取当前状态
+            var currentState = this._getScopeState(scopeId, scopeType);
+    
+            // 3. 解释 Trajectory
+            var trajectory = this._interpretTrajectory(history, currentState, options);
+    
+            return {
+                scopeId: scopeId,
+                scopeType: scopeType,
+                state: trajectory.state,
+                confidence: trajectory.confidence || 'low',
+                evidenceStrength: trajectory.evidenceStrength || 'low',
+                transitions: trajectory.transitions || [],
+                supportingEvidence: trajectory.supportingEvidence || [],
+                temporalWindow: trajectory.temporalWindow || null,
+                interpretedAt: new Date().toISOString(),
+                interpretationVersion: '1.0.0',
+                reason: trajectory.reason || 'insufficient_evidence'
+            };
+        },
+
+        /**
+         * 解释 Trajectory
+         * @private
+         */
+        _interpretTrajectory: function(history, currentState, options) {
+            var result = {
+                state: 'unknown',
+                confidence: 'low',
+                evidenceStrength: 'low',
+                transitions: [],
+                supportingEvidence: [],
+                temporalWindow: null,
+                reason: 'insufficient_evidence'
+            };
+    
+            // 1. 检查是否有足够的历史数据
+            if (!history || history.length < 2) {
+                result.reason = 'insufficient_history';
+                return result;
+            }    
+    
+            // 2. 提取状态序列
+            var states = history.map(function(h) { return h.state; });
+            var timestamps = history.map(function(h) { return h.timestamp; });
+    
+            // 3. 计算 trajectory
+            var stateOrder = {
+                'unknown': 0,
+                'started': 1,
+                'emerging': 1,
+                'progressing': 2,
+                'developing': 2,
+                'stable': 3,
+                'proficient': 3,
+                'strong': 4,
+                'advanced': 4,
+                'completed': 5,
+                'stalled': 2,
+                'plateaued': 2,
+                'regressing': 1,
+                'declining': 1,
+                'recovering': 3,
+                'volatile': 2
+            };        
+    
+            // 获取有效状态值
+            var stateValues = [];
+            for (var i = 0; i < states.length; i++) {
+                var val = stateOrder[states[i]];
+                if (val !== undefined) {
+                    stateValues.push(val);
+                }
+            }
+    
+            if (stateValues.length < 2) {
+                result.reason = 'insufficient_meaningful_states';
+                return result;
+            }    
+    
+            // 4. 检测模式
+            var first = stateValues[0];
+            var last = stateValues[stateValues.length - 1];
+            var min = Math.min.apply(null, stateValues);
+            var max = Math.max.apply(null, stateValues);
+            var range = max - min;
+    
+            // 计算变化
+            var totalChange = last - first;
+            var hasIncreased = totalChange > 0.5;
+            var hasDecreased = totalChange < -0.5;
+            var isStable = Math.abs(totalChange) <= 0.5 && range <= 1;
+            
+            // 检测波动
+            var isVolatile = false;
+            var changes = [];
+            for (var i = 1; i < stateValues.length; i++) {
+                var diff = stateValues[i] - stateValues[i-1];
+                changes.push(diff);
+                if (Math.abs(diff) >= 1.5) {
+                    isVolatile = true;
+                }
+            }
+    
+            // 检测 recovery: 先下降后上升
+            var hasDeclineThenRise = false;
+            var hasPlateau = false;
+            if (stateValues.length >= 4) {
+                var firstHalf = stateValues.slice(0, Math.floor(stateValues.length / 2));
+                var secondHalf = stateValues.slice(Math.floor(stateValues.length / 2));
+                var firstAvg = firstHalf.reduce(function(a,b) { return a + b; }, 0) / firstHalf.length;
+                var secondAvg = secondHalf.reduce(function(a,b) { return a + b; }, 0) / secondHalf.length;
+                if (firstAvg < secondAvg - 0.5) {
+                    hasDeclineThenRise = true;
+                }
+                // 检测 plateau: 中间段没有变化
+                if (stateValues.length >= 5) {
+                    var middle = stateValues.slice(2, stateValues.length - 2);
+                    if (middle.length >= 2) {
+                        var middleDiff = Math.max.apply(null, middle) - Math.min.apply(null, middle);
+                        if (middleDiff <= 0.5 && range <= 0.5) {
+                            hasPlateau = true;
+                        }
+                    }
+                }
+            }
+    
+            // 5. 确定 Trajectory State
+            var state = 'unknown';
+            var confidence = 'low';
+            var evidenceStrength = 'low';
+            var reason = '';
+            var transitions = [];
+        
+            if (isVolatile && stateValues.length >= 4) {
+                state = 'volatile';
+                confidence = 'medium';
+                evidenceStrength = 'moderate';
+                reason = 'multiple_directional_changes_observed';
+                transitions = this._buildTransitions(states, timestamps);
+            } else if (hasDeclineThenRise && stateValues.length >= 4) {
+                state = 'recovering';
+                confidence = 'medium';
+                evidenceStrength = 'moderate';
+                reason = 'decline_followed_by_recovery';
+                transitions = this._buildTransitions(states, timestamps);
+            } else if (hasDecreased) {
+                state = 'declining';
+                confidence = 'medium';
+                evidenceStrength = 'moderate';
+                reason = 'state_decreased_over_time';
+                transitions = this._buildTransitions(states, timestamps);
+            } else if (hasIncreased) {
+                state = 'improving';
+                confidence = 'medium';
+                evidenceStrength = 'moderate';
+                reason = 'state_increased_over_time';
+                transitions = this._buildTransitions(states, timestamps);
+            } else if (isStable && stateValues.length >= 3) {
+                if (hasPlateau) {
+                    state = 'plateaued';
+                    confidence = 'medium';
+                    evidenceStrength = 'moderate';
+                    reason = 'stable_state_with_plateau';
+                } else {
+                    state = 'stable';
+                    confidence = 'medium';
+                    evidenceStrength = 'moderate';
+                    reason = 'state_remained_stable';
+                }
+                transitions = this._buildTransitions(states, timestamps);
+            } else if (stateValues.length < 3) {
+                state = 'emerging';
+                confidence = 'low';
+                evidenceStrength = 'low';
+                reason = 'limited_history_but_initial_pattern';
+                transitions = this._buildTransitions(states, timestamps);
+            } else {
+                state = 'unknown';
+                confidence = 'low';
+                evidenceStrength = 'low';
+                reason = 'insufficient_evidence_for_trajectory';
+                transitions = this._buildTransitions(states, timestamps);
+            }    
+    
+            // 6. 如果有当前状态，加入 supporting evidence
+            if (currentState && currentState.hasEvidence) {
+                result.supportingEvidence.push({
+                    type: 'current_state',
+                    coverage: currentState.coverage,
+                    mastery: currentState.mastery ? currentState.mastery.level : null,
+                    retention: currentState.retention ? currentState.retention.state : null,
+                    skill: currentState.skill ? currentState.skill.state : null,
+                    hasRecentActivity: currentState.lastActivity ? true : false
+                });
+            }
+    
+            result.state = state;
+            result.confidence = confidence;
+            result.evidenceStrength = evidenceStrength;
+            result.transitions = transitions;
+            result.reason = reason;
+            result.temporalWindow = this._getTemporalWindow(timestamps);
+        
+            return result;
+        },
+
+        /**
+         * 构建状态转换列表
+         * @private
+         */
+        _buildTransitions: function(states, timestamps) {
+            var transitions = [];
+            if (!states || states.length < 2) return transitions;
+    
+            var usedStates = states.slice(0, 10);
+            var usedTimestamps = timestamps.slice(0, 10);
+    
+            for (var i = 1; i < usedStates.length; i++) {
+                if (usedStates[i] !== usedStates[i-1]) {
+                    transitions.push({
+                        from: usedStates[i-1],
+                        to: usedStates[i],
+                        timestamp: usedTimestamps[i] || null
+                    });
+                }
+            }
+    
+            return transitions;
+        },
+
+        /**
+         * 获取时间窗口
+         * @private
+         */
+        _getTemporalWindow: function(timestamps) {
+            if (!timestamps || timestamps.length < 2) return null;
+    
+            var first = new Date(timestamps[0]);
+            var last = new Date(timestamps[timestamps.length - 1]);
+    
+            var diffMs = last.getTime() - first.getTime();
+            var diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
+    
+            return {
+                start: timestamps[0],
+                end: timestamps[timestamps.length - 1],
+                durationDays: diffDays,
+                observationCount: timestamps.length
+            };
+        },
+
+        /**
+         * 获取所有 Trajectory 状态
+         */
+        getAllTrajectoryStates: function(scopeType) {
+            scopeType = scopeType || 'course';
+            var scopes = this._getScopes(scopeType);
+            var result = [];
+            for (var i = 0; i < scopes.length; i++) {
+                result.push(this.getTrajectoryState(scopes[i], scopeType));
+            }
+            return result;
+        },
+
+        /**
+         * 获取 Trajectory 摘要
+         */
+        getTrajectorySummary: function() {
+            var courseTrajectories = this.getAllTrajectoryStates('course');
+            var skillTrajectories = this.getAllTrajectoryStates('skill');
+        
+            var summary = {
+                totalCourses: courseTrajectories.length,
+                totalSkills: skillTrajectories.length,
+                byState: {
+                    unknown: 0,
+                    emerging: 0,
+                    improving: 0,
+                    stable: 0,
+                    plateaued: 0,
+                    declining: 0,
+                    recovering: 0,
+                    volatile: 0
+                },
+                confidenceDistribution: {
+                    low: 0,
+                    medium: 0,
+                    high: 0
+                }
+            };
+    
+            var allTrajectories = courseTrajectories.concat(skillTrajectories);
+    
+            for (var i = 0; i < allTrajectories.length; i++) {
+                var t = allTrajectories[i];
+                if (summary.byState[t.state] !== undefined) {
+                    summary.byState[t.state]++;
+                }
+                if (summary.confidenceDistribution[t.confidence] !== undefined) {
+                    summary.confidenceDistribution[t.confidence]++;
+                }
+            }
+    
+            return summary;
         }
     };
 
