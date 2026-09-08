@@ -347,6 +347,10 @@
             targetId: candidate.targetId,
             targetType: candidate.targetType || TARGET_TYPES.KNOWLEDGE,
             reason: reason,
+            // 🔥 Part 142: 新增字段
+            primaryReason: candidate.signals && candidate.signals.length > 0 ? candidate.signals[0] : 'UNKNOWN',
+            supportingReasons: candidate.signals && candidate.signals.length > 1 ? candidate.signals.slice(1) : [],
+            negativeEvidence: candidate.negativeEvidence || [],
             priorityScore: Math.min(100, Math.max(0, candidate.priority || 50)),
             confidence: 0.7,
             sourceSignals: candidate.signals || ['UNKNOWN'],
@@ -734,6 +738,10 @@
             recommendationId: recommendation.id || recommendation.recommendationId,
             level: level,
             summary: '',
+            // 🔥 Part 142: 新增字段
+            primaryReason: recommendation.primaryReason || null,
+            supportingReasons: recommendation.supportingReasons || [],
+            negativeEvidence: recommendation.negativeEvidence || [],
             reasons: [],
             supportingSignals: [],
             evidence: [],
@@ -1079,6 +1087,46 @@
     }
 
     // ============================================================
+    // 🔥 Part 142: Recommendation Override
+    // ============================================================
+
+    function recordRecommendationOverride(recommendationId, selectedAlternative, reason) {
+        var rec = getRecommendation(recommendationId);
+        if (!rec) {
+            return { success: false, message: 'Recommendation not found' };
+        }
+    
+        if (rec.status !== STATES.PENDING && rec.status !== STATES.ACCEPTED) {
+            return { success: false, message: 'Recommendation cannot be overridden in current state' };
+        }
+    
+        rec.status = STATES.OVERRIDDEN;
+        rec.updatedAt = Date.now();
+        rec.metadata = rec.metadata || {};
+        rec.metadata.override = {
+            selectedAlternative: selectedAlternative || null,
+            reason: reason || null,
+            timestamp: Date.now()
+        };
+    
+        var store = _getStore();
+        store[recommendationId] = rec;
+        _saveStore(store);
+    
+        _emit('RECOMMENDATION_OVERRIDDEN', {
+            recommendationId: recommendationId,
+            selectedAlternative: selectedAlternative,
+            reason: reason,
+            timestamp: Date.now()
+        });
+    
+        return {
+            success: true,
+            recommendation: rec
+        };
+    }
+
+    // ============================================================
     // 🔥 Part 50: Adaptive Feedback & Recommendation Outcome Loop
     // ============================================================
 
@@ -1329,7 +1377,10 @@
                 expired: 0,
                 failed: 0,
                 deferred: 0,
-                unknown: 0
+                unknown: 0,
+                // 🔥 Part 142: 新增
+                overridden: 0,
+                challenged: 0
             },
             feedback: {
                 helpful: 0,
@@ -1341,12 +1392,29 @@
                 tooHard: 0,
                 goodTiming: 0,
                 badTiming: 0
-            },
+            },    
             signals: {},
             acceptanceRate: 0,
             completionRate: 0,
-            helpfulRate: 0
+            helpfulRate: 0,
+            // 🔥 Part 142: 新增 Governance 指标
+            governance: {
+                overrideRate: 0,
+                challengeRate: 0,
+                totalOverrides: 0,
+                totalChallenges: 0
+            }        
         };
+
+        // 在 switch 中添加:
+        case 'OVERRIDDEN': metrics.byStatus.overridden++; break;
+        case 'CHALLENGED': metrics.byStatus.challenged++; break;
+
+        // 在循环结束后计算 governance:
+        metrics.governance.totalOverrides = metrics.byStatus.overridden;
+        metrics.governance.totalChallenges = metrics.byStatus.challenged;
+        metrics.governance.overrideRate = Math.round((metrics.governance.totalOverrides / total) * 100);
+        metrics.governance.challengeRate = Math.round((metrics.governance.totalChallenges / total) * 100);
     
         for (var i = 0; i < outcomes.length; i++) {
             var o = outcomes[i];
@@ -1393,6 +1461,45 @@
         metrics.helpfulRate = Math.round((metrics.feedback.helpful / helpfulTotal) * 100);
     
         return metrics;
+    }
+
+    // ============================================================
+    // 🔥 Part 142: Recommendation Governance
+    // ============================================================
+
+    function getRecommendationGovernance(recommendationId) {
+        var rec = getRecommendation(recommendationId);
+        if (!rec) {
+            return { error: 'Recommendation not found', recommendationId: recommendationId };
+        }
+    
+        var adapter = window.LawAIApp?.LearningJourneyAdapter;
+        if (!adapter || typeof adapter.generateGovernanceReport !== 'function') {
+            return {
+                recommendationId: recommendationId,
+                governance: {
+                    allowed: true,
+                    reason: 'default_allowed',
+                    explanation: 'No governance engine available, default allowed'
+                },
+                summary: '⚠️ Governance engine unavailable'
+            };    
+        }
+    
+        var decision = {
+            type: 'recommendation',
+            actionType: rec.targetType || 'recommendation',
+            authority: 'adaptive',
+            constraints: rec.metadata?.constraints || []
+        };
+    
+        var context = {
+            evidence: rec.metadata?.evidence || {},
+            candidates: [rec],
+            constraints: rec.metadata?.constraints || []
+        };
+    
+        return adapter.generateGovernanceReport(decision, context);
     }
 
     function isRecommendationCooldown(targetId, cooldownMs) {
@@ -1754,6 +1861,9 @@
                 getOutcomeHistory: getOutcomeHistory,
                 getRecommendationQualityMetrics: getRecommendationQualityMetrics,
                 isRecommendationCooldown: isRecommendationCooldown,
+                recordRecommendationOverride: recordRecommendationOverride,
+                recordRecommendationChallenge: recordRecommendationChallenge,
+                getRecommendationGovernance: getRecommendationGovernance,
 
                 getStatus: getStatus,
 
