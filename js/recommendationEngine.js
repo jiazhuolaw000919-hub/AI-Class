@@ -1552,6 +1552,191 @@
         return adapter.generateGovernanceReport(decision, context);
     }
 
+    // ============================================================
+    // 🔥 Part 144: Learning Impact Interpretation
+    // ============================================================
+
+    /**
+     * 解释 Recommendation 的学习影响
+     * @param {string} recommendationId - 推荐 ID
+     * @param {Object} context - 上下文
+     * @returns {Object} 学习影响解释
+     */
+    function interpretLearningImpact(recommendationId, context) {
+        context = context || _getAdaptiveContext();
+    
+        var rec = getRecommendation(recommendationId);
+        if (!rec) {
+            return {
+                success: false,
+                error: 'Recommendation not found',
+                impact: null
+            };
+        }
+    
+        // 1. 获取 outcome
+        var outcome = getRecommendationOutcome(recommendationId);
+        if (!outcome) {
+            return {
+                success: false,
+                error: 'No outcome found for recommendation',
+                impact: null
+            };
+        }
+    
+        // 2. 获取相关学习状态变化
+        var targetId = rec.targetId;
+        var beforeState = rec.metadata?.stateBefore || null;
+        var afterState = _getCurrentState(targetId, context);
+    
+        // 3. 判断影响
+        var impact = _determineImpact(beforeState, afterState, outcome, context);
+    
+        return {
+            success: true,
+            impact: impact,
+            recommendationId: recommendationId,
+            targetId: targetId,
+            interpretationVersion: '1.0.0',
+            interpretedAt: Date.now()
+        };
+    }
+
+    /**
+     * 确定学习影响
+     * @private
+     */
+    function _determineImpact(beforeState, afterState, outcome, context) {
+        var impact = {
+            category: 'unknown',  // positive | negative | no_change | insufficient_evidence | conflicting
+            confidence: 'low',
+            evidence: [],
+            reason: 'insufficient_evidence',
+            temporalContext: null
+        };
+    
+        // 1. 检查 outcome 状态
+        var outcomeStatus = outcome.status || 'UNKNOWN';
+    
+        // 如果推荐没有被接受或完成，无法评估学习影响
+        if (outcomeStatus !== 'COMPLETED' && outcomeStatus !== 'ACCEPTED' && outcomeStatus !== 'STARTED') {
+            impact.category = 'insufficient_evidence';
+            impact.reason = 'recommendation_not_completed';
+            impact.confidence = 'low';
+            impact.evidence.push({ type: 'outcome_status', value: outcomeStatus });
+            return impact;
+        }
+    
+        // 2. 检查是否有前后状态
+        if (!beforeState || !afterState) {
+            impact.category = 'insufficient_evidence';
+            impact.reason = 'missing_state_comparison';
+            impact.confidence = 'low';
+            impact.evidence.push({ type: 'has_before', value: !!beforeState });
+            impact.evidence.push({ type: 'has_after', value: !!afterState });
+            return impact;
+        }
+    
+        // 3. 比较前后状态 (使用 mastery level)
+        var beforeLevel = beforeState.masteryLevel || 0;
+        var afterLevel = afterState.masteryLevel || 0;
+        var diff = afterLevel - beforeLevel;
+        
+        // 4. 结合 outcome 中的证据
+        var hasEvidenceRefs = outcome.evidenceRefs && outcome.evidenceRefs.length > 0;
+        var hasFeedback = outcome.learnerFeedbackRefs && outcome.learnerFeedbackRefs.length > 0;
+        
+        // 5. 判断影响类别
+        if (diff > 0.15) {
+            impact.category = 'positive';
+            impact.confidence = hasEvidenceRefs ? 'medium' : 'low';
+            impact.reason = 'observable_mastery_improvement';
+            impact.evidence.push({ type: 'mastery_change', before: beforeLevel, after: afterLevel, diff: diff });
+        } else if (diff < -0.15) {
+            impact.category = 'negative';
+            impact.confidence = hasEvidenceRefs ? 'medium' : 'low';
+            impact.reason = 'observable_mastery_decline';
+            impact.evidence.push({ type: 'mastery_change', before: beforeLevel, after: afterLevel, diff: diff });
+        } else if (Math.abs(diff) <= 0.15 && beforeLevel > 0) {
+            impact.category = 'no_change';
+            impact.confidence = 'medium';
+            impact.reason = 'mastery_stable_no_significant_change';
+            impact.evidence.push({ type: 'mastery_change', before: beforeLevel, after: afterLevel, diff: diff });
+        } else {
+            impact.category = 'insufficient_evidence';
+            impact.confidence = 'low';
+            impact.reason = 'insufficient_mastery_evidence';
+            impact.evidence.push({ type: 'mastery_change', before: beforeLevel, after: afterLevel, diff: diff });
+        }
+    
+        // 6. 检查是否有冲突证据 (结合 outcome metadata)
+        if (outcome.metadata && outcome.metadata.conflictingEvidence) {
+            impact.category = 'conflicting';
+            impact.reason = 'conflicting_evidence_detected';
+            impact.evidence.push({ type: 'conflicting', details: outcome.metadata.conflictingEvidence });
+        }
+    
+        // 7. 时间上下文
+        if (outcome.timestamp) {
+            impact.temporalContext = {
+                outcomeAt: outcome.timestamp,
+                recommendationAt: rec.createdAt,
+                timeSinceRecommendation: (outcome.timestamp - rec.createdAt) / (24 * 60 * 60 * 1000) + ' days'
+            };
+        }
+    
+        return impact;
+    }    
+
+    /**
+     * 获取当前状态 (用于比较)
+     * @private
+     */
+    function _getCurrentState(targetId, context) {
+        try {
+            var mastery = window.LawAIApp.MasteryEngine;
+            if (mastery) {
+                var record = mastery.getMastery(targetId);
+                if (record) {
+                    return {
+                        masteryLevel: record.masteryLevel || 0,
+                        state: record.state || 'UNASSESSED',
+                        confidence: record.confidence || 0,
+                        evidenceCount: record.evidenceCount || 0
+                    };
+                }
+            }
+        } catch (e) {}
+    
+        return null;
+    }
+
+    /**
+     * 获取 Impact 摘要 (用于 Dashboard)
+     */
+    function getImpactSummary(recommendationId) {
+        var result = interpretLearningImpact(recommendationId);
+        if (!result.success) {
+            return {
+                recommendationId: recommendationId,
+                hasImpact: false,
+                message: result.error || 'No impact data available'
+            };
+        }
+    
+        var impact = result.impact;
+        return {
+            recommendationId: recommendationId,
+            hasImpact: true,
+            category: impact.category,
+            confidence: impact.confidence,
+            reason: impact.reason,
+            evidence: impact.evidence.slice(0, 5),
+            temporalContext: impact.temporalContext,
+            interpretedAt: result.interpretedAt
+        };
+    }
+
     function isRecommendationCooldown(targetId, cooldownMs) {
         cooldownMs = cooldownMs || 3600000;
     
@@ -2136,6 +2321,623 @@
     }
 
     // ============================================================
+    // 🔥 Part 145: Longitudinal Pattern Interpretation
+    // ============================================================
+
+    /**
+     * Pattern 数据结构
+     */
+    function createPattern(params) {
+        return {
+            id: 'pattern_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            type: params.type || 'unknown',
+            description: params.description || '',
+            scope: params.scope || {},          // { scopeType, scopeId }
+        
+            // 证据
+            supportingEvidence: params.supportingEvidence || [],
+            conflictingEvidence: params.conflictingEvidence || [],
+            evidenceRefs: params.evidenceRefs || [],
+            
+            // 时间
+            firstObserved: params.firstObserved || Date.now(),
+            lastObserved: params.lastObserved || Date.now(),
+            observationCount: params.observationCount || 0,
+            temporalWindow: params.temporalWindow || null,
+            freshness: params.freshness || 1.0,
+        
+            // 解释
+            interpretation: params.interpretation || null,
+            confidence: params.confidence || 'low',
+            status: params.status || 'emerging',  // emerging | observed | established | weakening | stale | contradicted | inactive
+            
+            // 自适应信号
+            adaptiveSignal: params.adaptiveSignal || null,
+            
+            // 版本控制
+            version: params.version || '1.0.0',
+            createdAt: params.createdAt || Date.now(),
+            updatedAt: params.updatedAt || Date.now(),
+            _schemaVersion: '1.0.0'
+        };
+    }
+
+    /**
+     * 检测和更新 Patterns
+     * @param {Object} context - 上下文
+     * @returns {Array} 更新后的 patterns
+     */
+    function detectPatterns(context) {
+        context = context || _getAdaptiveContext();
+    
+        // 1. 获取历史 outcome
+        var outcomes = getOutcomeHistory({ limit: 100 });
+        if (!outcomes || outcomes.length === 0) {
+            return [];
+        }
+    
+        var patterns = [];
+        var store = _getStore();
+        var existingPatterns = store._patterns || [];
+    
+        // 2. 检测重复延迟模式
+        var deferralPattern = _detectRepeatedDeferral(outcomes, context);
+        if (deferralPattern) {
+            patterns.push(deferralPattern);
+        }
+    
+        // 3. 检测重复接受模式
+        var acceptancePattern = _detectRepeatedAcceptance(outcomes, context);
+        if (acceptancePattern) {
+            patterns.push(acceptancePattern);
+        }
+    
+        // 4. 检测重复拒绝模式
+        var rejectionPattern = _detectRepeatedRejection(outcomes, context);
+        if (rejectionPattern) {
+            patterns.push(rejectionPattern);
+        }
+    
+        // 5. 检测重复替代选择模式
+        var alternativePattern = _detectRepeatedAlternative(outcomes, context);
+        if (alternativePattern) {
+            patterns.push(alternativePattern);
+        }
+    
+        // 6. 检测重复成功模式
+        var successPattern = _detectRepeatedSuccess(outcomes, context);
+        if (successPattern) {
+            patterns.push(successPattern);
+        }
+    
+        // 7. 检测重复无影响模式
+        var noImpactPattern = _detectRepeatedNoImpact(outcomes, context);
+        if (noImpactPattern) {
+            patterns.push(noImpactPattern);
+        }
+    
+        // 8. 检测重复放弃模式
+        var abandonmentPattern = _detectRepeatedAbandonment(outcomes, context);
+        if (abandonmentPattern) {
+            patterns.push(abandonmentPattern);
+        }
+    
+        // 9. 更新现有 patterns (合并)
+        var updatedPatterns = _mergePatterns(existingPatterns, patterns);
+        
+        // 10. 应用新鲜度衰减
+        updatedPatterns = _applyPatternDecay(updatedPatterns);
+    
+        // 11. 保存
+        store._patterns = updatedPatterns;
+        _saveStore(store);
+    
+        return updatedPatterns;
+    }
+
+    /**
+     * 检测重复延迟模式
+     * @private
+     */
+    function _detectRepeatedDeferral(outcomes, context) {
+        var deferrals = outcomes.filter(function(o) {
+            return o.status === 'DEFERRED' || o.status === 'SKIPPED';
+        });
+    
+        if (deferrals.length < 2) return null;
+    
+        var recentDeferrals = deferrals.filter(function(o) {
+            return (Date.now() - o.timestamp) < 30 * 24 * 60 * 60 * 1000;
+        });
+    
+        if (recentDeferrals.length < 2) return null;
+    
+        return createPattern({
+            type: 'REPEATED_DEFERRAL',
+            description: 'Learner has repeatedly deferred recommendations.',
+            observationCount: recentDeferrals.length,
+            firstObserved: recentDeferrals[recentDeferrals.length - 1].timestamp,
+            lastObserved: recentDeferrals[0].timestamp,
+            supportingEvidence: recentDeferrals.map(function(o) { return o.outcomeId; }),
+            confidence: recentDeferrals.length >= 4 ? 'medium' : 'low',
+            status: recentDeferrals.length >= 4 ? 'established' : 'emerging',
+            interpretation: 'May benefit from lower-friction entry points.',
+            adaptiveSignal: {
+                type: 'CONSIDER_LOWER_FRICTION',
+                scope: 'recommendation',
+                confidence: recentDeferrals.length >= 4 ? 'medium' : 'low',
+                description: 'Consider alternative formats when equivalent learning objectives can be preserved.'
+            }
+        });
+    }
+
+    /**
+     * 检测重复接受模式
+     * @private
+     */
+    function _detectRepeatedAcceptance(outcomes, context) {
+        var acceptances = outcomes.filter(function(o) {
+            return o.status === 'ACCEPTED' || o.status === 'COMPLETED';
+        });
+    
+        if (acceptances.length < 3) return null;
+        
+        var recentAcceptances = acceptances.filter(function(o) {
+            return (Date.now() - o.timestamp) < 30 * 24 * 60 * 60 * 1000;
+        });
+    
+        if (recentAcceptances.length < 2) return null;
+    
+        // 按 targetType 分组
+        var byType = {};
+        for (var i = 0; i < recentAcceptances.length; i++) {
+             var o = recentAcceptances[i];
+             var type = o.targetType || 'UNKNOWN';
+             if (!byType[type]) byType[type] = [];
+             byType[type].push(o);
+        }
+    
+        var maxType = null;
+        var maxCount = 0;
+        for (var type in byType) {
+            if (byType[type].length > maxCount) {
+                maxCount = byType[type].length;
+                maxType = type;
+            }
+        }
+    
+        if (maxCount < 2) return null;
+    
+        return createPattern({
+            type: 'REPEATED_ACCEPTANCE',
+            description: 'Learner has repeatedly accepted ' + maxType + ' recommendations.',
+            observationCount: maxCount,
+            firstObserved: byType[maxType][byType[maxType].length - 1].timestamp,
+            lastObserved: byType[maxType][0].timestamp,
+            supportingEvidence: byType[maxType].map(function(o) { return o.outcomeId; }),
+            confidence: maxCount >= 3 ? 'medium' : 'low',
+            status: maxCount >= 4 ? 'established' : 'observed',
+            interpretation: maxType + ' recommendations have been consistently accepted.',
+            adaptiveSignal: {
+                type: 'CONSIDER_' + maxType,
+                scope: maxType,
+                confidence: maxCount >= 3 ? 'medium' : 'low',
+                description: 'Consider ' + maxType + ' as a candidate type when appropriate.'
+            }
+        });    
+    }
+
+    /**
+     * 检测重复拒绝模式
+     * @private
+     */
+    function _detectRepeatedRejection(outcomes, context) {
+        var rejections = outcomes.filter(function(o) {
+            return o.status === 'DISMISSED';
+        });
+    
+        if (rejections.length < 2) return null;
+    
+        var recentRejections = rejections.filter(function(o) {
+            return (Date.now() - o.timestamp) < 30 * 24 * 60 * 60 * 1000;
+        });
+    
+        if (recentRejections.length < 2) return null;
+        
+        // 按 targetType 分组
+        var byType = {};
+        for (var i = 0; i < recentRejections.length; i++) {
+             var o = recentRejections[i];
+             var type = o.targetType || 'UNKNOWN';
+             if (!byType[type]) byType[type] = [];
+             byType[type].push(o);
+        }
+    
+        var maxType = null;
+        var maxCount = 0;
+        for (var type in byType) {
+             if (byType[type].length > maxCount) {
+                 maxCount = byType[type].length;
+                 maxType = type;
+            }
+        }
+    
+        if (maxCount < 2) return null;
+    
+        return createPattern({
+            type: 'REPEATED_REJECTION',
+            description: 'Learner has repeatedly rejected ' + maxType + ' recommendations.',
+            observationCount: maxCount,
+            firstObserved: byType[maxType][byType[maxType].length - 1].timestamp,
+            lastObserved: byType[maxType][0].timestamp,
+            supportingEvidence: byType[maxType].map(function(o) { return o.outcomeId; }),
+            confidence: maxCount >= 3 ? 'medium' : 'low',
+            status: maxCount >= 4 ? 'established' : 'observed',
+            interpretation: maxType + ' recommendations may not be a good fit currently.',
+            adaptiveSignal: {
+                type: 'CONSIDER_ALTERNATIVE_TO_' + maxType,
+                scope: maxType,
+                confidence: maxCount >= 3 ? 'medium' : 'low',
+                description: 'Consider alternative types to ' + maxType + ' when appropriate.'
+            }
+        });
+    }
+
+    /**
+     * 检测重复替代选择模式
+     * @private
+     */
+    function _detectRepeatedAlternative(outcomes, context) {
+        var alternatives = outcomes.filter(function(o) {
+            return o.status === 'ALTERNATIVE_SELECTED';
+        });
+    
+        if (alternatives.length < 2) return null;
+        
+        var recentAlternatives = alternatives.filter(function(o) {
+            return (Date.now() - o.timestamp) < 30 * 24 * 60 * 60 * 1000;
+        });
+    
+        if (recentAlternatives.length < 2) return null;
+    
+        return createPattern({
+            type: 'REPEATED_ALTERNATIVE',
+            description: 'Learner has repeatedly selected alternatives to recommendations.',
+            observationCount: recentAlternatives.length,
+            firstObserved: recentAlternatives[recentAlternatives.length - 1].timestamp,
+            lastObserved: recentAlternatives[0].timestamp,
+            supportingEvidence: recentAlternatives.map(function(o) { return o.outcomeId; }),
+            confidence: recentAlternatives.length >= 3 ? 'medium' : 'low',
+            status: recentAlternatives.length >= 4 ? 'established' : 'observed',
+            interpretation: 'May prefer to choose their own learning path.',
+            adaptiveSignal: {
+                type: 'PRESERVE_ALTERNATIVES',
+                scope: 'recommendation',
+                confidence: recentAlternatives.length >= 3 ? 'medium' : 'low',
+                description: 'Continue to present meaningful alternatives with primary recommendations.'
+            }
+        });
+    }
+
+    /**
+     * 检测重复成功模式
+     * @private
+     */
+    function _detectRepeatedSuccess(outcomes, context) {
+        // 需要结合 Learning Impact
+        var successes = outcomes.filter(function(o) {
+            return o.status === 'COMPLETED' && o.metadata && o.metadata.positiveImpact === true;
+        });    
+    
+        if (successes.length < 2) return null;
+    
+        var recentSuccesses = successes.filter(function(o) {
+            return (Date.now() - o.timestamp) < 30 * 24 * 60 * 60 * 1000;
+        });
+    
+        if (recentSuccesses.length < 2) return null;
+    
+        // 按 targetType 分组
+        var byType = {};
+        for (var i = 0; i < recentSuccesses.length; i++) {
+            var o = recentSuccesses[i];
+            var type = o.targetType || 'UNKNOWN';
+            if (!byType[type]) byType[type] = [];
+            byType[type].push(o);
+        }
+    
+        var maxType = null;
+        var maxCount = 0;
+        for (var type in byType) {
+            if (byType[type].length > maxCount) {
+                maxCount = byType[type].length;
+                maxType = type;
+            }
+        }
+    
+        if (maxCount < 2) return null;
+    
+        return createPattern({
+            type: 'REPEATED_SUCCESS',
+            description: 'Learner has repeatedly succeeded with ' + maxType + ' recommendations.',
+            observationCount: maxCount,
+            firstObserved: byType[maxType][byType[maxType].length - 1].timestamp,
+            lastObserved: byType[maxType][0].timestamp,
+            supportingEvidence: byType[maxType].map(function(o) { return o.outcomeId; }),
+            confidence: maxCount >= 3 ? 'medium' : 'low',
+            status: maxCount >= 4 ? 'established' : 'observed',
+            interpretation: maxType + ' recommendations have shown positive outcomes.',
+            adaptiveSignal: {
+                type: 'FAVOR_' + maxType,
+                scope: maxType,
+                confidence: maxCount >= 3 ? 'medium' : 'low',
+                description: 'Consider ' + maxType + ' as a preferred candidate type when appropriate.'
+            }
+        });
+    }
+
+    /**
+     * 检测重复无影响模式
+     * @private
+     */
+    function _detectRepeatedNoImpact(outcomes, context) {
+        var noImpacts = outcomes.filter(function(o) {
+            return o.status === 'COMPLETED' && o.metadata && o.metadata.positiveImpact !== true;
+        });
+    
+        if (noImpacts.length < 3) return null;
+    
+        var recentNoImpacts = noImpacts.filter(function(o) {
+            return (Date.now() - o.timestamp) < 30 * 24 * 60 * 60 * 1000;
+        });
+    
+        if (recentNoImpacts.length < 2) return null;
+    
+        // 按 targetType 分组
+        var byType = {};
+        for (var i = 0; i < recentNoImpacts.length; i++) {
+            var o = recentNoImpacts[i];
+            var type = o.targetType || 'UNKNOWN';
+            if (!byType[type]) byType[type] = [];
+            byType[type].push(o);
+        }
+    
+        var maxType = null;
+        var maxCount = 0;
+        for (var type in byType) {
+            if (byType[type].length > maxCount) {
+                maxCount = byType[type].length;
+                maxType = type;
+            }
+        }
+    
+        if (maxCount < 2) return null;
+    
+        return createPattern({
+            type: 'REPEATED_NO_IMPACT',
+            description: 'Learner has repeatedly shown no measurable impact from ' + maxType + ' recommendations.',
+            observationCount: maxCount,
+            firstObserved: byType[maxType][byType[maxType].length - 1].timestamp,
+            lastObserved: byType[maxType][0].timestamp,
+            supportingEvidence: byType[maxType].map(function(o) { return o.outcomeId; }),
+            confidence: maxCount >= 3 ? 'medium' : 'low',
+            status: maxCount >= 4 ? 'established' : 'observed',
+            interpretation: maxType + ' recommendations may not be effectively driving learning.',
+            adaptiveSignal: {
+                type: 'REVIEW_' + maxType,
+                scope: maxType,
+                confidence: maxCount >= 3 ? 'medium' : 'low',
+                description: 'Review the effectiveness of ' + maxType + ' recommendations.'
+            }
+        });
+    }
+
+    /**
+     * 检测重复放弃模式
+     * @private
+     */
+    function _detectRepeatedAbandonment(outcomes, context) {
+        var abandonments = outcomes.filter(function(o) {
+            return o.status === 'ABANDONED' || o.status === 'STARTED' && o.metadata && o.metadata.abandoned === true;
+        });    
+    
+        if (abandonments.length < 2) return null;
+    
+        var recentAbandonments = abandonments.filter(function(o) {
+            return (Date.now() - o.timestamp) < 30 * 24 * 60 * 60 * 1000;
+        });
+    
+        if (recentAbandonments.length < 2) return null;
+    
+        // 按 targetType 分组
+        var byType = {};
+        for (var i = 0; i < recentAbandonments.length; i++) {
+            var o = recentAbandonments[i];
+            var type = o.targetType || 'UNKNOWN';
+            if (!byType[type]) byType[type] = [];
+            byType[type].push(o);
+        }
+    
+        var maxType = null;
+        var maxCount = 0;
+        for (var type in byType) {
+            if (byType[type].length > maxCount) {
+                maxCount = byType[type].length;
+                maxType = type;
+            }
+        }
+    
+        if (maxCount < 2) return null;
+        
+        return createPattern({
+            type: 'REPEATED_ABANDONMENT',
+            description: 'Learner has repeatedly abandoned ' + maxType + ' activities.',
+            observationCount: maxCount,
+            firstObserved: byType[maxType][byType[maxType].length - 1].timestamp,
+            lastObserved: byType[maxType][0].timestamp,
+            supportingEvidence: byType[maxType].map(function(o) { return o.outcomeId; }),
+            confidence: maxCount >= 3 ? 'medium' : 'low',
+            status: maxCount >= 4 ? 'established' : 'observed',
+            interpretation: maxType + ' activities may have high friction.',
+            adaptiveSignal: {
+                type: 'REDUCE_FRICTION_FOR_' + maxType,
+                scope: maxType,
+                confidence: maxCount >= 3 ? 'medium' : 'low',
+                description: 'Consider lower-friction entry points for ' + maxType + ' activities.'
+            }
+        });
+    }
+
+    /**
+     * 合并现有和新的 patterns
+     * @private
+     */
+    function _mergePatterns(existing, newPatterns) {
+        var result = existing || [];
+        var existingMap = {};
+        
+        for (var i = 0; i < result.length; i++) {
+            existingMap[result[i].type + '_' + (result[i].scope?.scopeType || '')] = i;
+        }
+    
+        for (var j = 0; j < newPatterns.length; j++) {
+            var p = newPatterns[j];
+            var key = p.type + '_' + (p.scope?.scopeType || '');
+            var isNew = true;
+            
+            if (existingMap[key] !== undefined) {
+                // 更新现有 pattern
+                var existingIdx = existingMap[key];
+                var existingP = result[existingIdx];
+            
+                // 合并证据
+                if (p.supportingEvidence) {
+                    existingP.supportingEvidence = existingP.supportingEvidence || [];
+                    for (var k = 0; k < p.supportingEvidence.length; k++) {
+                        if (existingP.supportingEvidence.indexOf(p.supportingEvidence[k]) === -1) {
+                            existingP.supportingEvidence.push(p.supportingEvidence[k]);
+                        }
+                    }
+                }
+            
+                existingP.observationCount = (existingP.observationCount || 0) + (p.observationCount || 0);
+                existingP.lastObserved = p.lastObserved || existingP.lastObserved;
+                existingP.updatedAt = Date.now();
+            
+                // 更新 status
+                if (existingP.observationCount >= 4) {
+                    existingP.status = 'established';
+                } else if (existingP.observationCount >= 2) {
+                    existingP.status = 'observed';
+                }
+                
+                // 更新 confidence
+                if (existingP.observationCount >= 4) {
+                    existingP.confidence = 'medium';
+                } else if (existingP.observationCount >= 2) {
+                    existingP.confidence = 'low';
+                }    
+            
+                isNew = false;
+            }
+        
+            if (isNew) {
+                result.push(p);
+                existingMap[key] = result.length - 1;
+            }
+        }
+    
+        return result;
+    }
+
+    /**
+     * 应用新鲜度衰减
+     * @private
+     */
+    function _applyPatternDecay(patterns) {
+        if (!patterns || patterns.length === 0) return patterns;
+    
+        var now = Date.now();
+        
+        for (var i = 0; i < patterns.length; i++) {
+            var p = patterns[i];
+            var daysSinceLast = (now - p.lastObserved) / (24 * 60 * 60 * 1000);
+        
+            // 如果超过 30 天没有新证据，开始衰减
+            if (daysSinceLast > 30) {
+                p.freshness = Math.max(0.1, 1 - (daysSinceLast - 30) * 0.02);
+            }    
+            
+            // 如果超过 60 天没有新证据，标记为 stale
+            if (daysSinceLast > 60) {
+                p.status = 'stale';
+            }    
+        
+            // 如果超过 90 天没有新证据，标记为 inactive
+            if (daysSinceLast > 90) {
+                p.status = 'inactive';
+            }    
+        
+            p.updatedAt = now;
+        }
+    
+        return patterns;
+    }
+
+    /**
+     * 获取活跃的 Patterns
+     * @param {Object} filter - 过滤条件
+     * @returns {Array} 活跃的 patterns
+     */
+    function getActivePatterns(filter) {
+        filter = filter || {};
+        var store = _getStore();
+        var patterns = store._patterns || [];
+    
+        // 过滤掉 inactive 和 stale (除非明确请求)
+        var active = patterns.filter(function(p) {
+            if (filter.includeInactive) return true;
+            return p.status !== 'inactive' && p.status !== 'stale';
+        });
+    
+        // 按 confidence 排序
+        var order = { 'high': 0, 'medium': 1, 'low': 2 };
+        active.sort(function(a, b) {
+            return (order[a.confidence] || 3) - (order[b.confidence] || 3);
+        });
+    
+        return active;
+    }
+
+    /**
+     * 获取自适应信号
+     * @param {Object} context - 上下文
+     * @returns {Array} 自适应信号列表
+     */
+    function getAdaptiveSignals(context) {
+        context = context || _getAdaptiveContext();
+        var patterns = getActivePatterns();
+        var signals = [];
+    
+        for (var i = 0; i < patterns.length; i++) {
+            var p = patterns[i];
+            if (p.adaptiveSignal) {
+                signals.push({
+                    sourcePatternId: p.id,
+                    type: p.adaptiveSignal.type,
+                    scope: p.adaptiveSignal.scope,
+                    confidence: p.adaptiveSignal.confidence || p.confidence,
+                    description: p.adaptiveSignal.description,
+                    freshness: p.freshness || 1.0,
+                    generatedAt: Date.now()
+                });
+            }
+        }
+    
+        return signals;
+    }    
+
+    // ============================================================
     // PUBLIC: Reset / Export / Import
     // ============================================================
 
@@ -2271,6 +3073,11 @@
                 arbitrateRecommendations: arbitrateRecommendations,
                 detectCandidateConflicts: detectCandidateConflicts,
                 arbitrateCandidates: arbitrateCandidates,
+                interpretLearningImpact: interpretLearningImpact,
+                getImpactSummary: getImpactSummary,
+                detectPatterns: detectPatterns,
+                getActivePatterns: getActivePatterns,
+                getAdaptiveSignals: getAdaptiveSignals,
 
                 getStatus: getStatus,
 
