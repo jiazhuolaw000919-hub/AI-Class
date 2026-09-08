@@ -937,7 +937,7 @@
 
         invalidateCache: function() {
             this._cacheInvalidated = true;
-        }
+        },
 
         // ============================================================
         // 🔥 Part 136: Skill Interpretation
