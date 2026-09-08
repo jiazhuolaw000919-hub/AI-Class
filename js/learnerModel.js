@@ -1137,6 +1137,417 @@
             }
     
             return summary;
+        },
+
+        // ============================================================
+        // 🔥 Part 137: Progress Interpretation
+        // ============================================================
+
+        /**
+         * 获取 Progress Interpretation
+         * @param {string} scopeId - Scope ID (courseId, subjectId, skillId)
+         * @param {string} scopeType - 'course' | 'subject' | 'skill'
+         * @param {Object} options - 选项
+         * @returns {Object} Progress 状态
+         */
+        getProgressState: function(scopeId, scopeType, options) {
+            options = options || {};
+    
+            // 1. 获取 Scope 的当前状态
+            var state = this._getScopeState(scopeId, scopeType);
+    
+            // 2. 获取历史状态 (如果有)
+            var history = this._getScopeHistory(scopeId, scopeType);
+    
+            // 3. 解释 Progress
+            var progress = this._interpretProgress(state, history, options);
+    
+            return {
+                scopeId: scopeId,
+                scopeType: scopeType,
+                state: progress.state,
+                trend: progress.trend || 'unknown',
+                confidence: progress.confidence || 'low',
+                evidenceStrength: progress.evidenceStrength || 'low',
+                supportingEvidence: progress.supportingEvidence || [],
+                previousState: progress.previousState || null,
+                interpretedAt: new Date().toISOString(),
+                interpretationVersion: '1.0.0',
+                reason: progress.reason || 'insufficient_evidence'
+            };    
+        },
+
+        /**
+         * 获取 Scope 的当前状态
+         * @private
+         */
+        _getScopeState: function(scopeId, scopeType) {
+            var result = {
+                coverage: 0,        // 完成百分比
+                mastery: null,      // 平均掌握度
+                retention: null,    // 记忆状态
+                skill: null,        // Skill 状态
+                lastActivity: null,
+                hasEvidence: false
+            };
+    
+            // 从 ProgressEngine 获取 coverage
+            var progressEngine = window.LawAIApp?.ProgressEngine;
+            if (progressEngine) {
+                var prog = progressEngine.getProgress();
+                if (scopeType === 'course') {
+                    // 计算 course 的覆盖率
+                    var totalLessons = prog.totalLessons || 365;
+                    var completed = (prog.completedLessons || []).length;
+                    result.coverage = totalLessons > 0 ? Math.round((completed / totalLessons) * 100) : 0;
+                    result.hasEvidence = completed > 0;
+                } else if (scopeType === 'skill') {
+                    // Skill 的 coverage 基于相关知识点
+                    var skillDef = this._skillDefinitions ? this._skillDefinitions[scopeId] : null;
+                    if (skillDef && skillDef.relatedKnowledge) {
+                        var related = skillDef.relatedKnowledge;
+                        var completedCount = 0;
+                        var completedLessons = prog.completedLessons || [];
+                        for (var i = 0; i < related.length; i++) {
+                            if (completedLessons.indexOf(related[i]) !== -1) {
+                                completedCount++;
+                            }
+                        }
+                        result.coverage = related.length > 0 ? Math.round((completedCount / related.length) * 100) : 0;
+                        result.hasEvidence = completedCount > 0;
+                    }
+                }
+            }
+    
+            // 从 MasteryEngine 获取 mastery
+            var masteryEngine = window.LawAIApp?.MasteryEngine;
+            if (masteryEngine) {
+                var masteryRecord = masteryEngine.getMastery(scopeId);
+                if (masteryRecord) {
+                    result.mastery = {
+                        level: masteryRecord.masteryLevel || 0,
+                        state: masteryRecord.state || 'UNASSESSED',
+                        confidence: masteryRecord.confidence || 0
+                    };
+                    result.hasEvidence = result.hasEvidence || (masteryRecord.evidenceCount || 0) > 0;
+                }
+            }
+    
+            // 从 MemoryEngine 获取 retention
+            var memoryEngine = window.LawAIApp?.MemoryEngine;
+            if (memoryEngine) {
+                var memoryRecord = memoryEngine.getMemory(scopeId);
+                if (memoryRecord) {
+                    result.retention = {
+                        strength: memoryRecord.strength || 0,
+                        state: memoryRecord.state || 'UNSEEN',
+                        nextReview: memoryRecord.nextReview || null
+                    };    
+                    result.hasEvidence = result.hasEvidence || (memoryRecord.reviewCount || 0) > 0;
+                }
+            }
+    
+            // 从 LearnerModel 获取 skill (如果 scopeType 是 skill)
+            if (scopeType === 'skill') {
+                var skillState = this.getSkillState ? this.getSkillState(scopeId) : null;
+                if (skillState) {
+                    result.skill = {
+                        state: skillState.state || 'unknown',
+                        confidence: skillState.confidence || 'low'
+                    };
+                    result.hasEvidence = result.hasEvidence || (skillState.evidenceStrength !== 'none');
+                }
+            }
+    
+            // 获取最后活动时间
+            var adapter = window.LawAIApp?.LearningJourneyAdapter;
+            if (adapter) {
+                var journeyState = adapter.getState ? adapter.getState() : null;
+                if (journeyState) {
+                    result.lastActivity = journeyState.lastActivity || null;
+                }
+            }        
+    
+            return result;
+        },
+
+        /**
+         * 获取 Scope 的历史状态
+         * @private
+         */
+        _getScopeHistory: function(scopeId, scopeType) {
+            // 从 localStorage 获取历史进度状态
+            try {
+                var stored = localStorage.getItem('progressHistory_' + scopeType + '_' + scopeId);
+                if (stored) {
+                    return JSON.parse(stored);
+                }
+            } catch (e) {}
+            return [];
+        },
+
+        /**
+         * 保存 Scope 的历史状态
+         * @private
+         */
+        _saveScopeHistory: function(scopeId, scopeType, state) {
+            try {
+                var key = 'progressHistory_' + scopeType + '_' + scopeId;
+                var history = this._getScopeHistory(scopeId, scopeType);
+                history.push({
+                    state: state,
+                    timestamp: new Date().toISOString()
+                });
+                // 只保留最近 20 条
+                if (history.length > 20) {
+                    history = history.slice(-20);
+                }
+                localStorage.setItem(key, JSON.stringify(history));
+            } catch (e) {}
+        },
+
+        /**
+         * 解释 Progress
+         * @private
+         */
+        _interpretProgress: function(state, history, options) {
+            var result = {
+                state: 'unknown',
+                trend: 'unknown',
+                confidence: 'low',
+                evidenceStrength: 'low',
+                supportingEvidence: [],
+                previousState: null,
+                reason: 'insufficient_evidence'
+            };
+    
+            // 1. 检查是否有证据
+            if (!state.hasEvidence) {
+                result.reason = 'insufficient_evidence';
+                return result;
+            }
+    
+            // 2. 收集信号
+            var signals = [];
+            var hasRecentActivity = false;
+            var coverage = state.coverage || 0;
+            var masteryLevel = state.mastery?.level || 0;
+            var masteryState = state.mastery?.state || 'UNASSESSED';
+            var retentionState = state.retention?.state || 'UNSEEN';
+            var skillState = state.skill?.state || 'unknown';
+            var lastActivity = state.lastActivity;
+        
+            // 检查最近活动 (30天内)
+            if (lastActivity) {
+                var now = Date.now();
+                var last = new Date(lastActivity).getTime();
+                var daysSince = (now - last) / (24 * 60 * 60 * 1000);
+                hasRecentActivity = daysSince < 30;
+            }
+    
+            // 3. 判断 Progress State
+    
+            // 如果有 mastery 且正在提升，且最近有活动
+            if (masteryLevel > 0.3 && hasRecentActivity) {
+                if (masteryLevel >= 0.7) {
+                    result.state = 'advanced';
+                    result.confidence = 'medium';
+                    result.evidenceStrength = 'moderate';
+                    result.reason = 'strong_mastery_with_recent_activity';
+                    result.supportingEvidence.push('mastery_level_' + Math.round(masteryLevel * 100) + '%');
+                } else if (masteryLevel >= 0.4) {
+                    result.state = 'progressing';
+                    result.confidence = 'medium';
+                    result.evidenceStrength = 'moderate';
+                    result.reason = 'developing_mastery_with_recent_activity';
+                    result.supportingEvidence.push('mastery_level_' + Math.round(masteryLevel * 100) + '%');
+                } else {
+                    result.state = 'started';
+                    result.confidence = 'low';
+                    result.evidenceStrength = 'low';
+                    result.reason = 'early_mastery_with_recent_activity';
+                }
+            } else if (coverage > 0 && hasRecentActivity) {
+                // 有 coverage 但 mastery 低
+                if (coverage >= 50) {
+                    result.state = 'progressing';
+                    result.confidence = 'low';
+                    result.evidenceStrength = 'low';
+                    result.reason = 'coverage_progress_but_mastery_limited';
+                    result.supportingEvidence.push('coverage_' + coverage + '%');
+                } else {
+                    result.state = 'started';
+                    result.confidence = 'low';
+                    result.evidenceStrength = 'low';
+                    result.reason = 'started_learning';
+                }
+            } else if (coverage > 0 && !hasRecentActivity) {
+                // 有 coverage 但没有最近活动
+                if (coverage >= 80) {
+                    result.state = 'stalled';
+                    result.confidence = 'medium';
+                    result.evidenceStrength = 'moderate';
+                    result.reason = 'high_coverage_no_recent_activity';
+                    result.supportingEvidence.push('coverage_' + coverage + '%');
+                } else if (coverage >= 50) {
+                    result.state = 'stalled';
+                    result.confidence = 'low';
+                    result.evidenceStrength = 'low';
+                    result.reason = 'moderate_coverage_no_recent_activity';
+                } else {
+                    result.state = 'started';
+                    result.confidence = 'low';
+                    result.evidenceStrength = 'low';
+                    result.reason = 'low_coverage_no_recent_activity';
+                }
+            } else if (masteryLevel > 0 && !hasRecentActivity) {
+                // 有 mastery 但没有最近活动
+                if (masteryLevel >= 0.7) {
+                    result.state = 'stable';
+                    result.confidence = 'medium';
+                    result.evidenceStrength = 'moderate';
+                    result.reason = 'strong_mastery_no_recent_activity_but_retention_unknown';
+                } else {
+                    result.state = 'started';
+                    result.confidence = 'low';
+                    result.evidenceStrength = 'low';
+                    result.reason = 'mastery_without_recent_activity';
+                }
+            } else {
+                result.state = 'unknown';
+                result.reason = 'insufficient_evidence';
+            }    
+    
+            // 4. 检查趋势 (如果有历史)
+            if (history && history.length > 1) {
+                var recent = history.slice(-3);
+                var states = recent.map(function(h) { return h.state; });
+                var uniqueStates = {};
+                for (var i = 0; i < states.length; i++) {
+                    uniqueStates[states[i]] = (uniqueStates[states[i]] || 0) + 1;
+                }
+        
+                // 简单趋势判断
+                var stateOrder = {
+                    'unknown': 0,
+                    'started': 1,
+                    'progressing': 2,
+                    'stable': 3,
+                    'advanced': 4,
+                    'completed': 5,
+                    'stalled': 2,
+                    'regressing': 1
+                };
+        
+                var firstState = states[0];
+                var lastState = states[states.length - 1];
+                var firstOrder = stateOrder[firstState] || 0;
+                var lastOrder = stateOrder[lastState] || 0;
+                
+                if (lastOrder > firstOrder + 1) {
+                    result.trend = 'improving';
+                } else if (lastOrder < firstOrder - 1) {
+                    result.trend = 'declining';
+                } else if (lastOrder === firstOrder) {
+                    result.trend = 'stable';
+                } else {
+                    result.trend = 'unknown';
+                }
+            } else {
+                result.trend = 'unknown';
+            }
+    
+            // 5. 保存历史
+            this._saveScopeHistory(scopeId, scopeType, result.state);
+    
+            return result;
+        },
+
+        /**
+         * 获取所有 Progress 状态 (按 scope)
+         */
+        getAllProgressStates: function(scopeType) {
+            scopeType = scopeType || 'course';
+            var scopes = this._getScopes(scopeType);
+            var result = [];
+            for (var i = 0; i < scopes.length; i++) {
+                result.push(this.getProgressState(scopes[i], scopeType));
+            }
+            return result;
+        },
+
+        /**
+         * 获取 Scope 列表
+         * @private
+         */
+        _getScopes: function(scopeType) {
+            var scopes = [];
+            if (scopeType === 'course') {
+                var courseRegistry = window.LawAIApp?.CourseRegistry;
+                if (courseRegistry && typeof courseRegistry.getAllCourses === 'function') {
+                    var courses = courseRegistry.getAllCourses();
+                    for (var i = 0; i < courses.length; i++) {
+                        if (courses[i] && courses[i].id) {
+                            scopes.push(courses[i].id);
+                        }
+                    }
+                }
+            } else if (scopeType === 'skill') {
+                var definitions = this._skillDefinitions || {};
+                for (var key in definitions) {
+                    scopes.push(key);
+                }
+            }
+            return scopes;
+        },
+
+        /**
+         * 获取 Progress 摘要
+         */
+        getProgressSummary: function() {
+            var courseStates = this.getAllProgressStates('course');
+            var summary = {
+                totalCourses: courseStates.length,
+                byState: {
+                    unknown: 0,
+                    started: 0,
+                    progressing: 0,
+                    stable: 0,
+                    stalled: 0,
+                    regressing: 0,
+                    advanced: 0,
+                    completed: 0
+                },
+                confidenceDistribution: {
+                    low: 0,
+                    medium: 0,
+                    high: 0
+                },
+                averageCoverage: 0
+            };
+    
+            var totalCoverage = 0;
+            var coverageCount = 0;
+    
+            for (var i = 0; i < courseStates.length; i++) {
+                var state = courseStates[i];
+                if (summary.byState[state.state] !== undefined) {
+                    summary.byState[state.state]++;
+                }
+                if (summary.confidenceDistribution[state.confidence] !== undefined) {
+                    summary.confidenceDistribution[state.confidence]++;
+                }
+                // 从 _getScopeState 获取 coverage (这里简化)
+                var scopeState = this._getScopeState(state.scopeId, 'course');
+                if (scopeState.coverage > 0) {
+                    totalCoverage += scopeState.coverage;
+                    coverageCount++;
+                }
+            }
+    
+            summary.averageCoverage = coverageCount > 0 ? Math.round(totalCoverage / coverageCount) : 0;
+    
+            return summary;
         }
     };
 
