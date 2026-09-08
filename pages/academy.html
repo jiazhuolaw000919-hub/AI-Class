@@ -467,5 +467,53 @@
             console.log('✅ Academy page ready (lazy Calendar + Settings)');
         })();
     </script>
+
+  <!-- ============================================================ -->
+  <!-- Part 162: Navigation Event Listeners                         -->
+  <!-- ============================================================ -->
+  <script>
+    (function() {
+      'use strict';
+
+      // 监听 Calendar 导航请求
+      document.addEventListener('NAVIGATE_TO_CALENDAR', function(e) {
+        console.log('[Academy] 📅 NAVIGATE_TO_CALENDAR received');
+        var container = document.getElementById('academy-root');
+        if (!container) return;
+
+        // 尝试加载 Calendar
+        if (window.LawAIApp?.AcademyLoader?.loadCalendarLazy) {
+          window.LawAIApp.AcademyLoader.loadCalendarLazy(function(calendar) {
+            if (container) {
+              calendar._root = container;
+              calendar.render();
+            }
+          });
+        } else {
+          // Fallback: 使用 URL
+          window.location.href = '/pages/academy.html?view=calendar';
+        }
+      });
+
+      // 监听 Settings 导航请求
+      document.addEventListener('NAVIGATE_TO_SETTINGS', function(e) {
+        console.log('[Academy] ⚙️ NAVIGATE_TO_SETTINGS received');
+        var container = document.getElementById('academy-root');
+        if (!container) return;
+
+        if (window.LawAIApp?.AcademyLoader?.loadSettingsLazy) {
+          window.LawAIApp.AcademyLoader.loadSettingsLazy(function(settings) {
+            if (settings) {
+              settings.render();
+            }
+          });
+        } else {
+          window.location.href = '/pages/academy.html?view=settings';
+        }
+      });
+
+      console.log('[Academy] Part 162 event listeners registered');
+    })();
+  </script>
 </body>
 </html>
