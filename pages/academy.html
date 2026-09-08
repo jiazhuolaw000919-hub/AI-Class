@@ -25,59 +25,8 @@
         .bottom-nav a.active { color: #4a9eff; }
         .bottom-nav a span:first-child { font-size: 18px; }
 
-        /* 加载动画 */
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse {
-            0%, 100% { opacity: 0.6; }
-            50% { opacity: 1; }
-        }
-        .calendar-loader {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 60px 20px;
-            color: #94a3b8;
-            text-align: center;
-        }
-        .calendar-loader .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(74,158,255,0.12);
-            border-top-color: #4a9eff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 16px;
-        }
-        .calendar-loader .icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-            animation: pulse 2s ease-in-out infinite;
-        }
-        .calendar-error {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 60px 20px;
-            text-align: center;
-            color: #94a3b8;
-        }
-        .calendar-error .icon { font-size: 48px; margin-bottom: 16px; }
-        .calendar-error h3 { color: #e2e8f0; font-weight: 600; margin: 0 0 8px 0; }
-        .calendar-error p { margin: 0 0 16px 0; }
-        .calendar-error button {
-            padding: 8px 20px;
-            background: rgba(74,158,255,0.08);
-            border: 1px solid rgba(74,158,255,0.15);
-            border-radius: 100px;
-            color: #4a9eff;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-        .calendar-error button:hover {
-            background: rgba(74,158,255,0.15);
-        }
+        @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -201,336 +150,117 @@
     <script src="/js/calendar/CalendarAuthority.js"></script>
 
     <!-- ============================================================ -->
-    <!-- Academy 启动脚本                                              -->
+    <!-- Part 164: Notes Authority (后台加载版)                        -->
+    <!-- ============================================================ -->
+    <script src="/js/notes/NotesAuthority.js"></script>
+
+    <!-- ============================================================ -->
+    <!-- Academy 启动脚本 (瘦身版)                                     -->
     <!-- ============================================================ -->
     <script>
         (function() {
             'use strict';
 
-            console.log('📄 Academy page loaded (Part 163 - Calendar Authority)');
+            console.log('📄 Academy page loaded (Part 164 - Slim)');
+
+            var loader = window.LawAIApp?.AcademyLoader;
+            if (!loader) {
+                console.warn('[Academy] AcademyLoader not found');
+                return;
+            }
 
             // ============================================================
-            // 状态
+            // 导航点击
             // ============================================================
-            var _isCalendarView = false;
-            var _isSettingsView = false;
-            var _calendarLoaded = false;
-            var _calendarLoading = false;
-            var _settingsLoaded = false;
-            var _settingsLoading = false;
+            document.querySelectorAll('.nav-item').forEach(function(item) {
+                item.addEventListener('click', function(e) {
+                    var tab = this.dataset.tab;
 
-            // ============================================================
-            // 工具函数
-            // ============================================================
-            function updateNavHighlight(activeTab) {
-                document.querySelectorAll('.nav-item').forEach(function(nav) {
-                    if (nav.dataset.tab === activeTab) {
-                        nav.style.color = '#4a9eff';
-                        nav.classList.add('active');
-                    } else {
-                        nav.style.color = '#64748b';
-                        nav.classList.remove('active');
+                    if (tab === 'home') {
+                        window.location.href = '/';
+                        return;
+                    }
+                    if (tab === 'academy') {
+                        window.location.href = '/pages/academy.html';
+                        return;
+                    }
+
+                    e.preventDefault();
+
+                    var container = document.getElementById('academy-root');
+                    if (!container) return;
+
+                    if (tab === 'calendar') {
+                        loader.renderCalendar(container, function() {
+                            loader.updateNavHighlight('calendar');
+                        });
+                        return;
+                    }
+
+                    if (tab === 'settings') {
+                        loader.renderSettings(container, function() {
+                            loader.updateNavHighlight('settings');
+                        });
+                        return;
+                    }
+
+                    if (tab === 'notes') {
+                        var event = new CustomEvent('NAVIGATE_TO_NOTES', {
+                            detail: { source: 'bottom-nav' }
+                        });
+                        document.dispatchEvent(event);
+                        return;
                     }
                 });
-            }
+            });
 
             // ============================================================
-            // 内联 Calendar (Fallback)
+            // 事件监听器 (精简)
             // ============================================================
-            function createInlineCalendar() {
-                return {
-                    currentYear: new Date().getFullYear(),
-                    currentMonth: new Date().getMonth(),
 
-                    render: function() {
-                        var container = document.getElementById('academy-root');
-                        if (!container) return;
+            // Calendar 导航
+            document.addEventListener('NAVIGATE_TO_CALENDAR', function(e) {
+                console.log('[Academy] 📅 NAVIGATE_TO_CALENDAR received');
+                var container = document.getElementById('academy-root');
+                if (container) {
+                    loader.renderCalendar(container, function() {
+                        loader.updateNavHighlight('calendar');
+                    });
+                }
+            });
 
-                        var monthName = new Date(this.currentYear, this.currentMonth).toLocaleString('default', { month: 'long' });
-                        var daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-                        var firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
+            // Settings 导航
+            document.addEventListener('NAVIGATE_TO_SETTINGS', function(e) {
+                console.log('[Academy] ⚙️ NAVIGATE_TO_SETTINGS received');
+                var container = document.getElementById('academy-root');
+                if (container) {
+                    loader.renderSettings(container, function() {
+                        loader.updateNavHighlight('settings');
+                    });
+                }
+            });
 
-                        var gridHTML = '';
-                        for (var i = 0; i < firstDay; i++) gridHTML += '<div></div>';
-                        for (var d = 1; d <= daysInMonth; d++) {
-                            var isToday = d === new Date().getDate() && 
-                                            this.currentMonth === new Date().getMonth() && 
-                                            this.currentYear === new Date().getFullYear();
-                            gridHTML += '<div style="padding:12px 6px;text-align:center;border-radius:8px;background:' + 
-                                (isToday ? 'rgba(74,158,255,0.15)' : 'rgba(255,255,255,0.03)') + 
-                                ';border:1px solid ' + (isToday ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.04)') + 
-                                ';color:' + (isToday ? '#4a9eff' : '#e2e8f0') + 
-                                ';font-size:14px;cursor:pointer;font-family:inherit;" onclick="LawAIApp.Calendar?._onDayClick?.(' + d + ')">' + d + '</div>';
-                        }
-
-                        container.innerHTML = `
-                            <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
-                                <div style="display:flex;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
-                                    <button onclick="window.location.href='/pages/academy.html'" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">← Back to Academy</button>
-                                    <button onclick="history.back()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">⬅️ 返回上一页</button>
-                                </div>
-                                <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">📅 Calendar</h2>
-                                <p style="color:#94a3b8;margin:0 0 20px;">${monthName} ${this.currentYear}</p>
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                                    <button onclick="LawAIApp.Calendar.changeMonth(-1)" style="padding:8px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;cursor:pointer;font-family:inherit;">←</button>
-                                    <span style="font-weight:600;font-size:18px;">${monthName} ${this.currentYear}</span>
-                                    <button onclick="LawAIApp.Calendar.changeMonth(1)" style="padding:8px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;cursor:pointer;font-family:inherit;">→</button>
-                                </div>
-                                <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:12px;color:#64748b;margin-bottom:8px;">
-                                    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-                                </div>
-                                <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">${gridHTML}</div>
-                            </div>
-                        `;
-                    },
-
-                    changeMonth: function(delta) {
-                        this.currentMonth += delta;
-                        if (this.currentMonth > 11) { this.currentMonth = 0; this.currentYear++; }
-                        if (this.currentMonth < 0) { this.currentMonth = 11; this.currentYear--; }
-                        this.render();
-                    },
-
-                    _onDayClick: function(day) {
-                        if (window.LawAIApp?.Toast?.info) {
-                            LawAIApp.Toast.info('📅 Day ' + day + ' selected');
-                        }
-                    }
-                };
-            }
-
-            // ============================================================
-            // 内联 Settings (Fallback)
-            // ============================================================
-            function createInlineSettings() {
-                return {
-                    render: function() {
-                        var container = document.getElementById('academy-root');
-                        if (!container) return;
-
-                        container.innerHTML = `
-                            <div style="max-width:700px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
-                                <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
-                                    <button onclick="window.location.href='/pages/academy.html'" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">← Back to Academy</button>
-                                </div>
-                                <h2 style="margin:0 0 20px;font-size:24px;font-weight:700;">⚙️ Settings</h2>
-                                <div style="display:flex;flex-direction:column;gap:12px;">
-                                    <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
-                                        <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">👤 Profile</h3>
-                                        <p style="margin:0;color:#94a3b8;font-size:13px;">Manage your profile settings</p>
-                                    </div>
-                                    <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
-                                        <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">🎯 Learning Preferences</h3>
-                                        <p style="margin:0;color:#94a3b8;font-size:13px;">Adjust your learning preferences</p>
-                                    </div>
-                                    <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
-                                        <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">🔔 Notifications</h3>
-                                        <p style="margin:0;color:#94a3b8;font-size:13px;">Manage notification settings</p>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }
-                };
-            }
-
-            // ============================================================
-            // 🔥 Part 163: 渲染 Calendar（使用 AcademyLoader + Authority）
-            // ============================================================
-            function renderCalendar() {
-                _isCalendarView = true;
-                _isSettingsView = false;
+            // Notes 导航
+            document.addEventListener('NAVIGATE_TO_NOTES', function(e) {
+                console.log('[Academy] 📝 NAVIGATE_TO_NOTES received');
                 var container = document.getElementById('academy-root');
                 if (!container) return;
 
-                // 显示加载状态
                 container.innerHTML = `
-                    <div class="calendar-loader">
-                        <div class="icon">📅</div>
-                        <div class="spinner"></div>
-                        <p>Loading Calendar...</p>
+                    <div style="text-align:center;padding:60px;color:#94a3b8;">
+                        <div style="font-size:48px;margin-bottom:16px;animation:pulse 2s ease-in-out infinite;">📝</div>
+                        <p>Loading Notes...</p>
                     </div>
                 `;
 
-                // 使用 AcademyLoader 加载 Calendar (含 Authority)
-                if (window.LawAIApp?.AcademyLoader?.loadCalendarLazy) {
-                    window.LawAIApp.AcademyLoader.loadCalendarLazy(function(calendar) {
-                        _calendarLoading = false;
-                        _calendarLoaded = true;
-                        if (_isCalendarView) {
-                            var c = document.getElementById('academy-root');
-                            if (c) {
-                                calendar._root = c;
-                                calendar.render();
-                                updateNavHighlight('calendar');
-                            }
-                        }
-                    }, function(error) {
-                        _calendarLoading = false;
-                        console.warn('[Academy] ⚠️ Calendar load failed:', error);
-                        var c = document.getElementById('academy-root');
-                        if (c) {
-                            c.innerHTML = `
-                                <div class="calendar-error">
-                                    <div class="icon">⚠️</div>
-                                    <h3>Calendar unavailable</h3>
-                                    <p>Please try again later.</p>
-                                    <button onclick="window.location.href='/pages/academy.html'">← Back to Academy</button>
-                                </div>
-                            `;
-                        }
-                    });
-                } else {
-                    // Fallback: 内联 Calendar
-                    _calendarLoading = false;
-                    _calendarLoaded = true;
-                    window.LawAIApp = window.LawAIApp || {};
-                    window.LawAIApp.Calendar = createInlineCalendar();
-                    window.LawAIApp.Calendar.render();
-                    updateNavHighlight('calendar');
-                }
-            }
-
-            // ============================================================
-            // 🔥 Part 163: 渲染 Settings（懒加载）
-            // ============================================================
-            function renderSettings() {
-                _isSettingsView = true;
-                _isCalendarView = false;
-                var container = document.getElementById('academy-root');
-                if (!container) return;
-
-                if (_settingsLoaded && window.LawAIApp?.Settings) {
-                    try {
-                        window.LawAIApp.Settings.render();
-                        updateNavHighlight('settings');
-                        return;
-                    } catch (e) {
-                        window.LawAIApp.Settings = createInlineSettings();
-                        window.LawAIApp.Settings.render();
-                        updateNavHighlight('settings');
-                        return;
-                    }
-                }
-
-                if (_settingsLoading) {
-                    container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Settings...</div>';
-                    return;
-                }
-
-                // 使用 AcademyLoader 加载 Settings
-                if (window.LawAIApp?.AcademyLoader?.loadSettingsLazy) {
-                    _settingsLoading = true;
-                    container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Settings...</div>';
-
-                    window.LawAIApp.AcademyLoader.loadSettingsLazy(function(settings) {
-                        _settingsLoading = false;
-                        _settingsLoaded = true;
-                        if (_isSettingsView) {
-                            try { settings.render(); updateNavHighlight('settings'); } catch (e) {}
-                        }
-                    }, function(error) {
-                        _settingsLoading = false;
-                        console.warn('[Academy] ⚠️ Settings load failed:', error);
-                        // Fallback
-                        window.LawAIApp.Settings = createInlineSettings();
-                        window.LawAIApp.Settings.render();
-                        updateNavHighlight('settings');
-                    });
-                } else {
-                    // Fallback: 直接加载
-                    window.LawAIApp = window.LawAIApp || {};
-                    window.LawAIApp.Settings = createInlineSettings();
-                    window.LawAIApp.Settings.render();
-                    updateNavHighlight('settings');
-
-                    // 尝试后台加载完整 Settings
-                    var script = document.createElement('script');
-                    script.src = '/js/settings.js?v=' + Date.now();
-                    script.async = true;
-                    script.onload = function() {
-                        if (window.LawAIApp?.Settings && _isSettingsView) {
-                            _settingsLoaded = true;
-                            try { window.LawAIApp.Settings.render(); updateNavHighlight('settings'); } catch (e) {}
-                        }
-                    };
-                    document.head.appendChild(script);
-                }
-            }
-
-            <!-- ============================================================ -->
-            <!-- Part 164: Notes Navigation Event Listeners                    -->
-            <!-- ============================================================ -->
-            <script>
-                (function() {
-                    'use strict';
-            
-                    // 监听 Notes 导航请求
-                    document.addEventListener('NAVIGATE_TO_NOTES', function(e) {
-                        console.log('[Academy] 📝 NAVIGATE_TO_NOTES received');
-                        var container = document.getElementById('academy-root');
-                        if (!container) return;
-            
-                        // 显示加载状态
-                        container.innerHTML = `
-                            <div style="text-align:center;padding:60px;color:#94a3b8;">
-                                <div style="font-size:48px;margin-bottom:16px;animation:pulse 2s ease-in-out infinite;">📝</div>
-                                <p>Loading Notes...</p>
-                            </div>
-                        `;
-            
-                        // 使用 NotesAuthority
-                        if (window.LawAIApp?.AcademyLoader?.loadNotesAuthority) {
-                            window.LawAIApp.AcademyLoader.loadNotesAuthority(function(auth) {
-                                console.log('[Academy] ✅ NotesAuthority ready');
-                                // 加载 Notes UI
-                                if (window.LawAIApp?.Notes?.render) {
-                                    window.LawAIApp.Notes._root = container;
-                                    window.LawAIApp.Notes.render();
-                                    updateNavHighlight('notes');
-                                } else {
-                                    // 动态加载 Notes
-                                    var files = [
-                                        '/js/academy/knowledgeCapture.js',
-                                        '/js/academy/notes.js'
-                                    ];
-                                    var loaded = 0;
-                                    files.forEach(function(file) {
-                                        var script = document.createElement('script');
-                                        script.src = file + '?v=' + Date.now();
-                                        script.onload = function() {
-                                            loaded++;
-                                            if (loaded === files.length && window.LawAIApp?.Notes) {
-                                                window.LawAIApp.Notes._root = container;
-                                                window.LawAIApp.Notes.render();
-                                                updateNavHighlight('notes');
-                                            }
-                                        };
-                                        script.onerror = function() { loaded++; };
-                                        document.head.appendChild(script);
-                                    });
-                                }
-                            }, function(error) {
-                                console.warn('[Academy] ⚠️ NotesAuthority load failed:', error);
-                                container.innerHTML = `
-                                    <div style="max-width:900px;margin:0 auto;padding:60px;text-align:center;color:#94a3b8;">
-                                        <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
-                                        <h3 style="color:#e2e8f0;">Notes unavailable</h3>
-                                        <p style="margin:8px 0 16px;">Please try again later.</p>
-                                        <button onclick="window.location.href='/pages/academy.html'" style="
-                                            padding:8px 20px;
-                                            background:rgba(74,158,255,0.08);
-                                            border:1px solid rgba(74,158,255,0.15);
-                                            border-radius:100px;
-                                            color:#4a9eff;
-                                            cursor:pointer;
-                                            font-family:inherit;
-                                        ">← Back to Academy</button>
-                                    </div>
-                                `;
-                            });
+                if (loader.loadNotesAuthority) {
+                    loader.loadNotesAuthority(function(auth) {
+                        console.log('[Academy] ✅ NotesAuthority ready');
+                        if (window.LawAIApp?.Notes?.render) {
+                            window.LawAIApp.Notes._root = container;
+                            window.LawAIApp.Notes.render();
+                            loader.updateNavHighlight('notes');
                         } else {
-                            // Fallback: 直接加载 Notes
                             var files = [
                                 '/js/academy/knowledgeCapture.js',
                                 '/js/academy/notes.js'
@@ -544,91 +274,61 @@
                                     if (loaded === files.length && window.LawAIApp?.Notes) {
                                         window.LawAIApp.Notes._root = container;
                                         window.LawAIApp.Notes.render();
-                                        updateNavHighlight('notes');
+                                        loader.updateNavHighlight('notes');
                                     }
                                 };
                                 script.onerror = function() { loaded++; };
                                 document.head.appendChild(script);
                             });
                         }
+                    }, function(error) {
+                        console.warn('[Academy] ⚠️ NotesAuthority load failed:', error);
+                        container.innerHTML = `
+                            <div style="max-width:900px;margin:0 auto;padding:60px;text-align:center;color:#94a3b8;">
+                                <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
+                                <h3 style="color:#e2e8f0;">Notes unavailable</h3>
+                                <p style="margin:8px 0 16px;">Please try again later.</p>
+                                <button onclick="window.location.href='/pages/academy.html'" style="
+                                    padding:8px 20px;
+                                    background:rgba(74,158,255,0.08);
+                                    border:1px solid rgba(74,158,255,0.15);
+                                    border-radius:100px;
+                                    color:#4a9eff;
+                                    cursor:pointer;
+                                    font-family:inherit;
+                                ">← Back to Academy</button>
+                            </div>
+                        `;
                     });
-            
-                    // 单独预加载 NotesAuthority（不加载 UI）
-                    document.addEventListener('NAVIGATE_TO_NOTES_AUTHORITY', function(e) {
-                        console.log('[Academy] 📝 NAVIGATE_TO_NOTES_AUTHORITY received');
-                        if (window.LawAIApp?.AcademyLoader?.loadNotesAuthority) {
-                            window.LawAIApp.AcademyLoader.loadNotesAuthority(function(auth) {
-                                console.log('[Academy] ✅ NotesAuthority ready:', auth.getStatusSummary());
-                                if (window.LawAIApp?.Toast?.success) {
-                                    LawAIApp.Toast.success('📝 Notes ready');
-                                }
-                            }, function(error) {
-                                console.warn('[Academy] ⚠️ NotesAuthority load failed:', error);
-                            });
-                        }
+                } else {
+                    // Fallback
+                    var files = [
+                        '/js/academy/knowledgeCapture.js',
+                        '/js/academy/notes.js'
+                    ];
+                    var loaded = 0;
+                    files.forEach(function(file) {
+                        var script = document.createElement('script');
+                        script.src = file + '?v=' + Date.now();
+                        script.onload = function() {
+                            loaded++;
+                            if (loaded === files.length && window.LawAIApp?.Notes) {
+                                window.LawAIApp.Notes._root = container;
+                                window.LawAIApp.Notes.render();
+                                loader.updateNavHighlight('notes');
+                            }
+                        };
+                        script.onerror = function() { loaded++; };
+                        document.head.appendChild(script);
                     });
-            
-                    console.log('[Academy] Part 164 event listeners registered');
-                })();
-            </script>
-
-            // ============================================================
-            // 导航点击
-            // ============================================================
-            document.querySelectorAll('.nav-item').forEach(function(item) {
-                item.addEventListener('click', function(e) {
-                    var tab = this.dataset.tab;
-
-                    if (tab === 'home') { _isCalendarView = false; _isSettingsView = false; window.location.href = '/'; return; }
-                    if (tab === 'academy') { _isCalendarView = false; _isSettingsView = false; window.location.href = '/pages/academy.html'; return; }
-
-                    e.preventDefault();
-
-                   if (tab === 'notes') {
-                        _isCalendarView = false;
-                        _isSettingsView = false;
-                    
-                        // 🔥 Part 164: 使用事件驱动
-                        var event = new CustomEvent('NAVIGATE_TO_NOTES', {
-                            detail: { source: 'bottom-nav' }
-                        });
-                        document.dispatchEvent(event);
-                        return;
-                    }
-    
-                    if (tab === 'calendar') {
-                        renderCalendar();
-                        return;
-                    }
-
-                    if (tab === 'settings') {
-                        renderSettings();
-                        return;
-                    }
-                });
+                }
             });
 
-            // ============================================================
-            // 🔥 Part 162 & 163: 事件监听器
-            // ============================================================
-            // Calendar 导航请求 (Dashboard 发送)
-            document.addEventListener('NAVIGATE_TO_CALENDAR', function(e) {
-                console.log('[Academy] 📅 NAVIGATE_TO_CALENDAR received');
-                renderCalendar();
-            });
-
-            // Settings 导航请求 (Dashboard 发送)
-            document.addEventListener('NAVIGATE_TO_SETTINGS', function(e) {
-                console.log('[Academy] ⚙️ NAVIGATE_TO_SETTINGS received');
-                renderSettings();
-            });
-
-            // 🔥 Part 163: 单独预加载 CalendarAuthority (不加载 UI)
+            // CalendarAuthority 预加载
             document.addEventListener('NAVIGATE_TO_CALENDAR_AUTHORITY', function(e) {
                 console.log('[Academy] 📅 NAVIGATE_TO_CALENDAR_AUTHORITY received');
-                
-                if (window.LawAIApp?.AcademyLoader?.loadCalendarAuthority) {
-                    window.LawAIApp.AcademyLoader.loadCalendarAuthority(function(auth) {
+                if (loader.loadCalendarAuthority) {
+                    loader.loadCalendarAuthority(function(auth) {
                         console.log('[Academy] ✅ CalendarAuthority ready:', auth.getStatusSummary());
                         if (window.LawAIApp?.Toast?.success) {
                             LawAIApp.Toast.success('📅 Calendar ready');
@@ -639,13 +339,35 @@
                 }
             });
 
+            // NotesAuthority 预加载
+            document.addEventListener('NAVIGATE_TO_NOTES_AUTHORITY', function(e) {
+                console.log('[Academy] 📝 NAVIGATE_TO_NOTES_AUTHORITY received');
+                if (loader.loadNotesAuthority) {
+                    loader.loadNotesAuthority(function(auth) {
+                        console.log('[Academy] ✅ NotesAuthority ready:', auth.getStatusSummary());
+                        if (window.LawAIApp?.Toast?.success) {
+                            LawAIApp.Toast.success('📝 Notes ready');
+                        }
+                    }, function(error) {
+                        console.warn('[Academy] ⚠️ NotesAuthority load failed:', error);
+                    });
+                }
+            });
+
             // ============================================================
             // 初始化 Academy
             // ============================================================
             function initAcademy() {
-                if (_isCalendarView || _isSettingsView) return;
-                if (window.location.search.includes('view=calendar')) { renderCalendar(); return; }
-                if (window.location.search.includes('view=settings')) { renderSettings(); return; }
+                if (window.location.search.includes('view=calendar')) {
+                    var container = document.getElementById('academy-root');
+                    if (container) loader.renderCalendar(container);
+                    return;
+                }
+                if (window.location.search.includes('view=settings')) {
+                    var container = document.getElementById('academy-root');
+                    if (container) loader.renderSettings(container);
+                    return;
+                }
 
                 try {
                     if (window.LawAIApp?.AcademyExperienceManager) {
@@ -665,7 +387,7 @@
                 window.addEventListener('load', function() { setTimeout(initAcademy, 200); });
             }
 
-            console.log('✅ Academy page ready (Part 163 - Calendar Authority + Lazy Loading)');
+            console.log('✅ Academy page ready (Part 164 - Slim)');
 
         })();
     </script>
