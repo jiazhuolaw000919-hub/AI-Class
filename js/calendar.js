@@ -651,19 +651,23 @@ LawAIApp.Calendar = {
     return defaultPlan;
   },
 
-  _generatePlan: function(minutes) {
-    var plan = this._getPlan();
-    plan.timeBlock = minutes;
-    var completed = this._getCompletedLessons();
-    plan.tasks = [
-      { id: 'task_' + Date.now() + '_1', title: 'Complete Daily Lesson', description: 'Day ' + (completed + 1), estimatedMinutes: Math.min(20, minutes * 0.5) },
-      { id: 'task_' + Date.now() + '_2', title: 'Review Previous Lesson', description: 'Reinforce learning', estimatedMinutes: Math.min(15, minutes * 0.3) }
-    ];
-    if (minutes > 30) {
-      plan.tasks.push({ id: 'task_' + Date.now() + '_3', title: 'Practice Exercise', description: 'Apply what you learned', estimatedMinutes: Math.min(20, minutes * 0.2) });
-    }
-    plan.usedMinutes = plan.tasks.reduce(function(sum, t) { return sum + (t.estimatedMinutes || 0); }, 0);
-    this._safeSet('dailyPlan', plan);
+  generatePlan: function(timeBlockMinutes = 30) {
+      // 从 CalendarAuthority 读取已有的 schedule 作为参考
+      var authority = LawAIApp.CalendarAuthority;
+      var existingSchedules = authority ? authority.getUpcomingSchedules(10) : [];
+  
+      // 生成计划（不修改任何权威数据，只做建议）
+      var timeline = LawAIApp.PlannerTimeline.generateTimeline(timeBlockMinutes);
+      
+      // ✅ 改为通过事件通知，不直接写 storage
+      LawAIApp.EventBus.emit('PlanUpdated', timeline);
+      LawAIApp.EventBus.emit('PLAN_GENERATED', {
+          timeBlock: timeBlockMinutes,
+          tasks: timeline.tasks,
+          referenceSchedules: existingSchedules.length
+      });
+      
+      return timeline;
   },
 
   _getCompletedLessons: function() {
@@ -714,20 +718,34 @@ LawAIApp.Calendar = {
     });
   },
 
-  _completeTask: function(taskId) {
-    var plan = this._getPlan();
-    plan.tasks = plan.tasks.filter(function(t) { return t.id !== taskId; });
-    this._safeSet('dailyPlan', plan);
-    
-    if (window.LawAIApp?.Toast?.success) {
-      LawAIApp.Toast.success('✅ Task completed!');
-    } else {
-      alert('✅ Task completed!');
-    }
-    
-    this.render();
+  completeTask: function(taskId) {
+      var plan = this.getCurrentPlan();
+      if (!plan) return;
+  
+      // 如果是日程任务，通过 Authority 标记
+      if (taskId.startsWith('sch_')) {
+          var authority = LawAIApp.CalendarAuthority;
+          if (authority) {
+              authority.markTimeElapsed(taskId);
+          }
+      }
+  
+      // 导航逻辑保持不变
+      if (taskId.startsWith('lesson_')) {
+          var lessonId = taskId.replace('lesson_', '');
+          LawAIApp.Router.navigate('lesson', { day: parseInt(lessonId.split('-')[1]) });
+      } else if (taskId.startsWith('review_')) {
+          var lessonId = taskId.replace('review_', '');
+          LawAIApp.MemoryReview.performReview(lessonId, 'flashcard');
+          var updatedTasks = plan.tasks.filter(function(t) { return t.id !== taskId; });
+          plan.tasks = updatedTasks;
+          // ✅ 通过事件通知，不直接写 storage
+          LawAIApp.EventBus.emit('PlanUpdated', plan);
+          LawAIApp.PlannerDashboard.render();
+      }
+      // ... 其他 task 类型保持不变
   },
-
+  
   // ============================================================
   // Part 106: Schedule CRUD
   // ============================================================
@@ -738,13 +756,21 @@ LawAIApp.Calendar = {
       return 'lawai_calendar_schedule_' + this._userId;
   },
 
+  // ============================================================
+  // Part 106: Schedule CRUD — 通过 CalendarAuthority
+  // ============================================================
   _getAllSchedules: function() {
-    try {
-      var stored = localStorage.getItem(this._getScheduleKey());
-      return stored ? JSON.parse(stored) : [];
-    } catch (e) {
-      return [];
-    }
+      var authority = LawAIApp.CalendarAuthority;
+      if (authority) {
+          return authority.getAllSchedules();
+      }
+      // fallback: 直接读 storage（兼容旧数据）
+      try {
+          var stored = localStorage.getItem(this._getScheduleKey());
+          return stored ? JSON.parse(stored) : [];
+      } catch (e) {
+          return [];
+      }
   },
 
   _saveSchedules: function(schedules) {
@@ -757,25 +783,74 @@ LawAIApp.Calendar = {
   },
 
   _createSchedule: function(title, date, startTime, endTime, description) {
-    var schedule = {
-      id: 'sch_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-      title: title || 'Learning Session',
-      date: date || new Date().toISOString().split('T')[0],
-      startTime: startTime || '09:00',
-      endTime: endTime || '10:00',
-      description: description || '',
-      status: 'scheduled',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      source: 'calendar'
-    };
-
-    var schedules = this._getAllSchedules();
-    schedules.push(schedule);
-    this._saveSchedules(schedules);
-
-    this._emitScheduleEvent('SCHEDULE_CREATED', schedule);
-    return schedule;
+      var authority = LawAIApp.CalendarAuthority;
+      if (!authority) {
+          // fallback: 直接写（兼容）
+          return this._createScheduleFallback(title, date, startTime, endTime, description);
+      }
+  
+      // 构建 startAt
+      var startAt = date + 'T' + (startTime || '09:00') + ':00';
+      var endAt = date + 'T' + (endTime || '10:00') + ':00';
+      var duration = this._calculateDuration(startTime || '09:00', endTime || '10:00');
+  
+      var result = authority.create({
+          title: title || 'Learning Session',
+          activityRef: 'manual_' + Date.now(),
+          startAt: startAt,
+          duration: duration,
+          source: 'calendar-ui',
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      });
+  
+      if (result.success) {
+          this._emitScheduleEvent('SCHEDULE_CREATED', result.schedule);
+          return result.schedule;
+      }
+  
+      console.warn('[Calendar] Create failed:', result.error);
+      return null;
+  },
+  
+  _calculateDuration: function(startTime, endTime) {
+      var start = startTime.split(':').map(Number);
+      var end = endTime.split(':').map(Number);
+      return (end[0] - start[0]) * 60 + (end[1] - start[1]);
+  },
+  
+  // fallback（兼容旧代码）
+  _createScheduleFallback: function(title, date, startTime, endTime, description) {
+      var schedule = {
+          id: 'sch_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+          title: title || 'Learning Session',
+          date: date || new Date().toISOString().split('T')[0],
+          startTime: startTime || '09:00',
+          endTime: endTime || '10:00',
+          description: description || '',
+          status: 'scheduled',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          source: 'calendar'
+      };
+      var schedules = this._getAllSchedulesFallback();
+      schedules.push(schedule);
+      this._saveSchedulesFallback(schedules);
+      this._emitScheduleEvent('SCHEDULE_CREATED', schedule);
+      return schedule;
+  },
+  
+  _getAllSchedulesFallback: function() {
+      try {
+          var stored = localStorage.getItem(this._getScheduleKey());
+          return stored ? JSON.parse(stored) : [];
+      } catch (e) { return []; }
+  },
+  
+  _saveSchedulesFallback: function(schedules) {
+      try {
+          localStorage.setItem(this._getScheduleKey(), JSON.stringify(schedules));
+          return true;
+      } catch (e) { return false; }
   },
 
   _updateSchedule: function(id, updates) {
@@ -795,17 +870,26 @@ LawAIApp.Calendar = {
   },
 
   _deleteSchedule: function(id) {
-    var schedules = this._getAllSchedules();
-    var deleted = schedules.find(function(s) { return s.id === id; });
-    schedules = schedules.filter(function(s) { return s.id !== id; });
-    this._saveSchedules(schedules);
-
-    if (deleted) {
-      this._emitScheduleEvent('SCHEDULE_CANCELLED', deleted);
-    }
-    return deleted;
+      var authority = LawAIApp.CalendarAuthority;
+      if (authority) {
+          var result = authority.cancel(id, 'User deleted');
+          if (result.success) {
+              this._emitScheduleEvent('SCHEDULE_CANCELLED', result.schedule);
+              return result.schedule;
+          }
+          return null;
+      }
+      // fallback
+      var schedules = this._getAllSchedulesFallback();
+      var deleted = schedules.find(function(s) { return s.id === id; });
+      schedules = schedules.filter(function(s) { return s.id !== id; });
+      this._saveSchedulesFallback(schedules);
+      if (deleted) {
+          this._emitScheduleEvent('SCHEDULE_CANCELLED', deleted);
+      }
+      return deleted;
   },
-
+  
   _emitScheduleEvent: function(eventType, payload) {
     try {
       var event = new CustomEvent(eventType, {
