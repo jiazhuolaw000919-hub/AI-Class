@@ -458,6 +458,120 @@
                 }
             }
 
+            <!-- ============================================================ -->
+            <!-- Part 164: Notes Navigation Event Listeners                    -->
+            <!-- ============================================================ -->
+            <script>
+                (function() {
+                    'use strict';
+            
+                    // 监听 Notes 导航请求
+                    document.addEventListener('NAVIGATE_TO_NOTES', function(e) {
+                        console.log('[Academy] 📝 NAVIGATE_TO_NOTES received');
+                        var container = document.getElementById('academy-root');
+                        if (!container) return;
+            
+                        // 显示加载状态
+                        container.innerHTML = `
+                            <div style="text-align:center;padding:60px;color:#94a3b8;">
+                                <div style="font-size:48px;margin-bottom:16px;animation:pulse 2s ease-in-out infinite;">📝</div>
+                                <p>Loading Notes...</p>
+                            </div>
+                        `;
+            
+                        // 使用 NotesAuthority
+                        if (window.LawAIApp?.AcademyLoader?.loadNotesAuthority) {
+                            window.LawAIApp.AcademyLoader.loadNotesAuthority(function(auth) {
+                                console.log('[Academy] ✅ NotesAuthority ready');
+                                // 加载 Notes UI
+                                if (window.LawAIApp?.Notes?.render) {
+                                    window.LawAIApp.Notes._root = container;
+                                    window.LawAIApp.Notes.render();
+                                    updateNavHighlight('notes');
+                                } else {
+                                    // 动态加载 Notes
+                                    var files = [
+                                        '/js/academy/knowledgeCapture.js',
+                                        '/js/academy/notes.js'
+                                    ];
+                                    var loaded = 0;
+                                    files.forEach(function(file) {
+                                        var script = document.createElement('script');
+                                        script.src = file + '?v=' + Date.now();
+                                        script.onload = function() {
+                                            loaded++;
+                                            if (loaded === files.length && window.LawAIApp?.Notes) {
+                                                window.LawAIApp.Notes._root = container;
+                                                window.LawAIApp.Notes.render();
+                                                updateNavHighlight('notes');
+                                            }
+                                        };
+                                        script.onerror = function() { loaded++; };
+                                        document.head.appendChild(script);
+                                    });
+                                }
+                            }, function(error) {
+                                console.warn('[Academy] ⚠️ NotesAuthority load failed:', error);
+                                container.innerHTML = `
+                                    <div style="max-width:900px;margin:0 auto;padding:60px;text-align:center;color:#94a3b8;">
+                                        <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
+                                        <h3 style="color:#e2e8f0;">Notes unavailable</h3>
+                                        <p style="margin:8px 0 16px;">Please try again later.</p>
+                                        <button onclick="window.location.href='/pages/academy.html'" style="
+                                            padding:8px 20px;
+                                            background:rgba(74,158,255,0.08);
+                                            border:1px solid rgba(74,158,255,0.15);
+                                            border-radius:100px;
+                                            color:#4a9eff;
+                                            cursor:pointer;
+                                            font-family:inherit;
+                                        ">← Back to Academy</button>
+                                    </div>
+                                `;
+                            });
+                        } else {
+                            // Fallback: 直接加载 Notes
+                            var files = [
+                                '/js/academy/knowledgeCapture.js',
+                                '/js/academy/notes.js'
+                            ];
+                            var loaded = 0;
+                            files.forEach(function(file) {
+                                var script = document.createElement('script');
+                                script.src = file + '?v=' + Date.now();
+                                script.onload = function() {
+                                    loaded++;
+                                    if (loaded === files.length && window.LawAIApp?.Notes) {
+                                        window.LawAIApp.Notes._root = container;
+                                        window.LawAIApp.Notes.render();
+                                        updateNavHighlight('notes');
+                                    }
+                                };
+                                script.onerror = function() { loaded++; };
+                                document.head.appendChild(script);
+                            });
+                        }
+                    });
+            
+                    // 单独预加载 NotesAuthority（不加载 UI）
+                    document.addEventListener('NAVIGATE_TO_NOTES_AUTHORITY', function(e) {
+                        console.log('[Academy] 📝 NAVIGATE_TO_NOTES_AUTHORITY received');
+                        if (window.LawAIApp?.AcademyLoader?.loadNotesAuthority) {
+                            window.LawAIApp.AcademyLoader.loadNotesAuthority(function(auth) {
+                                console.log('[Academy] ✅ NotesAuthority ready:', auth.getStatusSummary());
+                                if (window.LawAIApp?.Toast?.success) {
+                                    LawAIApp.Toast.success('📝 Notes ready');
+                                }
+                            }, function(error) {
+                                console.warn('[Academy] ⚠️ NotesAuthority load failed:', error);
+                            });
+                        }
+                    });
+            
+                    console.log('[Academy] Part 164 event listeners registered');
+                })();
+            </script>
+
             // ============================================================
             // 导航点击
             // ============================================================
@@ -470,46 +584,18 @@
 
                     e.preventDefault();
 
-                    if (tab === 'notes') {
+                   if (tab === 'notes') {
                         _isCalendarView = false;
                         _isSettingsView = false;
-
-                        var container = document.getElementById('academy-root');
-
-                        if (window.LawAIApp?.Notes && typeof window.LawAIApp.Notes.render === 'function') {
-                            if (container) {
-                                window.LawAIApp.Notes._root = container;
-                            }
-                            window.LawAIApp.Notes.render();
-                            updateNavHighlight('notes');
-                            return;
-                        }
-
-                        if (container) {
-                            container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Notes...</div>';
-                        }
-
-                        var files = [
-                            '/js/academy/knowledgeCapture.js',
-                            '/js/academy/notes.js'
-                        ];
-                        var loaded = 0;
-                        files.forEach(function(file) {
-                            var script = document.createElement('script');
-                            script.src = file + '?v=' + Date.now();
-                            script.onload = function() {
-                                loaded++;
-                                if (loaded === files.length && window.LawAIApp?.Notes) {
-                                    window.LawAIApp.Notes.render();
-                                    updateNavHighlight('notes');
-                                }
-                            };
-                            script.onerror = function() { loaded++; };
-                            document.head.appendChild(script);
+                    
+                        // 🔥 Part 164: 使用事件驱动
+                        var event = new CustomEvent('NAVIGATE_TO_NOTES', {
+                            detail: { source: 'bottom-nav' }
                         });
+                        document.dispatchEvent(event);
                         return;
                     }
-
+    
                     if (tab === 'calendar') {
                         renderCalendar();
                         return;
@@ -525,7 +611,6 @@
             // ============================================================
             // 🔥 Part 162 & 163: 事件监听器
             // ============================================================
-
             // Calendar 导航请求 (Dashboard 发送)
             document.addEventListener('NAVIGATE_TO_CALENDAR', function(e) {
                 console.log('[Academy] 📅 NAVIGATE_TO_CALENDAR received');
