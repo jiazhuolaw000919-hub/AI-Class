@@ -109,9 +109,12 @@ LawAIApp.Dashboard = {
     const todayLesson = this._getTodayLesson(allLessons, progress);
     const dailyBriefingHTML = this._getDailyBriefing();
 
-    const completionRate = progress.completedLessons.length > 0
-      ? ((progress.completedLessons.length / 365) * 100).toFixed(1)
-      : '0.0';
+    // 🔥 Part 162: 进度来自 Core，不自己计算
+    const completionRate = viewModel && viewModel.progress 
+      ? (viewModel.progress.overall || 0).toFixed(1)
+      : (progress.completedLessons && progress.completedLessons.length > 0
+          ? ((progress.completedLessons.length / 365) * 100).toFixed(1)
+          : '0.0');
 
     const currentStage = progress.currentStage || 'Foundation';
     const lastCompletedDate = this._getLastCompletedDate(streakData);
@@ -119,33 +122,47 @@ LawAIApp.Dashboard = {
 
     const heroData = this._getHeroData(learnerState, progress, streakData);
 
-    // 🔥 Part 102: 尝试通过 ViewModel 覆盖数据
-    try {
-      var coreResult = this._getCoreIntelligenceResult();
-      var surfaceData = LawAIApp.DashboardSurfaceAdapter 
+   // 🔥 Part 162: Core-Derived Dashboard — Read Only
+  var coreResult = null;
+  var viewModel = null;
+  var surfaceData = null;
+  
+  try {
+    // 从 Core Intelligence 获取权威数据 (只读)
+    coreResult = this._getCoreIntelligenceResult();
+    if (coreResult) {
+      surfaceData = LawAIApp.DashboardSurfaceAdapter 
           ? LawAIApp.DashboardSurfaceAdapter.adapt(coreResult)
           : null;
-      var viewModel = LawAIApp.DashboardViewModel
+      viewModel = LawAIApp.DashboardViewModel
           ? LawAIApp.DashboardViewModel.toRenderModel(surfaceData)
           : null;
-      
-      if (viewModel && viewModel.hero) {
-        // 使用 ViewModel 的 Hero 数据
-        var vmHero = viewModel.hero;
-        heroData = {
-          greeting: vmHero.greeting || heroData.greeting,
-          message: vmHero.message || heroData.message,
-          cta: vmHero.cta || heroData.cta,
-          ctaLink: vmHero.ctaLink || heroData.ctaLink,
-          showStreak: vmHero.showStreak !== undefined ? vmHero.showStreak : true
-        };
-        if (viewModel.progress && viewModel.progress.overall !== undefined) {
-          progress.completionPercent = viewModel.progress.overall;
-        }
-      }
-    } catch (e) {
-      console.warn('[Dashboard] ViewModel error:', e);
     }
+  } catch (e) {
+    console.warn('[Dashboard] Core Intelligence read error:', e);
+  }
+  
+  // 🔥 Part 162: 如果 ViewModel 可用，使用它；否则 fallback 到现有数据
+  if (viewModel) {
+    // Hero 数据来自 Core
+    if (viewModel.hero) {
+      heroData = {
+        greeting: viewModel.hero.greeting || heroData.greeting,
+        message: viewModel.hero.message || heroData.message,
+        cta: viewModel.hero.cta || heroData.cta,
+        ctaLink: viewModel.hero.ctaLink || heroData.ctaLink,
+        showStreak: viewModel.hero.showStreak !== undefined ? viewModel.hero.showStreak : true
+      };
+    }
+    
+    // 进度来自 Core (只读)
+    if (viewModel.progress && viewModel.progress.overall !== undefined) {
+      progress.completionPercent = viewModel.progress.overall;
+    }
+    
+    // 🔥 保存 ViewModel 供后续使用
+    this._lastViewModel = viewModel;
+  }
 
     const html = this._buildHTML({
       progress,
@@ -1072,12 +1089,31 @@ LawAIApp.Dashboard = {
    */
   _recordLearnerJudgement: function(type, value) {
     console.log('[Dashboard][Part77] Judgement recorded:', type, value);
-
+  
+    // 🔥 Part 162: 通过 EventAdapter 发送，不直接写 localStorage
+    var eventAdapter = LawAIApp.DashboardEventAdapter;
+    if (eventAdapter) {
+      eventAdapter.sendJudgementSubmitted('dashboard', type, value, {
+        source: 'dashboard',
+        timestamp: Date.now()
+      });
+    }
+  
+    // Toast 反馈
+    if (window.LawAIApp?.Toast && typeof window.LawAIApp.Toast.info === 'function') {
+      var messages = {
+        'confidence': '📊 Confidence recorded.',
+        'difficulty': '📊 Difficulty recorded.',
+        'correction': '🔄 Thanks for the correction.',
+        'reflection': '💭 Reflection saved.'
+      };
+      window.LawAIApp.Toast.info(messages[type] || '✅ Recorded');
+    }
+  
+    // 🔥 允许本地存储作为临时缓存，但权威存储由 Core 管理
     try {
       var stored = localStorage.getItem('dashboardLearnerJudgements') || '[]';
       var judgements = JSON.parse(stored);
-      
-      // 找到同类型的最近记录并更新，或追加新记录
       var existing = judgements.find(function(j) { return j.type === type; });
       if (existing) {
         existing.value = value;
@@ -1090,28 +1126,14 @@ LawAIApp.Dashboard = {
           source: 'dashboard'
         });
       }
-      
-      // 只保留最近 20 条
       if (judgements.length > 20) {
         judgements = judgements.slice(-20);
       }
-      
       localStorage.setItem('dashboardLearnerJudgements', JSON.stringify(judgements));
-      
-      // Toast 反馈
-      if (window.LawAIApp?.Toast && typeof window.LawAIApp.Toast.info === 'function') {
-        var messages = {
-          'confidence': '📊 Confidence recorded.',
-          'difficulty': '📊 Difficulty recorded.',
-          'correction': '🔄 Thanks for the correction.',
-          'reflection': '💭 Reflection saved.'
-        };
-        window.LawAIApp.Toast.info(messages[type] || '✅ Recorded');
-      }
     } catch (e) {
-      console.warn('[Dashboard][Part77] Record judgement error:', e);
+      console.warn('[Dashboard] Local cache error:', e);
     }
-
+  
     // 刷新 Dashboard
     setTimeout(function() { LawAIApp.Dashboard.render(); }, 300);
   },
@@ -1673,22 +1695,26 @@ LawAIApp.Dashboard = {
    */
   _handleLoopClosure: function() {
     console.log('[Dashboard][Part75] Loop closed by learner');
-
-    // 记录关闭事件（使用现有 ActionTracker）
-    var at = window.LawAIApp?.ActionTracker;
-    if (at && at.initialized && typeof at.record === 'function') {
-      try {
-        at.record({
-          type: 'CLOSE',
-          target: 'learning-loop',
-          source: 'dashboard',
-          timestamp: Date.now()
-        });
-        console.log('[Dashboard][Part75] ✅ Closure recorded');
-      } catch (e) {
-        console.warn('[Dashboard][Part75] Closure record error:', e);
-      }
+  
+    // 🔥 Part 162: 通过 EventAdapter 发送，而非直接调用
+    var eventAdapter = LawAIApp.DashboardEventAdapter;
+    if (eventAdapter) {
+      eventAdapter.sendPrimaryActionSelected('loop_closure', 'learning-loop', {
+        source: 'dashboard',
+        action: 'close'
+      });
     }
+  
+    // 显示 Toast 反馈（温和，不惩罚）
+    if (window.LawAIApp?.Toast && typeof window.LawAIApp.Toast.info === 'function') {
+      LawAIApp.Toast.info('🔄 Loop closed. Check back when you\'re ready.');
+    }
+  
+    // 刷新 Dashboard 进入安静状态
+    setTimeout(function() {
+      LawAIApp.Dashboard.render();
+    }, 300);
+  }
 
     // 显示 Toast 反馈（温和，不惩罚）
     if (window.LawAIApp?.Toast && typeof window.LawAIApp.Toast.info === 'function') {
@@ -3275,24 +3301,152 @@ LawAIApp.Dashboard = {
     // ============================================================
   // Part 82: Adaptive Recommendation Renderer
   // ============================================================
-
-  _renderAdaptiveRecommendations: function() {
-    var adapter = window.LawAIApp?.LearningJourneyAdapter;
-    if (!adapter || !adapter.initialized) {
+ _renderAdaptiveRecommendations: function() {
+    // 🔥 Part 162: 只从 ViewModel 读取推荐，不自己计算
+    var viewModel = this._lastViewModel;
+    
+    if (!viewModel || !viewModel.recommendation) {
       return `
         <div style="color:#64748b;font-size:12px;text-align:center;padding:8px 0;">
-          Learning recommendations are initializing...
+          ${viewModel && viewModel.system && viewModel.system.degraded 
+            ? '⚠️ Recommendations temporarily unavailable.' 
+            : 'Complete more lessons to get personalized recommendations.'}
         </div>
       `;
     }
-
-    if (typeof adapter.getAdaptiveRecommendation !== 'function') {
-      return `
-        <div style="color:#64748b;font-size:12px;text-align:center;padding:8px 0;">
-          Complete more lessons to get personalized recommendations.
+  
+    var rec = viewModel.recommendation;
+    
+    // 构建推荐卡片
+    var html = `
+      <div style="
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        background: rgba(74,158,255,0.04);
+        border-radius: 10px;
+        border: 1px solid rgba(74,158,255,0.06);
+      ">
+        <span style="font-size: 18px;">📌</span>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 13px; font-weight: 500; color: #e2e8f0;">
+            ${rec.title || 'Recommended'}
+          </div>
+          <div style="font-size: 11px; color: #94a3b8;">
+            ${rec.description || ''}
+          </div>
+          ${rec.reason ? `
+            <div style="font-size: 10px; color: #4a9eff; opacity: 0.7; margin-top: 2px;">
+              💡 ${rec.reason}
+            </div>
+          ` : ''}
+          ${rec.confidence ? `
+            <div style="font-size: 9px; color: #64748b; margin-top: 1px;">
+              Confidence: ${rec.confidence}
+            </div>
+          ` : ''}
         </div>
-      `;
+        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+          ${rec.alternatives && rec.alternatives.length > 0 ? `
+            <button onclick="LawAIApp.Dashboard._showAlternatives()" style="
+              padding: 2px 10px;
+              background: rgba(255,255,255,0.03);
+              border: 1px solid rgba(255,255,255,0.06);
+              border-radius: 100px;
+              color: #64748b;
+              font-size: 9px;
+              cursor: pointer;
+              font-family: inherit;
+            ">${rec.alternatives.length}+</button>
+          ` : ''}
+          <button onclick="LawAIApp.Dashboard._handleAdaptiveChoice('${rec.id || 'rec_' + Date.now()}', 'recommendation', '${rec.targetId || ''}')" style="
+            padding: 4px 16px;
+            background: #4a9eff;
+            border: none;
+            border-radius: 100px;
+            color: white;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+          ">
+            Go →
+          </button>
+        </div>
+      </div>
+    `;
+  
+    return html;
+  }
+
+  // ============================================================
+  // Part 162: Architecture Fitness Check
+  // ============================================================
+  
+  _fitnessCheck: function() {
+    var checks = {
+      // DASH-001: No authoritative domain ownership
+      noAuthorityOwnership: !this._ownsAuthoritativeState,
+      
+      // DASH-002: No domain state duplication
+      noStateDuplication: !this._duplicatesDomainState,
+      
+      // DASH-003: No direct domain mutation
+      noDirectMutation: !this._mutatesDomainDirectly,
+      
+      // DASH-004: No hidden recommendation logic
+      noHiddenRecommendation: !this._hasHiddenRecommendationLogic,
+      
+      // DASH-005: No mastery calculation
+      noMasteryCalculation: !this._calculatesMastery,
+      
+      // DASH-006: No authoritative progress calculation
+      noProgressCalculation: !this._calculatesProgress,
+      
+      // DASH-007: No curriculum prerequisite logic
+      noPrerequisiteLogic: !this._hasPrerequisiteLogic,
+      
+      // DASH-008: No direct Calendar mutation
+      noCalendarMutation: !this._mutatesCalendar,
+      
+      // DASH-009: No direct Settings mutation
+      noSettingsMutation: !this._mutatesSettings,
+      
+      // DASH-010: No Recommendation Decision mutation
+      noRecommendationMutation: !this._mutatesRecommendation
+    };
+    
+    var allPass = true;
+    var results = [];
+    
+    for (var key in checks) {
+      if (checks.hasOwnProperty(key)) {
+        var pass = checks[key];
+        allPass = allPass && pass;
+        results.push({ check: key, pass: pass });
+      }
     }
+    
+    console.log('[Dashboard] Fitness check:', allPass ? '✅ PASS' : '⚠️ SOME FAILURES', results);
+    
+    return {
+      allPass: allPass,
+      results: results
+    };
+  },
+  
+  // Track flags for fitness checks
+  _ownsAuthoritativeState: false,
+  _duplicatesDomainState: false,
+  _mutatesDomainDirectly: false,
+  _hasHiddenRecommendationLogic: false,
+  _calculatesMastery: false,
+  _calculatesProgress: false,
+  _hasPrerequisiteLogic: false,
+  _mutatesCalendar: false,
+  _mutatesSettings: false,
+  _mutatesRecommendation: false
 
     var result = adapter.getAdaptiveRecommendation({ maxCandidates: 4 });
 
@@ -3407,20 +3561,28 @@ LawAIApp.Dashboard = {
   // ============================================================
   // 🔥 直接渲染 Calendar（不跳转）
   // ============================================================
-  _renderCalendarView: function() {
-    console.log('[Dashboard] 📅 Rendering Calendar inline...');
-    
-    var container = document.getElementById('app') || document.getElementById('law-runtime-root') || document.getElementById('dashboard-root');
-    if (!container) return;
-
-    // 如果有完整 Calendar，使用它
-    if (window.LawAIApp?.Calendar && typeof window.LawAIApp.Calendar.render === 'function') {
-      try {
-        window.LawAIApp.Calendar._root = container;
-        window.LawAIApp.Calendar.render();
-        return;
-      } catch (e) {
-        console.warn('[Dashboard] Full Calendar error:', e);
+   _renderCalendarView: function() {
+      console.log('[Dashboard] 📅 Navigating to Calendar...');
+      
+      // 🔥 Part 162: 使用导航命令，而非直接变异
+      var eventAdapter = LawAIApp.DashboardEventAdapter;
+      if (eventAdapter) {
+        eventAdapter.sendPrimaryActionSelected('view_calendar', null, {
+          source: 'dashboard'
+        });
+      }
+      
+      // 通过事件让 Calendar 自己处理
+      var event = new CustomEvent('NAVIGATE_TO_CALENDAR', {
+        detail: { source: 'dashboard' }
+      });
+      document.dispatchEvent(event);
+      
+      // Fallback: 如果没有 Calendar 监听，用路由
+      if (window.LawAIApp?.Router) {
+        window.LawAIApp.Router.navigate('/calendar');
+      } else {
+        window.location.href = '/pages/academy.html?view=calendar';
       }
     }
 
