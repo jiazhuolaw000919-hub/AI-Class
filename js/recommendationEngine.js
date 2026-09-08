@@ -1407,7 +1407,7 @@
         return outcomes;
     }
 
-    function getRecommendationQualityMetrics(options) {
+        function getRecommendationQualityMetrics(options) {
         options = options || {};
         var store = _getStore();
         var outcomes = store._outcomes || [];
@@ -1428,7 +1428,6 @@
                 failed: 0,
                 deferred: 0,
                 unknown: 0,
-                // 🔥 Part 142: 新增
                 overridden: 0,
                 challenged: 0
             },
@@ -1447,7 +1446,6 @@
             acceptanceRate: 0,
             completionRate: 0,
             helpfulRate: 0,
-            // 🔥 Part 142: 新增 Governance 指标
             governance: {
                 overrideRate: 0,
                 challengeRate: 0,
@@ -1455,16 +1453,6 @@
                 totalChallenges: 0
             }        
         };
-
-        // 在 switch 中添加:
-        case 'OVERRIDDEN': metrics.byStatus.overridden++; break;
-        case 'CHALLENGED': metrics.byStatus.challenged++; break;
-
-        // 在循环结束后计算 governance:
-        metrics.governance.totalOverrides = metrics.byStatus.overridden;
-        metrics.governance.totalChallenges = metrics.byStatus.challenged;
-        metrics.governance.overrideRate = Math.round((metrics.governance.totalOverrides / total) * 100);
-        metrics.governance.challengeRate = Math.round((metrics.governance.totalChallenges / total) * 100);
     
         for (var i = 0; i < outcomes.length; i++) {
             var o = outcomes[i];
@@ -1481,6 +1469,8 @@
                 case 'EXPIRED': metrics.byStatus.expired++; break;
                 case 'FAILED': metrics.byStatus.failed++; break;
                 case 'DEFERRED': metrics.byStatus.deferred++; break;
+                case 'OVERRIDDEN': metrics.byStatus.overridden++; break;
+                case 'CHALLENGED': metrics.byStatus.challenged++; break;
                 default: metrics.byStatus.unknown++;
             }
         }
@@ -1509,6 +1499,12 @@
         metrics.completionRate = Math.round((metrics.byStatus.completed / total) * 100);
         var helpfulTotal = metrics.feedback.helpful + metrics.feedback.notHelpful || 1;
         metrics.helpfulRate = Math.round((metrics.feedback.helpful / helpfulTotal) * 100);
+    
+        // 🔥 计算 governance 指标
+        metrics.governance.totalOverrides = metrics.byStatus.overridden;
+        metrics.governance.totalChallenges = metrics.byStatus.challenged;
+        metrics.governance.overrideRate = Math.round((metrics.governance.totalOverrides / total) * 100);
+        metrics.governance.challengeRate = Math.round((metrics.governance.totalChallenges / total) * 100);
     
         return metrics;
     }
@@ -2952,10 +2948,6 @@
     function refresh() {
         _cleanupExpired();
         return generateRecommendations({});
-    }
-
-    function exportData() {
-        return _getStore();
     }
 
     function exportData() {
