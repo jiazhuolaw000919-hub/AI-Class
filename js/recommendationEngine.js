@@ -1521,6 +1521,314 @@
     }
 
     // ============================================================
+    // 🔥 Part 143: Conflict Detection
+    // ============================================================
+
+    function detectCandidateConflicts(candidates, context) {
+        if (!candidates || candidates.length < 2) {
+            return { hasConflicts: false, conflicts: [] };
+        }
+        
+        var conflicts = [];
+    
+        // 1. 检测目标冲突 (同一个 target 的不同推荐)
+        var targetMap = {};
+        for (var i = 0; i < candidates.length; i++) {
+            var c = candidates[i];
+            if (!targetMap[c.targetId]) targetMap[c.targetId] = [];
+            targetMap[c.targetId].push(c);
+        }
+        for (var targetId in targetMap) {
+            if (targetMap[targetId].length > 1) {
+                conflicts.push({
+                    type: 'DUPLICATE_TARGET',
+                    targetId: targetId,
+                    candidates: targetMap[targetId],
+                    description: 'Multiple recommendations for the same target'
+                });
+            }
+        }
+    
+        // 2. 检测信号冲突
+        var signalTypes = {};
+        for (var i = 0; i < candidates.length; i++) {
+            var c = candidates[i];
+            var signals = c.signals || [];
+            for (var j = 0; j < signals.length; j++) {
+                if (!signalTypes[signals[j]]) signalTypes[signals[j]] = [];
+                signalTypes[signals[j]].push(c);
+            }
+        }
+    
+        // 如果同一个信号支持多个不同的候选，可能存在冲突
+        for (var signal in signalTypes) {
+            if (signalTypes[signal].length > 1) {
+                var uniqueTargets = {};
+                for (var i = 0; i < signalTypes[signal].length; i++) {
+                    uniqueTargets[signalTypes[signal][i].targetId] = true;
+                }
+                if (Object.keys(uniqueTargets).length > 1) {
+                    conflicts.push({
+                        type: 'SIGNAL_CONFLICT',
+                        signal: signal,
+                        candidates: signalTypes[signal],
+                        description: 'Same signal supports multiple different targets'
+                    });
+                }
+            }
+        }
+    
+        // 3. 检测类型冲突 (复习 vs 新内容)
+        var hasReview = false;
+        var hasNew = false;
+        var reviewCandidates = [];
+        var newCandidates = [];
+        for (var i = 0; i < candidates.length; i++) {
+            var c = candidates[i];
+            if (c.targetType === 'REVIEW' || c.signals.indexOf('REVIEW_DUE') !== -1) {
+                hasReview = true;
+                reviewCandidates.push(c);
+            } else if (c.targetType === 'LESSON' || c.source === 'CURRENT_PATH') {
+                hasNew = true;
+                newCandidates.push(c);
+            }
+        }
+        if (hasReview && hasNew) {
+            conflicts.push({
+                type: 'REVIEW_VS_NEW',
+                reviewCandidates: reviewCandidates,
+                newCandidates: newCandidates,
+                description: 'Review recommendation conflicts with new content progression'
+            });
+        }
+    
+        return {
+            hasConflicts: conflicts.length > 0,
+            conflicts: conflicts
+        };
+    }
+
+    // ============================================================
+    // 🔥 Part 143: Candidate Arbitration
+    // ============================================================
+
+    function arbitrateCandidates(candidates, context) {
+        context = context || _getAdaptiveContext();
+    
+        if (!candidates || candidates.length === 0) {
+            return {
+                primary: null,
+                alternatives: [],
+                selectionRationale: 'No candidates available',
+                comparisonContext: context,
+                constraints: [],
+                conflicts: { hasConflicts: false, conflicts: [] },
+                tradeoffs: [],
+                confidence: 'low',
+                uncertainty: 'high',
+                arbitrationVersion: '1.0.0',
+                generatedAt: Date.now()
+            };
+        }
+    
+        // 1. 检测冲突
+        var conflictResult = detectCandidateConflicts(candidates, context);
+    
+        // 2. 排序候选
+        var ranked = _rankCandidates(candidates, context, {});
+    
+        // 3. 选择主候选
+        var primary = ranked.length > 0 ? ranked[0] : null;
+        var alternatives = ranked.length > 1 ? ranked.slice(1) : [];
+    
+        // 4. 生成选择理由
+        var selectionRationale = _generateSelectionRationale(primary, alternatives, conflictResult, context);
+    
+        // 5. 生成权衡
+        var tradeoffs = _generateTradeoffs(primary, alternatives, context);
+    
+        // 6. 计算置信度
+        var confidence = _calculateArbitrationConfidence(primary, alternatives, conflictResult, context);
+        var uncertainty = _calculateArbitrationUncertainty(primary, alternatives, conflictResult, context);
+    
+        return {
+            primary: primary,
+            alternatives: alternatives,
+            selectionRationale: selectionRationale,
+            comparisonContext: context,
+            constraints: _getConstraints(primary, context),
+            conflicts: conflictResult,
+            tradeoffs: tradeoffs,
+            confidence: confidence,
+            uncertainty: uncertainty,
+            arbitrationVersion: '1.0.0',
+            generatedAt: Date.now()
+        };
+    }
+
+    function _generateSelectionRationale(primary, alternatives, conflictResult, context) {
+        if (!primary) {
+            return 'No candidate could be selected as primary.';
+        }
+    
+        var rationale = {
+            primaryReason: primary.signals && primary.signals.length > 0 ? primary.signals[0] : 'UNKNOWN',
+            supportingReasons: primary.signals && primary.signals.length > 1 ? primary.signals.slice(1) : [],
+            whyPrimary: '',
+            whyNotAlternatives: [],
+            evidenceSummary: []
+        };
+    
+        // 解释为什么选 primary
+        var reasonMap = {
+            'LOW_MASTERY': 'Addresses a knowledge gap that needs reinforcement',
+            'REVIEW_DUE': 'Due for review to maintain retention',
+            'GOAL_ALIGNED': 'Aligned with your current learning goal',
+            'CURRENT_COURSE': 'Part of your current learning path',
+            'PATH_CONTINUITY': 'Continues your learning progression',
+            'KNOWLEDGE_GAP': 'Addresses a specific knowledge gap',
+            'PREREQUISITE_BLOCKED': 'Required before proceeding'
+        };
+        var primarySignal = primary.signals && primary.signals.length > 0 ? primary.signals[0] : 'UNKNOWN';
+        rationale.whyPrimary = reasonMap[primarySignal] || 'Selected as the strongest current option.';
+    
+        // 解释为什么 alternatives 不是 primary
+        for (var i = 0; i < Math.min(alternatives.length, 2); i++) {
+            var alt = alternatives[i];
+            var altSignal = alt.signals && alt.signals.length > 0 ? alt.signals[0] : 'UNKNOWN';
+            rationale.whyNotAlternatives.push({
+                candidateId: alt.targetId,
+                reason: reasonMap[altSignal] || 'Other option considered',
+                whyNot: alt.priority < primary.priority ? 'Lower priority score' : 'Less direct relevance'
+            });
+        }
+    
+        // 证据摘要
+        if (primary.masteryLevel !== undefined) {
+            rationale.evidenceSummary.push({
+                type: 'MASTERY',
+                value: primary.masteryLevel,
+                description: 'Mastery level: ' + Math.round(primary.masteryLevel * 100) + '%'
+            });
+        }
+    
+        return rationale;
+    }
+
+    function _generateTradeoffs(primary, alternatives, context) {
+        var tradeoffs = [];
+    
+        if (!primary) return tradeoffs;
+    
+        // 如果选择 primary，放弃了什么？
+        if (alternatives.length > 0) {
+            var alt = alternatives[0];
+            tradeoffs.push({
+                selected: primary.targetId,
+                alternative: alt.targetId,
+                gained: primary.priority > alt.priority ? 'Higher priority based on current evidence' : 'Better fit for current context',
+                lost: primary.priority < alt.priority ? 'May not address all learning signals' : 'Alternative may offer different perspective'
+            });    
+        }
+    
+        // 如果 primary 是复习，权衡进度
+        if (primary.signals && primary.signals.indexOf('REVIEW_DUE') !== -1) {
+            tradeoffs.push({
+                type: 'REVIEW_PROGRESS_TRADE',
+                description: 'Reviewing now reinforces retention but slows progress on new content.',
+                benefit: 'Strengthens long-term retention',
+                cost: 'Takes time from new content'
+            });
+        }
+    
+        return tradeoffs;
+    }
+
+    function _calculateArbitrationConfidence(primary, alternatives, conflictResult, context) {
+        if (!primary) return 'low';
+    
+        var score = 0;
+        var maxScore = 0;
+    
+        // 1. 优先级 (0-40)
+        maxScore += 40;
+        score += Math.min(40, (primary.priority || 0) * 0.4);
+    
+        // 2. 冲突情况 (-20)
+        if (conflictResult.hasConflicts) {
+            maxScore += 20;
+            // 如果有冲突，降低置信度
+            var conflictPenalty = Math.min(20, conflictResult.conflicts.length * 5);
+            score = Math.max(0, score - conflictPenalty);
+        }
+    
+        // 3. 替代选项数量 (0-20)
+        maxScore += 20;
+        if (alternatives.length > 0) {
+            // 如果有多个好的替代，置信度降低 (因为选择不是唯一的)
+            var altPenalty = Math.min(15, alternatives.length * 3);
+            score = Math.max(0, score - altPenalty);
+        } else {
+            score += 10;
+        }
+    
+        // 4. 证据强度 (0-20)
+        maxScore += 20;
+        if (primary.masteryLevel !== undefined) {
+            var evidenceStrength = Math.abs(primary.masteryLevel - 0.5) * 2;
+            score += Math.min(20, evidenceStrength * 20);
+        }
+    
+        var ratio = maxScore > 0 ? score / maxScore : 0;
+    
+        if (ratio >= 0.7) return 'high';
+        if (ratio >= 0.4) return 'medium';
+        return 'low';
+    }    
+
+    function _calculateArbitrationUncertainty(primary, alternatives, conflictResult, context) {
+        if (!primary) return 'high';
+    
+        var uncertaintyScore = 0;
+    
+        // 1. 冲突增加不确定性
+        if (conflictResult.hasConflicts) {
+            uncertaintyScore += conflictResult.conflicts.length * 0.2;
+        }
+    
+        // 2. 多个替代增加不确定性
+        if (alternatives.length > 2) {
+            uncertaintyScore += 0.2;
+        } else if (alternatives.length > 0) {
+            uncertaintyScore += 0.1;
+        }
+    
+        // 3. 低置信度增加不确定性
+        var confidence = _calculateArbitrationConfidence(primary, alternatives, conflictResult, context);
+        if (confidence === 'low') uncertaintyScore += 0.3;
+        if (confidence === 'medium') uncertaintyScore += 0.1;
+        
+        if (uncertaintyScore >= 0.6) return 'high';
+        if (uncertaintyScore >= 0.3) return 'medium';
+        return 'low';
+    }    
+
+    function _getConstraints(primary, context) {
+        var constraints = [];
+        
+        // 检查硬约束
+        if (primary && primary.targetType === 'PREREQUISITE') {
+            constraints.push({
+                type: 'hard',
+                source: 'curriculum',
+                description: 'This is a prerequisite requirement'
+            });
+        }
+    
+        return constraints;
+    }
+
+    // ============================================================
     // REASON GENERATION
     // ============================================================
 
@@ -1732,6 +2040,52 @@
     }
 
     // ============================================================
+    // 🔥 Part 143: Public Arbitration API
+    // ============================================================
+
+    function arbitrateRecommendations(context, options) {
+        options = options || {};
+        context = context || _getAdaptiveContext();
+    
+        // 1. 生成候选
+        var candidates = _discoverCandidates(context, options);
+        if (!candidates || candidates.length === 0) {
+            return {
+                success: false,
+                message: 'No candidates available',
+                arbitration: null
+            };    
+        }
+    
+        // 2. 过滤候选
+        var filtered = _filterCandidates(candidates, context, options);
+        if (!filtered || filtered.length === 0) {
+            return {
+                success: false,
+                message: 'No candidates passed validation',
+                arbitration: null
+            };
+        }
+    
+        // 3. 仲裁
+        var arbitration = arbitrateCandidates(filtered, context);
+    
+        // 4. 触发事件
+        _emit('RECOMMENDATION_ARBITRATED', {
+            primary: arbitration.primary ? arbitration.primary.targetId : null,
+            alternativeCount: arbitration.alternatives ? arbitration.alternatives.length : 0,
+            confidence: arbitration.confidence,
+            arbitrationVersion: arbitration.arbitrationVersion,
+            generatedAt: arbitration.generatedAt
+        });
+    
+        return {
+            success: true,
+            arbitration: arbitration
+        };
+    }
+
+    // ============================================================
     // PUBLIC: Reset / Export / Import
     // ============================================================
 
@@ -1864,6 +2218,9 @@
                 recordRecommendationOverride: recordRecommendationOverride,
                 recordRecommendationChallenge: recordRecommendationChallenge,
                 getRecommendationGovernance: getRecommendationGovernance,
+                arbitrateRecommendations: arbitrateRecommendations,
+                detectCandidateConflicts: detectCandidateConflicts,
+                arbitrateCandidates: arbitrateCandidates,
 
                 getStatus: getStatus,
 
