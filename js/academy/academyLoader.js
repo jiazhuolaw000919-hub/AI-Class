@@ -362,6 +362,229 @@
     }
 
     // ============================================================
+    // Part 164: Academy UI Helpers (从 academy.html 移入)
+    // ============================================================
+    
+    /**
+     * 创建内联 Calendar (Fallback)
+     */
+    _createInlineCalendar: function() {
+        return {
+            currentYear: new Date().getFullYear(),
+            currentMonth: new Date().getMonth(),
+    
+            render: function(container) {
+                if (!container) container = document.getElementById('academy-root');
+                if (!container) return;
+    
+                var monthName = new Date(this.currentYear, this.currentMonth).toLocaleString('default', { month: 'long' });
+                var daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+                var firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
+    
+                var gridHTML = '';
+                for (var i = 0; i < firstDay; i++) gridHTML += '<div></div>';
+                for (var d = 1; d <= daysInMonth; d++) {
+                    var isToday = d === new Date().getDate() && 
+                                    this.currentMonth === new Date().getMonth() && 
+                                    this.currentYear === new Date().getFullYear();
+                    gridHTML += '<div style="padding:12px 6px;text-align:center;border-radius:8px;background:' + 
+                        (isToday ? 'rgba(74,158,255,0.15)' : 'rgba(255,255,255,0.03)') + 
+                        ';border:1px solid ' + (isToday ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.04)') + 
+                        ';color:' + (isToday ? '#4a9eff' : '#e2e8f0') + 
+                        ';font-size:14px;cursor:pointer;font-family:inherit;" onclick="LawAIApp.AcademyLoader._onDayClick(' + d + ')">' + d + '</div>';
+                }
+    
+                container.innerHTML = `
+                    <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+                            <button onclick="window.location.href='/pages/academy.html'" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">← Back to Academy</button>
+                            <button onclick="history.back()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">⬅️ 返回上一页</button>
+                        </div>
+                        <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">📅 Calendar</h2>
+                        <p style="color:#94a3b8;margin:0 0 20px;">${monthName} ${this.currentYear}</p>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                            <button onclick="LawAIApp.AcademyLoader._inlineCalendarChangeMonth(-1)" style="padding:8px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;cursor:pointer;font-family:inherit;">←</button>
+                            <span style="font-weight:600;font-size:18px;">${monthName} ${this.currentYear}</span>
+                            <button onclick="LawAIApp.AcademyLoader._inlineCalendarChangeMonth(1)" style="padding:8px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;cursor:pointer;font-family:inherit;">→</button>
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:12px;color:#64748b;margin-bottom:8px;">
+                            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">${gridHTML}</div>
+                    </div>
+                `;
+            },
+    
+            changeMonth: function(delta) {
+                this.currentMonth += delta;
+                if (this.currentMonth > 11) { this.currentMonth = 0; this.currentYear++; }
+                if (this.currentMonth < 0) { this.currentMonth = 11; this.currentYear--; }
+                this.render();
+            },
+    
+            _onDayClick: function(day) {
+                if (window.LawAIApp?.Toast?.info) {
+                    LawAIApp.Toast.info('📅 Day ' + day + ' selected');
+                }
+            }
+        };
+    },
+    
+    _inlineCalendarChangeMonth: function(delta) {
+        var cal = window.LawAIApp?.AcademyLoader?._inlineCalendar;
+        if (cal) {
+            cal.changeMonth(delta);
+        }
+    },
+    
+    _onDayClick: function(day) {
+        if (window.LawAIApp?.Toast?.info) {
+            LawAIApp.Toast.info('📅 Day ' + day + ' selected');
+        }
+    },
+    
+    /**
+     * 创建内联 Settings (Fallback)
+     */
+    _createInlineSettings: function() {
+        return {
+            render: function(container) {
+                if (!container) container = document.getElementById('academy-root');
+                if (!container) return;
+    
+                container.innerHTML = `
+                    <div style="max-width:700px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
+                            <button onclick="window.location.href='/pages/academy.html'" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">← Back to Academy</button>
+                        </div>
+                        <h2 style="margin:0 0 20px;font-size:24px;font-weight:700;">⚙️ Settings</h2>
+                        <div style="display:flex;flex-direction:column;gap:12px;">
+                            <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+                                <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">👤 Profile</h3>
+                                <p style="margin:0;color:#94a3b8;font-size:13px;">Manage your profile settings</p>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+                                <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">🎯 Learning Preferences</h3>
+                                <p style="margin:0;color:#94a3b8;font-size:13px;">Adjust your learning preferences</p>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+                                <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">🔔 Notifications</h3>
+                                <p style="margin:0;color:#94a3b8;font-size:13px;">Manage notification settings</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        };
+    },
+    
+    /**
+     * 渲染 Calendar (主入口)
+     */
+    renderCalendar: function(container, onReady, onError) {
+        if (!container) container = document.getElementById('academy-root');
+        if (!container) {
+            if (onError) onError('Container not found');
+            return;
+        }
+    
+        // 显示加载状态
+        container.innerHTML = `
+            <div class="calendar-loader" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#94a3b8;text-align:center;">
+                <div style="font-size:48px;margin-bottom:16px;animation:pulse 2s ease-in-out infinite;">📅</div>
+                <div style="width:40px;height:40px;border:3px solid rgba(74,158,255,0.12);border-top-color:#4a9eff;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:16px;"></div>
+                <p>Loading Calendar...</p>
+            </div>
+        `;
+    
+        var self = this;
+    
+        // 使用 AcademyLoader 加载 Calendar
+        if (this.loadCalendarLazy) {
+            this.loadCalendarLazy(function(calendar) {
+                if (container) {
+                    calendar._root = container;
+                    calendar.render();
+                    if (onReady) onReady(calendar);
+                }
+            }, function(error) {
+                console.warn('[AcademyLoader] Calendar load failed:', error);
+                // Fallback: 内联 Calendar
+                var inlineCal = self._createInlineCalendar();
+                self._inlineCalendar = inlineCal;
+                inlineCal.render(container);
+                if (onError) onError(error);
+            });
+        } else {
+            // Fallback
+            var inlineCal = this._createInlineCalendar();
+            this._inlineCalendar = inlineCal;
+            inlineCal.render(container);
+            if (onReady) onReady(inlineCal);
+        }
+    },
+    
+    /**
+     * 渲染 Settings (主入口)
+     */
+    renderSettings: function(container, onReady, onError) {
+        if (!container) container = document.getElementById('academy-root');
+        if (!container) {
+            if (onError) onError('Container not found');
+            return;
+        }
+    
+        // 如果 Settings 已加载
+        if (window.LawAIApp?.Settings && typeof window.LawAIApp.Settings.render === 'function') {
+            try {
+                window.LawAIApp.Settings.render();
+                if (onReady) onReady(window.LawAIApp.Settings);
+                return;
+            } catch (e) {
+                console.warn('[AcademyLoader] Settings render error:', e);
+            }
+        }
+    
+        container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Settings...</div>';
+    
+        var self = this;
+    
+        if (this.loadSettingsLazy) {
+            this.loadSettingsLazy(function(settings) {
+                if (container) {
+                    try { settings.render(); if (onReady) onReady(settings); } catch (e) {}
+                }
+            }, function(error) {
+                console.warn('[AcademyLoader] Settings load failed:', error);
+                // Fallback
+                var inlineSettings = self._createInlineSettings();
+                inlineSettings.render(container);
+                if (onError) onError(error);
+            });
+        } else {
+            // Fallback
+            var inlineSettings = this._createInlineSettings();
+            inlineSettings.render(container);
+            if (onReady) onReady(inlineSettings);
+        }
+    },
+    
+    /**
+     * 更新导航高亮
+     */
+    updateNavHighlight: function(activeTab) {
+        document.querySelectorAll('.nav-item').forEach(function(nav) {
+            if (nav.dataset.tab === activeTab) {
+                nav.style.color = '#4a9eff';
+                nav.classList.add('active');
+            } else {
+                nav.style.color = '#64748b';
+                nav.classList.remove('active');
+            }
+        });
+    },
+
+    // ============================================================
     // PRIVATE — 启动逻辑
     // ============================================================
 
