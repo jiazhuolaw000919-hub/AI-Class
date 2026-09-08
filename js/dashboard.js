@@ -1704,17 +1704,6 @@ LawAIApp.Dashboard = {
     setTimeout(function() {
       LawAIApp.Dashboard.render();
     }, 300);
-  }
-
-    // 显示 Toast 反馈（温和，不惩罚）
-    if (window.LawAIApp?.Toast && typeof window.LawAIApp.Toast.info === 'function') {
-      LawAIApp.Toast.info('🔄 Loop closed. Check back when you\'re ready.');
-    }
-
-    // 刷新 Dashboard 进入安静状态
-    setTimeout(function() {
-      LawAIApp.Dashboard.render();
-    }, 300);
   },
 
   // ============================================================
