@@ -1,6 +1,6 @@
 // js/academy/academyLoader.js
 // Part 57.4-57.6 REBUILD — AcademyLoader Architecture Reset
-// v2.1.0 — 添加 Calendar/Settings/CalendarAuthority 懒加载支持
+// v2.1.0 — 添加 Calendar/Settings/CalendarAuthority/NotesAuthority 懒加载支持
 
 (function() {
   'use strict';
@@ -31,13 +31,13 @@
           calendar: false,
           settings: false,
           calendarAuthority: false,
-          notesAuthority: false  // Part 164
+          notesAuthority: false
       };
       this._lazyLoading = {
           calendar: false,
           settings: false,
           calendarAuthority: false,
-          notesAuthority: false  // Part 164
+          notesAuthority: false
       };
     
       this._moduleChecks = {
@@ -64,10 +64,6 @@
         notes: function() { return !!(window.LawAIApp && window.LawAIApp.Notes); }
       };
     }
-
-    // ============================================================
-    // 1. PUBLIC API
-    // ============================================================
 
     async start() {
       if (this.status === 'ready') {
@@ -111,10 +107,6 @@
       this._manifest = null;
       return this.start();
     }
-
-    // ============================================================
-    // 🔥 Calendar 懒加载（依赖 CalendarAuthority）
-    // ============================================================
 
     loadCalendarLazy(onReady, onFail) {
         var moduleName = 'calendar';
@@ -200,9 +192,6 @@
       }.bind(this));
     }
 
-    // ============================================================
-    // 🔥 Part 163: CalendarAuthority 懒加载
-    // ============================================================
     loadCalendarAuthority(onReady, onFail) {
         var moduleName = 'calendarAuthority';
         if (this._lazyLoaded[moduleName]) {
@@ -258,13 +247,9 @@
                 if (onFail) onFail('Timeout waiting for CalendarAuthority');
             }
         }, 100);
-    },
+    }
 
-    // ============================================================
-    // Part 164: NotesAuthority 懒加载
-    // ============================================================
-    
-    loadNotesAuthority: function(onReady, onFail) {
+    loadNotesAuthority(onReady, onFail) {
         var moduleName = 'notesAuthority';
         if (this._lazyLoaded[moduleName]) {
             console.log('[AcademyLoader] ⏭️ NotesAuthority already lazy-loaded');
@@ -300,9 +285,9 @@
                 if (onFail) onFail('NotesAuthority load failed');
             }
         }.bind(this));
-    },
+    }
     
-    _waitForNotesAuthority: function(onReady, onFail) {
+    _waitForNotesAuthority(onReady, onFail) {
         var attempts = 0;
         var maxAttempts = 50;
         var interval = setInterval(function() {
@@ -319,56 +304,13 @@
                 if (onFail) onFail('Timeout waiting for NotesAuthority');
             }
         }, 100);
-    },
+    }
 
     isLazyLoaded(moduleName) {
       return !!this._lazyLoaded[moduleName];
     }
 
-    // ============================================================
-    // 🔥 内部：顺序加载脚本
-    // ============================================================
-
-    _loadScriptsSequentially(files, callback) {
-      var loaded = 0;
-      var failed = [];
-      files.forEach(function(file) {
-        var script = document.createElement('script');
-        script.src = file + '?v=' + Date.now();
-        script.async = true;
-        script.onload = function() {
-          loaded++;
-          console.log('[AcademyLoader] ✅ Loaded:', file);
-          checkComplete();
-        };
-        script.onerror = function() {
-          loaded++;
-          failed.push(file);
-          console.warn('[AcademyLoader] ❌ Failed:', file);
-          checkComplete();
-        };
-        document.head.appendChild(script);
-      });
-      function checkComplete() {
-        if (loaded < files.length) return;
-        var success = failed.length === 0;
-        if (success) {
-          console.log('[AcademyLoader] ✅ All files loaded');
-        } else {
-          console.warn('[AcademyLoader] ⚠️ Some files failed:', failed);
-        }
-        callback(success);
-      }
-    }
-
-    // ============================================================
-    // Part 164: Academy UI Helpers (从 academy.html 移入)
-    // ============================================================
-    
-    /**
-     * 创建内联 Calendar (Fallback)
-     */
-    _createInlineCalendar: function() {
+    _createInlineCalendar() {
         return {
             currentYear: new Date().getFullYear(),
             currentMonth: new Date().getMonth(),
@@ -391,7 +333,7 @@
                         (isToday ? 'rgba(74,158,255,0.15)' : 'rgba(255,255,255,0.03)') + 
                         ';border:1px solid ' + (isToday ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.04)') + 
                         ';color:' + (isToday ? '#4a9eff' : '#e2e8f0') + 
-                        ';font-size:14px;cursor:pointer;font-family:inherit;" onclick="LawAIApp.AcademyLoader._onDayClick(' + d + ')">' + d + '</div>';
+                        ';font-size:14px;cursor:pointer;font-family:inherit;">' + d + '</div>';
                 }
     
                 container.innerHTML = `
@@ -420,33 +362,20 @@
                 if (this.currentMonth > 11) { this.currentMonth = 0; this.currentYear++; }
                 if (this.currentMonth < 0) { this.currentMonth = 11; this.currentYear--; }
                 this.render();
-            },
-    
-            _onDayClick: function(day) {
-                if (window.LawAIApp?.Toast?.info) {
-                    LawAIApp.Toast.info('📅 Day ' + day + ' selected');
-                }
             }
         };
-    },
+    }
     
-    _inlineCalendarChangeMonth: function(delta) {
+    _inlineCalendarChangeMonth(delta) {
         var cal = window.LawAIApp?.AcademyLoader?._inlineCalendar;
-        if (cal) {
-            cal.changeMonth(delta);
-        }
-    },
+        if (cal) cal.changeMonth(delta);
+    }
     
-    _onDayClick: function(day) {
-        if (window.LawAIApp?.Toast?.info) {
-            LawAIApp.Toast.info('📅 Day ' + day + ' selected');
-        }
-    },
+    _onDayClick(day) {
+        if (window.LawAIApp?.Toast?.info) LawAIApp.Toast.info('📅 Day ' + day + ' selected');
+    }
     
-    /**
-     * 创建内联 Settings (Fallback)
-     */
-    _createInlineSettings: function() {
+    _createInlineSettings() {
         return {
             render: function(container) {
                 if (!container) container = document.getElementById('academy-root');
@@ -476,30 +405,16 @@
                 `;
             }
         };
-    },
+    }
     
-    /**
-     * 渲染 Calendar (主入口)
-     */
-    renderCalendar: function(container, onReady, onError) {
+    renderCalendar(container, onReady, onError) {
         if (!container) container = document.getElementById('academy-root');
-        if (!container) {
-            if (onError) onError('Container not found');
-            return;
-        }
+        if (!container) { if (onError) onError('Container not found'); return; }
     
-        // 显示加载状态
-        container.innerHTML = `
-            <div class="calendar-loader" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:#94a3b8;text-align:center;">
-                <div style="font-size:48px;margin-bottom:16px;animation:pulse 2s ease-in-out infinite;">📅</div>
-                <div style="width:40px;height:40px;border:3px solid rgba(74,158,255,0.12);border-top-color:#4a9eff;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:16px;"></div>
-                <p>Loading Calendar...</p>
-            </div>
-        `;
+        container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Calendar...</div>';
     
         var self = this;
     
-        // 使用 AcademyLoader 加载 Calendar
         if (this.loadCalendarLazy) {
             this.loadCalendarLazy(function(calendar) {
                 if (container) {
@@ -508,41 +423,25 @@
                     if (onReady) onReady(calendar);
                 }
             }, function(error) {
-                console.warn('[AcademyLoader] Calendar load failed:', error);
-                // Fallback: 内联 Calendar
                 var inlineCal = self._createInlineCalendar();
                 self._inlineCalendar = inlineCal;
                 inlineCal.render(container);
                 if (onError) onError(error);
             });
         } else {
-            // Fallback
             var inlineCal = this._createInlineCalendar();
             this._inlineCalendar = inlineCal;
             inlineCal.render(container);
             if (onReady) onReady(inlineCal);
         }
-    },
+    }
     
-    /**
-     * 渲染 Settings (主入口)
-     */
-    renderSettings: function(container, onReady, onError) {
+    renderSettings(container, onReady, onError) {
         if (!container) container = document.getElementById('academy-root');
-        if (!container) {
-            if (onError) onError('Container not found');
-            return;
-        }
+        if (!container) { if (onError) onError('Container not found'); return; }
     
-        // 如果 Settings 已加载
         if (window.LawAIApp?.Settings && typeof window.LawAIApp.Settings.render === 'function') {
-            try {
-                window.LawAIApp.Settings.render();
-                if (onReady) onReady(window.LawAIApp.Settings);
-                return;
-            } catch (e) {
-                console.warn('[AcademyLoader] Settings render error:', e);
-            }
+            try { window.LawAIApp.Settings.render(); if (onReady) onReady(window.LawAIApp.Settings); return; } catch (e) {}
         }
     
         container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Settings...</div>';
@@ -551,28 +450,20 @@
     
         if (this.loadSettingsLazy) {
             this.loadSettingsLazy(function(settings) {
-                if (container) {
-                    try { settings.render(); if (onReady) onReady(settings); } catch (e) {}
-                }
+                try { settings.render(); if (onReady) onReady(settings); } catch (e) {}
             }, function(error) {
-                console.warn('[AcademyLoader] Settings load failed:', error);
-                // Fallback
                 var inlineSettings = self._createInlineSettings();
                 inlineSettings.render(container);
                 if (onError) onError(error);
             });
         } else {
-            // Fallback
             var inlineSettings = this._createInlineSettings();
             inlineSettings.render(container);
             if (onReady) onReady(inlineSettings);
         }
-    },
+    }
     
-    /**
-     * 更新导航高亮
-     */
-    updateNavHighlight: function(activeTab) {
+    updateNavHighlight(activeTab) {
         document.querySelectorAll('.nav-item').forEach(function(nav) {
             if (nav.dataset.tab === activeTab) {
                 nav.style.color = '#4a9eff';
@@ -582,11 +473,24 @@
                 nav.classList.remove('active');
             }
         });
-    },
+    }
 
-    // ============================================================
-    // PRIVATE — 启动逻辑
-    // ============================================================
+    _loadScriptsSequentially(files, callback) {
+      var loaded = 0;
+      var failed = [];
+      files.forEach(function(file) {
+        var script = document.createElement('script');
+        script.src = file + '?v=' + Date.now();
+        script.async = true;
+        script.onload = function() { loaded++; checkComplete(); };
+        script.onerror = function() { loaded++; failed.push(file); checkComplete(); };
+        document.head.appendChild(script);
+      });
+      function checkComplete() {
+        if (loaded < files.length) return;
+        callback(failed.length === 0);
+      }
+    }
 
     async _doStart() {
       this.startTime = Date.now();
@@ -600,70 +504,55 @@
         this.health = 'healthy';
         this.endTime = Date.now();
         this._broadcast('ACADEMY_READY', { status: this.status, version: this.version, loaded: this.loadedModules, failed: this.failedModules, duration: this.endTime - this.startTime });
-        console.log('[AcademyLoader] ✅ Academy ready in', this.endTime - this.startTime, 'ms');
-        console.log('[AcademyLoader] 📦 Loaded:', this.loadedModules.length, 'modules');
+        console.log('[AcademyLoader] ✅ Academy ready');
         return this.getStatus();
       } catch (error) {
         this.status = 'failed';
         this.health = 'unhealthy';
         console.error('[AcademyLoader] ❌ Startup failed:', error);
-        this._broadcast('ACADEMY_FAILED', { error: error.message, loaded: this.loadedModules, failed: this.failedModules });
+        this._broadcast('ACADEMY_FAILED', { error: error.message });
         throw error;
       }
     }
 
     async _loadManifest() {
-      console.log('[AcademyLoader] 📋 Loading Manifest...');
       const manifest = window.LawAIApp?.AcademyManifest;
       if (!manifest) {
-        console.warn('[AcademyLoader] Manifest not found, using default modules');
         this._manifest = this._getDefaultManifest();
         return;
       }
       this._manifest = manifest;
-      console.log('[AcademyLoader] ✅ Manifest loaded (v' + manifest.version + ')');
-      console.log('[AcademyLoader] 📦 Modules defined:', manifest.modules?.length || 0);
     }
 
     async _loadModules() {
       const modules = this._manifest?.modules || [];
-      if (modules.length === 0) {
-        console.warn('[AcademyLoader] No modules to load');
-        return;
-      }
-      console.log('[AcademyLoader] 📦 Loading', modules.length, 'modules...');
       for (let i = 0; i < modules.length; i++) {
         const module = modules[i];
         if (!module || !module.id) continue;
         const result = await this._loadSingleModule(module);
-        if (result.success) {
-          this.loadedModules.push(module.id);
-        } else {
-          this.failedModules.push(module.id);
-        }
+        if (result.success) this.loadedModules.push(module.id);
+        else this.failedModules.push(module.id);
       }
       this._broadcast('ACADEMY_MODULES_READY', { loaded: this.loadedModules, failed: this.failedModules, total: modules.length });
     }
 
     async _loadSingleModule(module) {
-      if (!module || !module.id) return { success: false, error: 'Invalid module: missing id' };
-      const exists = this._checkModuleExists(module.id);
-      if (exists) return { success: true };
-      if (!module.path) return { success: false, error: 'No path specified' };
+      if (!module || !module.id) return { success: false, error: 'Invalid module' };
+      if (this._checkModuleExists(module.id)) return { success: true };
+      if (!module.path) return { success: false, error: 'No path' };
       return new Promise((resolve) => {
         const script = document.createElement('script');
         script.src = module.path;
         script.async = false;
         let resolved = false;
-        const timeout = setTimeout(() => { if (resolved) return; resolved = true; resolve({ success: false, error: 'Timeout' }); }, 10000);
+        const timeout = setTimeout(() => { if (!resolved) { resolved = true; resolve({ success: false, error: 'Timeout' }); } }, 10000);
         script.onload = function() {
           if (resolved) return;
           resolved = true;
           clearTimeout(timeout);
-          const existsAfter = this._checkModuleExists(module.id);
-          resolve(existsAfter ? { success: true } : { success: false, error: 'Not registered' });
+          resolve(this._checkModuleExists(module.id) ? { success: true } : { success: false, error: 'Not registered' });
         }.bind(this);
-        script.onerror = function() { if (resolved) return; resolved = true; clearTimeout(timeout); resolve({ success: false, error: 'Load error' }); }.bind(this);
+        script.onerror = function() { if (!resolved) { resolved = true; clearTimeout(timeout); resolve({ success: false, error: 'Load error' }); } };
         document.head.appendChild(script);
       });
     }
@@ -744,6 +633,7 @@
           { id: 'agencyPanel', path: '/js/debug/panels/agencyPanel.js' },
           { id: 'experienceContract', path: '/js/academy/experienceContract.js' },
           { id: 'calendarAuthority', path: '/js/calendar/CalendarAuthority.js' },
+          { id: 'notesAuthority', path: '/js/notes/NotesAuthority.js' },
           { id: 'surfaceIntegration', path: '/js/academy/surfaceIntegration.js' }
         ]
       };
@@ -753,7 +643,6 @@
       const eventName = 'academy:' + event.toLowerCase();
       try { const e = new CustomEvent(eventName, { detail: data || {} }); document.dispatchEvent(e); window.dispatchEvent(e); } catch (err) {}
       try { if (window.LawAIApp?.EventBus?.emit) window.LawAIApp.EventBus.emit(eventName, data); } catch (err) {}
-      console.log('[AcademyLoader] 📡 Event:', event);
     }
 
     healthCheck() {
@@ -769,25 +658,18 @@
             lazyLoading: this._lazyLoading,
             calendarAuthority: {
                 initialized: auth ? auth.initialized : false,
-                loading: auth ? auth.loading : false,
                 isReady: auth ? auth.isReady : false,
                 scheduleCount: auth && auth.isReady ? auth.getAllSchedules().length : 0
             },
-            notesAuthority: {   // ← 新增
-              initialized: notesAuth ? notesAuth.initialized : false,
-              loading: notesAuth ? notesAuth.loading : false,
-              isReady: notesAuth ? notesAuth.isReady : false,
-              noteCount: notesAuth && notesAuth.isReady ? notesAuth.getAllNotes().length : 0
-          }
+            notesAuthority: {
+                initialized: notesAuth ? notesAuth.initialized : false,
+                isReady: notesAuth ? notesAuth.isReady : false
+            }
         };
     }
 
     async recover() {
-      console.log('[AcademyLoader] 🔧 Attempting recovery...');
-      if (this.status === 'ready') {
-        console.log('[AcademyLoader] Already ready, no recovery needed');
-        return this.getStatus();
-      }
+      if (this.status === 'ready') return this.getStatus();
       this.status = 'idle';
       this.health = 'pending';
       this.started = false;
@@ -796,9 +678,6 @@
     }
   }
 
-  // ============================================================
-  // Export
-  // ============================================================
   if (!window.LawAIApp) window.LawAIApp = {};
   const academyLoader = new AcademyLoader();
   window.LawAIApp.AcademyLoader = academyLoader;
@@ -808,12 +687,8 @@
   }
   console.log('[AcademyLoader] ✅ Module loaded (v' + academyLoader.version + ')');
 
-  // ============================================================
-  // Auto-start
-  // ============================================================
   function autoStartAcademy() {
     if (academyLoader.status === 'ready' || academyLoader.status === 'loading') return;
-    console.log('[AcademyLoader] 🔥 Auto-starting...');
     academyLoader.start().catch(function(e) { console.warn('[AcademyLoader] Auto-start failed:', e); });
   }
   var scheduleFn = window.requestIdleCallback || function(cb) { setTimeout(cb, 300); };
