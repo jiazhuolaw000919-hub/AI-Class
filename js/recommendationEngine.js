@@ -24,7 +24,9 @@
         COMPLETED: 'COMPLETED',
         DISMISSED: 'DISMISSED',
         EXPIRED: 'EXPIRED',
-        SKIPPED: 'SKIPPED'
+        SKIPPED: 'SKIPPED',
+        DEFERRED: 'DEFERRED', 
+        MODIFIED: 'MODIFIED'
     };
 
     var STATE_LABELS = {
