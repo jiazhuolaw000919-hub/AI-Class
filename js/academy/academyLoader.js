@@ -28,16 +28,18 @@
       this._manifest = null;
 
       this._lazyLoaded = {
-        calendar: false,
-        settings: false,
-        calendarAuthority: false
+          calendar: false,
+          settings: false,
+          calendarAuthority: false,
+          notesAuthority: false  // Part 164
       };
       this._lazyLoading = {
-        calendar: false,
-        settings: false,
-        calendarAuthority: false
+          calendar: false,
+          settings: false,
+          calendarAuthority: false,
+          notesAuthority: false  // Part 164
       };
-
+    
       this._moduleChecks = {
         academyExperienceManager: function() { return !!(window.LawAIApp && window.LawAIApp.AcademyExperienceManager); },
         academyView: function() { return !!(window.LawAIApp && window.LawAIApp.AcademyView); },
@@ -257,6 +259,67 @@
             }
         }, 100);
     }
+
+    // ============================================================
+    // Part 164: NotesAuthority 懒加载
+    // ============================================================
+    
+    loadNotesAuthority: function(onReady, onFail) {
+        var moduleName = 'notesAuthority';
+        if (this._lazyLoaded[moduleName]) {
+            console.log('[AcademyLoader] ⏭️ NotesAuthority already lazy-loaded');
+            if (onReady) onReady(window.LawAIApp?.NotesAuthority);
+            return;
+        }
+        if (this._lazyLoading[moduleName]) {
+            console.log('[AcademyLoader] ⏳ NotesAuthority already loading...');
+            this._waitForNotesAuthority(onReady, onFail);
+            return;
+        }
+        this._lazyLoading[moduleName] = true;
+        console.log('[AcademyLoader] 🔄 Lazy loading NotesAuthority...');
+    
+        var files = ['/js/notes/NotesAuthority.js'];
+    
+        this._loadScriptsSequentially(files, function(success) {
+            this._lazyLoading[moduleName] = false;
+            if (success && window.LawAIApp?.NotesAuthority) {
+                this._lazyLoaded[moduleName] = true;
+                console.log('[AcademyLoader] ✅ NotesAuthority loaded');
+    
+                var auth = window.LawAIApp.NotesAuthority;
+                if (auth.initialized) {
+                    if (onReady) onReady(auth);
+                } else {
+                    auth.onReady(function(readyAuth) {
+                        if (onReady) onReady(readyAuth);
+                    });
+                }
+            } else {
+                console.warn('[AcademyLoader] ⚠️ NotesAuthority load failed');
+                if (onFail) onFail('NotesAuthority load failed');
+            }
+        }.bind(this));
+    },
+    
+    _waitForNotesAuthority: function(onReady, onFail) {
+        var attempts = 0;
+        var maxAttempts = 50;
+        var interval = setInterval(function() {
+            attempts++;
+            var auth = window.LawAIApp?.NotesAuthority;
+            if (auth && auth.initialized) {
+                clearInterval(interval);
+                if (onReady) onReady(auth);
+                return;
+            }
+            if (attempts >= maxAttempts) {
+                clearInterval(interval);
+                console.warn('[AcademyLoader] ⏰ NotesAuthority wait timeout');
+                if (onFail) onFail('Timeout waiting for NotesAuthority');
+            }
+        }, 100);
+    },
 
     isLazyLoaded(moduleName) {
       return !!this._lazyLoaded[moduleName];
