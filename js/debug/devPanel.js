@@ -154,6 +154,20 @@ LawAIApp.Debug.DevPanel = {
             if (LawAIApp.Debug.Panels && LawAIApp.Debug.Panels.SurfacePanel) {
                 this.registerPanel('surface', LawAIApp.Debug.Panels.SurfacePanel, 'surface-panel-placeholder', 950);
         }
+
+        // 如果 DevPanel 支持外部面板注册
+        if (window.LawAIApp?.DevPanel?.registerPanel) {
+            window.LawAIApp.DevPanel.registerPanel({
+                id: 'architecture',
+                label: '🏛️ Architecture',
+                priority: 5,
+                render: function(container) {
+                    if (window.LawAIApp?.DevPanel?.Panels?.Architecture) {
+                        window.LawAIApp.DevPanel.Panels.Architecture.render(container);
+                    }
+                }
+            });
+        }
     },
 
     // ============================================================
