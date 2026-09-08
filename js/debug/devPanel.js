@@ -331,7 +331,8 @@ LawAIApp.Debug.DevPanel = {
             'evolution': '🧬 Runtime Evolution',
             'orchestration': '🎼 AI Orchestration',
             'production': '🚀 Production Readiness',
-            'runtimeos': '🏛️ Runtime OS'
+            'runtimeos': '🏛️ Runtime OS',
+            'architecture': '🏛️ Architecture Guardrails'
         };
         
         var label = labels[id] || id;
@@ -505,6 +506,7 @@ LawAIApp.Debug.DevPanel = {
             <div id="orchestration-panel-placeholder"></div>
             <div id="production-panel-placeholder"></div>
             <div id="runtimeos-panel-placeholder"></div>
+            <div id="architecture-panel-placeholder"></div>
 
             <!-- ========================================================== -->
             <!-- LEGACY PANEL PLACEHOLDERS -->
