@@ -758,6 +758,7 @@
 
     healthCheck() {
         var auth = window.LawAIApp?.CalendarAuthority;
+        var notesAuth = window.LawAIApp?.NotesAuthority;
         return {
             status: this.status,
             health: this.health,
@@ -771,7 +772,13 @@
                 loading: auth ? auth.loading : false,
                 isReady: auth ? auth.isReady : false,
                 scheduleCount: auth && auth.isReady ? auth.getAllSchedules().length : 0
-            }
+            },
+            notesAuthority: {   // ← 新增
+              initialized: notesAuth ? notesAuth.initialized : false,
+              loading: notesAuth ? notesAuth.loading : false,
+              isReady: notesAuth ? notesAuth.isReady : false,
+              noteCount: notesAuth && notesAuth.isReady ? notesAuth.getAllNotes().length : 0
+          }
         };
     }
 
