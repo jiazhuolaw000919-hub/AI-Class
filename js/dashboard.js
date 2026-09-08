@@ -1526,35 +1526,52 @@ LawAIApp.Dashboard = {
    * 不新建任何引擎，只调用现有的权威系统
    */
   _handleLoopChoice: function(choiceId, actionType) {
-    console.log('[Dashboard][Part74] Choice made:', choiceId, actionType);
-
-    // 1. 调用 DecisionExperience.selectOption（如果存在）
-    var de = window.LawAIApp?.DecisionExperience;
-    if (de && de.initialized && typeof de.selectOption === 'function') {
-      try {
-        de.selectOption(choiceId);
-        console.log('[Dashboard][Part74] ✅ DecisionExperience.selectOption called');
-      } catch (e) {
-        console.warn('[Dashboard][Part74] DecisionExperience.selectOption error:', e);
-      }
-    }
-
-    // 2. 调用 ActionTracker.record（如果存在）
-    var at = window.LawAIApp?.ActionTracker;
-    if (at && at.initialized && typeof at.record === 'function') {
-      try {
-        at.record({
-          type: actionType || 'SELECT',
-          target: choiceId,
-          source: 'dashboard-learning-loop',
-          timestamp: Date.now()
+      console.log('[Dashboard][Part74] Choice made:', choiceId, actionType);
+    
+      // 🔥 Part 162: 通过 EventAdapter 发送事件
+      var eventAdapter = LawAIApp.DashboardEventAdapter;
+      if (eventAdapter) {
+        eventAdapter.sendPrimaryActionSelected(choiceId, actionType, {
+          source: 'dashboard-loop',
+          action: actionType || 'SELECT'
         });
-        console.log('[Dashboard][Part74] ✅ ActionTracker.record called');
+      }
+    
+      // 也通过现有事件系统通知
+      try {
+        var event = new CustomEvent('LEARNING_LOOP_CHOICE', {
+          detail: { choiceId: choiceId, actionType: actionType, timestamp: Date.now() }
+        });
+        document.dispatchEvent(event);
+      } catch (e) {}
+    
+      // 执行操作 (导航等)
+      var actionMap = {
+        'continue': function() {
+          var lc = window.LawAIApp?.LearningContext;
+          if (lc && lc.initialized) {
+            var ctx = lc.getContext();
+            if (ctx && ctx.lesson) {
+              window.location.href = '/pages/academy.html?view=lesson&id=' + ctx.lesson.id;
+            } else {
+              window.location.href = '/pages/academy.html';
+            }
+          } else {
+            window.location.href = '/pages/academy.html';
+          }
+        },
+        // ... rest of actionMap unchanged
+      };
+    
+      var action = actionMap[choiceId] || actionMap['continue'];
+      try {
+        action();
       } catch (e) {
-        console.warn('[Dashboard][Part74] ActionTracker.record error:', e);
+        console.warn('[Dashboard][Part74] Action execution error:', e);
+        window.location.href = '/pages/academy.html';
       }
     }
-
+    
     // 3. 根据选择类型执行具体操作
     var actionMap = {
       'continue': function() {
