@@ -193,7 +193,7 @@ LawAIApp.PracticeEngine = (function() {
             }
         } catch (e) {}
 
-        // 更新技能掌握度
+        // 🔥 Part 161: Practice 只产生证据，不直接更新 Mastery
         try {
             var skillName = 'General';
             if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
@@ -203,13 +203,39 @@ LawAIApp.PracticeEngine = (function() {
                     if (lesson && lesson.category) skillName = lesson.category;
                 }
             }
-            if (LawAIApp.MasteryEngine && typeof LawAIApp.MasteryEngine.updateSkill === 'function') {
-                var progressGain = isCorrect ? 10 : 3;
-                var confidenceGain = isCorrect ? 15 : 5;
-                LawAIApp.MasteryEngine.updateSkill(skillName, progressGain, confidenceGain);
+            
+            // ✅ 通过 EventBus 发射事件，让 MasteryEngine 自己决定如何响应
+            var eventBus = window.LawAIApp?.EventBus || window.EventBus;
+            if (eventBus && typeof eventBus.emit === 'function') {
+                eventBus.emit('PRACTICE_COMPLETED', {
+                    practiceId: practice.practiceId,
+                    lessonId: practice.lessonId,
+                    skillName: skillName,
+                    correct: isCorrect,
+                    score: isCorrect ? 1 : 0,
+                    accuracy: isCorrect ? 100 : 0,
+                    source: 'practice-engine'
+                });
+            } else {
+                // Fallback: 使用 CustomEvent
+                var event = new CustomEvent('PRACTICE_COMPLETED', {
+                    detail: {
+                        practiceId: practice.practiceId,
+                        lessonId: practice.lessonId,
+                        skillName: skillName,
+                        correct: isCorrect,
+                        score: isCorrect ? 1 : 0,
+                        accuracy: isCorrect ? 100 : 0,
+                        source: 'practice-engine'
+                    }
+                });
+                document.dispatchEvent(event);
+                window.dispatchEvent(event);
             }
-        } catch (e) {}
-
+        } catch (e) {
+            console.warn('[PracticeEngine] Failed to emit PRACTICE_COMPLETED:', e);
+        }
+        
         var eventBus = window.LawAIApp && window.LawAIApp.EventBus;
         if (eventBus && typeof eventBus.emit === 'function') {
             eventBus.emit('PracticeCompleted', { practice: practice, feedback: feedback, correct: isCorrect });
