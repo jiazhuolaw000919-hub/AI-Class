@@ -1570,7 +1570,7 @@ LawAIApp.Dashboard = {
         console.warn('[Dashboard][Part74] Action execution error:', e);
         window.location.href = '/pages/academy.html';
       }
-    }
+    },
     
     // 3. 根据选择类型执行具体操作
     var actionMap = {
