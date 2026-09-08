@@ -26,7 +26,9 @@
         EXPIRED: 'EXPIRED',
         SKIPPED: 'SKIPPED',
         DEFERRED: 'DEFERRED', 
-        MODIFIED: 'MODIFIED'
+        MODIFIED: 'MODIFIED',
+        OVERRIDDEN: 'OVERRIDDEN',
+        CHALLENGED: 'CHALLENGED'
     };
 
     var STATE_LABELS = {
@@ -1117,6 +1119,54 @@
             recommendationId: recommendationId,
             selectedAlternative: selectedAlternative,
             reason: reason,
+            timestamp: Date.now()
+        });
+    
+        return {
+            success: true,
+            recommendation: rec
+        };
+    }
+
+    // ============================================================
+    // 🔥 Part 142: Recommendation Challenge
+    // ============================================================
+
+    function recordRecommendationChallenge(recommendationId, challengeReason, metadata) {
+        var rec = getRecommendation(recommendationId);
+        if (!rec) {
+            return { success: false, message: 'Recommendation not found' };
+        }
+    
+        // 如果已经是 CHALLENGED，追加
+        if (rec.status === STATES.CHALLENGED) {
+            rec.metadata = rec.metadata || {};
+            rec.metadata.challenges = rec.metadata.challenges || [];
+            rec.metadata.challenges.push({
+                challengeReason: challengeReason || 'unknown',
+                metadata: metadata || {},
+                timestamp: Date.now()
+            });
+            rec.updatedAt = Date.now();
+        } else {
+            rec.status = STATES.CHALLENGED;
+            rec.updatedAt = Date.now();
+            rec.metadata = rec.metadata || {};
+            rec.metadata.challenges = rec.metadata.challenges || [];
+            rec.metadata.challenges.push({
+                challengeReason: challengeReason || 'unknown',
+                metadata: metadata || {},
+                timestamp: Date.now()
+            });
+        }
+    
+        var store = _getStore();
+        store[recommendationId] = rec;
+        _saveStore(store);
+    
+        _emit('RECOMMENDATION_CHALLENGED', {
+            recommendationId: recommendationId,
+            challengeReason: challengeReason,
             timestamp: Date.now()
         });
     
