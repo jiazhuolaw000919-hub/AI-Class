@@ -1,7 +1,6 @@
 // js/academy/academyLoader.js
 // Part 57.4-57.6 REBUILD — AcademyLoader Architecture Reset
-// Law AI Academy Developer Bible
-// v2.1.0 — 添加 Calendar/Settings 懒加载支持
+// v2.1.0 — 添加 Calendar/Settings/CalendarAuthority 懒加载支持
 
 (function() {
   'use strict';
@@ -30,77 +29,37 @@
 
       this._lazyLoaded = {
         calendar: false,
-        settings: false
+        settings: false,
+        calendarAuthority: false
       };
       this._lazyLoading = {
         calendar: false,
-        settings: false
+        settings: false,
+        calendarAuthority: false
       };
 
       this._moduleChecks = {
-        academyExperienceManager: function() {
-          return !!(window.LawAIApp && window.LawAIApp.AcademyExperienceManager);
-        },
-        academyView: function() {
-          return !!(window.LawAIApp && window.LawAIApp.AcademyView);
-        },
-        schoolRegistry: function() {
-          return !!(window.LawAIApp && window.LawAIApp.SchoolRegistry);
-        },
-        programRegistry: function() {
-          return !!(window.LawAIApp && window.LawAIApp.ProgramRegistry);
-        },
-        courseRegistry: function() {
-          return !!(window.LawAIApp && window.LawAIApp.CourseRegistry);
-        },
-        curriculumRegistry: function() {
-          return !!(window.LawAIApp && window.LawAIApp.CurriculumRegistry);
-        },
-        curriculumSeed: function() {
-          return !!(window.LawAIApp && window.LawAIApp.CurriculumSeed);
-        },
-        contentLoader: function() {
-          return !!(window.LawAIApp && window.LawAIApp.ContentLoader);
-        },
-        contentRegistry: function() {
-          return !!(window.LawAIApp && window.LawAIApp.ContentRegistry);
-        },
-        contentAdapter: function() {
-          return !!(window.LawAIApp && window.LawAIApp.ContentAdapter);
-        },
-        subjectRegistry: function() {
-          return !!(window.LawAIApp && window.LawAIApp.SubjectRegistry);
-        },
-        contentValidator: function() {
-          return !!(window.LawAIApp && window.LawAIApp.ContentValidator);
-        },
-        practiceEngine: function() {
-            return !!(window.LawAIApp && window.LawAIApp.PracticeEngine);
-        },
-        practiceModule: function() {
-            return !!(window.LawAIApp && window.LawAIApp.PracticeModule);
-        },
-        practiceProgress: function() {
-            return !!(window.LawAIApp && window.LawAIApp.PracticeProgress);
-        },
-        knowledgeCapture: function() {
-            return !!(window.LawAIApp && window.LawAIApp.KnowledgeCapture);
-        },
-        knowledgeEditor: function() {
-            return !!(window.LawAIApp && window.LawAIApp.KnowledgeEditor);
-        },
-        knowledgeLinker: function() {
-            return !!(window.LawAIApp && window.LawAIApp.KnowledgeLinker);
-        },
-        knowledgeCard: function() {
-            return !!(window.LawAIApp && window.LawAIApp.KnowledgeCard);
-        },
-        secondBrain: function() {
-            return !!(window.LawAIApp && window.LawAIApp.SecondBrain);
-        },
-        notes: function() {
-            return !!(window.LawAIApp && window.LawAIApp.Notes);
-        }
+        academyExperienceManager: function() { return !!(window.LawAIApp && window.LawAIApp.AcademyExperienceManager); },
+        academyView: function() { return !!(window.LawAIApp && window.LawAIApp.AcademyView); },
+        schoolRegistry: function() { return !!(window.LawAIApp && window.LawAIApp.SchoolRegistry); },
+        programRegistry: function() { return !!(window.LawAIApp && window.LawAIApp.ProgramRegistry); },
+        courseRegistry: function() { return !!(window.LawAIApp && window.LawAIApp.CourseRegistry); },
+        curriculumRegistry: function() { return !!(window.LawAIApp && window.LawAIApp.CurriculumRegistry); },
+        curriculumSeed: function() { return !!(window.LawAIApp && window.LawAIApp.CurriculumSeed); },
+        contentLoader: function() { return !!(window.LawAIApp && window.LawAIApp.ContentLoader); },
+        contentRegistry: function() { return !!(window.LawAIApp && window.LawAIApp.ContentRegistry); },
+        contentAdapter: function() { return !!(window.LawAIApp && window.LawAIApp.ContentAdapter); },
+        subjectRegistry: function() { return !!(window.LawAIApp && window.LawAIApp.SubjectRegistry); },
+        contentValidator: function() { return !!(window.LawAIApp && window.LawAIApp.ContentValidator); },
+        practiceEngine: function() { return !!(window.LawAIApp && window.LawAIApp.PracticeEngine); },
+        practiceModule: function() { return !!(window.LawAIApp && window.LawAIApp.PracticeModule); },
+        practiceProgress: function() { return !!(window.LawAIApp && window.LawAIApp.PracticeProgress); },
+        knowledgeCapture: function() { return !!(window.LawAIApp && window.LawAIApp.KnowledgeCapture); },
+        knowledgeEditor: function() { return !!(window.LawAIApp && window.LawAIApp.KnowledgeEditor); },
+        knowledgeLinker: function() { return !!(window.LawAIApp && window.LawAIApp.KnowledgeLinker); },
+        knowledgeCard: function() { return !!(window.LawAIApp && window.LawAIApp.KnowledgeCard); },
+        secondBrain: function() { return !!(window.LawAIApp && window.LawAIApp.SecondBrain); },
+        notes: function() { return !!(window.LawAIApp && window.LawAIApp.Notes); }
       };
     }
 
@@ -152,46 +111,62 @@
     }
 
     // ============================================================
-    // 🔥 懒加载 API
+    // 🔥 Calendar 懒加载（依赖 CalendarAuthority）
     // ============================================================
 
     loadCalendarLazy(onReady, onFail) {
-      var moduleName = 'calendar';
-      if (this._lazyLoaded[moduleName]) {
-        console.log('[AcademyLoader] ⏭️ Calendar already lazy-loaded');
-        if (onReady) onReady(window.LawAIApp?.Calendar);
-        return;
-      }
-      if (this._lazyLoading[moduleName]) {
-        console.log('[AcademyLoader] ⏳ Calendar already loading...');
-        return;
-      }
-      this._lazyLoading[moduleName] = true;
-      console.log('[AcademyLoader] 🔄 Lazy loading Calendar...');
-
-      var files = [
-        '/js/calendarEngine.js',
-        '/js/calendarPlanner.js',
-        '/js/calendarTimeline.js',
-        '/js/calendarEngineAdapter.js',
-        '/js/calendar/CalendarSurfaceAdapter.js',
-        '/js/calendar/CalendarViewModel.js',
-        '/js/calendar/CalendarEventAdapter.js',
-        '/js/calendar/CalendarRenderer.js',
-        '/js/calendar.js'
-      ];
-
-      this._loadScriptsSequentially(files, function(success) {
-        this._lazyLoading[moduleName] = false;
-        if (success && window.LawAIApp?.Calendar) {
-          this._lazyLoaded[moduleName] = true;
-          console.log('[AcademyLoader] ✅ Calendar lazy-loaded');
-          if (onReady) onReady(window.LawAIApp.Calendar);
-        } else {
-          console.warn('[AcademyLoader] ⚠️ Calendar lazy-load incomplete');
-          if (onFail) onFail('Calendar load incomplete');
+        var moduleName = 'calendar';
+        if (this._lazyLoaded[moduleName]) {
+            console.log('[AcademyLoader] ⏭️ Calendar already lazy-loaded');
+            if (onReady) onReady(window.LawAIApp?.Calendar);
+            return;
         }
-      }.bind(this));
+        if (this._lazyLoading[moduleName]) {
+            console.log('[AcademyLoader] ⏳ Calendar already loading...');
+            return;
+        }
+        this.loadCalendarAuthority(function(auth) {
+            console.log('[AcademyLoader] ✅ CalendarAuthority ready, loading Calendar UI...');
+            this._loadCalendarUI(onReady, onFail);
+        }.bind(this), function(error) {
+            console.warn('[AcademyLoader] ⚠️ CalendarAuthority failed, loading Calendar anyway...');
+            this._loadCalendarUI(onReady, onFail);
+        }.bind(this));
+    }
+
+    _loadCalendarUI(onReady, onFail) {
+        var moduleName = 'calendar';
+        if (this._lazyLoaded[moduleName]) {
+            if (onReady) onReady(window.LawAIApp?.Calendar);
+            return;
+        }
+        if (this._lazyLoading[moduleName]) return;
+        this._lazyLoading[moduleName] = true;
+        console.log('[AcademyLoader] 🔄 Loading Calendar UI...');
+
+        var files = [
+            '/js/calendarEngine.js',
+            '/js/calendarPlanner.js',
+            '/js/calendarTimeline.js',
+            '/js/calendarEngineAdapter.js',
+            '/js/calendar/CalendarSurfaceAdapter.js',
+            '/js/calendar/CalendarViewModel.js',
+            '/js/calendar/CalendarEventAdapter.js',
+            '/js/calendar/CalendarRenderer.js',
+            '/js/calendar.js'
+        ];
+
+        this._loadScriptsSequentially(files, function(success) {
+            this._lazyLoading[moduleName] = false;
+            if (success && window.LawAIApp?.Calendar) {
+                this._lazyLoaded[moduleName] = true;
+                console.log('[AcademyLoader] ✅ Calendar UI loaded');
+                if (onReady) onReady(window.LawAIApp.Calendar);
+            } else {
+                console.warn('[AcademyLoader] ⚠️ Calendar UI load incomplete');
+                if (onFail) onFail('Calendar UI load failed');
+            }
+        }.bind(this));
     }
 
     loadSettingsLazy(onReady, onFail) {
@@ -221,6 +196,66 @@
           if (onFail) onFail('Settings load incomplete');
         }
       }.bind(this));
+    }
+
+    // ============================================================
+    // 🔥 Part 163: CalendarAuthority 懒加载
+    // ============================================================
+    loadCalendarAuthority(onReady, onFail) {
+        var moduleName = 'calendarAuthority';
+        if (this._lazyLoaded[moduleName]) {
+            console.log('[AcademyLoader] ⏭️ CalendarAuthority already lazy-loaded');
+            if (onReady) onReady(window.LawAIApp?.CalendarAuthority);
+            return;
+        }
+        if (this._lazyLoading[moduleName]) {
+            console.log('[AcademyLoader] ⏳ CalendarAuthority already loading...');
+            this._waitForCalendarAuthority(onReady, onFail);
+            return;
+        }
+        this._lazyLoading[moduleName] = true;
+        console.log('[AcademyLoader] 🔄 Lazy loading CalendarAuthority...');
+
+        var files = ['/js/calendar/CalendarAuthority.js'];
+
+        this._loadScriptsSequentially(files, function(success) {
+            this._lazyLoading[moduleName] = false;
+            if (success && window.LawAIApp?.CalendarAuthority) {
+                this._lazyLoaded[moduleName] = true;
+                console.log('[AcademyLoader] ✅ CalendarAuthority loaded');
+
+                var auth = window.LawAIApp.CalendarAuthority;
+                if (auth.initialized) {
+                    if (onReady) onReady(auth);
+                } else {
+                    auth.onReady(function(readyAuth) {
+                        if (onReady) onReady(readyAuth);
+                    });
+                }
+            } else {
+                console.warn('[AcademyLoader] ⚠️ CalendarAuthority load failed');
+                if (onFail) onFail('CalendarAuthority load failed');
+            }
+        }.bind(this));
+    }
+
+    _waitForCalendarAuthority(onReady, onFail) {
+        var attempts = 0;
+        var maxAttempts = 50;
+        var interval = setInterval(function() {
+            attempts++;
+            var auth = window.LawAIApp?.CalendarAuthority;
+            if (auth && auth.initialized) {
+                clearInterval(interval);
+                if (onReady) onReady(auth);
+                return;
+            }
+            if (attempts >= maxAttempts) {
+                clearInterval(interval);
+                console.warn('[AcademyLoader] ⏰ CalendarAuthority wait timeout');
+                if (onFail) onFail('Timeout waiting for CalendarAuthority');
+            }
+        }, 100);
     }
 
     isLazyLoaded(moduleName) {
@@ -313,30 +348,21 @@
       console.log('[AcademyLoader] 📦 Loading', modules.length, 'modules...');
       for (let i = 0; i < modules.length; i++) {
         const module = modules[i];
-        if (!module || !module.id) {
-          console.warn('[AcademyLoader] ⚠️ Invalid module definition at index', i);
-          continue;
-        }
+        if (!module || !module.id) continue;
         const result = await this._loadSingleModule(module);
         if (result.success) {
           this.loadedModules.push(module.id);
-          console.log('[AcademyLoader] ✅ [' + (i + 1) + '/' + modules.length + '] ' + module.id + ' loaded');
         } else {
           this.failedModules.push(module.id);
-          console.warn('[AcademyLoader] ⚠️ [' + (i + 1) + '/' + modules.length + '] ' + module.id + ' failed: ' + result.error);
         }
       }
       this._broadcast('ACADEMY_MODULES_READY', { loaded: this.loadedModules, failed: this.failedModules, total: modules.length });
-      console.log('[AcademyLoader] 📦 Module loading complete:', this.loadedModules.length + ' loaded, ' + this.failedModules.length + ' failed');
     }
 
     async _loadSingleModule(module) {
       if (!module || !module.id) return { success: false, error: 'Invalid module: missing id' };
       const exists = this._checkModuleExists(module.id);
-      if (exists) {
-        console.log('[AcademyLoader] ⏭️ Module already exists:', module.id);
-        return { success: true };
-      }
+      if (exists) return { success: true };
       if (!module.path) return { success: false, error: 'No path specified' };
       return new Promise((resolve) => {
         const script = document.createElement('script');
@@ -349,8 +375,7 @@
           resolved = true;
           clearTimeout(timeout);
           const existsAfter = this._checkModuleExists(module.id);
-          if (existsAfter) resolve({ success: true });
-          else resolve({ success: false, error: 'Not registered after load' });
+          resolve(existsAfter ? { success: true } : { success: false, error: 'Not registered' });
         }.bind(this);
         script.onerror = function() { if (resolved) return; resolved = true; clearTimeout(timeout); resolve({ success: false, error: 'Load error' }); }.bind(this);
         document.head.appendChild(script);
@@ -432,6 +457,7 @@
           { id: 'agencySupport', path: '/js/academy/agencySupport.js' },
           { id: 'agencyPanel', path: '/js/debug/panels/agencyPanel.js' },
           { id: 'experienceContract', path: '/js/academy/experienceContract.js' },
+          { id: 'calendarAuthority', path: '/js/calendar/CalendarAuthority.js' },
           { id: 'surfaceIntegration', path: '/js/academy/surfaceIntegration.js' }
         ]
       };
@@ -445,15 +471,22 @@
     }
 
     healthCheck() {
-      return {
-        status: this.status,
-        health: this.health,
-        version: this.version,
-        loadedModules: this.loadedModules,
-        failedModules: this.failedModules,
-        lazyLoaded: this._lazyLoaded,
-        lazyLoading: this._lazyLoading
-      };
+        var auth = window.LawAIApp?.CalendarAuthority;
+        return {
+            status: this.status,
+            health: this.health,
+            version: this.version,
+            loadedModules: this.loadedModules,
+            failedModules: this.failedModules,
+            lazyLoaded: this._lazyLoaded,
+            lazyLoading: this._lazyLoading,
+            calendarAuthority: {
+                initialized: auth ? auth.initialized : false,
+                loading: auth ? auth.loading : false,
+                isReady: auth ? auth.isReady : false,
+                scheduleCount: auth && auth.isReady ? auth.getAllSchedules().length : 0
+            }
+        };
     }
 
     async recover() {
