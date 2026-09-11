@@ -1216,22 +1216,34 @@ function __safeCall(pathOrObj) {
          * 🔥 Part 59.2: Course Experience (升级版)
          */
         _renderCourseView: function(container, courseId) {
-            // 🔥 Part 166: 通过 SchoolViewModel 读取
+            // 🔥 Part 167: 通过 SchoolViewModel 读取完整 Course 详情
             var viewModel = window.LawAIApp?.SchoolViewModel;
-            if (!viewModel) {
+            if (!viewModel || !viewModel.buildCourseDetail) {
                 container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">⏳ Loading...</div>';
                 return;
             }
         
-            var course = viewModel.buildCourseCard(courseId);
+            var detail = viewModel.buildCourseDetail(courseId);
         
-            if (course.status === 'UNKNOWN') {
+            if (detail.status === 'LOADING') {
+                container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">⏳ Loading Course...</div>';
+                return;
+            }
+        
+            if (detail.status === 'NOT_FOUND') {
                 container.innerHTML = this._renderCourseNotFound();
                 return;
             }
         
-            var curriculum = window.LawAIApp?.CurriculumAuthority;
-            var subjects = curriculum ? curriculum.getSubjectsByCourse(courseId) : [];
+            var course = detail.identity;
+            var objectives = detail.learningObjectives;
+            var prereqs = detail.prerequisites;
+            var structure = detail.structure;
+            var progress = detail.progress;
+            var mastery = detail.mastery;
+            var recommendation = detail.recommendation;
+            var schedule = detail.schedule;
+            var notes = detail.notes;
         
             var levelColor = course.difficulty === 'beginner' ? '#10b981' : 
                             course.difficulty === 'intermediate' ? '#f59e0b' : '#ef4444';
@@ -1239,16 +1251,17 @@ function __safeCall(pathOrObj) {
                             course.difficulty === 'intermediate' ? '🟡' : '🔴';
         
             // 进度显示
-            var progressPercent = course.progress && course.progress.available 
-                ? course.progress.percent 
-                : 0;
-            var progressLabel = course.progress && course.progress.available
-                ? progressPercent + '%'
-                : '—';
+            var progressPercent = progress && progress.available ? progress.percent : 0;
+            var progressLabel = progress && progress.available ? progressPercent + '%' : '—';
+        
+            // 掌握度显示
+            var masteryLabel = mastery && mastery.available ? (mastery.label || 'Unknown') : 'Unavailable';
         
             var html = '';
         
-            // 返回栏
+            // ============================================================
+            // 1. 返回栏
+            // ============================================================
             html += `
                 <div class="academy-back-bar" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSchool', '${course.schoolId || ''}')" 
@@ -1259,60 +1272,138 @@ function __safeCall(pathOrObj) {
                 </div>
             `;
         
-            // 主内容
+            // ============================================================
+            // 2. Course Header
+            // ============================================================
             html += `
                 <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
                     <div style="display: flex; align-items: flex-start; gap: 20px; margin-bottom: 12px; flex-wrap: wrap;">
-                        <div style="font-size: 56px; line-height: 1;">${course.icon || '📘'}</div>
+                        <div style="font-size: 56px; line-height: 1;">${course.icon}</div>
                         <div style="flex: 1; min-width: 200px;">
                             <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 4px 0;">${course.name}</h1>
-                            <p style="color: #94a3b8; font-size: 15px; margin: 0 0 8px 0;">${course.description || ''}</p>
+                            <p style="color: #94a3b8; font-size: 15px; margin: 0 0 8px 0;">${course.description}</p>
                             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                <span style="color: ${levelColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${levelEmoji} ${course.difficulty || 'beginner'}</span>
-                                <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 ${subjects.length} subjects</span>
+                                <span style="color: ${levelColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${levelEmoji} ${course.difficulty}</span>
+                                <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 ${structure.subjectCount} subjects</span>
+                                ${course.estimatedHours ? `<span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">⏱️ ${course.estimatedHours}h</span>` : ''}
                             </div>
                         </div>
-                    </div>
-        
-                    <!-- 进度面板 -->
-                    <div style="margin: 20px 0 24px 0; background: rgba(74,158,255,0.04); border-radius: 14px; padding: 20px 24px; border: 1px solid rgba(74,158,255,0.08);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-                            <div>
-                                <div style="font-size: 13px; color: #94a3b8;">📊 Progress</div>
-                                <div style="font-size: 28px; font-weight: 700; color: #4a9eff;">${progressLabel}</div>
-                            </div>
-                            <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.startCourse', '${courseId}')" 
-                                    style="padding: 12px 32px; background: #4a9eff; border: none; border-radius: 10px; color: white; font-weight: 600; font-size: 16px; cursor: pointer; font-family: inherit;">
-                                🚀 Continue Learning
-                            </button>
-                        </div>
-                        ${progressPercent > 0 ? `
-                            <div style="margin-top: 12px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 6px; overflow: hidden;">
-                                <div style="background: linear-gradient(90deg, #4a9eff, #10b981); height: 100%; width: ${progressPercent}%; transition: width 0.5s;"></div>
-                            </div>
-                        ` : ''}
                     </div>
             `;
         
-            // Subject 列表
-            if (subjects && subjects.length > 0) {
+            // ============================================================
+            // 3. Recommendation Context（如果存在）
+            // ============================================================
+            if (recommendation && recommendation.isRecommended) {
+                html += `
+                    <div style="margin: 16px 0; background: rgba(139,92,246,0.06); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(139,92,246,0.12); border-left: 3px solid #8b5cf6;">
+                        <div style="font-size: 11px; color: #8b5cf6; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 4px;">💡 RECOMMENDED</div>
+                        <div style="font-size: 14px; color: #e2e8f0;">${recommendation.reason || 'Suggested for you'}</div>
+                        ${recommendation.confidence ? `<div style="font-size: 11px; color: #64748b; margin-top: 4px;">Confidence: ${recommendation.confidence}</div>` : ''}
+                    </div>
+                `;
+            }
+        
+            // ============================================================
+            // 4. Progress + Mastery 面板
+            // ============================================================
+            html += `
+                <div style="margin: 20px 0 24px 0; background: rgba(74,158,255,0.04); border-radius: 14px; padding: 20px 24px; border: 1px solid rgba(74,158,255,0.08);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+                            <div>
+                                <div style="font-size: 12px; color: #94a3b8;">📊 Progress</div>
+                                <div style="font-size: 24px; font-weight: 700; color: #4a9eff;">${progressLabel}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: #94a3b8;">🧠 Mastery</div>
+                                <div style="font-size: 24px; font-weight: 700; color: #8b5cf6;">${masteryLabel}</div>
+                            </div>
+                        </div>
+                        <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.startCourse', '${courseId}')" 
+                                style="padding: 12px 32px; background: #4a9eff; border: none; border-radius: 10px; color: white; font-weight: 600; font-size: 16px; cursor: pointer; font-family: inherit;">
+                            🚀 ${progressPercent > 0 ? 'Continue Learning' : 'Start Learning'}
+                        </button>
+                    </div>
+                    ${progress && progress.available && progressPercent > 0 ? `
+                        <div style="margin-top: 12px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 6px; overflow: hidden;">
+                            <div style="background: linear-gradient(90deg, #4a9eff, #10b981); height: 100%; width: ${progressPercent}%; transition: width 0.5s;"></div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        
+            // ============================================================
+            // 5. Prerequisites（如果有）
+            // ============================================================
+            if (prereqs.available && (prereqs.required.length > 0 || prereqs.suggested.length > 0)) {
+                html += `
+                    <div style="margin-bottom: 24px; background: rgba(245,158,11,0.04); border-radius: 12px; padding: 16px 20px; border: 1px solid rgba(245,158,11,0.08);">
+                        <div style="font-size: 12px; color: #f59e0b; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 8px;">📋 PREREQUISITES</div>
+                `;
+        
+                if (prereqs.required.length > 0) {
+                    html += `<div style="margin-bottom: 8px;">
+                        <div style="font-size: 11px; color: #ef4444; margin-bottom: 4px;">Required</div>`;
+                    prereqs.required.forEach(function(p) {
+                        var icon = p.satisfied ? '✅' : '⭕';
+                        html += `<div style="font-size: 13px; color: #e2e8f0; padding: 2px 0;">${icon} ${p.name}</div>`;
+                    });
+                    html += `</div>`;
+                }
+        
+                if (prereqs.suggested.length > 0) {
+                    html += `<div>
+                        <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Suggested</div>`;
+                    prereqs.suggested.forEach(function(p) {
+                        html += `<div style="font-size: 13px; color: #94a3b8; padding: 2px 0;">○ ${p.name}</div>`;
+                    });
+                    html += `</div>`;
+                }
+        
+                html += `</div>`;
+            }
+        
+            // ============================================================
+            // 6. Learning Objectives（如果有）
+            // ============================================================
+            if (objectives.available && objectives.objectives.length > 0) {
+                html += `
+                    <div style="margin-bottom: 24px;">
+                        <h2 style="font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">🎯 Learning Objectives</h2>
+                        <div style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 16px 20px; border: 1px solid rgba(255,255,255,0.04);">
+                            <ul style="margin: 0; padding-left: 20px; color: #94a3b8;">
+                                ${objectives.objectives.map(function(o) {
+                                    return `<li style="padding: 4px 0; font-size: 13px;">${o}</li>`;
+                                }).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+        
+            // ============================================================
+            // 7. Course Structure (Subjects)
+            // ============================================================
+            if (structure.subjects && structure.subjects.length > 0) {
                 html += `
                     <div style="margin-top: 8px;">
-                        <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📋 Subjects (${subjects.length})</h2>
+                        <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📋 Subjects (${structure.subjectCount})</h2>
                         <div style="display: flex; flex-direction: column; gap: 10px;">
                 `;
         
-                for (var i = 0; i < subjects.length; i++) {
-                    var subject = subjects[i];
+                for (var i = 0; i < structure.subjects.length; i++) {
+                    var subject = structure.subjects[i];
                     html += `
                         <div style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectSubject', '${subject.id}')"
+                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectSubject', '${subject.subjectId}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.02)'">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <div>
-                                    <div style="font-weight: 500; font-size: 15px;">${subject.title || subject.name}</div>
+                                    <div style="font-weight: 500; font-size: 15px;">${subject.title}</div>
                                     ${subject.description ? `<div style="color: #64748b; font-size: 13px; margin-top: 2px;">${subject.description}</div>` : ''}
+                                    ${subject.lessonCount > 0 ? `<div style="color: #64748b; font-size: 12px; margin-top: 4px;">📖 ${subject.lessonCount} lessons</div>` : ''}
                                 </div>
                                 <span style="color: #4a9eff; font-size: 16px;">→</span>
                             </div>
@@ -1323,6 +1414,36 @@ function __safeCall(pathOrObj) {
                 html += `</div></div>`;
             } else {
                 html += this._renderEmptyModuleState();
+            }
+        
+            // ============================================================
+            // 8. Schedule Context（如果有）
+            // ============================================================
+            if (schedule && schedule.available && schedule.count > 0) {
+                html += `
+                    <div style="margin-top: 24px; background: rgba(74,158,255,0.04); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(74,158,255,0.08);">
+                        <div style="font-size: 12px; color: #4a9eff; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 8px;">📅 SCHEDULED</div>
+                        <div style="font-size: 13px; color: #e2e8f0;">
+                            ${schedule.count} session${schedule.count > 1 ? 's' : ''} scheduled
+                        </div>
+                        ${schedule.nextSession ? `<div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Next: ${new Date(schedule.nextSession.startAt).toLocaleString()}</div>` : ''}
+                    </div>
+                `;
+            }
+        
+            // ============================================================
+            // 9. Notes Context（如果有）
+            // ============================================================
+            if (notes && notes.available && notes.count > 0) {
+                html += `
+                    <div style="margin-top: 16px; background: rgba(139,92,246,0.04); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(139,92,246,0.08);">
+                        <div style="font-size: 12px; color: #8b5cf6; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 8px;">📓 YOUR NOTES</div>
+                        <div style="font-size: 13px; color: #e2e8f0;">${notes.count} note${notes.count > 1 ? 's' : ''} linked to this course</div>
+                        ${notes.recent.length > 0 ? notes.recent.map(function(n) {
+                            return `<div style="margin-top: 8px; padding: 8px 12px; background: rgba(255,255,255,0.02); border-radius: 6px; border-left: 2px solid #8b5cf6; font-size: 12px; color: #94a3b8;">💭 ${n.title}</div>`;
+                        }).join('') : ''}
+                    </div>
+                `;
             }
         
             html += `</div>`;
