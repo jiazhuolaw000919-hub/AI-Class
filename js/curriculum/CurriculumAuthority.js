@@ -64,11 +64,11 @@
         },
 
         _notifyReady: function() {
-            var self = this;
             this._emit('CURRICULUM_AUTHORITY_UPDATED', {
                 schoolCount: Object.keys(_schools).length,
                 courseCount: Object.keys(_courses).length,
-                subjectCount: Object.keys(_subjects).length
+                subjectCount: Object.keys(_subjects).length,
+                lessonCount: Object.keys(_lessons).length
             });
             
             if (window.LawAIApp?.AcademyExperienceManager?.render) {
