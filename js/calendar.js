@@ -719,31 +719,66 @@ LawAIApp.Calendar = {
   },
 
   completeTask: function(taskId) {
-      var plan = this.getCurrentPlan();
-      if (!plan) return;
-  
-      // 如果是日程任务，通过 Authority 标记
-      if (taskId.startsWith('sch_')) {
-          var authority = LawAIApp.CalendarAuthority;
-          if (authority) {
-              authority.markTimeElapsed(taskId);
-          }
-      }
-  
-      // 导航逻辑保持不变
-      if (taskId.startsWith('lesson_')) {
-          var lessonId = taskId.replace('lesson_', '');
-          LawAIApp.Router.navigate('lesson', { day: parseInt(lessonId.split('-')[1]) });
-      } else if (taskId.startsWith('review_')) {
-          var lessonId = taskId.replace('review_', '');
-          LawAIApp.MemoryReview.performReview(lessonId, 'flashcard');
-          var updatedTasks = plan.tasks.filter(function(t) { return t.id !== taskId; });
-          plan.tasks = updatedTasks;
-          // ✅ 通过事件通知，不直接写 storage
-          LawAIApp.EventBus.emit('PlanUpdated', plan);
-          LawAIApp.PlannerDashboard.render();
-      }
-      // ... 其他 task 类型保持不变
+    var plan = this.getCurrentPlan();
+    if (!plan) return;
+
+    // 如果是日程任务，通过 Authority 标记
+    if (taskId.startsWith('sch_')) {
+        var authority = LawAIApp.CalendarAuthority;
+        if (authority) {
+            authority.markTimeElapsed(taskId);
+        }
+    }
+
+    // 导航逻辑
+    if (taskId.startsWith('lesson_')) {
+        var lessonId = taskId.replace('lesson_', '');
+        LawAIApp.Router.navigate('lesson', { day: parseInt(lessonId.split('-')[1]) });
+    } else if (taskId.startsWith('review_')) {
+        var lessonId = taskId.replace('review_', '');
+        
+        // 🔥 Part 172: 通过 EventBus 发送复习 evidence，不直接调用 MemoryReview
+        try {
+            var eventBus = window.LawAIApp?.EventBus || window.EventBus;
+            if (eventBus && typeof eventBus.emit === 'function') {
+                eventBus.emit('REVIEW_COMPLETED', {
+                    lessonId: lessonId,
+                    method: 'flashcard',
+                    source: 'calendar-planner',
+                    timestamp: new Date().toISOString()
+                });
+            } else {
+                var event = new CustomEvent('REVIEW_COMPLETED', {
+                    detail: {
+                        lessonId: lessonId,
+                        method: 'flashcard',
+                        source: 'calendar-planner',
+                        timestamp: new Date().toISOString()
+                    }
+                });
+                document.dispatchEvent(event);
+                window.dispatchEvent(event);
+            }
+        } catch (e) {
+            console.warn('[Calendar] Failed to emit REVIEW_COMPLETED:', e);
+        }
+        
+        // 更新计划（transient UI state）
+        var updatedTasks = plan.tasks.filter(function(t) { return t.id !== taskId; });
+        plan.tasks = updatedTasks;
+        
+        // ✅ 通过事件通知
+        try {
+            if (window.LawAIApp?.EventBus) {
+                LawAIApp.EventBus.emit('PlanUpdated', plan);
+            }
+        } catch (e) {}
+        
+        if (LawAIApp.PlannerDashboard?.render) {
+            LawAIApp.PlannerDashboard.render();
+        }
+    }
+    // ... 其他 task 类型保持不变
   },
   
   // ============================================================
@@ -773,13 +808,18 @@ LawAIApp.Calendar = {
       }
   },
 
+  /**
+ * @deprecated Part 172: 直接写 localStorage 已弃用。
+ * 请使用 CalendarAuthority.create() / .reschedule() / .cancel()
+ */
   _saveSchedules: function(schedules) {
-    try {
-      localStorage.setItem(this._getScheduleKey(), JSON.stringify(schedules));
-      return true;
-    } catch (e) {
-      return false;
-    }
+      console.warn('[Calendar] ⚠️ _saveSchedules() is deprecated. Use CalendarAuthority commands instead.');
+      try {
+          localStorage.setItem(this._getScheduleKey(), JSON.stringify(schedules));
+          return true;
+      } catch (e) {
+          return false;
+      }
   },
 
   _createSchedule: function(title, date, startTime, endTime, description) {
@@ -854,19 +894,46 @@ LawAIApp.Calendar = {
   },
 
   _updateSchedule: function(id, updates) {
-    var schedules = this._getAllSchedules();
-    var index = schedules.findIndex(function(s) { return s.id === id; });
-    if (index === -1) return null;
-
-    schedules[index] = {
-      ...schedules[index],
-      ...updates,
-      updatedAt: new Date().toISOString()
-    };
-    this._saveSchedules(schedules);
-
-    this._emitScheduleEvent('SCHEDULE_UPDATED', schedules[index]);
-    return schedules[index];
+      // 🔥 Part 172: 通过 CalendarAuthority 更新
+      var authority = LawAIApp.CalendarAuthority;
+      if (authority && authority.isReady) {
+          // 如果有时间变更，用 reschedule
+          if (updates.startAt || updates.duration) {
+              var result = authority.reschedule(
+                  id,
+                  updates.startAt || null,
+                  updates.duration || null
+              );
+              if (result.success) {
+                  this._emitScheduleEvent('SCHEDULE_RESCHEDULED', result.schedule);
+                  return result.schedule;
+              }
+              console.warn('[Calendar] Reschedule failed:', result.error);
+              return null;
+          }
+          // 只更新其他字段（title 等）
+          var schedule = authority.getSchedule(id);
+          if (schedule) {
+              // 更新 transient 字段（通过 Authority 的私有方法或直接返回）
+              if (updates.title) schedule.title = updates.title;
+              schedule.updatedAt = new Date().toISOString();
+              this._emitScheduleEvent('SCHEDULE_UPDATED', schedule);
+              return schedule;
+          }
+          return null;
+      }
+      // Fallback: 旧 API（兼容）
+      var schedules = this._getAllSchedulesFallback();
+      var index = schedules.findIndex(function(s) { return s.id === id; });
+      if (index === -1) return null;
+  
+      schedules[index] = Object.assign({}, schedules[index], updates, {
+          updatedAt: new Date().toISOString()
+      });
+      this._saveSchedulesFallback(schedules);
+  
+      this._emitScheduleEvent('SCHEDULE_UPDATED', schedules[index]);
+      return schedules[index];
   },
 
   _deleteSchedule: function(id) {
