@@ -3425,146 +3425,48 @@ LawAIApp.Dashboard = {
   _hasPrerequisiteLogic: false,
   _mutatesCalendar: false,
   _mutatesSettings: false,
-  _mutatesRecommendation: false,
-
-    var result = adapter.getAdaptiveRecommendation({ maxCandidates: 4 });
-
-    if (!result.hasRecommendation || !result.recommendation) {
-      return `
-        <div style="color:#64748b;font-size:12px;text-align:center;padding:8px 0;">
-          ${result.message || 'Complete more learning to unlock recommendations.'}
-        </div>
-      `;
-    }
-
-    var rec = result.recommendation;
-    var explanation = result.explanation;
-
-    // 构建推荐卡片
-    var html = `
-      <div style="
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 14px;
-        background: rgba(74,158,255,0.04);
-        border-radius: 10px;
-        border: 1px solid rgba(74,158,255,0.06);
-        transition: all 0.2s;
-      ">
-        <span style="font-size: 18px;">${rec.type === 'continue' ? '▶️' : rec.type === 'review' ? '🔄' : rec.type === 'explore' ? '🔍' : '📌'}</span>
-        <div style="flex: 1; min-width: 0;">
-          <div style="font-size: 13px; font-weight: 500; color: #e2e8f0;">
-            ${rec.title}
-          </div>
-          <div style="font-size: 11px; color: #94a3b8;">
-            ${rec.description}
-          </div>
-          ${explanation ? `
-            <div style="font-size: 10px; color: #4a9eff; opacity: 0.7; margin-top: 2px;">
-              💡 ${explanation.text}
-            </div>
-          ` : ''}
-        </div>
-        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-          ${result.alternatives.length > 0 ? `
-            <button onclick="LawAIApp.Dashboard._showAlternatives()" style="
-              padding: 2px 10px;
-              background: rgba(255,255,255,0.03);
-              border: 1px solid rgba(255,255,255,0.06);
-              border-radius: 100px;
-              color: #64748b;
-              font-size: 9px;
-              cursor: pointer;
-              font-family: inherit;
-            ">${result.alternatives.length}+</button>
-          ` : ''}
-          <button onclick="LawAIApp.Dashboard._handleAdaptiveChoice('${rec.id}', '${rec.type}', '${rec.targetId}')" style="
-            padding: 4px 16px;
-            background: #4a9eff;
-            border: none;
-            border-radius: 100px;
-            color: white;
-            font-size: 11px;
-            font-weight: 500;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all 0.2s;
-          " onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
-            Go →
-          </button>
-        </div>
-      </div>
-    `;
-
-    // 如果有替代选项，添加隐藏的备选列表
-    if (result.alternatives.length > 0) {
-      html += `
-        <div id="adaptive-alternatives" style="display:none; margin-top: 6px; padding: 8px 14px; background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px solid rgba(255,255,255,0.04);">
-          <div style="font-size: 10px; color: #64748b; margin-bottom: 4px;">Alternative options:</div>
-          ${result.alternatives.map(function(alt) {
-            return `
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 0; font-size: 12px; color: #94a3b8;">
-                <span>${alt.title}</span>
-                <button onclick="LawAIApp.Dashboard._handleAdaptiveChoice('${alt.id}', '${alt.type}', '${alt.targetId}')" style="
-                  padding: 1px 12px;
-                  background: rgba(255,255,255,0.04);
-                  border: 1px solid rgba(255,255,255,0.06);
-                  border-radius: 100px;
-                  color: #64748b;
-                  font-size: 9px;
-                  cursor: pointer;
-                  font-family: inherit;
-                ">Choose</button>
-              </div>
-            `;
-          }).join('')}
-          <button onclick="LawAIApp.Dashboard._hideAlternatives()" style="
-            margin-top: 4px;
-            padding: 2px 10px;
-            background: transparent;
-            border: none;
-            color: #475569;
-            font-size: 9px;
-            cursor: pointer;
-            font-family: inherit;
-            text-decoration: underline;
-          ">Hide alternatives</button>
-        </div>
-      `;
-    }
-
-    return html;
-  },
+    _mutatesRecommendation: false,
 
   // ============================================================
-  // 🔥 直接渲染 Calendar（不跳转）
+  // 🔥 直接渲染 Calendar（完整版 - 懒加载 + 内联 fallback）
   // ============================================================
   _renderCalendarView: function() {
-    console.log('[Dashboard] 📅 Navigating to Calendar...');
-    var eventAdapter = LawAIApp.DashboardEventAdapter;
-    if (eventAdapter) eventAdapter.sendPrimaryActionSelected('view_calendar', null, { source: 'dashboard' });
-    try { var event = new CustomEvent('NAVIGATE_TO_CALENDAR', { detail: { source: 'dashboard' } }); document.dispatchEvent(event); } catch (e) {}
-    if (window.LawAIApp?.Router) {
-      window.LawAIApp.Router.navigate('/calendar');
-    } else {
-      window.location.href = '/pages/academy.html?view=calendar';
-    }
-  },
+    console.log('[Dashboard] 📅 Rendering Calendar...');
 
-    // 懒加载完整 Calendar
+    var container = document.getElementById('app') || 
+                    document.getElementById('law-runtime-root') || 
+                    document.getElementById('dashboard-root');
+    if (!container) {
+      console.warn('[Dashboard] No container for Calendar');
+      return;
+    }
+
+    // 🔥 优先使用完整 Calendar
+    if (window.LawAIApp?.Calendar && typeof window.LawAIApp.Calendar.render === 'function') {
+      try {
+        window.LawAIApp.Calendar._root = container;
+        window.LawAIApp.Calendar.render();
+        console.log('[Dashboard] ✅ Full Calendar rendered');
+        return;
+      } catch (e) {
+        console.warn('[Dashboard] Full Calendar error:', e);
+      }
+    }
+
+    // 🔥 懒加载完整 Calendar
     if (window.LawAIApp?.AcademyLoader?.loadCalendarLazy) {
       window.LawAIApp.AcademyLoader.loadCalendarLazy(function(calendar) {
         try {
           calendar._root = container;
           calendar.render();
+          console.log('[Dashboard] ✅ Lazy Calendar rendered');
         } catch (e) {
           console.warn('[Dashboard] Lazy Calendar error:', e);
         }
       });
     }
 
-    // 先用内联 Calendar 渲染（快速显示）
+    // 🔥 先用内联 Calendar 渲染（快速显示）
     var inlineCalendar = {
       currentYear: new Date().getFullYear(),
       currentMonth: new Date().getMonth(),
@@ -3593,9 +3495,9 @@ LawAIApp.Dashboard = {
             <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">📅 Calendar</h2>
             <p style="color:#94a3b8;margin:0 0 20px;">${monthName} ${this.currentYear}</p>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-              <button onclick="window.LawAIApp.Calendar.changeMonth(-1)" style="padding:8px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;cursor:pointer;font-family:inherit;">←</button>
+              <button onclick="LawAIApp.Calendar.changeMonth(-1)" style="padding:8px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;cursor:pointer;font-family:inherit;">←</button>
               <span style="font-weight:600;font-size:18px;">${monthName} ${this.currentYear}</span>
-              <button onclick="window.LawAIApp.Calendar.changeMonth(1)" style="padding:8px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;cursor:pointer;font-family:inherit;">→</button>
+              <button onclick="LawAIApp.Calendar.changeMonth(1)" style="padding:8px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;cursor:pointer;font-family:inherit;">→</button>
             </div>
             <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:12px;color:#64748b;margin-bottom:8px;">
               <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
