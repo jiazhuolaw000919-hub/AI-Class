@@ -1872,7 +1872,7 @@ function __safeCall(pathOrObj) {
 
                     html += `
                         <div style="background: ${lBgColor}; border-radius: 10px; padding: 12px 16px; border: 1px solid ${lBorderColor}; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;"
-                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectLesson', '${lesson.id}')"
+                             onclick="window.location.href='/pages/lesson.html?lessonId=${lesson.id}'"
                              onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
                              onmouseout="this.style.background='${lBgColor}'">
                             <div style="display: flex; align-items: center; gap: 12px;">
@@ -2090,9 +2090,9 @@ function __safeCall(pathOrObj) {
                     var lesson = structure.lessons[i];
                     var lessonNum = String(lesson.order).padStart(2, '0');
         
-                    html += `
+                   html += `
                         <div style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectLesson', '${lesson.lessonId}')"
+                             onclick="window.location.href='/pages/lesson.html?lessonId=${lesson.lessonId}'"
                              onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.02)'">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
