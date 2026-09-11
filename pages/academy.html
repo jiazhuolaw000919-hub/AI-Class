@@ -41,7 +41,7 @@
     </nav>
 
     <!-- ============================================================ -->
-    <!-- 基础脚本                                                      -->
+    <!-- 1. 基础脚本                                                  -->
     <!-- ============================================================ -->
     <script src="/js/storageEngine.js"></script>
     <script src="/js/eventBus.js"></script>
@@ -51,21 +51,39 @@
     <script src="/js/loader.js"></script>
 
     <!-- ============================================================ -->
-    <!-- Academy 相关                                                  -->
+    <!-- 2. Registry 层（顺序：school → course → subject）              -->
+    <!-- ============================================================ -->
+    <script src="/js/academy/schoolRegistry.js"></script>
+    <script src="/js/academy/courseRegistry.js"></script>
+    <script src="/js/academy/subjectRegistry.js"></script>
+
+    <!-- ============================================================ -->
+    <!-- 3. Content 层                                                -->
+    <!-- ============================================================ -->
+    <script src="/js/academy/contentLoader.js"></script>
+
+    <!-- ============================================================ -->
+    <!-- 4. Curriculum 层（🔥 提前到 curriculumSeed 之前）              -->
+    <!-- ============================================================ -->
+    <script src="/js/curriculum/CurriculumAuthority.js"></script>
+    <script src="/js/school/SchoolViewModel.js"></script>
+
+    <!-- ============================================================ -->
+    <!-- 5. 🔥 CurriculumSeed（在 Registry + CA 之后同步加载）         -->
+    <!-- ============================================================ -->
+    <script src="/js/academy/curriculumSeed.js"></script>
+
+    <!-- ============================================================ -->
+    <!-- 6. Academy 核心（顺序：Loader → Manager → View → Adapter）    -->
     <!-- ============================================================ -->
     <script src="/js/academy/academyManifest.js"></script>
     <script src="/js/academy/academyLoader.js"></script>
     <script src="/js/academy/academyExperienceManager.js"></script>
     <script src="/js/academy/academyView.js"></script>
     <script src="/js/academy/learningJourneyAdapter.js"></script>
-    <script src="/js/academy/schoolRegistry.js"></script>
-    <script src="/js/academy/subjectRegistry.js"></script>
-    <script src="/js/academy/courseRegistry.js"></script>
-    <script src="/js/academy/contentLoader.js"></script>
-    <script src="/js/academy/curriculumSeed.js"></script>
 
     <!-- ============================================================ -->
-    <!-- Experience 层                                                -->
+    <!-- 7. Experience 层                                             -->
     <!-- ============================================================ -->
     <script src="/js/experience/experienceContract.js"></script>
     <script src="/js/experience/activityRegistry.js"></script>
@@ -76,7 +94,7 @@
     <script src="/js/lessonView.js"></script>
 
     <!-- ============================================================ -->
-    <!-- 核心学习引擎                                                 -->
+    <!-- 8. 核心学习引擎                                               -->
     <!-- ============================================================ -->
     <script src="/js/memoryEngine.js"></script>
     <script src="/js/masteryEngine.js"></script>
@@ -89,19 +107,15 @@
     <script src="/js/adaptiveMemory.js"></script>
 
     <!-- ============================================================ -->
-    <!-- Dashboard Adapters (Part 102)                                 -->
+    <!-- 9. Dashboard Adapters                                        -->
     <!-- ============================================================ -->
     <script src="/js/dashboard/DashboardSurfaceAdapter.js"></script>
     <script src="/js/dashboard/DashboardViewModel.js"></script>
     <script src="/js/dashboard/DashboardEventAdapter.js"></script>
-
-    <!-- ============================================================ -->
-    <!-- Dashboard                                                    -->
-    <!-- ============================================================ -->
     <script src="/js/dashboard.js"></script>
 
     <!-- ============================================================ -->
-    <!-- DevTools                                                     -->
+    <!-- 10. DevTools                                                 -->
     <!-- ============================================================ -->
     <script src="/js/dev/runtimeProfiler.js"></script>
     <script src="/js/dev/performanceCollector.js"></script>
@@ -109,7 +123,7 @@
     <script src="/js/dev/developerOverlay.js"></script>
 
     <!-- ============================================================ -->
-    <!-- DevPanel                                                     -->
+    <!-- 11. DevPanel                                                 -->
     <!-- ============================================================ -->
     <script src="/js/debug/devPanel.js"></script>
     <script src="/js/debug/panels/runtimePanel.js"></script>
@@ -139,33 +153,18 @@
     <script src="/js/debug/panels/architecturePanel.js"></script>
 
     <!-- ============================================================ -->
-    <!-- SystemComposer                                               -->
+    <!-- 12. SystemComposer / App / Bootstrap                         -->
     <!-- ============================================================ -->
     <script src="/js/systemComposer.js"></script>
-
-    <!-- ============================================================ -->
-    <!-- App & Bootstrap                                              -->
-    <!-- ============================================================ -->
     <script src="/js/app.js"></script>
     <script src="/js/bootstrap.js"></script>
 
     <!-- ============================================================ -->
-    <!-- Part 163: Calendar Authority (后台加载版)                     -->
+    <!-- 13. Authority 层（Calendar / Notes / Settings / Video）       -->
     <!-- ============================================================ -->
     <script src="/js/calendar/CalendarAuthority.js"></script>
-
-    <!-- ============================================================ -->
-    <!-- Part 164: Notes Authority (后台加载版)                        -->
-    <!-- ============================================================ -->
     <script src="/js/notes/NotesAuthority.js"></script>
-
-    <!-- Part 165: SettingsAuthority -->
     <script src="/js/settings/SettingsAuthority.js"></script>
-
-    <script src="/js/curriculum/CurriculumAuthority.js"></script>
-    <script src="/js/school/SchoolViewModel.js"></script>
-
-    <!-- Part 170: Video Activity -->
     <script src="/js/experience/videoEvidenceContract.js"></script>
     <script src="/js/experience/renderers/videoRenderer.js"></script>
 
