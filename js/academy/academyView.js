@@ -257,7 +257,7 @@ function __safeCall(pathOrObj) {
                     this._renderSubjectView(container, data.currentSubjectId);
                     break;
                 case 'lesson':
-                    this._renderModuleView(container, data.currentLessonId);
+                    this._renderLessonView(container, data.currentLessonId);
                     break;
                 default:
                     this._renderDashboard(container, data);
@@ -2092,7 +2092,7 @@ function __safeCall(pathOrObj) {
         
                     html += `
                         <div style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectLesson', '${lesson.lessonId}')"
+                             onclick="window.location.href='/pages/academy.html?view=lesson&id=${lesson.lessonId}'"
                              onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.02)'">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
