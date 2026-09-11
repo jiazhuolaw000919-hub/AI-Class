@@ -1,0 +1,188 @@
+{
+  "id": "lesson-prompt-advanced-001",
+  "version": "1.0.0",
+  "title": "Advanced Prompt Engineering",
+  "slug": "advanced-prompt-engineering",
+  "subjectId": "subject-prompt-engineering",
+  "courseId": "course-ai",
+  "moduleId": null,
+  "order": 2,
+  "estimatedMinutes": 35,
+  "difficulty": "advanced",
+  "status": "published",
+  "description": "Master advanced techniques: few-shot prompting, chain-of-thought, structured outputs, and multi-step reasoning.",
+  "learningObjectives": [
+    "Apply few-shot prompting with examples",
+    "Use chain-of-thought reasoning to improve accuracy",
+    "Request structured outputs (JSON, XML, tables)"
+  ],
+  "sections": [
+    {
+      "id": "section-01",
+      "type": "foundation",
+      "title": "Few-Shot Prompting",
+      "content": [
+        {
+          "type": "text",
+          "content": "Few-shot prompting means giving the model examples of what you want before asking for the actual output. It is one of the most reliable ways to control output style."
+        },
+        {
+          "type": "example",
+          "content": "Instead of 'Classify these reviews,' try: 'Classify these reviews as positive or negative. Examples: \"I loved it\" → positive. \"It was terrible\" → negative. Now: \"Not bad, but could be better\" →'"
+        },
+        {
+          "type": "text",
+          "content": "Zero-shot (no examples), one-shot (one example), and few-shot (2-5 examples) are the three common approaches. More examples usually improve consistency."
+        }
+      ]
+    },
+    {
+      "id": "section-02",
+      "type": "core",
+      "title": "Chain-of-Thought Reasoning",
+      "content": [
+        {
+          "type": "text",
+          "content": "Chain-of-thought (CoT) prompting asks the model to reason step by step before giving a final answer. This dramatically improves accuracy on math, logic, and multi-step problems."
+        },
+        {
+          "type": "example",
+          "content": "Instead of 'What is 15% of 240?', try: 'What is 15% of 240? Let's think step by step.'"
+        },
+        {
+          "type": "text",
+          "content": "CoT works because it forces the model to allocate compute to intermediate reasoning, similar to how humans show their work."
+        }
+      ]
+    },
+    {
+      "id": "section-03",
+      "type": "advanced",
+      "title": "Structured Outputs",
+      "content": [
+        {
+          "type": "text",
+          "content": "Modern AI models can produce structured outputs like JSON, XML, or markdown tables. This makes their responses machine-readable and easier to integrate."
+        },
+        {
+          "type": "example",
+          "content": "Instead of 'List the pros and cons,' try: 'Return a JSON object with two arrays: pros and cons. Each item should have a title and description.'"
+        },
+        {
+          "type": "text",
+          "content": "Combined with few-shot examples, structured outputs let you build reliable pipelines where AI output feeds directly into software without manual parsing."
+        }
+      ]
+    }
+  ],
+  "video": {
+    "provider": "youtube",
+    "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao",
+    "title": "Advanced Prompting Techniques",
+    "durationMinutes": 15
+  },
+  "flashcards": [
+    {
+      "id": "fc-501",
+      "front": "What is few-shot prompting?",
+      "back": "Giving the model 2-5 examples before asking for the actual output.",
+      "difficulty": "core",
+      "tags": ["few-shot"]
+    },
+    {
+      "id": "fc-502",
+      "front": "What is chain-of-thought prompting?",
+      "back": "Asking the model to reason step by step before giving a final answer.",
+      "difficulty": "core",
+      "tags": ["cot"]
+    },
+    {
+      "id": "fc-503",
+      "front": "Why are structured outputs useful?",
+      "back": "They make AI responses machine-readable for software integration.",
+      "difficulty": "advanced",
+      "tags": ["json"]
+    }
+  ],
+  "practice": {
+    "enabled": true,
+    "type": "mixed",
+    "items": [
+      {
+        "id": "practice-501",
+        "type": "multipleChoice",
+        "question": "When does chain-of-thought prompting help most?",
+        "options": [
+          "Simple factual questions",
+          "Multi-step math or logic problems",
+          "Short creative writing",
+          "Translating single words"
+        ],
+        "answer": 1,
+        "explanation": "CoT helps most on multi-step reasoning tasks where intermediate steps matter."
+      },
+      {
+        "id": "practice-502",
+        "type": "shortAnswer",
+        "question": "Write a prompt that asks for a JSON output with two fields: 'summary' and 'sentiment'.",
+        "answer": "Example: 'Analyze the following text and return a JSON object with two fields: summary (1 sentence) and sentiment (positive/negative/neutral).'",
+        "explanation": "Structured prompts specify the exact schema you want the model to produce."
+      }
+    ]
+  },
+  "notes": {
+    "summary": "Advanced prompting techniques: few-shot examples, chain-of-thought reasoning, and structured outputs.",
+    "keyPoints": [
+      "Few-shot: give examples before asking",
+      "Chain-of-thought: ask for step-by-step reasoning",
+      "Structured output: JSON / XML / tables for integration",
+      "Combining techniques produces reliable pipelines"
+    ],
+    "importantTerms": [
+      { "term": "Few-Shot", "definition": "Prompting with 2-5 examples." },
+      { "term": "Chain-of-Thought", "definition": "Step-by-step reasoning before answer." },
+      { "term": "Structured Output", "definition": "Machine-readable response format." }
+    ]
+  },
+  "aiTools": [
+    {
+      "provider": "chatgpt",
+      "role": "reasoning",
+      "recommendedFor": ["testing advanced prompts", "comparing model behavior"]
+    },
+    {
+      "provider": "claude",
+      "role": "writing",
+      "recommendedFor": ["complex analysis", "long-context reasoning"]
+    },
+    {
+      "provider": "gemini",
+      "role": "multimodal",
+      "recommendedFor": ["structured outputs", "multi-format tasks"]
+    }
+  ],
+  "resources": [
+    {
+      "id": "resource-501",
+      "title": "Advanced Prompting Guide",
+      "type": "article",
+      "url": "https://example.com/advanced-prompting",
+      "provider": "official"
+    }
+  ],
+  "news": [],
+  "relatedLessons": [
+    "lesson-prompt-basics-001"
+  ],
+  "keyTakeaways": [
+    "Few-shot prompting is the most reliable way to control output.",
+    "Chain-of-thought reasoning boosts accuracy on complex problems.",
+    "Structured outputs enable reliable AI integration."
+  ],
+  "metadata": {
+    "author": "Law AI Academy",
+    "language": "en"
+  },
+  "createdAt": "2026-09-11T00:00:00Z",
+  "updatedAt": "2026-09-11T00:00:00Z"
+}
