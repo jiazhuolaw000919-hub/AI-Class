@@ -2801,28 +2801,43 @@ LawAIApp.Dashboard = {
    * 获取最近反思
    */
   _getRecentReflections: function() {
+      // 🔥 Part 164: 优先使用 NotesAuthority
+      var auth = window.LawAIApp?.NotesAuthority;
+      if (auth && auth.initialized) {
+          try {
+              var allNotes = auth.getAllNotes();
+              // 筛选反思类型
+              var reflections = allNotes.filter(function(n) {
+                  return n.noteType === 'REFLECTION' || 
+                         (n.tags && n.tags.indexOf('reflection') !== -1) ||
+                         n.provenance?.source === 'dashboard';
+              });
+              // 按时间排序
+              reflections.sort(function(a, b) {
+                  return new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt);
+              });
+              return reflections;
+          } catch (e) {
+              console.warn('[Dashboard] Recent reflections error:', e);
+              return [];
+          }
+      }
+      // Fallback 到旧 API
       var notes = window.LawAIApp?.Notes || window.LawAIApp?.KnowledgeCapture;
       if (!notes) return [];
-
       try {
           var allNotes = notes.getNotes ? notes.getNotes() : [];
           if (!allNotes || allNotes.length === 0) return [];
-
-          // 筛选反思类型的笔记
           var reflections = allNotes.filter(function(n) {
               return n.type === 'REFLECTION' || 
                      n.tags?.indexOf('reflection') !== -1 ||
                      n.source === 'dashboard';
           });
-
-          // 按时间排序
           reflections.sort(function(a, b) {
               return new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt);
           });
-
           return reflections;
       } catch (e) {
-          console.warn('[Dashboard] Recent reflections error:', e);
           return [];
       }
   },
