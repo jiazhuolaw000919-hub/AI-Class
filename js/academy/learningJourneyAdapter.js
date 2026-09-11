@@ -306,10 +306,10 @@
         // ============================================================
         getModuleLessons: function(moduleId) {
             console.log('[LearningJourneyAdapter] 📖 Getting lessons for module:', moduleId);
-
+        
             var lessons = [];
-
-            // 1. 先尝试从 SubjectRegistry 拿（moduleId 就是 subjectId）
+        
+            // 1. 从 SubjectRegistry 拿
             var sr = window.LawAIApp?.SubjectRegistry;
             if (sr && typeof sr.getSubject === 'function') {
                 var subject = sr.getSubject(moduleId);
@@ -319,41 +319,33 @@
                     });
                 }
             }
-
+        
             // 2. Fallback: CurriculumAuthority
             if (lessons.length === 0) {
                 var ca = window.LawAIApp?.CurriculumAuthority;
                 if (ca && typeof ca.getLessonsBySubject === 'function') {
                     try {
-                        var caLessons = ca.getLessonsBySubject(moduleId) || [];
-                        lessons = caLessons;
+                        lessons = ca.getLessonsBySubject(moduleId) || [];
                     } catch (e) {}
                 }
             }
-
-            // 3. Fallback: AcademyRegistry（兼容老代码）
+        
+            // 3. Fallback: AcademyRegistry
             if (lessons.length === 0) {
-                var academyRegistry = window.LawAIApp?.AcademyRegistry;
-                if (academyRegistry && typeof academyRegistry.getLessonsByModule === 'function') {
-                    try {
-                        lessons = academyRegistry.getLessonsByModule(moduleId) || [];
-                    } catch (e) {}
+                var ar = window.LawAIApp?.AcademyRegistry;
+                if (ar && typeof ar.getLessonsByModule === 'function') {
+                    try { lessons = ar.getLessonsByModule(moduleId) || []; } catch (e) {}
                 }
             }
-
-            if (lessons.length === 0) {
-                console.warn('[LearningJourneyAdapter] No lessons found for module:', moduleId);
-                return [];
-            }
-
-            var state = this._journeyState;
+        
+            var state = this._journeyState || {};
             var completedLessons = state.completedLessons || [];
-
+        
             return lessons.map(function(lesson, index) {
                 var lessonId = (typeof lesson === 'string') ? lesson : (lesson.id || lesson.lessonId);
                 var isCompleted = completedLessons.indexOf(lessonId) !== -1;
                 var isActive = state.currentLessonId === lessonId;
-
+        
                 return {
                     id: lessonId,
                     moduleId: moduleId,
@@ -373,24 +365,22 @@
 
         getLessonDetail: function(lessonId) {
             console.log('[LearningJourneyAdapter] 📖 Getting lesson detail:', lessonId);
-
+        
             var lesson = null;
-
-            // 1. 优先从 CurriculumAuthority 拿（你的真实数据源）
+        
+            // 1. 优先从 CurriculumAuthority 拿
             var ca = window.LawAIApp?.CurriculumAuthority;
             if (ca && typeof ca.getLesson === 'function') {
-                try {
-                    lesson = ca.getLesson(lessonId);
-                } catch (e) {}
+                try { lesson = ca.getLesson(lessonId); } catch (e) {}
             }
-
+        
             // 2. Fallback: SubjectRegistry 遍历
             if (!lesson) {
                 var sr = window.LawAIApp?.SubjectRegistry;
                 if (sr && typeof sr.getAllSubjects === 'function') {
-                    var allSubjects = sr.getAllSubjects();
-                    for (var i = 0; i < allSubjects.length; i++) {
-                        var subj = allSubjects[i];
+                    var subjects = sr.getAllSubjects();
+                    for (var i = 0; i < subjects.length; i++) {
+                        var subj = subjects[i];
                         var lessons = subj.lessons || [];
                         for (var j = 0; j < lessons.length; j++) {
                             var l = lessons[j];
@@ -404,30 +394,27 @@
                     }
                 }
             }
-
+        
             // 3. Fallback: AcademyRegistry（兼容老代码）
             if (!lesson) {
-                var academyRegistry = window.LawAIApp?.AcademyRegistry;
-                if (academyRegistry && typeof academyRegistry.getLesson === 'function') {
-                    try {
-                        lesson = academyRegistry.getLesson(lessonId);
-                    } catch (e) {}
+                var ar = window.LawAIApp?.AcademyRegistry;
+                if (ar && typeof ar.getLesson === 'function') {
+                    try { lesson = ar.getLesson(lessonId); } catch (e) {}
                 }
             }
-
+        
             if (!lesson) {
                 console.warn('[LearningJourneyAdapter] Lesson not found anywhere:', lessonId);
                 return null;
             }
-
-            var state = this._journeyState;
+        
+            var state = this._journeyState || {};
             var isCompleted = state.completedLessons && state.completedLessons.indexOf(lessonId) !== -1;
             var isActive = state.currentLessonId === lessonId;
-
+        
             // 推断 subjectId
             var subjectId = lesson.subjectId || null;
             if (!subjectId) {
-                // 从 SubjectRegistry 反查
                 var sr2 = window.LawAIApp?.SubjectRegistry;
                 if (sr2 && typeof sr2.getAllSubjects === 'function') {
                     var subs = sr2.getAllSubjects();
@@ -445,7 +432,7 @@
                     }
                 }
             }
-
+        
             return {
                 id: lesson.id || lessonId,
                 moduleId: lesson.moduleId || subjectId || '',
@@ -457,7 +444,6 @@
                 duration: lesson.duration || 0,
                 status: lesson.status || 'active',
                 content: lesson.content || '',
-                lessons: lesson.lessons || null,
                 isCompleted: isCompleted,
                 isActive: isActive,
                 progress: isCompleted ? 100 : (isActive ? 50 : 0),
