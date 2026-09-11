@@ -289,7 +289,7 @@
                 if (onFail) onFail('NotesAuthority load failed');
             }
         }.bind(this));
-    }
+    },
 
     // ============================================================
     // Part 165: SettingsAuthority 懒加载
