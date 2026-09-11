@@ -366,88 +366,14 @@
         selectLesson: function(lessonId) {
             console.log('[AcademyExperienceManager] 📍 Selecting lesson:', lessonId);
 
-            // 🔥 直接从 CurriculumAuthority 拿数据（不依赖 LearningJourneyAdapter）
-            var lesson = null;
-            var ca = window.LawAIApp?.CurriculumAuthority;
-            if (ca && typeof ca.getLesson === 'function') {
-                try { lesson = ca.getLesson(lessonId); } catch (e) {}
-            }
-
-            // 兜底：从 SubjectRegistry 遍历
-            if (!lesson) {
-                var sr = window.LawAIApp?.SubjectRegistry;
-                if (sr && typeof sr.getAllSubjects === 'function') {
-                    var allSubjects = sr.getAllSubjects();
-                    for (var i = 0; i < allSubjects.length; i++) {
-                        var ls = allSubjects[i].lessons || [];
-                        for (var j = 0; j < ls.length; j++) {
-                            var l = ls[j];
-                            var lid = (typeof l === 'string') ? l : (l.id || l.lessonId);
-                            if (lid === lessonId) {
-                                lesson = (typeof l === 'string') ? { id: l, title: l, name: l } : l;
-                                break;
-                            }
-                        }
-                        if (lesson) break;
-                    }
-                }
-            }
-
-            // 真的找不到才报错
-            if (!lesson) {
-                console.warn('[AcademyExperienceManager] Lesson not found:', lessonId);
-                var container = document.getElementById('academy-root');
-                if (container) {
-                    container.innerHTML = `
-                        <div style="padding: 40px; text-align: center; color: #94a3b8;">
-                            <div style="font-size: 48px; margin-bottom: 16px;">📖</div>
-                            <p>Lesson not found</p>
-                            <p style="font-size: 13px; color: #64748b;">ID: ${lessonId}</p>
-                            <button onclick="window.LawAIApp.AcademyExperienceManager.goHome()" 
-                                    style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer; font-family: inherit;">
-                                ← Back to Academy
-                            </button>
-                        </div>
-                    `;
-                }
-                return this;
-            }
-
             // 更新状态
             this._state.currentLessonId = lessonId;
-            this._state.currentModuleId = lesson.subjectId || this._state.currentModuleId;
-            this._state.currentSubjectId = lesson.subjectId || this._state.currentSubjectId;
             this._state.viewMode = 'lesson';
-            if (!this._state.currentCourseId && lesson.courseId) {
-                this._state.currentCourseId = lesson.courseId;
-            }
 
-            // 通知 Adapter（如果可用）
-            var adapter = window.LawAIApp?.LearningJourneyAdapter;
-            if (adapter && typeof adapter.selectLesson === 'function') {
-                try { adapter.selectLesson(lessonId); } catch (e) {}
-            }
-
-            // 渲染
-            var container2 = document.getElementById('academy-root');
-            var academyView = window.LawAIApp?.AcademyView;
-            if (academyView && typeof academyView._renderLessonView === 'function') {
-                academyView._renderLessonView(container2, lessonId);
-            } else if (window.LawAIApp?.Views?.LessonView) {
-                window.LawAIApp.Views.LessonView.render(lessonId, container2);
-            } else {
-                container2.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">Lesson renderer not available</div>';
-            }
-
-            this._emit('ACADEMY_VIEW_CHANGED', {
-                viewMode: 'lesson',
-                currentLessonId: lessonId,
-                currentModuleId: this._state.currentModuleId,
-                currentSubjectId: this._state.currentSubjectId,
-                currentCourseId: this._state.currentCourseId
-            });
-
-            console.log('[AcademyExperienceManager] ✅ Lesson selected:', lessonId);
+            // 🔥 直接跳 lesson.html
+            var url = '/pages/lesson.html?lessonId=' + encodeURIComponent(lessonId);
+            console.log('[AcademyExperienceManager] 🎯 Navigating to:', url);
+            window.location.href = url;
             return this;
         },
 
