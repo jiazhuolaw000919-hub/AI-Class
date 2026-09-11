@@ -24,6 +24,7 @@
         .bottom-nav a:hover { color: #94a3b8; }
         .bottom-nav a.active { color: #4a9eff; }
         .bottom-nav a span:first-child { font-size: 18px; }
+
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
     </style>
@@ -39,18 +40,43 @@
         <a href="#" class="nav-item" data-tab="settings"><span>⚙️</span><span>Settings</span></a>
     </nav>
 
-    <!-- 1. 基础层 -->
+    <!-- ============================================================ -->
+    <!-- 基础脚本                                                      -->
+    <!-- ============================================================ -->
     <script src="/js/storageEngine.js"></script>
     <script src="/js/eventBus.js"></script>
     <script src="/js/profileEngine.js"></script>
     <script src="/js/progressEngine.js"></script>
     <script src="/js/router.js"></script>
     <script src="/js/loader.js"></script>
-    <script src="/js/systemComposer.js"></script>
-    <script src="/js/app.js"></script>
-    <script src="/js/bootstrap.js"></script>
 
-    <!-- 2. 核心学习引擎（跨页面共用） -->
+    <!-- ============================================================ -->
+    <!-- Academy 相关                                                  -->
+    <!-- ============================================================ -->
+    <script src="/js/academy/academyManifest.js"></script>
+    <script src="/js/academy/academyLoader.js"></script>
+    <script src="/js/academy/academyExperienceManager.js"></script>
+    <script src="/js/academy/academyView.js"></script>
+    <script src="/js/academy/learningJourneyAdapter.js"></script>
+    <script src="/js/academy/schoolRegistry.js"></script>
+    <script src="/js/academy/subjectRegistry.js"></script>
+    <script src="/js/academy/courseRegistry.js"></script>
+    <script src="/js/academy/contentLoader.js"></script>
+
+    <!-- ============================================================ -->
+    <!-- Experience 层                                                -->
+    <!-- ============================================================ -->
+    <script src="/js/experience/experienceContract.js"></script>
+    <script src="/js/experience/activityRegistry.js"></script>
+    <script src="/js/experience/experienceRuntime.js"></script>
+    <script src="/js/experience/practiceEvidenceContract.js"></script>
+    <script src="/js/experience/renderers/readingRenderer.js"></script>
+    <script src="/js/experience/renderers/practiceRenderer.js"></script>
+    <script src="/js/lessonView.js"></script>
+
+    <!-- ============================================================ -->
+    <!-- 核心学习引擎                                                 -->
+    <!-- ============================================================ -->
     <script src="/js/memoryEngine.js"></script>
     <script src="/js/masteryEngine.js"></script>
     <script src="/js/recommendationEngine.js"></script>
@@ -61,20 +87,29 @@
     <script src="/js/memoryReview.js"></script>
     <script src="/js/adaptiveMemory.js"></script>
 
-    <!-- 3. LessonView -->
-    <script src="/js/lessonView.js"></script>
+    <!-- ============================================================ -->
+    <!-- Dashboard Adapters (Part 102)                                 -->
+    <!-- ============================================================ -->
+    <script src="/js/dashboard/DashboardSurfaceAdapter.js"></script>
+    <script src="/js/dashboard/DashboardViewModel.js"></script>
+    <script src="/js/dashboard/DashboardEventAdapter.js"></script>
 
-    <!-- 4. AcademyManifest（可选：有就加载） -->
-    <script src="/js/academy/academyManifest.js"></script>
+    <!-- ============================================================ -->
+    <!-- Dashboard                                                    -->
+    <!-- ============================================================ -->
+    <script src="/js/dashboard.js"></script>
 
-    <!-- 5. AcademyLoader（核心：其他 Academy 模块自动加载） -->
-    <script src="/js/academy/academyLoader.js"></script>
-
-    <!-- 6. DevTools / DevPanel（可选：只用于调试，不需要可整段删掉） -->
+    <!-- ============================================================ -->
+    <!-- DevTools                                                     -->
+    <!-- ============================================================ -->
     <script src="/js/dev/runtimeProfiler.js"></script>
     <script src="/js/dev/performanceCollector.js"></script>
     <script src="/js/dev/runtimeReport.js"></script>
     <script src="/js/dev/developerOverlay.js"></script>
+
+    <!-- ============================================================ -->
+    <!-- DevPanel                                                     -->
+    <!-- ============================================================ -->
     <script src="/js/debug/devPanel.js"></script>
     <script src="/js/debug/panels/runtimePanel.js"></script>
     <script src="/js/debug/panels/performancePanel.js"></script>
@@ -102,13 +137,55 @@
     <script src="/js/debug/architectureGuardrail.js"></script>
     <script src="/js/debug/panels/architecturePanel.js"></script>
 
-    <!-- 7. Academy 启动脚本 -->
+    <!-- ============================================================ -->
+    <!-- SystemComposer                                               -->
+    <!-- ============================================================ -->
+    <script src="/js/systemComposer.js"></script>
+
+    <!-- ============================================================ -->
+    <!-- App & Bootstrap                                              -->
+    <!-- ============================================================ -->
+    <script src="/js/app.js"></script>
+    <script src="/js/bootstrap.js"></script>
+
+    <!-- ============================================================ -->
+    <!-- Part 163: Calendar Authority (后台加载版)                     -->
+    <!-- ============================================================ -->
+    <script src="/js/calendar/CalendarAuthority.js"></script>
+
+    <!-- ============================================================ -->
+    <!-- Part 164: Notes Authority (后台加载版)                        -->
+    <!-- ============================================================ -->
+    <script src="/js/notes/NotesAuthority.js"></script>
+
+    <!-- Part 165: SettingsAuthority -->
+    <script src="/js/settings/SettingsAuthority.js"></script>
+
+    <script src="/js/curriculum/CurriculumAuthority.js"></script>
+    <script src="/js/school/SchoolViewModel.js"></script>
+
+    <!-- Part 170: Video Activity -->
+    <script src="/js/experience/videoEvidenceContract.js"></script>
+    <script src="/js/experience/renderers/videoRenderer.js"></script>
+
+    <!-- ============================================================ -->
+    <!-- Academy 启动脚本 (瘦身版)                                     -->
+    <!-- ============================================================ -->
     <script>
         (function() {
             'use strict';
 
-            console.log('📄 Academy page loaded (Loader-based)');
+            console.log('📄 Academy page loaded (Part 164 - Slim)');
 
+            var loader = window.LawAIApp?.AcademyLoader;
+            if (!loader) {
+                console.warn('[Academy] AcademyLoader not found');
+                return;
+            }
+
+            // ============================================================
+            // 导航点击
+            // ============================================================
             document.querySelectorAll('.nav-item').forEach(function(item) {
                 item.addEventListener('click', function(e) {
                     var tab = this.dataset.tab;
@@ -124,9 +201,8 @@
 
                     e.preventDefault();
 
-                    var loader = window.LawAIApp?.AcademyLoader;
                     var container = document.getElementById('academy-root');
-                    if (!loader || !container) return;
+                    if (!container) return;
 
                     if (tab === 'calendar') {
                         loader.renderCalendar(container, function() {
@@ -152,11 +228,37 @@
                 });
             });
 
+            // ============================================================
+            // 事件监听器 (精简)
+            // ============================================================
+
+            // Calendar 导航
+            document.addEventListener('NAVIGATE_TO_CALENDAR', function(e) {
+                console.log('[Academy] 📅 NAVIGATE_TO_CALENDAR received');
+                var container = document.getElementById('academy-root');
+                if (container) {
+                    loader.renderCalendar(container, function() {
+                        loader.updateNavHighlight('calendar');
+                    });
+                }
+            });
+
+            // Settings 导航
+            document.addEventListener('NAVIGATE_TO_SETTINGS', function(e) {
+                console.log('[Academy] ⚙️ NAVIGATE_TO_SETTINGS received');
+                var container = document.getElementById('academy-root');
+                if (container) {
+                    loader.renderSettings(container, function() {
+                        loader.updateNavHighlight('settings');
+                    });
+                }
+            });
+
+            // Notes 导航
             document.addEventListener('NAVIGATE_TO_NOTES', function(e) {
                 console.log('[Academy] 📝 NAVIGATE_TO_NOTES received');
-                var loader = window.LawAIApp?.AcademyLoader;
                 var container = document.getElementById('academy-root');
-                if (!loader || !container) return;
+                if (!container) return;
 
                 container.innerHTML = `
                     <div style="text-align:center;padding:60px;color:#94a3b8;">
@@ -173,14 +275,25 @@
                             window.LawAIApp.Notes.render();
                             loader.updateNavHighlight('notes');
                         } else {
-                            container.innerHTML = `
-                                <div style="max-width:900px;margin:0 auto;padding:60px;text-align:center;color:#94a3b8;">
-                                    <div style="font-size:48px;margin-bottom:16px;">📝</div>
-                                    <h3 style="color:#e2e8f0;">Notes module not loaded</h3>
-                                    <p style="margin:8px 0 16px;">Notes UI is not available.</p>
-                                    <button onclick="window.location.href='/pages/academy.html'" style="padding:8px 20px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);border-radius:100px;color:#4a9eff;cursor:pointer;font-family:inherit;">← Back to Academy</button>
-                                </div>
-                            `;
+                            var files = [
+                                '/js/academy/knowledgeCapture.js',
+                                '/js/academy/notes.js'
+                            ];
+                            var loaded = 0;
+                            files.forEach(function(file) {
+                                var script = document.createElement('script');
+                                script.src = file + '?v=' + Date.now();
+                                script.onload = function() {
+                                    loaded++;
+                                    if (loaded === files.length && window.LawAIApp?.Notes) {
+                                        window.LawAIApp.Notes._root = container;
+                                        window.LawAIApp.Notes.render();
+                                        loader.updateNavHighlight('notes');
+                                    }
+                                };
+                                script.onerror = function() { loaded++; };
+                                document.head.appendChild(script);
+                            });
                         }
                     }, function(error) {
                         console.warn('[Academy] ⚠️ NotesAuthority load failed:', error);
@@ -189,24 +302,83 @@
                                 <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
                                 <h3 style="color:#e2e8f0;">Notes unavailable</h3>
                                 <p style="margin:8px 0 16px;">Please try again later.</p>
-                                <button onclick="window.location.href='/pages/academy.html'" style="padding:8px 20px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);border-radius:100px;color:#4a9eff;cursor:pointer;font-family:inherit;">← Back to Academy</button>
+                                <button onclick="window.location.href='/pages/academy.html'" style="
+                                    padding:8px 20px;
+                                    background:rgba(74,158,255,0.08);
+                                    border:1px solid rgba(74,158,255,0.15);
+                                    border-radius:100px;
+                                    color:#4a9eff;
+                                    cursor:pointer;
+                                    font-family:inherit;
+                                ">← Back to Academy</button>
                             </div>
                         `;
+                    });
+                } else {
+                    var files = [
+                        '/js/academy/knowledgeCapture.js',
+                        '/js/academy/notes.js'
+                    ];
+                    var loaded = 0;
+                    files.forEach(function(file) {
+                        var script = document.createElement('script');
+                        script.src = file + '?v=' + Date.now();
+                        script.onload = function() {
+                            loaded++;
+                            if (loaded === files.length && window.LawAIApp?.Notes) {
+                                window.LawAIApp.Notes._root = container;
+                                window.LawAIApp.Notes.render();
+                                loader.updateNavHighlight('notes');
+                            }
+                        };
+                        script.onerror = function() { loaded++; };
+                        document.head.appendChild(script);
                     });
                 }
             });
 
+            // CalendarAuthority 预加载
+            document.addEventListener('NAVIGATE_TO_CALENDAR_AUTHORITY', function(e) {
+                console.log('[Academy] 📅 NAVIGATE_TO_CALENDAR_AUTHORITY received');
+                if (loader.loadCalendarAuthority) {
+                    loader.loadCalendarAuthority(function(auth) {
+                        console.log('[Academy] ✅ CalendarAuthority ready:', auth.getStatusSummary());
+                        if (window.LawAIApp?.Toast?.success) {
+                            LawAIApp.Toast.success('📅 Calendar ready');
+                        }
+                    }, function(error) {
+                        console.warn('[Academy] ⚠️ CalendarAuthority load failed:', error);
+                    });
+                }
+            });
+
+            // NotesAuthority 预加载
+            document.addEventListener('NAVIGATE_TO_NOTES_AUTHORITY', function(e) {
+                console.log('[Academy] 📝 NAVIGATE_TO_NOTES_AUTHORITY received');
+                if (loader.loadNotesAuthority) {
+                    loader.loadNotesAuthority(function(auth) {
+                        console.log('[Academy] ✅ NotesAuthority ready:', auth.getStatusSummary());
+                        if (window.LawAIApp?.Toast?.success) {
+                            LawAIApp.Toast.success('📝 Notes ready');
+                        }
+                    }, function(error) {
+                        console.warn('[Academy] ⚠️ NotesAuthority load failed:', error);
+                    });
+                }
+            });
+
+            // ============================================================
+            // 初始化 Academy
+            // ============================================================
             function initAcademy() {
                 if (window.location.search.includes('view=calendar')) {
                     var container = document.getElementById('academy-root');
-                    var loader = window.LawAIApp?.AcademyLoader;
-                    if (container && loader) loader.renderCalendar(container);
+                    if (container) loader.renderCalendar(container);
                     return;
                 }
                 if (window.location.search.includes('view=settings')) {
                     var container = document.getElementById('academy-root');
-                    var loader = window.LawAIApp?.AcademyLoader;
-                    if (container && loader) loader.renderSettings(container);
+                    if (container) loader.renderSettings(container);
                     return;
                 }
                 if (window.location.search.includes('view=lesson')) {
@@ -231,34 +403,159 @@
                 }
             }
 
-            function waitForAcademyReady(attempts) {
+            if (document.readyState === 'complete') {
+                setTimeout(initAcademy, 200);
+            } else {
+                window.addEventListener('load', function() { setTimeout(initAcademy, 200); });
+            }
+
+            console.log('✅ Academy page ready (Part 164 - Slim)');
+
+        })();
+
+        // ============================================================
+        // Part 174: 内置数据 Bootstrap（不依赖外部 JSON 文件）
+        // ============================================================
+        (function() {
+            'use strict';
+
+            console.log('[Bootstrap] 使用内置数据启动...');
+
+            function waitForDeps(callback, attempts) {
                 attempts = attempts || 0;
-                var loader = window.LawAIApp?.AcademyLoader;
+                var cr = window.LawAIApp?.CourseRegistry;
+                var sr = window.LawAIApp?.SubjectRegistry;
+                var ca = window.LawAIApp?.CurriculumAuthority;
 
-                if (loader && loader.status === 'ready') {
-                    console.log('[Academy] ✅ AcademyLoader ready, initializing...');
-                    initAcademy();
+                if (cr && sr && ca) {
+                    callback();
                     return;
                 }
-
-                if (attempts > 150) {
-                    console.warn('[Academy] ⚠️ AcademyLoader timeout, trying init anyway...');
-                    initAcademy();
+                if (attempts >= 100) {
+                    console.warn('[Bootstrap] Timeout 等待 deps');
                     return;
                 }
+                setTimeout(function() { waitForDeps(callback, attempts + 1); }, 100);
+            }
 
-                setTimeout(function() { waitForAcademyReady(attempts + 1); }, 100);
+            function bootstrapBuiltinData() {
+                console.log('[Bootstrap] 注入内置数据...');
+
+                var cr = window.LawAIApp.CourseRegistry;
+                var sr = window.LawAIApp.SubjectRegistry;
+                var ca = window.LawAIApp.CurriculumAuthority;
+
+                // ─────────────────────────────────────────────
+                // 1. 注册 Course
+                // ─────────────────────────────────────────────
+                var courseData = {
+                    id: 'course-ai-fundamentals',
+                    schoolId: 'school-science',
+                    programId: 'program-ai',
+                    title: 'AI Fundamentals',
+                    description: 'Learn the basics of Artificial Intelligence',
+                    icon: '🤖',
+                    difficulty: 'beginner',
+                    estimatedHours: 10,
+                    status: 'published'
+                };
+
+                if (cr._courses && typeof cr._courses.set === 'function') {
+                    cr._courses.set(courseData.id, courseData);
+                    console.log('[Bootstrap] ✅ Registered course via _courses:', courseData.id);
+                } else if (typeof cr.register === 'function') {
+                    cr.register(courseData);
+                    console.log('[Bootstrap] ✅ Registered course via register:', courseData.id);
+                }
+
+                // ─────────────────────────────────────────────
+                // 2. 注册 Subject（含 lessons 数组）
+                // ─────────────────────────────────────────────
+                var subjectData = {
+                    id: 'subject-what-is-ai',
+                    courseId: 'course-ai-fundamentals',
+                    title: 'What is AI?',
+                    description: 'Introduction to Artificial Intelligence',
+                    icon: '🧠',
+                    status: 'published',
+                    lessons: [
+                        {
+                            id: 'lesson-ai-intro',
+                            title: 'Introduction to AI',
+                            description: 'Learn what AI is and its applications',
+                            duration: 10,
+                            status: 'published',
+                            summary: 'Artificial Intelligence (AI) is the simulation of human intelligence by machines.',
+                            sections: {
+                                foundation: [
+                                    'AI stands for Artificial Intelligence',
+                                    'It enables machines to learn from experience',
+                                    'Common applications: voice assistants, recommendations, self-driving cars'
+                                ]
+                            },
+                            keyTakeaways: [
+                                'AI simulates human intelligence',
+                                'Machine learning is a subset of AI',
+                                'AI is everywhere in modern life'
+                            ],
+                            video: {
+                                title: 'What is AI?',
+                                url: 'https://www.youtube.com/embed/ad79nYk2keg'
+                            }
+                        },
+                        {
+                            id: 'lesson-ai-history',
+                            title: 'A Brief History of AI',
+                            description: 'How AI evolved from 1950s to today',
+                            duration: 12,
+                            status: 'published',
+                            summary: 'AI has evolved through several waves of innovation since the 1950s.',
+                            keyTakeaways: [
+                                'AI was born in 1956 at Dartmouth',
+                                'AI has gone through multiple "winters"',
+                                'Modern AI is powered by deep learning'
+                            ]
+                        }
+                    ]
+                };
+
+                if (sr && typeof sr.register === 'function') {
+                    sr.register(subjectData);
+                    console.log('[Bootstrap] ✅ Registered subject:', subjectData.id);
+                }
+
+                // ─────────────────────────────────────────────
+                // 3. 触发 CurriculumAuthority 重新 ingest
+                // ─────────────────────────────────────────────
+                if (ca && typeof ca._ingestFromRegistries === 'function') {
+                    ca._ingestFromRegistries();
+                    console.log('[Bootstrap] ✅ Re-ingested to CurriculumAuthority');
+                }
+
+                // ─────────────────────────────────────────────
+                // 4. 重新渲染
+                // ─────────────────────────────────────────────
+                setTimeout(function() {
+                    if (window.LawAIApp?.AcademyExperienceManager?.render) {
+                        try {
+                            window.LawAIApp.AcademyExperienceManager.render();
+                            console.log('[Bootstrap] ✅ Re-rendered Academy');
+                        } catch (e) {
+                            console.warn('[Bootstrap] Render error:', e);
+                        }
+                    }
+                }, 200);
+
+                console.log('[Bootstrap] ✅ DONE. 现在试试点击 School → Course → Subject → Lesson');
             }
 
             if (document.readyState === 'complete') {
-                setTimeout(function() { waitForAcademyReady(); }, 100);
+                setTimeout(function() { waitForDeps(bootstrapBuiltinData); }, 500);
             } else {
                 window.addEventListener('load', function() {
-                    setTimeout(function() { waitForAcademyReady(); }, 100);
+                    setTimeout(function() { waitForDeps(bootstrapBuiltinData); }, 500);
                 });
             }
-
-            console.log('✅ Academy page ready (Loader-based)');
         })();
     </script>
 </body>
