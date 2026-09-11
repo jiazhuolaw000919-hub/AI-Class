@@ -669,20 +669,27 @@
     }
 
     _loadScriptsSequentially(files, callback) {
-      var loaded = 0;
-      var failed = [];
-      files.forEach(function(file) {
-        var script = document.createElement('script');
-        script.src = file + '?v=' + Date.now();
-        script.async = true;
-        script.onload = function() { loaded++; checkComplete(); };
-        script.onerror = function() { loaded++; failed.push(file); checkComplete(); };
-        document.head.appendChild(script);
-      });
-      function checkComplete() {
-        if (loaded < files.length) return;
-        callback(failed.length === 0);
-      }
+        var self = this;
+        var index = 0;
+        var failed = [];
+    
+        function loadNext() {
+            if (index >= files.length) {
+                callback(failed.length === 0);
+                return;
+            }
+            var file = files[index++];
+            var script = document.createElement('script');
+            script.src = file + '?v=' + Date.now();
+            script.async = false;   // 保持顺序
+            script.onload = loadNext;
+            script.onerror = function() {
+                failed.push(file);
+                loadNext();
+            };
+            document.head.appendChild(script);
+        }
+        loadNext();
     }
 
     async _doStart() {
@@ -827,7 +834,7 @@
           { id: 'experienceContract', path: '/js/academy/experienceContract.js' },
           { id: 'calendarAuthority', path: '/js/calendar/CalendarAuthority.js' },
           { id: 'notesAuthority', path: '/js/notes/NotesAuthority.js' },
-          { id: 'videoEvidenceContract', path: '/js/experience/videoEvidenceContract.js' }
+          { id: 'videoEvidenceContract', path: '/js/experience/videoEvidenceContract.js' },
           { id: 'videoRenderer', path: '/js/experience/renderers/videoRenderer.js' },
           { id: 'surfaceIntegration', path: '/js/academy/surfaceIntegration.js' }
         ]
