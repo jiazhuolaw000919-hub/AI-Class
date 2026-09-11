@@ -1174,3 +1174,5 @@ LawAIApp.Views.LessonView = {
 };
 
 console.log('📖 LessonView V4.1 ready (Classroom Edition + Navigation)');
+
+window.LawAIApp.LessonView = window.LawAIApp.Views.LessonView;
