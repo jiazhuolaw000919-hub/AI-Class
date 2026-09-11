@@ -32,14 +32,16 @@
           settings: false,
           calendarAuthority: false,
           notesAuthority: false,
-          settingsAuthority: false
+          settingsAuthority: false,
+          curriculumAuthority: false
       };
       this._lazyLoading = {
           calendar: false,
           settings: false,
           calendarAuthority: false,
           notesAuthority: false,
-          settingsAuthority: false
+          settingsAuthority: false,
+          curriculumAuthority: false
       };
     
       this._moduleChecks = {
@@ -329,6 +331,60 @@
                 if (onFail) onFail('SettingsAuthority load failed');
             }
         }.bind(this));
+    },
+
+    // ============================================================
+    // Part 166: CurriculumAuthority 懒加载
+    // ============================================================
+    
+    loadCurriculumAuthority: function(onReady, onFail) {
+        var moduleName = 'curriculumAuthority';
+        if (this._lazyLoaded[moduleName]) {
+            if (onReady) onReady(window.LawAIApp?.CurriculumAuthority);
+            return;
+        }
+        if (this._lazyLoading[moduleName]) {
+            this._waitForCurriculumAuthority(onReady, onFail);
+            return;
+        }
+        this._lazyLoading[moduleName] = true;
+    
+        var files = [
+            '/js/curriculum/CurriculumAuthority.js',
+            '/js/school/SchoolViewModel.js'
+        ];
+    
+        this._loadScriptsSequentially(files, function(success) {
+            this._lazyLoading[moduleName] = false;
+            if (success && window.LawAIApp?.CurriculumAuthority) {
+                this._lazyLoaded[moduleName] = true;
+                var auth = window.LawAIApp.CurriculumAuthority;
+                if (auth.initialized) {
+                    if (onReady) onReady(auth);
+                } else {
+                    auth.onReady(function(a) { if (onReady) onReady(a); });
+                }
+            } else {
+                if (onFail) onFail('CurriculumAuthority load failed');
+            }
+        }.bind(this));
+    },
+    
+    _waitForCurriculumAuthority: function(onReady, onFail) {
+        var attempts = 0;
+        var interval = setInterval(function() {
+            attempts++;
+            var auth = window.LawAIApp?.CurriculumAuthority;
+            if (auth && auth.initialized) {
+                clearInterval(interval);
+                if (onReady) onReady(auth);
+                return;
+            }
+            if (attempts >= 50) {
+                clearInterval(interval);
+                if (onFail) onFail('Timeout');
+            }
+        }, 100);
     },
     
     _waitForSettingsAuthority: function(onReady, onFail) {
@@ -756,6 +812,12 @@
                 loading: settingsAuth ? settingsAuth.loading : false,
                 isReady: settingsAuth ? settingsAuth.isReady : false,
                 settingsCount: settingsAuth && settingsAuth.isReady ? Object.keys(settingsAuth.getAll()).length : 0
+            },
+            curriculumAuthority: {
+                initialized: curriculumAuth ? curriculumAuth.initialized : false,
+                loading: curriculumAuth ? curriculumAuth.loading : false,
+                isReady: curriculumAuth ? curriculumAuth.isReady : false,
+                schoolCount: curriculumAuth && curriculumAuth.isReady ? curriculumAuth.getAllSchools().length : 0
             }
         };
     }
