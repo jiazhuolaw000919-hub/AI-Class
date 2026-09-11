@@ -718,67 +718,90 @@ LawAIApp.Calendar = {
     });
   },
 
-  completeTask: function(taskId) {
-    var plan = this.getCurrentPlan();
-    if (!plan) return;
+    completeTask: function(taskId) {
+      console.log('[Calendar] 📝 Complete task:', taskId);
+      
+      var plan = this.getCurrentPlan();
+      if (!plan) {
+          console.warn('[Calendar] No current plan');
+          return;
+      }
 
-    // 如果是日程任务，通过 Authority 标记
-    if (taskId.startsWith('sch_')) {
-        var authority = LawAIApp.CalendarAuthority;
-        if (authority) {
-            authority.markTimeElapsed(taskId);
-        }
-    }
+      // ============================================================
+      // 1. 如果是日程任务，通过 CalendarAuthority 标记
+      // ============================================================
+      if (taskId && taskId.indexOf('sch_') === 0) {
+          var authority = LawAIApp.CalendarAuthority;
+          if (authority && authority.isReady) {
+              authority.markTimeElapsed(taskId);
+          }
+      }
 
-    // 导航逻辑
-    if (taskId.startsWith('lesson_')) {
-        var lessonId = taskId.replace('lesson_', '');
-        LawAIApp.Router.navigate('lesson', { day: parseInt(lessonId.split('-')[1]) });
-    } else if (taskId.startsWith('review_')) {
-        var lessonId = taskId.replace('review_', '');
-        
-        // 🔥 Part 172: 通过 EventBus 发送复习 evidence，不直接调用 MemoryReview
-        try {
-            var eventBus = window.LawAIApp?.EventBus || window.EventBus;
-            if (eventBus && typeof eventBus.emit === 'function') {
-                eventBus.emit('REVIEW_COMPLETED', {
-                    lessonId: lessonId,
-                    method: 'flashcard',
-                    source: 'calendar-planner',
-                    timestamp: new Date().toISOString()
-                });
-            } else {
-                var event = new CustomEvent('REVIEW_COMPLETED', {
-                    detail: {
-                        lessonId: lessonId,
-                        method: 'flashcard',
-                        source: 'calendar-planner',
-                        timestamp: new Date().toISOString()
-                    }
-                });
-                document.dispatchEvent(event);
-                window.dispatchEvent(event);
-            }
-        } catch (e) {
-            console.warn('[Calendar] Failed to emit REVIEW_COMPLETED:', e);
-        }
-        
-        // 更新计划（transient UI state）
-        var updatedTasks = plan.tasks.filter(function(t) { return t.id !== taskId; });
-        plan.tasks = updatedTasks;
-        
-        // ✅ 通过事件通知
-        try {
-            if (window.LawAIApp?.EventBus) {
-                LawAIApp.EventBus.emit('PlanUpdated', plan);
-            }
-        } catch (e) {}
-        
-        if (LawAIApp.PlannerDashboard?.render) {
-            LawAIApp.PlannerDashboard.render();
-        }
-    }
-    // ... 其他 task 类型保持不变
+      // ============================================================
+      // 2. 根据 task 类型执行操作
+      // ============================================================
+      if (taskId && taskId.indexOf('lesson_') === 0) {
+          // 导航到 Lesson
+          var lessonId = taskId.replace('lesson_', '');
+          if (LawAIApp.Router && LawAIApp.Router.navigate) {
+              LawAIApp.Router.navigate('lesson', { day: parseInt(lessonId.split('-')[1]) });
+          }
+          
+      } else if (taskId && taskId.indexOf('review_') === 0) {
+          // 🔥 Part 172: 通过 EventBus 发送复习 evidence
+          var lessonId = taskId.replace('review_', '');
+          
+          try {
+              var eventBus = window.LawAIApp?.EventBus || window.EventBus;
+              var payload = {
+                  lessonId: lessonId,
+                  method: 'flashcard',
+                  source: 'calendar-planner',
+                  timestamp: new Date().toISOString()
+              };
+              
+              if (eventBus && typeof eventBus.emit === 'function') {
+                  eventBus.emit('REVIEW_COMPLETED', payload);
+              } else {
+                  var event = new CustomEvent('REVIEW_COMPLETED', { detail: payload });
+                  document.dispatchEvent(event);
+                  window.dispatchEvent(event);
+              }
+              console.log('[Calendar] ✅ REVIEW_COMPLETED emitted');
+          } catch (e) {
+              console.warn('[Calendar] Failed to emit REVIEW_COMPLETED:', e);
+          }
+          
+          // 更新计划（transient UI state）
+          var updatedTasks = plan.tasks.filter(function(t) { return t.id !== taskId; });
+          plan.tasks = updatedTasks;
+          
+          // 通过事件通知
+          try {
+              if (window.LawAIApp?.EventBus) {
+                  LawAIApp.EventBus.emit('PlanUpdated', plan);
+              }
+          } catch (e) {}
+          
+          // 刷新 Planner 视图
+          if (LawAIApp.PlannerDashboard && typeof LawAIApp.PlannerDashboard.render === 'function') {
+              LawAIApp.PlannerDashboard.render();
+          }
+          
+      } else if (taskId && taskId.indexOf('practice_') === 0) {
+          // 导航到 Practice
+          var practiceId = taskId.replace('practice_', '');
+          if (LawAIApp.Router && LawAIApp.Router.navigate) {
+              LawAIApp.Router.navigate('practice', { practiceId: practiceId });
+          }
+          
+      } else if (taskId && taskId.indexOf('project_') === 0) {
+          // 导航到 Project
+          var projectId = taskId.replace('project_', '');
+          if (LawAIApp.Router && LawAIApp.Router.navigate) {
+              LawAIApp.Router.navigate('smart-project', { projectId: projectId });
+          }
+      }
   },
   
   // ============================================================
@@ -808,18 +831,27 @@ LawAIApp.Calendar = {
       }
   },
 
-  /**
- * @deprecated Part 172: 直接写 localStorage 已弃用。
- * 请使用 CalendarAuthority.create() / .reschedule() / .cancel()
- */
+   /**
+   * @deprecated Part 172: 直接写 localStorage 已弃用。
+   * 
+   * ⚠️ 请使用 CalendarAuthority 命令：
+   *    - CalendarAuthority.create()       → 创建
+   *    - CalendarAuthority.reschedule()   → 改时间
+   *    - CalendarAuthority.cancel()       → 取消
+   *    - CalendarAuthority.unschedule()   → 移除
+   * 
+   * 保留此方法仅供 fallback（Authority 不可用时）。
+   */
   _saveSchedules: function(schedules) {
-      console.warn('[Calendar] ⚠️ _saveSchedules() is deprecated. Use CalendarAuthority commands instead.');
-      try {
-          localStorage.setItem(this._getScheduleKey(), JSON.stringify(schedules));
-          return true;
-      } catch (e) {
-          return false;
-      }
+    console.warn('[Calendar] ⚠️ _saveSchedules() is deprecated. Use CalendarAuthority commands instead.');
+    
+    try {
+      localStorage.setItem(this._getScheduleKey(), JSON.stringify(schedules));
+      return true;
+    } catch (e) {
+      console.warn('[Calendar] Save error:', e);
+      return false;
+    }
   },
 
   _createSchedule: function(title, date, startTime, endTime, description) {
@@ -893,47 +925,80 @@ LawAIApp.Calendar = {
       } catch (e) { return false; }
   },
 
+  // ============================================================
+  // Part 172: Schedule Update — 通过 CalendarAuthority
+  // ============================================================
   _updateSchedule: function(id, updates) {
-      // 🔥 Part 172: 通过 CalendarAuthority 更新
-      var authority = LawAIApp.CalendarAuthority;
-      if (authority && authority.isReady) {
-          // 如果有时间变更，用 reschedule
-          if (updates.startAt || updates.duration) {
-              var result = authority.reschedule(
-                  id,
-                  updates.startAt || null,
-                  updates.duration || null
-              );
-              if (result.success) {
-                  this._emitScheduleEvent('SCHEDULE_RESCHEDULED', result.schedule);
-                  return result.schedule;
-              }
-              console.warn('[Calendar] Reschedule failed:', result.error);
-              return null;
-          }
-          // 只更新其他字段（title 等）
-          var schedule = authority.getSchedule(id);
-          if (schedule) {
-              // 更新 transient 字段（通过 Authority 的私有方法或直接返回）
-              if (updates.title) schedule.title = updates.title;
-              schedule.updatedAt = new Date().toISOString();
-              this._emitScheduleEvent('SCHEDULE_UPDATED', schedule);
-              return schedule;
-          }
-          return null;
+    if (!id || !updates) return null;
+    
+    console.log('[Calendar] 📝 Update schedule:', id, updates);
+    
+    // 🔥 Part 172: 优先使用 CalendarAuthority
+    var authority = LawAIApp.CalendarAuthority;
+    if (authority && authority.isReady) {
+      // 有时间变更 → 用 reschedule
+      if (updates.startAt || updates.duration || updates.endAt) {
+        var result = authority.reschedule(
+          id,
+          updates.startAt || null,
+          updates.duration || null
+        );
+        
+        if (result.success) {
+          this._emitScheduleEvent('SCHEDULE_RESCHEDULED', result.schedule);
+          return result.schedule;
+        }
+        
+        console.warn('[Calendar] Reschedule failed:', result.error);
+        return null;
       }
-      // Fallback: 旧 API（兼容）
-      var schedules = this._getAllSchedulesFallback();
-      var index = schedules.findIndex(function(s) { return s.id === id; });
-      if (index === -1) return null;
-  
-      schedules[index] = Object.assign({}, schedules[index], updates, {
-          updatedAt: new Date().toISOString()
-      });
-      this._saveSchedulesFallback(schedules);
-  
-      this._emitScheduleEvent('SCHEDULE_UPDATED', schedules[index]);
-      return schedules[index];
+      
+      // 只更新非时间字段（title / description 等）
+      var schedule = authority.getSchedule(id);
+      if (schedule) {
+        // 更新 transient 字段
+        if (updates.title !== undefined) schedule.title = updates.title;
+        if (updates.description !== undefined) schedule.description = updates.description;
+        schedule.updatedAt = new Date().toISOString();
+        
+        this._emitScheduleEvent('SCHEDULE_UPDATED', schedule);
+        return schedule;
+      }
+      
+      return null;
+    }
+    
+    // Fallback: 旧 API（兼容）
+    console.warn('[Calendar] ⚠️ CalendarAuthority not ready, using fallback');
+    var schedules = this._getAllSchedulesFallback();
+    var index = -1;
+    for (var i = 0; i < schedules.length; i++) {
+      if (schedules[i].id === id) {
+        index = i;
+        break;
+      }
+    }
+    if (index === -1) return null;
+
+    // 手动合并（兼容旧浏览器）
+    var merged = {};
+    for (var key in schedules[index]) {
+      if (schedules[index].hasOwnProperty(key)) {
+        merged[key] = schedules[index][key];
+      }
+    }
+    for (var key2 in updates) {
+      if (updates.hasOwnProperty(key2)) {
+        merged[key2] = updates[key2];
+      }
+    }
+    merged.updatedAt = new Date().toISOString();
+    
+    schedules[index] = merged;
+    this._saveSchedulesFallback(schedules);
+
+    this._emitScheduleEvent('SCHEDULE_UPDATED', schedules[index]);
+    return schedules[index];
   },
 
   _deleteSchedule: function(id) {
