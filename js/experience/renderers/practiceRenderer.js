@@ -680,7 +680,22 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
              * 获取状态
              */
             getStatus: function() {
+                var lifecycleState = 'INITIALIZING';
+                if (_isMounted && !_isSubmitted) {
+                    lifecycleState = 'READY';
+                } else if (_submitted && !_evaluated) {
+                    lifecycleState = 'EVALUATING';
+                } else if (_evaluated) {
+                    lifecycleState = 'READY';
+                } else if (!_isMounted) {
+                    lifecycleState = 'UNMOUNTED';
+                }
+            
                 return {
+                    // Lifecycle (Part 171)
+                    lifecycleState: lifecycleState,
+            
+                    // Legacy (保留兼容)
                     status: _status,
                     isMounted: _isMounted,
                     isSubmitted: _submitted,
@@ -690,7 +705,17 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                     attemptCount: _attemptHistory.length,
                     currentAttemptNumber: _attemptNumber,
                     hasAttempts: _attemptHistory.length > 0,
-                    isDuplicateSubmit: _isDuplicateSubmit
+                    isDuplicateSubmit: _isDuplicateSubmit,
+            
+                    // Part 171: Loading States
+                    isLoading: false,
+                    isSubmitting: _submitted && !_evaluated,
+                    isEvaluating: false,
+            
+                    // Error States (Part 171)
+                    hasError: false,
+                    errorMessage: null,
+                    isUnavailable: false
                 };
             },
 
