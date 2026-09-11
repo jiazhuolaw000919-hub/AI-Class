@@ -461,12 +461,13 @@
             var schoolReg = window.LawAIApp?.SchoolRegistry;
             var courseReg = window.LawAIApp?.CourseRegistry;
             var subjectReg = window.LawAIApp?.SubjectRegistry;
+            var ca = window.LawAIApp?.CurriculumAuthority;
 
-            if (schoolReg && courseReg && subjectReg) {
+            // 等 4 个都就绪
+            if (schoolReg && courseReg && subjectReg && ca) {
                 clearInterval(interval);
-                console.log('[CurriculumSeed] Registries ready, loading...');
+                console.log('[CurriculumSeed] ✅ All deps ready, loading...');
 
-                // 🔥 再等一小会儿，确保 CourseRegistry 的 DEFAULT_COURSES 已经注册完
                 setTimeout(function() {
                     CurriculumSeed.load();
                 }, 200);
@@ -475,7 +476,8 @@
 
             if (attempts >= maxAttempts) {
                 clearInterval(interval);
-                console.warn('[CurriculumSeed] Timeout, loading anyway...');
+                console.warn('[CurriculumSeed] ⏰ Timeout, loading anyway...',
+                    { school: !!schoolReg, course: !!courseReg, subject: !!subjectReg, ca: !!ca });
                 CurriculumSeed.load();
             }
         }, 100);
