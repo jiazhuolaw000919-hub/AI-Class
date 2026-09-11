@@ -1,11 +1,11 @@
 // /js/experience/renderers/videoRenderer.js
 // Part 170 — Video Activity Renderer
-// 纯渲染器 + Evidence 观察者
+// Part 173 — Enhanced with Active Learning Experience
 
 window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.VideoRenderer = {
-    version: '1.0.0',
+    version: '1.1.0',
     _currentObserver: null,
 
     /**
@@ -123,6 +123,9 @@ LawAIApp.VideoRenderer = {
             `;
         }
 
+        // 🔥 Part 173: Active Learning (Optional)
+        var activeLearningHTML = this._buildActiveLearning(source);
+
         return `
             <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
                 <!-- Video Header -->
@@ -151,6 +154,52 @@ LawAIApp.VideoRenderer = {
                         📅 Schedule
                     </button>
                 </div>
+
+                <!-- 🔥 Part 173: Active Learning (Optional) -->
+                ${activeLearningHTML}
+            </div>
+        `;
+    },
+
+    // ============================================================
+    // Part 173: Active Learning Block
+    // ============================================================
+
+    _buildActiveLearning: function(source) {
+        return `
+            <div style="margin-top: 24px; padding: 16px 20px; background: rgba(139,92,246,0.04); border-radius: 12px; border: 1px solid rgba(139,92,246,0.08);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                    <span style="font-size: 14px;">💡</span>
+                    <span style="font-size: 11px; color: #8b5cf6; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase;">Active Learning</span>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button onclick="LawAIApp.VideoRenderer._promptReflection('${source.videoId}')" 
+                            style="padding: 10px 16px; background: rgba(139,92,246,0.06); border: 1px solid rgba(139,92,246,0.12); border-radius: 8px; color: #c4b5fd; font-size: 13px; cursor: pointer; font-family: inherit; text-align: left; display: flex; align-items: center; gap: 8px; transition: all 0.2s;"
+                            onmouseover="this.style.background='rgba(139,92,246,0.12)'"
+                            onmouseout="this.style.background='rgba(139,92,246,0.06)'">
+                        <span style="font-size: 16px;">💭</span>
+                        <div>
+                            <div style="font-weight: 500;">What did you notice?</div>
+                            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">Reflect on a key idea from this video</div>
+                        </div>
+                    </button>
+
+                    <button onclick="LawAIApp.VideoRenderer._relatedPractice('${source.videoId}')" 
+                            style="padding: 10px 16px; background: rgba(74,158,255,0.06); border: 1px solid rgba(74,158,255,0.12); border-radius: 8px; color: #93c5fd; font-size: 13px; cursor: pointer; font-family: inherit; text-align: left; display: flex; align-items: center; gap: 8px; transition: all 0.2s;"
+                            onmouseover="this.style.background='rgba(74,158,255,0.12)'"
+                            onmouseout="this.style.background='rgba(74,158,255,0.06)'">
+                        <span style="font-size: 16px;">✏️</span>
+                        <div>
+                            <div style="font-weight: 500;">Try related practice</div>
+                            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">Apply what you just watched</div>
+                        </div>
+                    </button>
+                </div>
+
+                <div style="margin-top: 10px; font-size: 10px; color: #64748b; opacity: 0.7;">
+                    Optional — skip if you prefer
+                </div>
             </div>
         `;
     },
@@ -166,7 +215,7 @@ LawAIApp.VideoRenderer = {
     },
 
     // ============================================================
-    // Actions
+    // Actions (Part 170)
     // ============================================================
 
     _takeNote: function(videoId) {
@@ -185,7 +234,8 @@ LawAIApp.VideoRenderer = {
             noteType: 'GENERAL',
             source: 'video-activity',
             createdBy: 'learner',
-            tags: ['video', 'note']
+            tags: ['video', 'note'],
+            relatedActivityRef: videoId
         });
 
         if (note.success && window.LawAIApp?.Toast?.success) {
@@ -217,6 +267,66 @@ LawAIApp.VideoRenderer = {
         if (result.success && window.LawAIApp?.Toast?.success) {
             LawAIApp.Toast.success('📅 Scheduled for tomorrow');
         }
+    },
+
+    // ============================================================
+    // 🔥 Part 173: Active Learning Actions
+    // ============================================================
+
+    _promptReflection: function(videoId) {
+        var reflection = prompt('💭 What did you notice in this video?\n\n(Your reflection will be saved to Notes)');
+        if (!reflection || !reflection.trim()) return;
+
+        // 🔥 Part 173: 通过 NotesAuthority 保存反思
+        var notesAuth = window.LawAIApp?.NotesAuthority;
+        if (!notesAuth || !notesAuth.isReady) {
+            if (window.LawAIApp?.Toast?.info) {
+                LawAIApp.Toast.info('📓 Notes loading, please retry');
+            }
+            return;
+        }
+
+        var result = notesAuth.create({
+            title: 'Video Reflection',
+            content: reflection,
+            noteType: 'REFLECTION',
+            source: 'video-activity',
+            createdBy: 'learner',
+            tags: ['video', 'reflection'],
+            relatedActivityRef: videoId
+        });
+
+        if (result.success && window.LawAIApp?.Toast?.success) {
+            LawAIApp.Toast.success('💭 Reflection saved to Notes');
+        }
+    },
+
+    _relatedPractice: function(videoId) {
+        // 🔥 Part 173: 通过事件请求相关 practice
+        // 让 Lesson/Dashboard 响应，不由 Video 自己决定
+        try {
+            var eventBus = window.LawAIApp?.EventBus || window.EventBus;
+            var payload = {
+                videoId: videoId,
+                source: 'video-activity',
+                requestType: 'RELATED_PRACTICE',
+                timestamp: new Date().toISOString()
+            };
+
+            if (eventBus && typeof eventBus.emit === 'function') {
+                eventBus.emit('REQUEST_RELATED_PRACTICE', payload);
+            } else {
+                var event = new CustomEvent('REQUEST_RELATED_PRACTICE', { detail: payload });
+                document.dispatchEvent(event);
+                window.dispatchEvent(event);
+            }
+
+            if (window.LawAIApp?.Toast?.info) {
+                LawAIApp.Toast.info('✏️ Finding related practice...');
+            }
+        } catch (e) {
+            console.warn('[VideoRenderer] Failed to emit REQUEST_RELATED_PRACTICE:', e);
+        }
     }
 };
 
@@ -233,4 +343,4 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     });
 }
 
-console.log('[VideoRenderer] Module loaded (Part 170)');
+console.log('[VideoRenderer] Module loaded (Part 170 + Part 173)');
