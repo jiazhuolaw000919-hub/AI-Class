@@ -35,7 +35,8 @@
         settingsAuthority: false,
         curriculumAuthority: false,
         videoActivity: false,
-        practiceFitnessCheck: false
+        practiceFitnessCheck: false,
+        activityFitnessCheck: false
       };
       this._lazyLoading = {
         calendar: false,
@@ -45,7 +46,8 @@
         settingsAuthority: false,
         curriculumAuthority: false,
         videoActivity: false,
-        practiceFitnessCheck: false
+        practiceFitnessCheck: false,
+        activityFitnessCheck: false
       };
 
       this._moduleChecks = {
@@ -528,6 +530,59 @@
       }.bind(this));
     }
 
+    // ============================================================
+    // Part 173: Activity Fitness Check 懒加载
+    // ============================================================
+    
+    loadActivityFitnessCheck: function(onReady, onFail) {
+        var moduleName = 'activityFitnessCheck';
+        if (this._lazyLoaded[moduleName]) {
+            console.log('[AcademyLoader] ⏭️ ActivityFitnessCheck already lazy-loaded');
+            if (onReady) onReady(window.LawAIApp?.Experience?.ActivityFitnessCheck);
+            return;
+        }
+        if (this._lazyLoading[moduleName]) {
+            console.log('[AcademyLoader] ⏳ ActivityFitnessCheck already loading...');
+            this._waitForActivityFitnessCheck(onReady, onFail);
+            return;
+        }
+        this._lazyLoading[moduleName] = true;
+        console.log('[AcademyLoader] 🔄 Lazy loading ActivityFitnessCheck...');
+    
+        var files = ['/js/experience/activityFitnessCheck.js'];
+    
+        this._loadScriptsSequentially(files, function(success) {
+            this._lazyLoading[moduleName] = false;
+            if (success && window.LawAIApp?.Experience?.ActivityFitnessCheck) {
+                this._lazyLoaded[moduleName] = true;
+                console.log('[AcademyLoader] ✅ ActivityFitnessCheck loaded');
+                if (onReady) onReady(window.LawAIApp.Experience.ActivityFitnessCheck);
+            } else {
+                console.warn('[AcademyLoader] ⚠️ ActivityFitnessCheck load failed');
+                if (onFail) onFail('ActivityFitnessCheck load failed');
+            }
+        }.bind(this));
+    },
+    
+    _waitForActivityFitnessCheck: function(onReady, onFail) {
+        var attempts = 0;
+        var maxAttempts = 50;
+        var interval = setInterval(function() {
+            attempts++;
+            var fc = window.LawAIApp?.Experience?.ActivityFitnessCheck;
+            if (fc) {
+                clearInterval(interval);
+                if (onReady) onReady(fc);
+                return;
+            }
+            if (attempts >= maxAttempts) {
+                clearInterval(interval);
+                console.warn('[AcademyLoader] ⏰ ActivityFitnessCheck wait timeout');
+                if (onFail) onFail('Timeout waiting for ActivityFitnessCheck');
+            }
+        }, 100);
+    },
+
     _waitForPracticeFitnessCheck(onReady, onFail) {
       var attempts = 0;
       var maxAttempts = 50;
@@ -927,6 +982,7 @@
       var curriculumAuth = window.LawAIApp?.CurriculumAuthority;
       var videoRenderer = window.LawAIApp?.VideoRenderer;
       var practiceFC = window.LawAIApp?.Experience?.PracticeFitnessCheck;
+      var activityFC = window.LawAIApp?.Experience?.ActivityFitnessCheck;
       return {
         status: this.status,
         health: this.health,
@@ -968,6 +1024,11 @@
             initialized: practiceFC ? true : false,
             isReady: practiceFC ? true : false,
             hasRunCheck: practiceFC && typeof practiceFC.checkAll === 'function'
+        },
+        activityFitnessCheck: {  // 🆕
+            initialized: activityFC ? true : false,
+            isReady: activityFC ? true : false,
+            healthy: activityFC ? activityFC.isHealthy() : false
         }
       };
     }
