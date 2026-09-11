@@ -24,9 +24,62 @@
             if (_initialized || _loading) return this;
             _loading = true;
             this._loadAsync();
+            this._setupEventListeners();
             return this;
         },
 
+        // 🆕 监听 Registry 更新事件，重新 ingest
+        _setupEventListeners: function() {
+            var self = this;
+            
+            // 当 CourseRegistry 更新时，重新 ingest
+            document.addEventListener('COURSE_REGISTRY_UPDATED', function() {
+                console.log('[CurriculumAuthority] COURSE_REGISTRY_UPDATED received, re-ingesting...');
+                self._ingestFromRegistries();
+                self._notifyReady();
+            });
+            
+            // 当 SubjectRegistry 更新时
+            document.addEventListener('SUBJECT_REGISTRY_UPDATED', function() {
+                console.log('[CurriculumAuthority] SUBJECT_REGISTRY_UPDATED received, re-ingesting...');
+                self._ingestFromRegistries();
+                self._notifyReady();
+            });
+            
+            // 当 SchoolRegistry 更新时
+            document.addEventListener('SCHOOL_REGISTERED', function() {
+                self._ingestFromRegistries();
+                self._notifyReady();
+            });
+            
+            document.addEventListener('COURSE_REGISTERED', function() {
+                self._ingestFromRegistries();
+                self._notifyReady();
+            });
+            
+            document.addEventListener('SUBJECT_REGISTERED', function() {
+                self._ingestFromRegistries();
+                self._notifyReady();
+            });
+        },
+
+        _notifyReady: function() {
+            var self = this;
+            this._emit('CURRICULUM_AUTHORITY_UPDATED', {
+                schoolCount: Object.keys(_schools).length,
+                courseCount: Object.keys(_courses).length,
+                subjectCount: Object.keys(_subjects).length
+            });
+            
+            if (window.LawAIApp?.AcademyExperienceManager?.render) {
+                setTimeout(function() {
+                    try {
+                        window.LawAIApp.AcademyExperienceManager.render();
+                    } catch (e) {}
+                }, 100);
+            }
+        },
+        
         onReady: function(cb) {
             if (_initialized) { cb(this); return; }
             _readyCallbacks.push(cb);
@@ -45,6 +98,7 @@
 
         // Course
         getCourse: function(id) { return _courses[id] || null; },
+        getAllCourses: function() { return Object.values(_courses); },
         getCoursesBySchool: function(schoolId) {
             return Object.values(_courses).filter(function(c) { return c.schoolId === schoolId; });
         },
