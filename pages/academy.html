@@ -312,6 +312,7 @@
                         `;
                     });
                 } else {
+                    // Fallback
                     var files = [
                         '/js/academy/knowledgeCapture.js',
                         '/js/academy/notes.js'
@@ -364,6 +365,16 @@
                 }
             });
 
+            document.addEventListener('NAVIGATE_TO_SETTINGS', function(e) {
+                console.log('[Academy] ⚙️ NAVIGATE_TO_SETTINGS received');
+                var container = document.getElementById('academy-root');
+                if (container && window.LawAIApp?.AcademyLoader?.renderSettings) {
+                    window.LawAIApp.AcademyLoader.renderSettings(container, function() {
+                        window.LawAIApp.AcademyLoader.updateNavHighlight('settings');
+                    });
+                }
+            });
+
             // ============================================================
             // 初始化 Academy
             // ============================================================
@@ -378,6 +389,8 @@
                     if (container) loader.renderSettings(container);
                     return;
                 }
+
+                // 🔥 修复：处理 view=lesson 参数，跳转到 lesson.html
                 if (window.location.search.includes('view=lesson')) {
                     var params = new URLSearchParams(window.location.search);
                     var lessonId = params.get('id') || params.get('lessonId');
@@ -411,146 +424,138 @@
         })();
 
         // ============================================================
-        // Part 174: 内置数据 Bootstrap（不依赖外部 JSON 文件）
+        // Part 174: S4 Content Bootstrap
         // ============================================================
+        // 🔥 修复：把 HTML 注释 <!-- --> 改成 JS 注释 //，原来这里导致整个 script 解析失败
         (function() {
             'use strict';
 
-            console.log('[Bootstrap] 使用内置数据启动...');
+            console.log('[Bootstrap] Starting S4 content bootstrap...');
 
+            // 等待依赖就绪
             function waitForDeps(callback, attempts) {
                 attempts = attempts || 0;
+
+                var loader = window.LawAIApp?.ContentLoader;
                 var cr = window.LawAIApp?.CourseRegistry;
                 var sr = window.LawAIApp?.SubjectRegistry;
                 var ca = window.LawAIApp?.CurriculumAuthority;
 
-                if (cr && sr && ca) {
+                if (loader && cr && sr && ca && cr.initialized && sr.initialized) {
                     callback();
                     return;
                 }
+
                 if (attempts >= 100) {
-                    console.warn('[Bootstrap] Timeout 等待 deps');
+                    console.warn('[Bootstrap] Timeout waiting for deps');
                     return;
                 }
-                setTimeout(function() { waitForDeps(callback, attempts + 1); }, 100);
+
+                setTimeout(function() {
+                    waitForDeps(callback, attempts + 1);
+                }, 100);
             }
 
-            function bootstrapBuiltinData() {
-                console.log('[Bootstrap] 注入内置数据...');
+            // 手动加载 course-ai
+            function bootstrapCourseAI() {
+                console.log('[Bootstrap] Deps ready, loading course-ai...');
 
+                var loader = window.LawAIApp.ContentLoader;
                 var cr = window.LawAIApp.CourseRegistry;
                 var sr = window.LawAIApp.SubjectRegistry;
                 var ca = window.LawAIApp.CurriculumAuthority;
 
-                // ─────────────────────────────────────────────
-                // 1. 注册 Course
-                // ─────────────────────────────────────────────
-                var courseData = {
-                    id: 'course-ai-fundamentals',
-                    schoolId: 'school-science',
-                    programId: 'program-ai',
-                    title: 'AI Fundamentals',
-                    description: 'Learn the basics of Artificial Intelligence',
-                    icon: '🤖',
-                    difficulty: 'beginner',
-                    estimatedHours: 10,
-                    status: 'published'
-                };
-
-                if (cr._courses && typeof cr._courses.set === 'function') {
-                    cr._courses.set(courseData.id, courseData);
-                    console.log('[Bootstrap] ✅ Registered course via _courses:', courseData.id);
-                } else if (typeof cr.register === 'function') {
-                    cr.register(courseData);
-                    console.log('[Bootstrap] ✅ Registered course via register:', courseData.id);
+                if (!loader || typeof loader.loadCourse !== 'function') {
+                    console.warn('[Bootstrap] ContentLoader missing loadCourse');
+                    return;
                 }
 
-                // ─────────────────────────────────────────────
-                // 2. 注册 Subject（含 lessons 数组）
-                // ─────────────────────────────────────────────
-                var subjectData = {
-                    id: 'subject-what-is-ai',
-                    courseId: 'course-ai-fundamentals',
-                    title: 'What is AI?',
-                    description: 'Introduction to Artificial Intelligence',
-                    icon: '🧠',
-                    status: 'published',
-                    lessons: [
-                        {
-                            id: 'lesson-ai-intro',
-                            title: 'Introduction to AI',
-                            description: 'Learn what AI is and its applications',
-                            duration: 10,
-                            status: 'published',
-                            summary: 'Artificial Intelligence (AI) is the simulation of human intelligence by machines.',
-                            sections: {
-                                foundation: [
-                                    'AI stands for Artificial Intelligence',
-                                    'It enables machines to learn from experience',
-                                    'Common applications: voice assistants, recommendations, self-driving cars'
-                                ]
-                            },
-                            keyTakeaways: [
-                                'AI simulates human intelligence',
-                                'Machine learning is a subset of AI',
-                                'AI is everywhere in modern life'
-                            ],
-                            video: {
-                                title: 'What is AI?',
-                                url: 'https://www.youtube.com/embed/ad79nYk2keg'
+                loader.loadCourse('course-ai').then(function(course) {
+                    if (!course) {
+                        console.warn('[Bootstrap] course-ai not found');
+                        return;
+                    }
+
+                    console.log('[Bootstrap] ✅ Loaded course-ai:', course.title);
+
+                    // 注册到 CourseRegistry
+                    if (!cr.getCourse('course-ai')) {
+                        cr._courses.set('course-ai', {
+                            id: course.id,
+                            schoolId: course.schoolId,
+                            programId: 'program-' + (course.schoolId || 'science'),
+                            title: course.title,
+                            description: course.description || '',
+                            icon: course.icon,
+                            estimatedHours: course.estimatedHours,
+                            subjects: course.subjects || [],
+                            status: course.status || 'published',
+                            _s4: true
+                        });
+                        console.log('[Bootstrap] Registered to CourseRegistry');
+                    }
+
+                    // 加载 Subjects
+                    var subjectIds = course.subjects || [];
+                    var pending = subjectIds.length;
+
+                    if (pending === 0) {
+                        finishBootstrap();
+                        return;
+                    }
+
+                    subjectIds.forEach(function(subjectId) {
+                        loader.loadSubject(course.id, subjectId).then(function(subject) {
+                            if (subject && !sr.getSubject(subject.id)) {
+                                sr.register({
+                                    id: subject.id,
+                                    courseId: subject.courseId,
+                                    title: subject.title,
+                                    description: subject.description,
+                                    lessons: subject.lessons || [],
+                                    status: subject.status || 'published'
+                                });
+                                console.log('[Bootstrap] ✅ Registered subject:', subject.id);
                             }
-                        },
-                        {
-                            id: 'lesson-ai-history',
-                            title: 'A Brief History of AI',
-                            description: 'How AI evolved from 1950s to today',
-                            duration: 12,
-                            status: 'published',
-                            summary: 'AI has evolved through several waves of innovation since the 1950s.',
-                            keyTakeaways: [
-                                'AI was born in 1956 at Dartmouth',
-                                'AI has gone through multiple "winters"',
-                                'Modern AI is powered by deep learning'
-                            ]
-                        }
-                    ]
-                };
 
-                if (sr && typeof sr.register === 'function') {
-                    sr.register(subjectData);
-                    console.log('[Bootstrap] ✅ Registered subject:', subjectData.id);
-                }
+                            pending--;
+                            if (pending === 0) finishBootstrap();
+                        }).catch(function(e) {
+                            pending--;
+                            if (pending === 0) finishBootstrap();
+                        });
+                    });
+                });
+            }
 
-                // ─────────────────────────────────────────────
-                // 3. 触发 CurriculumAuthority 重新 ingest
-                // ─────────────────────────────────────────────
+            function finishBootstrap() {
+                console.log('[Bootstrap] ✅ All content loaded, re-ingesting...');
+
+                var ca = window.LawAIApp.CurriculumAuthority;
                 if (ca && typeof ca._ingestFromRegistries === 'function') {
                     ca._ingestFromRegistries();
-                    console.log('[Bootstrap] ✅ Re-ingested to CurriculumAuthority');
                 }
 
-                // ─────────────────────────────────────────────
-                // 4. 重新渲染
-                // ─────────────────────────────────────────────
+                // 触发渲染
                 setTimeout(function() {
                     if (window.LawAIApp?.AcademyExperienceManager?.render) {
                         try {
                             window.LawAIApp.AcademyExperienceManager.render();
-                            console.log('[Bootstrap] ✅ Re-rendered Academy');
-                        } catch (e) {
-                            console.warn('[Bootstrap] Render error:', e);
-                        }
+                        } catch (e) {}
                     }
                 }, 200);
-
-                console.log('[Bootstrap] ✅ DONE. 现在试试点击 School → Course → Subject → Lesson');
             }
 
+            // 启动
             if (document.readyState === 'complete') {
-                setTimeout(function() { waitForDeps(bootstrapBuiltinData); }, 500);
+                setTimeout(function() {
+                    waitForDeps(bootstrapCourseAI);
+                }, 500);
             } else {
                 window.addEventListener('load', function() {
-                    setTimeout(function() { waitForDeps(bootstrapBuiltinData); }, 500);
+                    setTimeout(function() {
+                        waitForDeps(bootstrapCourseAI);
+                    }, 500);
                 });
             }
         })();
