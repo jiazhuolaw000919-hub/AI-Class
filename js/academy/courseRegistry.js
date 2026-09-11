@@ -158,45 +158,117 @@
 
         async _loadS4Courses() {
             if (this._s4Loaded) return;
+            
+            // 🔥 新方案：直接从 ContentLoader 加载
+            var self = this;
+            var loader = window.LawAIApp?.ContentLoader || window.LawAIApp?.S4ContentLoader;
+            
+            if (!loader || typeof loader.loadCourse !== 'function') {
+                console.log('[CourseRegistry] ContentLoader not ready, will retry in 1s...');
+                setTimeout(function() { self._loadS4Courses(); }, 1000);
+                return;
+            }
+            
             try {
-                const registry = window.LawAIApp?.S4ContentRegistry || window.LawAIApp?.ContentRegistry;
-                if (!registry) {
-                    // 如果 ContentRegistry 还没有 S4 方法，等待
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    const retry = window.LawAIApp?.S4ContentRegistry || window.LawAIApp?.ContentRegistry;
-                    if (!retry) return;
-                }
-
-                const s4Registry = window.LawAIApp?.S4ContentRegistry || window.LawAIApp?.ContentRegistry;
-                const s4Courses = s4Registry.getCourses ? s4Registry.getCourses() : [];
+                // 1. 加载课程索引
+                var s4CourseIds = [];
                 
-                if (s4Courses && s4Courses.length > 0) {
-                    let count = 0;
-                    for (const s4Course of s4Courses) {
-                        if (!this._courses.has(s4Course.courseId)) {
-                            const courseData = {
-                                id: s4Course.courseId,
-                                programId: `program-${s4Course.school || 'science'}`,
-                                title: s4Course.title,
-                                description: s4Course.description || '',
-                                modules: [],
-                                _s4: true,
-                                _metadata: s4Course.metadata || {}
-                            };
-                            this._courses.set(s4Course.courseId, courseData);
-                            count++;
+                if (typeof loader.loadCourseIndex === 'function') {
+                    try {
+                        var index = await loader.loadCourseIndex();
+                        if (index && index.schools) {
+                            for (var schoolKey in index.schools) {
+                                if (index.schools.hasOwnProperty(schoolKey)) {
+                                    var school = index.schools[schoolKey];
+                                    if (school.courses && Array.isArray(school.courses)) {
+                                        s4CourseIds = s4CourseIds.concat(school.courses);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[CourseRegistry] loadCourseIndex failed:', e);
+                    }
+                }
+                
+                // 2. Fallback: 硬编码已知的 S4 courses
+                if (s4CourseIds.length === 0) {
+                    s4CourseIds = ['course-ai'];
+                }
+                
+                console.log('[CourseRegistry] Loading S4 courses:', s4CourseIds);
+                
+                var count = 0;
+                
+                for (var i = 0; i < s4CourseIds.length; i++) {
+                    var courseId = s4CourseIds[i];
+                    if (this._courses.has(courseId)) continue;
+                    
+                    var course = await loader.loadCourse(courseId);
+                    if (!course) continue;
+                    
+                    // 3. 注册到 CourseRegistry
+                    this._courses.set(course.id, {
+                        id: course.id,
+                        schoolId: course.schoolId,
+                        programId: 'program-' + (course.schoolId || 'science'),
+                        title: course.title,
+                        description: course.description || '',
+                        icon: course.icon,
+                        estimatedHours: course.estimatedHours,
+                        subjects: course.subjects || [],
+                        status: course.status || 'published',
+                        modules: [],
+                        _s4: true,
+                        _metadata: course.metadata || {}
+                    });
+                    
+                    count++;
+                    console.log('[CourseRegistry] ✅ Loaded:', courseId);
+                    
+                    // 4. 加载该 Course 的所有 Subjects
+                    var subjectIds = course.subjects || [];
+                    for (var j = 0; j < subjectIds.length; j++) {
+                        var subjectId = subjectIds[j];
+                        try {
+                            var subject = await loader.loadSubject(course.id, subjectId);
+                            if (subject) {
+                                var sr = window.LawAIApp?.SubjectRegistry;
+                                if (sr && typeof sr.register === 'function') {
+                                    if (!sr.getSubject(subject.id)) {
+                                        sr.register({
+                                            id: subject.id,
+                                            courseId: subject.courseId,
+                                            title: subject.title,
+                                            description: subject.description,
+                                            lessons: subject.lessons || [],
+                                            estimatedHours: subject.estimatedHours,
+                                            difficulty: subject.difficulty,
+                                            status: subject.status || 'published'
+                                        });
+                                        console.log('[CourseRegistry] ✅ Loaded subject:', subjectId);
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('[CourseRegistry] Subject load failed:', subjectId, e);
                         }
                     }
-                    this._s4Loaded = true;
-                    console.log(`[CourseRegistry] ✅ Loaded ${count} courses from S4`);
-                    
-                    this._emit('COURSE_REGISTRY_UPDATED', {
-                        courses: this.getAllCourses(),
-                        count: this._courses.size
-                    });
                 }
+                
+                this._s4Loaded = true;
+                console.log('[CourseRegistry] ✅ Loaded ' + count + ' S4 courses');
+                
+                // 5. 触发更新事件
+                this._emit('COURSE_REGISTRY_UPDATED', {
+                    courses: this.getAllCourses(),
+                    count: this._courses.size
+                });
+                
             } catch (e) {
-                console.warn('[CourseRegistry] S4 load failed:', e);
+                console.warn('[CourseRegistry] S4 load error:', e);
+                // 失败后重试一次
+                setTimeout(function() { self._loadS4Courses(); }, 2000);
             }
         }
 
