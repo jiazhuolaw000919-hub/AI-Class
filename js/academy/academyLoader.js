@@ -50,7 +50,9 @@
         activityFitnessCheck: false
       };
 
+      // 🔥 v2.2.0: 补全 moduleChecks，特别是嵌套路径的
       this._moduleChecks = {
+        // 基础 Registry
         schoolRegistry: function() { return !!(window.LawAIApp && window.LawAIApp.SchoolRegistry); },
         programRegistry: function() { return !!(window.LawAIApp && window.LawAIApp.ProgramRegistry); },
         courseRegistry: function() { return !!(window.LawAIApp && window.LawAIApp.CourseRegistry); },
@@ -58,18 +60,22 @@
         curriculumSeed: function() { return !!(window.LawAIApp && window.LawAIApp.CurriculumSeed); },
         subjectRegistry: function() { return !!(window.LawAIApp && window.LawAIApp.SubjectRegistry); },
 
+        // Content 层
         contentLoader: function() { return !!(window.LawAIApp && window.LawAIApp.ContentLoader); },
         contentRegistry: function() { return !!(window.LawAIApp && window.LawAIApp.ContentRegistry); },
         contentAdapter: function() { return !!(window.LawAIApp && window.LawAIApp.ContentAdapter); },
         contentValidator: function() { return !!(window.LawAIApp && window.LawAIApp.ContentValidator); },
 
+        // Curriculum / ViewModel
         curriculumAuthority: function() { return !!(window.LawAIApp && window.LawAIApp.CurriculumAuthority); },
         schoolViewModel: function() { return !!(window.LawAIApp && window.LawAIApp.SchoolViewModel); },
 
+        // View 层
         academyView: function() { return !!(window.LawAIApp && window.LawAIApp.AcademyView); },
         academyExperienceManager: function() { return !!(window.LawAIApp && window.LawAIApp.AcademyExperienceManager); },
         learningJourneyAdapter: function() { return !!(window.LawAIApp && window.LawAIApp.LearningJourneyAdapter); },
 
+        // Experience 层（嵌套路径，必须显式定义）
         experienceContract: function() { return !!(window.LawAIApp && window.LawAIApp.ExperienceContract); },
         activityRegistry: function() { return !!(window.LawAIApp && window.LawAIApp.Experience && window.LawAIApp.Experience.ActivityRegistry); },
         experienceRuntime: function() { return !!(window.LawAIApp && window.LawAIApp.Experience && window.LawAIApp.Experience.Runtime); },
@@ -79,6 +85,7 @@
         videoEvidenceContract: function() { return !!(window.LawAIApp && window.LawAIApp.Experience && window.LawAIApp.Experience.VideoEvidenceContract); },
         videoRenderer: function() { return !!(window.LawAIApp && window.LawAIApp.VideoRenderer); },
 
+        // Practice / Knowledge
         practiceEngine: function() { return !!(window.LawAIApp && window.LawAIApp.PracticeEngine); },
         practiceModule: function() { return !!(window.LawAIApp && window.LawAIApp.PracticeModule); },
         practiceProgress: function() { return !!(window.LawAIApp && window.LawAIApp.PracticeProgress); },
@@ -89,6 +96,7 @@
         secondBrain: function() { return !!(window.LawAIApp && window.LawAIApp.SecondBrain); },
         notes: function() { return !!(window.LawAIApp && window.LawAIApp.Notes); },
 
+        // Decision / Adaptation
         decisionOptionModel: function() { return !!(window.LawAIApp && window.LawAIApp.DecisionOptionModel); },
         decisionAuthority: function() { return !!(window.LawAIApp && window.LawAIApp.DecisionAuthority); },
         decisionPrimacy: function() { return !!(window.LawAIApp && window.LawAIApp.DecisionPrimacy); },
@@ -376,7 +384,7 @@
     }
 
     // ============================================================
-    // SettingsAuthority 懒加载
+    // Part 165: SettingsAuthority 懒加载
     // ============================================================
     loadSettingsAuthority(onReady, onFail) {
       var moduleName = 'settingsAuthority';
@@ -436,7 +444,7 @@
     }
 
     // ============================================================
-    // CurriculumAuthority 懒加载
+    // Part 166: CurriculumAuthority 懒加载（现在已在 manifest 里，保留作为 fallback）
     // ============================================================
     loadCurriculumAuthority(onReady, onFail) {
       var moduleName = 'curriculumAuthority';
@@ -490,7 +498,7 @@
     }
 
     // ============================================================
-    // Video Activity 懒加载
+    // Part 170: Video Activity 懒加载
     // ============================================================
     loadVideoActivity(onReady, onFail) {
       var moduleName = 'videoActivity';
@@ -545,7 +553,7 @@
     }
 
     // ============================================================
-    // Practice Fitness Check 懒加载
+    // Part 171: Practice Fitness Check 懒加载
     // ============================================================
     loadPracticeFitnessCheck(onReady, onFail) {
       var moduleName = 'practiceFitnessCheck';
@@ -578,7 +586,7 @@
     }
 
     // ============================================================
-    // Activity Fitness Check 懒加载
+    // Part 173: Activity Fitness Check 懒加载
     // ============================================================
     loadActivityFitnessCheck(onReady, onFail) {
       var moduleName = 'activityFitnessCheck';
@@ -652,6 +660,9 @@
       return !!this._lazyLoaded[moduleName];
     }
 
+    // ============================================================
+    // 内联 Calendar / Settings 兜底实现
+    // ============================================================
     _createInlineCalendar() {
       return {
         currentYear: new Date().getFullYear(),
@@ -835,6 +846,9 @@
       });
     }
 
+    // ============================================================
+    // ✅ 真正的顺序加载
+    // ============================================================
     _loadScriptsSequentially(files, callback) {
       var index = 0;
       var failed = [];
@@ -941,21 +955,40 @@
       return {
         version: '2.0.0',
         modules: [
+          // ============================================================
+          // 1. 基础 Registry（无依赖）
+          // ============================================================
           { id: 'schoolRegistry', path: '/js/academy/schoolRegistry.js' },
           { id: 'programRegistry', path: '/js/academy/programRegistry.js' },
           { id: 'courseRegistry', path: '/js/academy/courseRegistry.js' },
           { id: 'curriculumRegistry', path: '/js/academy/curriculumRegistry.js' },
           { id: 'subjectRegistry', path: '/js/academy/subjectRegistry.js' },
+
+          // ============================================================
+          // 2. Content 层
+          // ============================================================
           { id: 'contentLoader', path: '/js/academy/contentLoader.js' },
           { id: 'contentRegistry', path: '/js/academy/contentRegistry.js' },
           { id: 'contentAdapter', path: '/js/academy/contentAdapter.js' },
           { id: 'contentValidator', path: '/js/academy/contentValidator.js' },
           { id: 'curriculumSeed', path: '/js/academy/curriculumSeed.js' },
+
+          // ============================================================
+          // 3. Curriculum / ViewModel
+          // ============================================================
           { id: 'curriculumAuthority', path: '/js/curriculum/CurriculumAuthority.js' },
           { id: 'schoolViewModel', path: '/js/school/SchoolViewModel.js' },
+
+          // ============================================================
+          // 4. View 层
+          // ============================================================
           { id: 'academyView', path: '/js/academy/academyView.js' },
           { id: 'academyExperienceManager', path: '/js/academy/academyExperienceManager.js' },
           { id: 'learningJourneyAdapter', path: '/js/academy/learningJourneyAdapter.js' },
+
+          // ============================================================
+          // 5. Experience 层
+          // ============================================================
           { id: 'experienceContract', path: '/js/experience/experienceContract.js' },
           { id: 'activityRegistry', path: '/js/experience/activityRegistry.js' },
           { id: 'experienceRuntime', path: '/js/experience/experienceRuntime.js' },
@@ -964,6 +997,10 @@
           { id: 'practiceRenderer', path: '/js/experience/renderers/practiceRenderer.js' },
           { id: 'videoEvidenceContract', path: '/js/experience/videoEvidenceContract.js' },
           { id: 'videoRenderer', path: '/js/experience/renderers/videoRenderer.js' },
+
+          // ============================================================
+          // 6. Practice / Knowledge
+          // ============================================================
           { id: 'practiceEngine', path: '/js/academy/practiceEngine.js' },
           { id: 'practiceModule', path: '/js/academy/practice.js' },
           { id: 'practiceProgress', path: '/js/academy/practiceProgress.js' },
@@ -973,6 +1010,10 @@
           { id: 'knowledgeCard', path: '/js/academy/knowledgeCard.js' },
           { id: 'secondBrain', path: '/js/academy/secondBrain.js' },
           { id: 'notes', path: '/js/academy/notes.js' },
+
+          // ============================================================
+          // 7. Decision / Adaptation
+          // ============================================================
           { id: 'decisionOptionModel', path: '/js/academy/decisionOptionModel.js' },
           { id: 'decisionAuthority', path: '/js/academy/decisionAuthority.js' },
           { id: 'decisionPrimacy', path: '/js/academy/decisionPrimacy.js' },
