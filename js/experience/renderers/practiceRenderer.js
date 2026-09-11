@@ -453,18 +453,20 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                 `;
 
                 if (!isCorrect) {
-                    // 不正确时显示 "Try again"
                     html += `
-                        <button id="practice-retry-btn" style="padding:6px 16px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.12);border-radius:8px;color:#4a9eff;font-size:12px;cursor:pointer;font-family:inherit;">
+                        <button id="practice-retry-btn" style="padding:6px 16px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.12);border-radius:8px;color:#4a9eff;font-size:12px;cursor:pointer;font-family:inherit;transition:all 0.2s;"
+                                onmouseover="this.style.background='rgba(74,158,255,0.15)'"
+                                onmouseout="this.style.background='rgba(74,158,255,0.08)'">
                             🔄 Try again
                         </button>
                     `;
                 }
 
-                // 无论对错都可以反思
                 html += `
                         <button onclick="LawAIApp.Experience.Renderers.PracticeRenderer._promptReflection('${_activity.id}')" 
-                                style="padding:6px 16px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.12);border-radius:8px;color:#c4b5fd;font-size:12px;cursor:pointer;font-family:inherit;">
+                                style="padding:6px 16px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.12);border-radius:8px;color:#c4b5fd;font-size:12px;cursor:pointer;font-family:inherit;transition:all 0.2s;"
+                                onmouseover="this.style.background='rgba(139,92,246,0.15)'"
+                                onmouseout="this.style.background='rgba(139,92,246,0.06)'">
                             💭 ${isCorrect ? 'What did you learn?' : 'Reflect on this'}
                         </button>
                     </div>
