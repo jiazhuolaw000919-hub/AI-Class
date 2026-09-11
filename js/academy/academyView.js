@@ -2271,11 +2271,11 @@ function __safeCall(pathOrObj) {
         },
 
         /**
-         * 🔥 Part 58.5: Lesson View (On-Demand Loading + Legacy Fallback)
+         * 🔥 Part 169: Lesson View (On-Demand Loading + Legacy Fallback + Context)
          */
         _renderLessonView: function(container, lessonId) {
             var self = this;
-
+        
             // ═══ Part 7: 检查加载状态 ═══
             var loader = safeGet(window, 'LawAIApp.S4ContentLoader') || safeGet(window, 'LawAIApp.ContentLoader');
             if (loader && typeof loader.getLessonLoadStatus === 'function') {
@@ -2289,13 +2289,13 @@ function __safeCall(pathOrObj) {
                     return;
                 }
             }
-            
+        
             // ═══════════════════════════════════════════════════════════════
             // 1. 先尝试从 LearningJourneyAdapter 获取基础信息（保留原逻辑）
             // ═══════════════════════════════════════════════════════════════
             var adapter = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
             var lesson = adapter ? adapter.getLessonDetail(lessonId) : null;
-
+        
             if (!lesson) {
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
@@ -2308,75 +2308,306 @@ function __safeCall(pathOrObj) {
                 `;
                 return;
             }
-
+        
+            // ═══════════════════════════════════════════════════════════════
+            // 🔥 Part 169: 从 SchoolViewModel 获取完整 Lesson 详情
+            // ═══════════════════════════════════════════════════════════════
+            var schoolVM = window.LawAIApp?.SchoolViewModel;
+            var lessonDetail = null;
+        
+            if (schoolVM && schoolVM.buildLessonDetail) {
+                try {
+                    lessonDetail = schoolVM.buildLessonDetail(lessonId);
+                } catch (e) {
+                    console.warn('[AcademyView] LessonViewModel error:', e);
+                }
+            }
+        
+            // 优先使用 ViewModel 的数据，否则 fallback 到 adapter
+            var lessonIdentity = (lessonDetail && lessonDetail.status === 'READY')
+                ? lessonDetail.identity
+                : {
+                    lessonId: lessonId,
+                    title: lesson.name || 'Lesson',
+                    description: lesson.description || '',
+                    duration: lesson.duration || null,
+                    status: 'ACTIVE'
+                };
+        
+            var lessonContext = (lessonDetail && lessonDetail.status === 'READY')
+                ? lessonDetail.context
+                : null;
+        
+            var objectives = (lessonDetail && lessonDetail.learningObjectives)
+                ? lessonDetail.learningObjectives
+                : { available: false, status: 'NOT_AVAILABLE' };
+        
+            var prereqs = (lessonDetail && lessonDetail.prerequisites)
+                ? lessonDetail.prerequisites
+                : { available: false, required: [], suggested: [] };
+        
+            var recommendation = (lessonDetail && lessonDetail.recommendation)
+                ? lessonDetail.recommendation
+                : null;
+        
+            var schedule = (lessonDetail && lessonDetail.schedule)
+                ? lessonDetail.schedule
+                : { available: false, count: 0 };
+        
+            var notes = (lessonDetail && lessonDetail.notes)
+                ? lessonDetail.notes
+                : { available: false, count: 0 };
+        
+            var lessonProgress = (lessonDetail && lessonDetail.progress)
+                ? lessonDetail.progress
+                : { available: false, status: 'UNKNOWN' };
+        
+            var lessonMastery = (lessonDetail && lessonDetail.mastery)
+                ? lessonDetail.mastery
+                : { available: false, status: 'UNKNOWN' };
+        
+            // 状态图标
             var isCompleted = lesson.isCompleted || false;
             var statusIcon = isCompleted ? '✅' : '📄';
             var statusColor = isCompleted ? '#10b981' : '#4a9eff';
             var statusText = isCompleted ? 'Completed' : 'Ready';
-
+        
             // ═══════════════════════════════════════════════════════════════
-            // 2. 构建基础 HTML（返回栏 + 头部 + Session Panel + 加载占位）
-            //    ⚠️ 注意：这里用 var html = ''，后面会根据加载状态替换内容
+            // 2. 构建基础 HTML（返回栏 + 头部 + Context + Session Panel）
             // ═══════════════════════════════════════════════════════════════
             var html = '';
-
-            // 返回栏 — Back to Module（保留原有逻辑）
+        
+            // ─────────────────────────────────────────────────────────────
+            // 返回栏 — Back to Subject
+            // ─────────────────────────────────────────────────────────────
+            var backTarget = lesson.moduleId || (lessonContext && lessonContext.subject ? lessonContext.subject.subjectId : '');
+            var backLabel = 'Back to Subject';
+        
+            if (lessonContext && lessonContext.subject) {
+                backLabel = 'Back to ' + lessonContext.subject.title;
+            }
+        
             html += `
-                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToModule', '${lesson.moduleId}')" 
+                <div class="academy-back-bar" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSubject', '${backTarget}')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
-                        <span style="font-size:16px;">←</span> Back to Module
+                        <span style="font-size:16px;">←</span> ${backLabel}
                     </button>
+                    ${lessonContext && lessonContext.course ? `
+                        <span style="color: #475569; font-size: 14px;">|</span>
+                        <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToCourse', '${lessonContext.course.courseId}')" 
+                                style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.04); color: #94a3b8; border: 1px solid rgba(255,255,255,0.06); font-family: inherit;">
+                            📘 ${lessonContext.course.title}
+                        </button>
+                    ` : ''}
                     <span style="color: #64748b; font-size: 13px; margin-left: auto;">📖 Lesson</span>
                 </div>
             `;
-
-            // 主内容容器（头部 + 状态 + Session Panel + 内容区）
+        
+            // ─────────────────────────────────────────────────────────────
+            // 主内容容器
+            // ─────────────────────────────────────────────────────────────
             html += `
                 <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
-                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
-                        <span style="font-size: 40px;">${statusIcon}</span>
-                        <div>
-                            <h1 style="font-size: 24px; font-weight: 700; margin: 0 0 4px 0;">${lesson.name}</h1>
-                            ${lesson.description ? `<p style="color: #94a3b8; font-size: 14px; margin: 0;">${lesson.description}</p>` : ''}
+        
+                    <!-- ─── Lesson Header ─── -->
+                    <div style="display: flex; align-items: flex-start; gap: 16px; margin-bottom: 8px; flex-wrap: wrap;">
+                        <span style="font-size: 40px; line-height: 1;">${statusIcon}</span>
+                        <div style="flex: 1; min-width: 200px;">
+                            <h1 style="font-size: 24px; font-weight: 700; margin: 0 0 4px 0;">${lessonIdentity.title}</h1>
+                            ${lessonIdentity.description ? `<p style="color: #94a3b8; font-size: 14px; margin: 0 0 8px 0;">${lessonIdentity.description}</p>` : ''}
+                            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                <span style="color: ${statusColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${statusIcon} ${statusText}</span>
+                                ${lessonIdentity.duration ? `<span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">⏱️ ${lessonIdentity.duration} min</span>` : ''}
+                                ${lessonContext && lessonContext.subject ? `<span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 ${lessonContext.subject.title}</span>` : ''}
+                            </div>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
-                        <span style="color: ${statusColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${statusIcon} ${statusText}</span>
-                        ${lesson.duration ? `<span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">⏱️ ${lesson.duration} minutes</span>` : ''}
-                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 Module: ${lesson.moduleId}</span>
+            `;
+        
+            // ─────────────────────────────────────────────────────────────
+            // 🔥 Part 169: Lesson Context (Breadcrumb)
+            // ─────────────────────────────────────────────────────────────
+            if (lessonContext && lessonContext.breadcrumb) {
+                html += `
+                    <div style="margin: 8px 0 16px 0; padding: 8px 12px; background: rgba(255,255,255,0.015); border-radius: 8px; font-size: 11px; color: #475569; border: 1px solid rgba(255,255,255,0.02);">
+                        ${lessonContext.breadcrumb}
                     </div>
-
-                    ${this._renderSessionPanel(lessonId)}
-
-                    <!-- ═══ 内容区：由 _renderLessonBody 填充 ═══ -->
+                `;
+            }
+        
+            // ─────────────────────────────────────────────────────────────
+            // 🔥 Part 169: Recommendation Context
+            // ─────────────────────────────────────────────────────────────
+            if (recommendation && recommendation.isRecommended) {
+                html += `
+                    <div style="margin: 0 0 16px 0; background: rgba(139,92,246,0.06); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(139,92,246,0.12); border-left: 3px solid #8b5cf6;">
+                        <div style="font-size: 11px; color: #8b5cf6; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 4px;">💡 RECOMMENDED</div>
+                        <div style="font-size: 14px; color: #e2e8f0;">${recommendation.reason || 'Suggested for you'}</div>
+                        ${recommendation.confidence ? `<div style="font-size: 11px; color: #64748b; margin-top: 4px;">Confidence: ${recommendation.confidence}</div>` : ''}
+                    </div>
+                `;
+            }
+        
+            // ─────────────────────────────────────────────────────────────
+            // 🔥 Part 169: Prerequisites
+            // ─────────────────────────────────────────────────────────────
+            if (prereqs.available && (prereqs.required.length > 0 || prereqs.suggested.length > 0)) {
+                html += `
+                    <div style="margin-bottom: 16px; background: rgba(245,158,11,0.04); border-radius: 12px; padding: 16px 20px; border: 1px solid rgba(245,158,11,0.08);">
+                        <div style="font-size: 12px; color: #f59e0b; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 8px;">📋 PREREQUISITES</div>
+                `;
+        
+                if (prereqs.required.length > 0) {
+                    html += `<div style="margin-bottom: 8px;">
+                        <div style="font-size: 11px; color: #ef4444; margin-bottom: 4px;">Required</div>`;
+                    prereqs.required.forEach(function(p) {
+                        var icon = p.satisfied ? '✅' : '⭕';
+                        html += `<div style="font-size: 13px; color: #e2e8f0; padding: 2px 0;">${icon} ${p.name}</div>`;
+                    });
+                    html += `</div>`;
+                }
+        
+                if (prereqs.suggested.length > 0) {
+                    html += `<div>
+                        <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Suggested</div>`;
+                    prereqs.suggested.forEach(function(p) {
+                        html += `<div style="font-size: 13px; color: #94a3b8; padding: 2px 0;">○ ${p.name}</div>`;
+                    });
+                    html += `</div>`;
+                }
+        
+                html += `</div>`;
+            }
+        
+            // ─────────────────────────────────────────────────────────────
+            // 🔥 Part 169: Learning Objectives
+            // ─────────────────────────────────────────────────────────────
+            if (objectives.available && objectives.objectives.length > 0) {
+                html += `
+                    <div style="margin-bottom: 16px;">
+                        <h3 style="font-size: 14px; font-weight: 600; margin: 0 0 8px 0;">🎯 Learning Objectives</h3>
+                        <div style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(255,255,255,0.04);">
+                            <ul style="margin: 0; padding-left: 20px; color: #94a3b8;">
+                                ${objectives.objectives.map(function(o) {
+                                    return `<li style="padding: 3px 0; font-size: 13px;">${o}</li>`;
+                                }).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+        
+            // ─────────────────────────────────────────────────────────────
+            // 🔥 Part 169: Progress + Mastery + Schedule + Notes Summary
+            // ─────────────────────────────────────────────────────────────
+            var hasSummaryData = (lessonProgress && lessonProgress.available) ||
+                                (lessonMastery && lessonMastery.available) ||
+                                (schedule && schedule.available && schedule.count > 0) ||
+                                (notes && notes.available && notes.count > 0);
+        
+            if (hasSummaryData) {
+                html += `
+                    <div style="margin-bottom: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+                `;
+        
+                // Progress
+                if (lessonProgress && lessonProgress.available) {
+                    var progLabel = lessonProgress.percent !== undefined 
+                        ? lessonProgress.percent + '%' 
+                        : (lessonProgress.status || 'Unknown');
+                    html += `
+                        <div style="flex: 1; min-width: 120px; background: rgba(74,158,255,0.04); border-radius: 10px; padding: 10px 14px; border: 1px solid rgba(74,158,255,0.08);">
+                            <div style="font-size: 11px; color: #94a3b8;">📊 Progress</div>
+                            <div style="font-size: 18px; font-weight: 600; color: #4a9eff;">${progLabel}</div>
+                        </div>
+                    `;
+                }
+        
+                // Mastery
+                if (lessonMastery && lessonMastery.available) {
+                    html += `
+                        <div style="flex: 1; min-width: 120px; background: rgba(139,92,246,0.04); border-radius: 10px; padding: 10px 14px; border: 1px solid rgba(139,92,246,0.08);">
+                            <div style="font-size: 11px; color: #94a3b8;">🧠 Mastery</div>
+                            <div style="font-size: 18px; font-weight: 600; color: #8b5cf6;">${lessonMastery.label || 'Unknown'}</div>
+                        </div>
+                    `;
+                }
+        
+                // Schedule
+                if (schedule && schedule.available && schedule.count > 0) {
+                    html += `
+                        <div style="flex: 1; min-width: 120px; background: rgba(16,185,129,0.04); border-radius: 10px; padding: 10px 14px; border: 1px solid rgba(16,185,129,0.08);">
+                            <div style="font-size: 11px; color: #94a3b8;">📅 Scheduled</div>
+                            <div style="font-size: 18px; font-weight: 600; color: #10b981;">${schedule.count}</div>
+                        </div>
+                    `;
+                }
+        
+                // Notes
+                if (notes && notes.available && notes.count > 0) {
+                    html += `
+                        <div style="flex: 1; min-width: 120px; background: rgba(139,92,246,0.04); border-radius: 10px; padding: 10px 14px; border: 1px solid rgba(139,92,246,0.08);">
+                            <div style="font-size: 11px; color: #94a3b8;">📓 Notes</div>
+                            <div style="font-size: 18px; font-weight: 600; color: #8b5cf6;">${notes.count}</div>
+                        </div>
+                    `;
+                }
+        
+                html += `</div>`;
+            }
+        
+            // ─────────────────────────────────────────────────────────────
+            // Session Panel
+            // ─────────────────────────────────────────────────────────────
+            html += this._renderSessionPanel(lessonId);
+        
+            // ─────────────────────────────────────────────────────────────
+            // 内容区占位（由 _renderLessonBody 填充）
+            // ─────────────────────────────────────────────────────────────
+            html += `
                     <div id="lesson-body-container" style="margin-top: 24px;">
                         ${this._renderLessonLoadingState()}
                     </div>
                 </div>
             `;
-
+        
             // ═══════════════════════════════════════════════════════════════
             // 3. 先渲染基础框架（让用户看到头部和加载状态）
             // ═══════════════════════════════════════════════════════════════
             container.innerHTML = html;
-
+        
             // ═══════════════════════════════════════════════════════════════
             // 4. On-Demand 加载 Lesson 内容（异步，不阻塞 UI）
             // ═══════════════════════════════════════════════════════════════
             var bodyContainer = document.getElementById('lesson-body-container');
-
-            // 如果 bodyContainer 不存在，直接返回（安全网）
+        
             if (!bodyContainer) {
                 console.warn('[AcademyView] lesson-body-container not found');
                 return;
             }
-
-            // 查找 lesson 所属的 subject（从 SubjectRegistry 获取）
+        
+            // 查找 lesson 所属的 subject
             var subjectRegistry = safeGet(window, 'LawAIApp.SubjectRegistry');
             var lessonMeta = null;
-
-            if (subjectRegistry) {
+        
+            // 🔥 Part 169: 优先从 CurriculumAuthority 获取
+            var curriculumAuth = window.LawAIApp?.CurriculumAuthority;
+            if (curriculumAuth && curriculumAuth.isReady) {
+                var curriculumLesson = curriculumAuth.getLesson(lessonId);
+                if (curriculumLesson && curriculumLesson.subjectId) {
+                    var curriculumSubject = curriculumAuth.getSubject(curriculumLesson.subjectId);
+                    if (curriculumSubject) {
+                        lessonMeta = {
+                            courseId: curriculumSubject.courseId,
+                            subjectId: curriculumSubject.id
+                        };
+                    }
+                }
+            }
+        
+            // Fallback: 从 SubjectRegistry 获取
+            if (!lessonMeta && subjectRegistry) {
                 var allSubjects = subjectRegistry.getAllSubjects ? subjectRegistry.getAllSubjects() : [];
                 for (var i = 0; i < allSubjects.length; i++) {
                     var subject = allSubjects[i];
@@ -2389,31 +2620,24 @@ function __safeCall(pathOrObj) {
                     }
                 }
             }
-
-            // 如果没有从 SubjectRegistry 找到，尝试从 adapter 获取
+        
+            // Fallback: 从 adapter 获取
             if (!lessonMeta) {
                 var adapter2 = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
-                var lessonDetail = adapter2 ? adapter2.getLessonDetail(lessonId) : null;
-                if (lessonDetail) {
+                var lessonDetail2 = adapter2 ? adapter2.getLessonDetail(lessonId) : null;
+                if (lessonDetail2) {
                     lessonMeta = {
-                        courseId: lessonDetail.courseId || lessonDetail.programId,
-                        subjectId: lessonDetail.moduleId || lessonDetail.subjectId
+                        courseId: lessonDetail2.courseId || lessonDetail2.programId,
+                        subjectId: lessonDetail2.moduleId || lessonDetail2.subjectId
                     };
                 }
             }
-
-            // ═══ Part 8: 先检查缓存（加速返回） ═══
-            var loader = safeGet(window, 'LawAIApp.S4ContentLoader') || safeGet(window, 'LawAIApp.ContentLoader');
-            if (loader && typeof loader.isLessonLoaded === 'function' && loader.isLessonLoaded(lessonId)) {
-                // 缓存存在，直接加载（会从缓存返回）
-                // 但继续执行，因为 loadLesson 会使用缓存
-            }
-
-            // ═══ 尝试从 S4 ContentLoader 加载内容 ═══
-            var loader = safeGet(window, 'LawAIApp.S4ContentLoader') || safeGet(window, 'LawAIApp.ContentLoader');
-
-            if (loader && typeof loader.loadLesson === 'function' && lessonMeta) {
-                loader.loadLesson(lessonMeta.courseId, lessonMeta.subjectId, lessonId)
+        
+            // 尝试从 ContentLoader 加载内容
+            var contentLoader = safeGet(window, 'LawAIApp.S4ContentLoader') || safeGet(window, 'LawAIApp.ContentLoader');
+        
+            if (contentLoader && typeof contentLoader.loadLesson === 'function' && lessonMeta) {
+                contentLoader.loadLesson(lessonMeta.courseId, lessonMeta.subjectId, lessonId)
                     .then(function(lessonContent) {
                         if (lessonContent) {
                             // ✅ 成功加载：渲染完整内容
@@ -2423,7 +2647,7 @@ function __safeCall(pathOrObj) {
                                 bodyContainer2.innerHTML = contentHtml;
                             }
                         } else {
-                            // ⚠️ 加载失败：显示占位（保留原有占位样式）
+                            // ⚠️ 加载失败：显示占位
                             var bodyContainer3 = document.getElementById('lesson-body-container');
                             if (bodyContainer3) {
                                 bodyContainer3.innerHTML = self._renderLessonPlaceholder();
@@ -2438,7 +2662,7 @@ function __safeCall(pathOrObj) {
                         }
                     });
             } else {
-                // ═══ Fallback: 如果没有 ContentLoader 或 lessonMeta，显示占位 ═══
+                // Fallback: 没有 ContentLoader 或 lessonMeta
                 var bodyContainer5 = document.getElementById('lesson-body-container');
                 if (bodyContainer5) {
                     bodyContainer5.innerHTML = this._renderLessonPlaceholder();
