@@ -3,6 +3,7 @@
 // Part 130: Integrated with PracticeEvidenceContract
 // Part 131: Evidence Integration & Validation
 // Part 132: PracticeCompleted Event Emission
+// Part 173: Reflection Method + Retry
 
 window.LawAIApp = window.LawAIApp || {};
 window.LawAIApp.Experience = window.LawAIApp.Experience || {};
@@ -445,12 +446,12 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                         ${_result.explanation ? `<p style="margin:6px 0 0;font-size:12px;color:#94a3b8;line-height:1.5;">${_result.explanation}</p>` : ''}
                     </div>
                 `;
-            
+
                 // 🔥 Part 173: Retry / Reflection 选项
                 html += `
                     <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
                 `;
-            
+
                 if (!isCorrect) {
                     // 不正确时显示 "Try again"
                     html += `
@@ -459,7 +460,7 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                         </button>
                     `;
                 }
-            
+
                 // 无论对错都可以反思
                 html += `
                         <button onclick="LawAIApp.Experience.Renderers.PracticeRenderer._promptReflection('${_activity.id}')" 
@@ -468,7 +469,7 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                         </button>
                     </div>
                 `;
-            
+
                 // 如果已完成，显示完成状态
                 if (_submitted && _result.correct) {
                     html += `
@@ -478,6 +479,10 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                     `;
                 }
             }
+
+            html += `</div>`;  // 关闭 .practice-activity
+            return html;
+        }
 
         // ============================================================
         // Bind Events
@@ -617,13 +622,13 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                     _selectedOption = null;
                     _result = null;
                     _isDuplicateSubmit = false;
-                    
+
                     // 注意：保留 _attemptHistory，因为 Part 130 要求
                     // 保留所有 attempt 历史
-                    
+
                     // 重新渲染
                     _render();
-                    
+
                     // 发射重试信号
                     _emitAttemptSignal('ACTIVITY_RETRY', {
                         attemptNumber: _attemptNumber + 1
@@ -712,7 +717,7 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
              */
             getStatus: function() {
                 var lifecycleState = 'INITIALIZING';
-                if (_isMounted && !_isSubmitted) {
+                if (_isMounted && !_submitted) {
                     lifecycleState = 'READY';
                 } else if (_submitted && !_evaluated) {
                     lifecycleState = 'EVALUATING';
@@ -721,11 +726,11 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                 } else if (!_isMounted) {
                     lifecycleState = 'UNMOUNTED';
                 }
-            
+
                 return {
                     // Lifecycle (Part 171)
                     lifecycleState: lifecycleState,
-            
+
                     // Legacy (保留兼容)
                     status: _status,
                     isMounted: _isMounted,
@@ -737,12 +742,12 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                     currentAttemptNumber: _attemptNumber,
                     hasAttempts: _attemptHistory.length > 0,
                     isDuplicateSubmit: _isDuplicateSubmit,
-            
+
                     // Part 171: Loading States
                     isLoading: false,
                     isSubmitting: _submitted && !_evaluated,
                     isEvaluating: false,
-            
+
                     // Error States (Part 171)
                     hasError: false,
                     errorMessage: null,
@@ -827,6 +832,7 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                     .map(function(a) { return a.evidence; });
             }
         };
+    },
 
     // ============================================================
     // 🔥 Part 173: Reflection Method
@@ -878,4 +884,4 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
     console.log('✏️ PracticeRenderer registered (Part 129)');
 })();
 
-console.log('✏️ PracticeRenderer loaded (Part 129 + Part 130 + Part 131 + Part 132)');
+console.log('✏️ PracticeRenderer loaded (Part 129 + Part 130 + Part 131 + Part 132 + Part 173)');
