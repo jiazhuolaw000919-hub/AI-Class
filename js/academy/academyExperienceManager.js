@@ -366,14 +366,13 @@
         selectLesson: function(lessonId) {
             console.log('[AcademyExperienceManager] 📍 Selecting lesson:', lessonId);
 
-            // 更新状态
             this._state.currentLessonId = lessonId;
             this._state.viewMode = 'lesson';
 
-            // 🔥 直接跳 lesson.html
             var url = '/pages/lesson.html?lessonId=' + encodeURIComponent(lessonId);
             console.log('[AcademyExperienceManager] 🎯 Navigating to:', url);
             window.location.href = url;
+
             return this;
         },
 
