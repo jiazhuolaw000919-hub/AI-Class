@@ -289,12 +289,11 @@
                 if (onFail) onFail('NotesAuthority load failed');
             }
         }.bind(this));
-    },
+    }
 
     // ============================================================
     // Part 165: SettingsAuthority 懒加载
     // ============================================================
-    
     loadSettingsAuthority: function(onReady, onFail) {
         var moduleName = 'settingsAuthority';
         if (this._lazyLoaded[moduleName]) {
