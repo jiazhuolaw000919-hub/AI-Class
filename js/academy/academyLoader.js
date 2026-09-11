@@ -34,7 +34,8 @@
         notesAuthority: false,
         settingsAuthority: false,
         curriculumAuthority: false,
-        videoActivity: false
+        videoActivity: false,
+        practiceFitnessCheck: false
       };
       this._lazyLoading = {
         calendar: false,
@@ -43,7 +44,8 @@
         notesAuthority: false,
         settingsAuthority: false,
         curriculumAuthority: false,
-        videoActivity: false
+        videoActivity: false,
+        practiceFitnessCheck: false
       };
 
       this._moduleChecks = {
@@ -498,6 +500,59 @@
     }
 
     // ============================================================
+    // Part 171: Practice Fitness Check 懒加载
+    // ============================================================
+
+    loadPracticeFitnessCheck: function(onReady, onFail) {
+        var moduleName = 'practiceFitnessCheck';
+        if (this._lazyLoaded[moduleName]) {
+            console.log('[AcademyLoader] ⏭️ PracticeFitnessCheck already lazy-loaded');
+            if (onReady) onReady(window.LawAIApp?.Experience?.PracticeFitnessCheck);
+            return;
+        }
+        if (this._lazyLoading[moduleName]) {
+            console.log('[AcademyLoader] ⏳ PracticeFitnessCheck already loading...');
+            this._waitForPracticeFitnessCheck(onReady, onFail);
+            return;
+        }
+        this._lazyLoading[moduleName] = true;
+        console.log('[AcademyLoader] 🔄 Lazy loading PracticeFitnessCheck...');
+
+        var files = ['/js/experience/practiceFitnessCheck.js'];
+
+        this._loadScriptsSequentially(files, function(success) {
+            this._lazyLoading[moduleName] = false;
+            if (success && window.LawAIApp?.Experience?.PracticeFitnessCheck) {
+                this._lazyLoaded[moduleName] = true;
+                console.log('[AcademyLoader] ✅ PracticeFitnessCheck loaded');
+                if (onReady) onReady(window.LawAIApp.Experience.PracticeFitnessCheck);
+            } else {
+                console.warn('[AcademyLoader] ⚠️ PracticeFitnessCheck load failed');
+                if (onFail) onFail('PracticeFitnessCheck load failed');
+            }
+        }.bind(this));
+    },
+
+    _waitForPracticeFitnessCheck: function(onReady, onFail) {
+        var attempts = 0;
+        var maxAttempts = 50;
+        var interval = setInterval(function() {
+            attempts++;
+            var fc = window.LawAIApp?.Experience?.PracticeFitnessCheck;
+            if (fc) {
+                clearInterval(interval);
+                if (onReady) onReady(fc);
+                return;
+            }
+            if (attempts >= maxAttempts) {
+                clearInterval(interval);
+                console.warn('[AcademyLoader] ⏰ PracticeFitnessCheck wait timeout');
+                if (onFail) onFail('Timeout waiting for PracticeFitnessCheck');
+            }
+        }, 100);
+    }
+
+    // ============================================================
     // 内联 Calendar / Settings 兜底实现
     // ============================================================
     _createInlineCalendar() {
@@ -872,6 +927,7 @@
       var settingsAuth = window.LawAIApp?.SettingsAuthority;
       var curriculumAuth = window.LawAIApp?.CurriculumAuthority;
       var videoRenderer = window.LawAIApp?.VideoRenderer;
+      var practiceFC = window.LawAIApp?.Experience?.PracticeFitnessCheck;
       return {
         status: this.status,
         health: this.health,
@@ -908,6 +964,11 @@
           initialized: videoRenderer ? true : false,
           isReady: videoRenderer ? true : false,
           evidenceContract: !!(window.LawAIApp?.VideoEvidenceContract)
+        },
+        practiceFitnessCheck: {  // 🆕 Part 171
+            initialized: practiceFC ? true : false,
+            isReady: practiceFC ? true : false,
+            hasRunCheck: practiceFC && typeof practiceFC.checkAll === 'function'
         }
       };
     }
