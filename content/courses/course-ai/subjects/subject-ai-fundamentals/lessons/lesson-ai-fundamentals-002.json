@@ -1,81 +1,76 @@
-// content/courses/course-ai/subjects/subject-ai-fundamentals/lessons/lesson-ai-fundamentals-002.js
-// AI Fundamentals — Lesson 002
-
-window.LawAIApp = window.LawAIApp || {};
-window.LawAIApp.ContentLessons = window.LawAIApp.ContentLessons || {};
-
-window.LawAIApp.ContentLessons['lesson-ai-fundamentals-002'] = {
+{
   "id": "lesson-ai-fundamentals-002",
   "version": "1.0.0",
-  "title": "Types of AI: Narrow, General, and Super",
-  "slug": "types-of-ai",
+  "title": "History of AI",
+  "slug": "history-of-ai",
   "subjectId": "subject-ai-fundamentals",
+  "courseId": "course-ai",
   "moduleId": null,
   "order": 2,
-  "estimatedMinutes": 25,
+  "estimatedMinutes": 15,
   "difficulty": "foundation",
   "status": "published",
-  "description": "Explore the three levels of AI—Narrow, General, and Super—and understand where today's systems actually live on that spectrum.",
+  "description": "Trace the major milestones of artificial intelligence—from Turing's question to modern transformers.",
   "learningObjectives": [
-    "Distinguish Narrow AI, General AI, and Super AI",
-    "Identify real examples of Narrow AI",
-    "Explain why AGI and ASI remain theoretical"
+    "Identify the major milestones in AI history",
+    "Explain the AI winters and why they happened",
+    "Recognize the shift from symbolic AI to deep learning"
   ],
   "sections": [
     {
       "id": "section-01",
       "type": "foundation",
-      "title": "The Three Levels",
+      "title": "The Beginning (1950s)",
       "content": [
         {
           "type": "text",
-          "content": "AI is commonly categorized into three ascending levels of capability: Narrow AI (specialized), General AI (human-level), and Super AI (beyond human)."
+          "content": "In 1950, Alan Turing published 'Computing Machinery and Intelligence' and proposed the Turing Test: can a machine's responses be indistinguishable from a human's?"
+        },
+        {
+          "type": "text",
+          "content": "The term 'Artificial Intelligence' was coined in 1956 at the Dartmouth Conference by John McCarthy and colleagues."
         },
         {
           "type": "definition",
-          "content": "Narrow AI: Systems that excel at a specific task but cannot transfer that skill to unrelated problems. Also called Weak AI."
-        },
-        {
-          "type": "definition",
-          "content": "General AI (AGI): Hypothetical systems with human-level reasoning across any domain. Does not yet exist."
-        },
-        {
-          "type": "definition",
-          "content": "Super AI (ASI): Hypothetical systems that surpass human intelligence in every dimension. Purely theoretical."
+          "content": "Turing Test: A test of a machine's ability to exhibit intelligent behavior equivalent to a human."
         }
       ]
     },
     {
       "id": "section-02",
       "type": "core",
-      "title": "Narrow AI — What We Actually Have",
+      "title": "The AI Winters (1970s-1980s)",
       "content": [
         {
           "type": "text",
-          "content": "Every AI system deployed today is Narrow AI. ChatGPT, Claude, Gemini — despite feeling general — are still narrow: they process language but cannot truly reason across arbitrary domains with the reliability of a human expert."
-        },
-        {
-          "type": "example",
-          "content": "A chess engine beats grandmasters but cannot write poetry. A language model writes poetry but cannot drive a car. Both are Narrow AI."
+          "content": "Early AI promised too much. When results failed to materialize, funding dried up—twice. These periods are called 'AI Winters'."
         },
         {
           "type": "text",
-          "content": "This distinction matters: when people say 'AI is getting smarter,' they usually mean Narrow AI is becoming broader within its narrow domain — not that AGI is arriving."
+          "content": "The first AI Winter (1974-1980) followed the failure of machine translation. The second (1987-1993) followed the collapse of the expert systems market."
+        },
+        {
+          "type": "example",
+          "content": "Expert systems like MYCIN were impressive but too expensive and brittle to maintain at scale."
         }
       ]
     },
     {
       "id": "section-03",
       "type": "advanced",
-      "title": "Why AGI Is Hard",
+      "title": "The Deep Learning Revolution (2012+)",
       "content": [
         {
           "type": "text",
-          "content": "AGI requires transfer learning at a level no current architecture demonstrates: the ability to take a skill learned in one domain and apply it reliably in another. Current LLMs approximate this superficially but fail under scrutiny."
+          "content": "In 2012, AlexNet won the ImageNet competition by a huge margin using deep convolutional neural networks. This sparked the modern AI boom."
         },
         {
           "type": "text",
-          "content": "The gap between Narrow AI and AGI is not incremental — it's a fundamental architectural leap that may require entirely new paradigms beyond transformers."
+          "content": "Key breakthroughs followed: word embeddings, attention mechanisms, transformers (2017), and finally large language models like GPT."
+        },
+        {
+          "type": "text",
+          "content": "The shift was not incremental—it was a fundamental change in how AI systems learn: from hand-coded rules to learning from massive datasets."
         }
       ]
     }
@@ -83,30 +78,30 @@ window.LawAIApp.ContentLessons['lesson-ai-fundamentals-002'] = {
   "video": {
     "provider": "youtube",
     "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao",
-    "title": "Narrow vs General AI",
-    "durationMinutes": 10
+    "title": "The History of Artificial Intelligence",
+    "durationMinutes": 8
   },
   "flashcards": [
     {
       "id": "fc-201",
-      "front": "What is Narrow AI?",
-      "back": "AI specialized for one task, unable to transfer to unrelated domains.",
+      "front": "Who coined the term 'Artificial Intelligence'?",
+      "back": "John McCarthy, at the 1956 Dartmouth Conference.",
       "difficulty": "foundation",
-      "tags": ["types"]
+      "tags": ["history"]
     },
     {
       "id": "fc-202",
-      "front": "Does AGI exist today?",
-      "back": "No. AGI is theoretical. All deployed AI is Narrow.",
+      "front": "What is the Turing Test?",
+      "back": "A test of whether a machine's responses can be indistinguishable from a human's.",
       "difficulty": "foundation",
-      "tags": ["agi"]
+      "tags": ["turing"]
     },
     {
       "id": "fc-203",
-      "front": "Is ChatGPT General AI?",
-      "back": "No — it is Narrow AI, specialized in language generation.",
+      "front": "What triggered the Deep Learning revolution?",
+      "back": "AlexNet's victory at ImageNet 2012 using deep CNNs.",
       "difficulty": "core",
-      "tags": ["narrow-ai", "chatgpt"]
+      "tags": ["deep-learning"]
     }
   ],
   "practice": {
@@ -116,57 +111,53 @@ window.LawAIApp.ContentLessons['lesson-ai-fundamentals-002'] = {
       {
         "id": "practice-201",
         "type": "multipleChoice",
-        "question": "Which of the following is an example of Narrow AI?",
+        "question": "What were the 'AI Winters'?",
         "options": [
-          "A system that only plays Go",
-          "A system that can learn any human skill",
-          "A system with consciousness",
-          "A system smarter than all humans combined"
+          "Periods when AI hardware overheated",
+          "Periods when AI funding dried up after failed promises",
+          "Periods when AI systems hibernated",
+          "Seasonal downturns in AI research"
         ],
-        "answer": 0,
-        "explanation": "A Go-playing system is Narrow AI — specialized for one task and unable to transfer to others."
+        "answer": 1,
+        "explanation": "AI Winters were periods of reduced funding after AI failed to deliver on early promises."
       },
       {
         "id": "practice-202",
         "type": "shortAnswer",
-        "question": "In your own words, why isn't ChatGPT considered General AI?",
-        "answer": "Because it processes language but cannot reason across arbitrary domains with human-level reliability. It is specialized for language generation, not general intelligence.",
-        "explanation": "General AI requires transferable human-level reasoning across any domain. ChatGPT excels at language but fails outside it."
+        "question": "Why was AlexNet 2012 significant?",
+        "answer": "It demonstrated that deep CNNs could dramatically outperform previous methods, sparking the modern deep learning era.",
+        "explanation": "AlexNet won ImageNet 2012 by a huge margin, proving the power of deep learning."
       }
     ]
   },
   "notes": {
-    "summary": "AI has three theoretical levels: Narrow (what exists), General (hypothetical), and Super (theoretical). All current AI is Narrow.",
+    "summary": "AI history spans from Turing's 1950 question to modern transformers, passing through two AI Winters.",
     "keyPoints": [
-      "Narrow AI: specialized, deployed, everywhere",
-      "General AI (AGI): human-level reasoning — does not exist",
-      "Super AI (ASI): beyond human — purely theoretical",
-      "ChatGPT, Claude, Gemini are all Narrow AI"
+      "1950: Turing Test proposed",
+      "1956: 'AI' coined at Dartmouth",
+      "1974-1980 & 1987-1993: AI Winters",
+      "2012: AlexNet sparks deep learning",
+      "2017+: Transformer era"
     ],
     "importantTerms": [
-      { "term": "Narrow AI", "definition": "Specialized AI for one task." },
-      { "term": "AGI", "definition": "Artificial General Intelligence — human-level, hypothetical." },
-      { "term": "ASI", "definition": "Artificial Super Intelligence — beyond human, theoretical." }
+      { "term": "Turing Test", "definition": "A test of machine intelligence." },
+      { "term": "AI Winter", "definition": "Period of reduced AI funding." },
+      { "term": "Transformer", "definition": "Architecture behind modern LLMs." }
     ]
   },
   "aiTools": [
     {
       "provider": "chatgpt",
       "role": "reasoning",
-      "recommendedFor": ["explaining concepts", "comparing AI systems"]
-    },
-    {
-      "provider": "claude",
-      "role": "writing",
-      "recommendedFor": ["essay-style explanations", "nuanced discussion"]
+      "recommendedFor": ["discussing AI history", "comparing eras"]
     }
   ],
   "resources": [
     {
       "id": "resource-201",
-      "title": "Understanding Narrow vs General AI",
+      "title": "A Brief History of AI",
       "type": "article",
-      "url": "https://example.com/narrow-vs-general-ai",
+      "url": "https://example.com/ai-history",
       "provider": "official"
     }
   ],
@@ -176,9 +167,9 @@ window.LawAIApp.ContentLessons['lesson-ai-fundamentals-002'] = {
     "lesson-ai-fundamentals-003"
   ],
   "keyTakeaways": [
-    "All AI today is Narrow — specialized for specific tasks.",
-    "AGI and ASI are theoretical concepts, not current reality.",
-    "Language models like ChatGPT are Narrow AI despite their breadth."
+    "AI has 70+ years of history, with major breakthroughs and collapses.",
+    "The shift from symbolic AI to deep learning changed everything.",
+    "Understanding history prevents repeating past mistakes."
   ],
   "metadata": {
     "author": "Law AI Academy",
@@ -186,6 +177,4 @@ window.LawAIApp.ContentLessons['lesson-ai-fundamentals-002'] = {
   },
   "createdAt": "2026-09-11T00:00:00Z",
   "updatedAt": "2026-09-11T00:00:00Z"
-};
-
-console.log('[ContentLesson] lesson-ai-fundamentals-002 loaded');
+}
