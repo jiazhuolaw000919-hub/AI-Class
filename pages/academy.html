@@ -153,6 +153,9 @@
     <!-- Part 164: Notes Authority (后台加载版)                        -->
     <!-- ============================================================ -->
     <script src="/js/notes/NotesAuthority.js"></script>
+    
+    <!-- Part 165: SettingsAuthority -->
+    <script src="/js/settings/SettingsAuthority.js"></script>
 
     <!-- ============================================================ -->
     <!-- Academy 启动脚本 (瘦身版)                                     -->
@@ -350,6 +353,16 @@
                         }
                     }, function(error) {
                         console.warn('[Academy] ⚠️ NotesAuthority load failed:', error);
+                    });
+                }
+            });
+
+            document.addEventListener('NAVIGATE_TO_SETTINGS', function(e) {
+                console.log('[Academy] ⚙️ NAVIGATE_TO_SETTINGS received');
+                var container = document.getElementById('academy-root');
+                if (container && window.LawAIApp?.AcademyLoader?.renderSettings) {
+                    window.LawAIApp.AcademyLoader.renderSettings(container, function() {
+                        window.LawAIApp.AcademyLoader.updateNavHighlight('settings');
                     });
                 }
             });
