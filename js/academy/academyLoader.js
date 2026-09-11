@@ -31,13 +31,15 @@
           calendar: false,
           settings: false,
           calendarAuthority: false,
-          notesAuthority: false
+          notesAuthority: false,
+          settingsAuthority: false
       };
       this._lazyLoading = {
           calendar: false,
           settings: false,
           calendarAuthority: false,
-          notesAuthority: false
+          notesAuthority: false,
+          settingsAuthority: false
       };
     
       this._moduleChecks = {
@@ -286,6 +288,67 @@
             }
         }.bind(this));
     }
+
+    // ============================================================
+    // Part 165: SettingsAuthority 懒加载
+    // ============================================================
+    
+    loadSettingsAuthority: function(onReady, onFail) {
+        var moduleName = 'settingsAuthority';
+        if (this._lazyLoaded[moduleName]) {
+            console.log('[AcademyLoader] ⏭️ SettingsAuthority already lazy-loaded');
+            if (onReady) onReady(window.LawAIApp?.SettingsAuthority);
+            return;
+        }
+        if (this._lazyLoading[moduleName]) {
+            console.log('[AcademyLoader] ⏳ SettingsAuthority already loading...');
+            this._waitForSettingsAuthority(onReady, onFail);
+            return;
+        }
+        this._lazyLoading[moduleName] = true;
+        console.log('[AcademyLoader] 🔄 Lazy loading SettingsAuthority...');
+    
+        var files = ['/js/settings/SettingsAuthority.js'];
+    
+        this._loadScriptsSequentially(files, function(success) {
+            this._lazyLoading[moduleName] = false;
+            if (success && window.LawAIApp?.SettingsAuthority) {
+                this._lazyLoaded[moduleName] = true;
+                console.log('[AcademyLoader] ✅ SettingsAuthority loaded');
+    
+                var auth = window.LawAIApp.SettingsAuthority;
+                if (auth.initialized) {
+                    if (onReady) onReady(auth);
+                } else {
+                    auth.onReady(function(readyAuth) {
+                        if (onReady) onReady(readyAuth);
+                    });
+                }
+            } else {
+                console.warn('[AcademyLoader] ⚠️ SettingsAuthority load failed');
+                if (onFail) onFail('SettingsAuthority load failed');
+            }
+        }.bind(this));
+    },
+    
+    _waitForSettingsAuthority: function(onReady, onFail) {
+        var attempts = 0;
+        var maxAttempts = 50;
+        var interval = setInterval(function() {
+            attempts++;
+            var auth = window.LawAIApp?.SettingsAuthority;
+            if (auth && auth.initialized) {
+                clearInterval(interval);
+                if (onReady) onReady(auth);
+                return;
+            }
+            if (attempts >= maxAttempts) {
+                clearInterval(interval);
+                console.warn('[AcademyLoader] ⏰ SettingsAuthority wait timeout');
+                if (onFail) onFail('Timeout waiting for SettingsAuthority');
+            }
+        }, 100);
+    }
     
     _waitForNotesAuthority(onReady, onFail) {
         var attempts = 0;
@@ -436,31 +499,50 @@
         }
     }
     
-    renderSettings(container, onReady, onError) {
+    renderSettings: function(container, onReady, onError) {
         if (!container) container = document.getElementById('academy-root');
-        if (!container) { if (onError) onError('Container not found'); return; }
-    
-        if (window.LawAIApp?.Settings && typeof window.LawAIApp.Settings.render === 'function') {
-            try { window.LawAIApp.Settings.render(); if (onReady) onReady(window.LawAIApp.Settings); return; } catch (e) {}
+        if (!container) {
+            if (onError) onError('Container not found');
+            return;
         }
     
         container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Settings...</div>';
     
         var self = this;
     
-        if (this.loadSettingsLazy) {
-            this.loadSettingsLazy(function(settings) {
-                try { settings.render(); if (onReady) onReady(settings); } catch (e) {}
-            }, function(error) {
-                var inlineSettings = self._createInlineSettings();
-                inlineSettings.render(container);
-                if (onError) onError(error);
-            });
-        } else {
-            var inlineSettings = this._createInlineSettings();
-            inlineSettings.render(container);
-            if (onReady) onReady(inlineSettings);
+        // 🔥 Part 165: 先确保 SettingsAuthority 就绪
+        this.loadSettingsAuthority(function(auth) {
+            console.log('[AcademyLoader] ✅ SettingsAuthority ready, loading Settings UI...');
+            self._loadSettingsUI(container, onReady, onError);
+        }, function(error) {
+            console.warn('[AcademyLoader] ⚠️ SettingsAuthority failed, loading Settings anyway...');
+            self._loadSettingsUI(container, onReady, onError);
+        });
+    },
+    
+    _loadSettingsUI: function(container, onReady, onError) {
+        if (window.LawAIApp?.Settings && typeof window.LawAIApp.Settings.render === 'function') {
+            try {
+                window.LawAIApp.Settings._root = container;
+                window.LawAIApp.Settings.render();
+                if (onReady) onReady(window.LawAIApp.Settings);
+                return;
+            } catch (e) {
+                console.warn('[AcademyLoader] Settings render error:', e);
+            }
         }
+    
+        var self = this;
+        this.loadSettingsLazy(function(settings) {
+            if (container) {
+                try { settings.render(); if (onReady) onReady(settings); } catch (e) {}
+            }
+        }, function(error) {
+            console.warn('[AcademyLoader] Settings load failed:', error);
+            var inlineSettings = self._createInlineSettings();
+            inlineSettings.render(container);
+            if (onError) onError(error);
+        });
     }
     
     updateNavHighlight(activeTab) {
@@ -648,6 +730,7 @@
     healthCheck() {
         var auth = window.LawAIApp?.CalendarAuthority;
         var notesAuth = window.LawAIApp?.NotesAuthority;
+        var settingsAuth = window.LawAIApp?.SettingsAuthority;  // 🆕
         return {
             status: this.status,
             health: this.health,
@@ -658,12 +741,21 @@
             lazyLoading: this._lazyLoading,
             calendarAuthority: {
                 initialized: auth ? auth.initialized : false,
+                loading: auth ? auth.loading : false,
                 isReady: auth ? auth.isReady : false,
                 scheduleCount: auth && auth.isReady ? auth.getAllSchedules().length : 0
             },
             notesAuthority: {
                 initialized: notesAuth ? notesAuth.initialized : false,
-                isReady: notesAuth ? notesAuth.isReady : false
+                loading: notesAuth ? notesAuth.loading : false,
+                isReady: notesAuth ? notesAuth.isReady : false,
+                noteCount: notesAuth && notesAuth.isReady ? notesAuth.getAllNotes().length : 0
+            },
+            settingsAuthority: {  // 🆕
+                initialized: settingsAuth ? settingsAuth.initialized : false,
+                loading: settingsAuth ? settingsAuth.loading : false,
+                isReady: settingsAuth ? settingsAuth.isReady : false,
+                settingsCount: settingsAuth && settingsAuth.isReady ? Object.keys(settingsAuth.getAll()).length : 0
             }
         };
     }
