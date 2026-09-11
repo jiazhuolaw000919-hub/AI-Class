@@ -1,9 +1,6 @@
 // js/academy/curriculumSeed.js
 // Part 57.5 — Curriculum Seed (Initial Data)
-// Law AI Academy Developer Bible
-//
-// PURPOSE: Provide initial academic data
-// Only includes Schools and Program placeholders (no full lesson content)
+// v2.0.0 — 加 Course / Subject 数据 + 注册到 CourseRegistry / SubjectRegistry
 
 (function() {
     'use strict';
@@ -14,13 +11,12 @@
     }
 
     var CurriculumSeed = {
-        version: '1.0.0',
+        version: '2.0.0',
         loaded: false,
 
         // ============================================================
         // 1. SEED DATA — Schools
         // ============================================================
-
         schools: [
             {
                 id: 'school-ai',
@@ -52,11 +48,9 @@
         ],
 
         // ============================================================
-        // 2. SEED DATA — Programs (Placeholders)
+        // 2. SEED DATA — Programs
         // ============================================================
-
         programs: [
-            // AI School Programs
             {
                 id: 'program-ai-foundations',
                 schoolId: 'school-ai',
@@ -76,25 +70,6 @@
                 modules: []
             },
             {
-                id: 'program-ai-agents',
-                schoolId: 'school-ai',
-                name: 'AI Agents & Automation',
-                description: 'Build intelligent AI agents and automations',
-                level: 'intermediate',
-                status: 'active',
-                modules: []
-            },
-            {
-                id: 'program-ai-advanced',
-                schoolId: 'school-ai',
-                name: 'Advanced AI Applications',
-                description: 'Deep dive into AI and machine learning',
-                level: 'advanced',
-                status: 'active',
-                modules: []
-            },
-            // Business School Programs
-            {
                 id: 'program-business-strategy',
                 schoolId: 'school-business',
                 name: 'Business Strategy',
@@ -104,25 +79,6 @@
                 modules: []
             },
             {
-                id: 'program-business-entrepreneurship',
-                schoolId: 'school-business',
-                name: 'Entrepreneurship',
-                description: 'Start and grow your business',
-                level: 'beginner',
-                status: 'active',
-                modules: []
-            },
-            {
-                id: 'program-business-productivity',
-                schoolId: 'school-business',
-                name: 'Productivity & Management',
-                description: 'Optimize workflows and manage teams',
-                level: 'intermediate',
-                status: 'active',
-                modules: []
-            },
-            // Technology School Programs
-            {
                 id: 'program-tech-development',
                 schoolId: 'school-technology',
                 name: 'Software Development',
@@ -130,33 +86,171 @@
                 level: 'beginner',
                 status: 'active',
                 modules: []
-            },
-            {
-                id: 'program-tech-system-design',
-                schoolId: 'school-technology',
-                name: 'System Design',
-                description: 'Design scalable systems and architectures',
-                level: 'intermediate',
-                status: 'active',
-                modules: []
-            },
-            {
-                id: 'program-tech-mobile',
-                schoolId: 'school-technology',
-                name: 'Mobile Development',
-                description: 'Build mobile applications for iOS and Android',
-                level: 'beginner',
-                status: 'active',
-                modules: []
             }
         ],
 
         // ============================================================
-        // 3. SEED DATA — Modules (Placeholders — NO full content)
+        // 3. SEED DATA — Courses 🆕
         // ============================================================
+        courses: [
+            {
+                id: 'course-ai-fundamentals',
+                schoolId: 'school-ai',
+                programId: 'program-ai-foundations',
+                title: 'AI Fundamentals',
+                name: 'AI Fundamentals',
+                description: 'Learn the basics of Artificial Intelligence',
+                icon: '🤖',
+                difficulty: 'beginner',
+                estimatedHours: 10,
+                status: 'active'
+            },
+            {
+                id: 'course-prompt-engineering',
+                schoolId: 'school-ai',
+                programId: 'program-ai-prompting',
+                title: 'Prompt Engineering',
+                name: 'Prompt Engineering',
+                description: 'Master the art of crafting effective prompts',
+                icon: '✍️',
+                difficulty: 'beginner',
+                estimatedHours: 5,
+                status: 'active'
+            },
+            {
+                id: 'course-business-strategy',
+                schoolId: 'school-business',
+                programId: 'program-business-strategy',
+                title: 'Business Strategy Basics',
+                name: 'Business Strategy Basics',
+                description: 'Strategic thinking fundamentals',
+                icon: '📊',
+                difficulty: 'intermediate',
+                estimatedHours: 8,
+                status: 'active'
+            }
+        ],
 
+        // ============================================================
+        // 4. SEED DATA — Subjects 🆕
+        // ============================================================
+        subjects: [
+            {
+                id: 'subject-what-is-ai',
+                courseId: 'course-ai-fundamentals',
+                title: 'What is AI?',
+                name: 'What is AI?',
+                description: 'Introduction to Artificial Intelligence',
+                icon: '🧠',
+                status: 'published',
+                lessons: [
+                    {
+                        id: 'lesson-ai-intro',
+                        title: 'Introduction to AI',
+                        name: 'Introduction to AI',
+                        description: 'Learn what AI is and its applications',
+                        duration: 10,
+                        status: 'published',
+                        summary: 'Artificial Intelligence (AI) is the simulation of human intelligence by machines.',
+                        sections: {
+                            foundation: [
+                                'AI stands for Artificial Intelligence',
+                                'It enables machines to learn from experience',
+                                'Common applications: voice assistants, recommendations, self-driving cars'
+                            ]
+                        },
+                        keyTakeaways: [
+                            'AI simulates human intelligence',
+                            'Machine learning is a subset of AI',
+                            'AI is everywhere in modern life'
+                        ],
+                        video: {
+                            title: 'What is AI?',
+                            url: 'https://www.youtube.com/embed/ad79nYk2keg'
+                        }
+                    },
+                    {
+                        id: 'lesson-ai-history',
+                        title: 'A Brief History of AI',
+                        name: 'A Brief History of AI',
+                        description: 'How AI evolved from 1950s to today',
+                        duration: 12,
+                        status: 'published',
+                        summary: 'AI has evolved through several waves of innovation since the 1950s.',
+                        keyTakeaways: [
+                            'AI was born in 1956 at Dartmouth',
+                            'AI has gone through multiple "winters"',
+                            'Modern AI is powered by deep learning'
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'subject-ai-today',
+                courseId: 'course-ai-fundamentals',
+                title: 'AI Today',
+                name: 'AI Today',
+                description: 'Current applications of AI in the real world',
+                icon: '🌍',
+                status: 'published',
+                lessons: [
+                    {
+                        id: 'lesson-ai-applications',
+                        title: 'AI in Daily Life',
+                        name: 'AI in Daily Life',
+                        description: 'How AI is used in everyday applications',
+                        duration: 15,
+                        status: 'published',
+                        summary: 'AI powers many tools you use every day.'
+                    }
+                ]
+            },
+            {
+                id: 'subject-prompt-basics',
+                courseId: 'course-prompt-engineering',
+                title: 'Prompt Basics',
+                name: 'Prompt Basics',
+                description: 'Fundamentals of prompting AI',
+                icon: '✍️',
+                status: 'published',
+                lessons: [
+                    {
+                        id: 'lesson-prompt-intro',
+                        title: 'Introduction to Prompting',
+                        name: 'Introduction to Prompting',
+                        description: 'Learn the basics of how to talk to AI',
+                        duration: 12,
+                        status: 'published',
+                        summary: 'A prompt is the input you give to an AI model.'
+                    }
+                ]
+            },
+            {
+                id: 'subject-strategy-basics',
+                courseId: 'course-business-strategy',
+                title: 'Strategy Fundamentals',
+                name: 'Strategy Fundamentals',
+                description: 'Core strategic thinking concepts',
+                icon: '🎯',
+                status: 'published',
+                lessons: [
+                    {
+                        id: 'lesson-strategy-intro',
+                        title: 'What is Strategy?',
+                        name: 'What is Strategy?',
+                        description: 'Introduction to business strategy',
+                        duration: 20,
+                        status: 'published',
+                        summary: 'Strategy is the plan of action for achieving a goal.'
+                    }
+                ]
+            }
+        ],
+
+        // ============================================================
+        // 5. SEED DATA — Modules (保留原结构)
+        // ============================================================
         modules: [
-            // AI Foundations Modules
             {
                 id: 'module-ai-intro',
                 programId: 'program-ai-foundations',
@@ -166,118 +260,32 @@
                 lessons: []
             },
             {
-                id: 'module-ai-python',
-                programId: 'program-ai-foundations',
-                name: 'Python for AI',
-                description: 'Essential Python skills for AI development',
-                order: 2,
-                lessons: []
-            },
-            {
-                id: 'module-ai-ml-basics',
-                programId: 'program-ai-foundations',
-                name: 'Machine Learning Basics',
-                description: 'Core ML concepts and algorithms',
-                order: 3,
-                lessons: []
-            },
-            // AI Prompting Modules
-            {
                 id: 'module-prompt-basics',
                 programId: 'program-ai-prompting',
                 name: 'Prompt Basics',
                 description: 'Fundamentals of prompting',
                 order: 1,
                 lessons: []
-            },
-            {
-                id: 'module-prompt-advanced',
-                programId: 'program-ai-prompting',
-                name: 'Advanced Prompting',
-                description: 'Complex prompting techniques',
-                order: 2,
-                lessons: []
-            },
-            // AI Agents Modules
-            {
-                id: 'module-agents-intro',
-                programId: 'program-ai-agents',
-                name: 'Agent Fundamentals',
-                description: 'Understanding AI agents',
-                order: 1,
-                lessons: []
-            },
-            // Business Strategy Modules
-            {
-                id: 'module-strategy-basics',
-                programId: 'program-business-strategy',
-                name: 'Strategy Fundamentals',
-                description: 'Core strategic thinking',
-                order: 1,
-                lessons: []
-            },
-            // Software Development Modules
-            {
-                id: 'module-dev-basics',
-                programId: 'program-tech-development',
-                name: 'Development Basics',
-                description: 'Core programming concepts',
-                order: 1,
-                lessons: []
             }
         ],
 
         // ============================================================
-        // 4. SEED DATA — Lessons (Placeholders — NO full content)
+        // 6. SEED DATA — Lessons (保留原结构)
         // ============================================================
-
         lessons: [
-            // AI Intro Lessons
             {
                 id: 'lesson-what-is-ai',
                 moduleId: 'module-ai-intro',
                 title: 'What is Artificial Intelligence?',
                 status: 'draft',
                 duration: 15
-            },
-            {
-                id: 'lesson-ai-history',
-                moduleId: 'module-ai-intro',
-                title: 'History of AI',
-                status: 'draft',
-                duration: 20
-            },
-            {
-                id: 'lesson-ai-today',
-                moduleId: 'module-ai-intro',
-                title: 'AI Today: Current Applications',
-                status: 'draft',
-                duration: 15
-            },
-            // Python for AI Lessons
-            {
-                id: 'lesson-python-basics',
-                moduleId: 'module-ai-python',
-                title: 'Python Basics for AI',
-                status: 'draft',
-                duration: 25
-            },
-            {
-                id: 'lesson-python-libraries',
-                moduleId: 'module-ai-python',
-                title: 'Essential Python Libraries for AI',
-                status: 'draft',
-                duration: 20
             }
         ],
 
         // ============================================================
-        // 5. PUBLIC API
+        // 7. PUBLIC API — load
         // ============================================================
 
-        /**
-         * 加载种子数据到 Registry
-         */
         load: function() {
             if (this.loaded) {
                 console.log('[CurriculumSeed] Already loaded');
@@ -287,53 +295,85 @@
             console.log('[CurriculumSeed] 🌱 Loading seed data...');
 
             try {
-                // 1. 加载 Schools
+                // 1. Schools → SchoolRegistry
                 var schoolRegistry = window.LawAIApp?.SchoolRegistry;
                 if (schoolRegistry && typeof schoolRegistry.register === 'function') {
                     this.schools.forEach(function(school) {
-                        schoolRegistry.register(school);
+                        try { schoolRegistry.register(school); } catch (e) {}
                     });
-                    console.log('[CurriculumSeed] ✅ Loaded', this.schools.length, 'schools');
+                    console.log('[CurriculumSeed] ✅ Schools:', this.schools.length);
                 } else {
                     console.warn('[CurriculumSeed] SchoolRegistry not available');
                 }
 
-                // 2. 加载 Programs
+                // 2. Programs → ProgramRegistry
                 var programRegistry = window.LawAIApp?.ProgramRegistry;
                 if (programRegistry && typeof programRegistry.register === 'function') {
                     this.programs.forEach(function(program) {
-                        programRegistry.register(program);
+                        try { programRegistry.register(program); } catch (e) {}
                     });
-                    console.log('[CurriculumSeed] ✅ Loaded', this.programs.length, 'programs');
+                    console.log('[CurriculumSeed] ✅ Programs:', this.programs.length);
                 } else {
                     console.warn('[CurriculumSeed] ProgramRegistry not available');
                 }
 
-                // 3. 加载 Modules (到 AcademyRegistry)
+                // 3. 🆕 Courses → CourseRegistry
+                var courseRegistry = window.LawAIApp?.CourseRegistry;
+                if (courseRegistry) {
+                    var registered = 0;
+                    this.courses.forEach(function(course) {
+                        try {
+                            if (typeof courseRegistry.register === 'function') {
+                                courseRegistry.register(course);
+                                registered++;
+                            } else if (typeof courseRegistry.registerCourse === 'function') {
+                                courseRegistry.registerCourse(course);
+                                registered++;
+                            } else if (courseRegistry._courses && typeof courseRegistry._courses.set === 'function') {
+                                courseRegistry._courses.set(course.id, course);
+                                registered++;
+                            }
+                        } catch (e) {
+                            console.warn('[CurriculumSeed] Course register failed:', course.id, e);
+                        }
+                    });
+                    console.log('[CurriculumSeed] ✅ Courses:', registered, '/', this.courses.length);
+                } else {
+                    console.warn('[CurriculumSeed] CourseRegistry not available');
+                }
+
+                // 4. 🆕 Subjects → SubjectRegistry
+                var subjectRegistry = window.LawAIApp?.SubjectRegistry;
+                if (subjectRegistry && typeof subjectRegistry.register === 'function') {
+                    var registered = 0;
+                    this.subjects.forEach(function(subject) {
+                        try {
+                            subjectRegistry.register(subject);
+                            registered++;
+                        } catch (e) {
+                            console.warn('[CurriculumSeed] Subject register failed:', subject.id, e);
+                        }
+                    });
+                    console.log('[CurriculumSeed] ✅ Subjects:', registered, '/', this.subjects.length);
+                } else {
+                    console.warn('[CurriculumSeed] SubjectRegistry not available');
+                }
+
+                // 5. Modules → AcademyRegistry
                 var academyRegistry = window.LawAIApp?.AcademyRegistry;
                 if (academyRegistry && typeof academyRegistry.registerModule === 'function') {
                     this.modules.forEach(function(module) {
-                        try {
-                            academyRegistry.registerModule(module);
-                        } catch (e) {
-                            // Module 可能已存在
-                        }
+                        try { academyRegistry.registerModule(module); } catch (e) {}
                     });
-                    console.log('[CurriculumSeed] ✅ Loaded', this.modules.length, 'modules');
-                } else {
-                    console.warn('[CurriculumSeed] AcademyRegistry not available for modules');
+                    console.log('[CurriculumSeed] ✅ Modules:', this.modules.length);
                 }
 
-                // 4. 加载 Lessons (到 AcademyRegistry)
+                // 6. Lessons → AcademyRegistry
                 if (academyRegistry && typeof academyRegistry.registerLesson === 'function') {
                     this.lessons.forEach(function(lesson) {
-                        try {
-                            academyRegistry.registerLesson(lesson);
-                        } catch (e) {
-                            // Lesson 可能已存在
-                        }
+                        try { academyRegistry.registerLesson(lesson); } catch (e) {}
                     });
-                    console.log('[CurriculumSeed] ✅ Loaded', this.lessons.length, 'lessons');
+                    console.log('[CurriculumSeed] ✅ Lessons:', this.lessons.length);
                 }
 
                 this.loaded = true;
@@ -341,9 +381,32 @@
                 this._emit('CURRICULUM_READY', {
                     schools: this.schools.length,
                     programs: this.programs.length,
+                    courses: this.courses.length,
+                    subjects: this.subjects.length,
                     modules: this.modules.length,
                     lessons: this.lessons.length
                 });
+
+                // 🔥 通知 CurriculumAuthority 重新 ingest
+                var ca = window.LawAIApp?.CurriculumAuthority;
+                if (ca && typeof ca._ingestFromRegistries === 'function') {
+                    setTimeout(function() {
+                        ca._ingestFromRegistries();
+                        console.log('[CurriculumSeed] 🔄 Re-ingested to CurriculumAuthority');
+                        console.log('[CurriculumSeed] === 验证 ===');
+                        console.log('CA.schools:', ca.getAllSchools?.()?.length);
+                        console.log('CA.courses:', ca.getAllCourses?.()?.length);
+                        console.log('CA.subjects:', ca.getSubjectsByCourse?.('course-ai-fundamentals')?.length);
+                        console.log('CA.lesson lesson-ai-intro:', ca.getLesson?.('lesson-ai-intro'));
+
+                        // 重新渲染
+                        if (window.LawAIApp?.AcademyExperienceManager?.render) {
+                            try {
+                                window.LawAIApp.AcademyExperienceManager.render();
+                            } catch (e) {}
+                        }
+                    }, 100);
+                }
 
                 console.log('[CurriculumSeed] ✅ Seed data loaded successfully');
 
@@ -354,42 +417,30 @@
             return this;
         },
 
-        /**
-         * 获取种子数据摘要
-         */
         getSummary: function() {
             return {
                 version: this.version,
                 loaded: this.loaded,
                 schools: this.schools.length,
                 programs: this.programs.length,
+                courses: this.courses.length,
+                subjects: this.subjects.length,
                 modules: this.modules.length,
                 lessons: this.lessons.length
             };
         },
-
-        // ============================================================
-        // 6. PRIVATE — Event Helpers
-        // ============================================================
 
         _emit: function(eventName, data) {
             try {
                 var event = new CustomEvent(eventName, { detail: data || {} });
                 document.dispatchEvent(event);
                 window.dispatchEvent(event);
-
                 if (window.LawAIApp?.EventBus && typeof window.LawAIApp.EventBus.emit === 'function') {
                     window.LawAIApp.EventBus.emit(eventName, data);
                 }
-            } catch (err) {
-                // 忽略
-            }
+            } catch (err) {}
         }
     };
-
-    // ============================================================
-    // Export
-    // ============================================================
 
     if (!window.LawAIApp) {
         window.LawAIApp = {};
@@ -397,44 +448,34 @@
 
     window.LawAIApp.CurriculumSeed = CurriculumSeed;
 
-    console.log('[CurriculumSeed] Module loaded (Part 57.5)');
+    console.log('[CurriculumSeed] Module loaded (v' + CurriculumSeed.version + ')');
 
     // ============================================================
-    // Auto-Load — 等待 Registries 就绪
+    // Auto-Load
     // ============================================================
-
     function autoLoadSeed() {
-        var schoolReg = window.LawAIApp?.SchoolRegistry;
-        var progReg = window.LawAIApp?.ProgramRegistry;
+        // 🔥 等 SchoolRegistry / CourseRegistry / SubjectRegistry 都就绪
+        var attempts = 0;
+        var maxAttempts = 60;
+        var interval = setInterval(function() {
+            attempts++;
+            var schoolReg = window.LawAIApp?.SchoolRegistry;
+            var courseReg = window.LawAIApp?.CourseRegistry;
+            var subjectReg = window.LawAIApp?.SubjectRegistry;
 
-        if (schoolReg && schoolReg._initialized && progReg && progReg._initialized) {
-            CurriculumSeed.load();
-        } else {
-            console.log('[CurriculumSeed] Waiting for registries...');
-            document.addEventListener('SCHOOL_REGISTRY_READY', function() {
-                if (window.LawAIApp?.ProgramRegistry?._initialized) {
-                    CurriculumSeed.load();
-                }
-            });
-            document.addEventListener('PROGRAM_REGISTRY_READY', function() {
-                if (window.LawAIApp?.SchoolRegistry?._initialized) {
-                    CurriculumSeed.load();
-                }
-            });
-            // 后备轮询
-            var attempts = 0;
-            var interval = setInterval(function() {
-                attempts++;
-                if (window.LawAIApp?.SchoolRegistry?._initialized && window.LawAIApp?.ProgramRegistry?._initialized) {
-                    clearInterval(interval);
-                    CurriculumSeed.load();
-                } else if (attempts > 30) {
-                    clearInterval(interval);
-                    console.warn('[CurriculumSeed] Registries timeout, loading anyway...');
-                    CurriculumSeed.load();
-                }
-            }, 300);
-        }
+            if (schoolReg && courseReg && subjectReg) {
+                clearInterval(interval);
+                console.log('[CurriculumSeed] Registries ready, loading...');
+                CurriculumSeed.load();
+                return;
+            }
+
+            if (attempts >= maxAttempts) {
+                clearInterval(interval);
+                console.warn('[CurriculumSeed] Registries timeout, loading anyway...');
+                CurriculumSeed.load();
+            }
+        }, 100);
     }
 
     if (document.readyState === 'complete') {
