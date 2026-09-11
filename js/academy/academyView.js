@@ -2092,7 +2092,7 @@ function __safeCall(pathOrObj) {
         
                     html += `
                         <div style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="window.location.href='/pages/academy.html?view=lesson&id=${lesson.lessonId}'"
+                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectLesson', '${lesson.lessonId}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.02)'">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -2800,15 +2800,58 @@ function __safeCall(pathOrObj) {
             // ── Video ──
             if (lessonContent.video && lessonContent.video.url) {
                 var v = lessonContent.video;
-                html += `
-                    <div style="margin: 16px 0; padding: 16px 20px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
-                        <h4 style="font-size: 15px; font-weight: 600; margin: 0 0 8px 0;">🎬 ${v.title || 'Video'}</h4>
-                        <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; background: #0a0a0a;">
-                            <iframe src="${v.url}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;" allowfullscreen></iframe>
+                
+                // 🔥 修复：把各种 YouTube URL 格式转换成正确的 embed URL
+                var embedUrl = v.url;
+                
+                // 1. 空 URL 或只有 https://www.youtube.com/ → 跳过
+                var isInvalidYouTube = /^https?:\/\/(www\.)?youtube\.com\/?$/.test(v.url) ||
+                                       /^https?:\/\/(www\.)?youtube\.com\/watch/.test(v.url);
+                
+                // 2. 转成 embed URL
+                // https://www.youtube.com/watch?v=VIDEO_ID → https://www.youtube.com/embed/VIDEO_ID
+                var watchMatch = v.url.match(/youtube\.com\/watch\?v=([^&]+)/);
+                if (watchMatch) {
+                    embedUrl = 'https://www.youtube.com/embed/' + watchMatch[1];
+                }
+                
+                // https://youtu.be/VIDEO_ID → https://www.youtube.com/embed/VIDEO_ID
+                var shortMatch = v.url.match(/youtu\.be\/([^?]+)/);
+                if (shortMatch) {
+                    embedUrl = 'https://www.youtube.com/embed/' + shortMatch[1];
+                }
+                
+                // 3. 如果还是无效的（首页、watch 页面没转成功），显示提示而不是 iframe
+                if (isInvalidYouTube && !watchMatch) {
+                    html += `
+                        <div style="margin: 16px 0; padding: 16px 20px; background: rgba(245,158,11,0.06); border-radius: 10px; border: 1px solid rgba(245,158,11,0.12);">
+                            <h4 style="font-size: 15px; font-weight: 600; margin: 0 0 8px 0; color: #f59e0b;">🎬 ${v.title || 'Video'}</h4>
+                            <p style="margin: 0; color: #94a3b8; font-size: 13px;">
+                                ⚠️ 视频链接无效（${v.url}），请更新为 YouTube embed 链接
+                            </p>
+                            <a href="${v.url}" target="_blank" rel="noopener" 
+                               style="display: inline-block; margin-top: 8px; color: #4a9eff; font-size: 13px; text-decoration: none;">
+                                🔗 在新窗口打开原链接
+                            </a>
                         </div>
-                        ${v.duration ? `<span style="color: #64748b; font-size: 12px; margin-top: 4px; display: block;">⏱️ ${Math.floor(v.duration/60)} min</span>` : ''}
-                    </div>
-                `;
+                    `;
+                } else {
+                    // 正常渲染 iframe
+                    html += `
+                        <div style="margin: 16px 0; padding: 16px 20px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+                            <h4 style="font-size: 15px; font-weight: 600; margin: 0 0 8px 0;">🎬 ${v.title || 'Video'}</h4>
+                            <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; background: #0a0a0a;">
+                                <iframe src="${embedUrl}" 
+                                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;" 
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowfullscreen
+                                        referrerpolicy="strict-origin-when-cross-origin">
+                                </iframe>
+                            </div>
+                            ${v.duration ? `<span style="color: #64748b; font-size: 12px; margin-top: 4px; display: block;">⏱️ ${Math.floor(v.duration/60)} min</span>` : ''}
+                        </div>
+                    `;
+                }
             }
 
             // ── Flashcards ──
