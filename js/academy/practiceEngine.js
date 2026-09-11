@@ -314,18 +314,21 @@ LawAIApp.PracticeEngine = (function() {
     }
 
     // ===========================================
-    // 掌握度
+    // Performance Summary (NOT Mastery)
+    // ⚠️ Part 171: Practice 不计算 Mastery。
+    //    这是 performance summary（用于诊断），
+    //    不是 mastery。Mastery 由 MasteryEngine 拥有。
     // ===========================================
-    function getMastery() {
+    function getPerformanceSummary() {
         var history = getAllHistory();
-        var mastery = {};
+        var summary = {};
         history.forEach(function(r) {
             var key = r.lessonId || 'general';
-            if (!mastery[key]) mastery[key] = { correct: 0, total: 0 };
-            mastery[key].total++;
-            if (r.correct) mastery[key].correct++;
+            if (!summary[key]) summary[key] = { correct: 0, total: 0 };
+            summary[key].total++;
+            if (r.correct) summary[key].correct++;
         });
-        return mastery;
+        return summary;
     }
 
     // ===========================================
@@ -576,7 +579,7 @@ LawAIApp.PracticeEngine = (function() {
         getRecent: getRecent,
         getHistory: getAllHistory,
         getAllHistory: getAllHistory,
-        getMastery: getMastery,
+        getPerformanceSummary: getPerformanceSummary,
         generateInteractivePractice: generateInteractivePractice,
         checkAnswer: checkAnswer,
         getStatus: getStatus,
