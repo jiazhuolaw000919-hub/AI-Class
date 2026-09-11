@@ -411,6 +411,142 @@
             console.log('✅ Academy page ready (Part 164 - Slim)');
 
         })();
+
+        <!-- ============================================================ -->
+        <!-- Part 174: S4 Content Bootstrap                                -->
+        <!-- ============================================================ -->
+        (function() {
+            'use strict';
+            
+            console.log('[Bootstrap] Starting S4 content bootstrap...');
+            
+            // 等待依赖就绪
+            function waitForDeps(callback, attempts) {
+                attempts = attempts || 0;
+                
+                var loader = window.LawAIApp?.ContentLoader;
+                var cr = window.LawAIApp?.CourseRegistry;
+                var sr = window.LawAIApp?.SubjectRegistry;
+                var ca = window.LawAIApp?.CurriculumAuthority;
+                
+                if (loader && cr && sr && ca && cr.initialized && sr.initialized) {
+                    callback();
+                    return;
+                }
+                
+                if (attempts >= 100) {
+                    console.warn('[Bootstrap] Timeout waiting for deps');
+                    return;
+                }
+                
+                setTimeout(function() {
+                    waitForDeps(callback, attempts + 1);
+                }, 100);
+            }
+            
+            // 手动加载 course-ai
+            function bootstrapCourseAI() {
+                console.log('[Bootstrap] Deps ready, loading course-ai...');
+                
+                var loader = window.LawAIApp.ContentLoader;
+                var cr = window.LawAIApp.CourseRegistry;
+                var sr = window.LawAIApp.SubjectRegistry;
+                var ca = window.LawAIApp.CurriculumAuthority;
+                
+                if (!loader || typeof loader.loadCourse !== 'function') {
+                    console.warn('[Bootstrap] ContentLoader missing loadCourse');
+                    return;
+                }
+                
+                loader.loadCourse('course-ai').then(function(course) {
+                    if (!course) {
+                        console.warn('[Bootstrap] course-ai not found');
+                        return;
+                    }
+                    
+                    console.log('[Bootstrap] ✅ Loaded course-ai:', course.title);
+                    
+                    // 注册到 CourseRegistry
+                    if (!cr.getCourse('course-ai')) {
+                        cr._courses.set('course-ai', {
+                            id: course.id,
+                            schoolId: course.schoolId,
+                            programId: 'program-' + (course.schoolId || 'science'),
+                            title: course.title,
+                            description: course.description || '',
+                            icon: course.icon,
+                            estimatedHours: course.estimatedHours,
+                            subjects: course.subjects || [],
+                            status: course.status || 'published',
+                            _s4: true
+                        });
+                        console.log('[Bootstrap] Registered to CourseRegistry');
+                    }
+                    
+                    // 加载 Subjects
+                    var subjectIds = course.subjects || [];
+                    var pending = subjectIds.length;
+                    
+                    if (pending === 0) {
+                        finishBootstrap();
+                        return;
+                    }
+                    
+                    subjectIds.forEach(function(subjectId) {
+                        loader.loadSubject(course.id, subjectId).then(function(subject) {
+                            if (subject && !sr.getSubject(subject.id)) {
+                                sr.register({
+                                    id: subject.id,
+                                    courseId: subject.courseId,
+                                    title: subject.title,
+                                    description: subject.description,
+                                    lessons: subject.lessons || [],
+                                    status: subject.status || 'published'
+                                });
+                                console.log('[Bootstrap] ✅ Registered subject:', subject.id);
+                            }
+                            
+                            pending--;
+                            if (pending === 0) finishBootstrap();
+                        }).catch(function(e) {
+                            pending--;
+                            if (pending === 0) finishBootstrap();
+                        });
+                    });
+                });
+            }
+            
+            function finishBootstrap() {
+                console.log('[Bootstrap] ✅ All content loaded, re-ingesting...');
+                
+                var ca = window.LawAIApp.CurriculumAuthority;
+                if (ca && typeof ca._ingestFromRegistries === 'function') {
+                    ca._ingestFromRegistries();
+                }
+                
+                // 触发渲染
+                setTimeout(function() {
+                    if (window.LawAIApp?.AcademyExperienceManager?.render) {
+                        try {
+                            window.LawAIApp.AcademyExperienceManager.render();
+                        } catch (e) {}
+                    }
+                }, 200);
+            }
+            
+            // 启动
+            if (document.readyState === 'complete') {
+                setTimeout(function() {
+                    waitForDeps(bootstrapCourseAI);
+                }, 500);
+            } else {
+                window.addEventListener('load', function() {
+                    setTimeout(function() {
+                        waitForDeps(bootstrapCourseAI);
+                    }, 500);
+                });
+            }
+        })();
     </script>
 </body>
 </html>
