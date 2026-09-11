@@ -495,14 +495,9 @@
       }, 100);
     }
 
-    isLazyLoaded(moduleName) {
-      return !!this._lazyLoaded[moduleName];
-    }
-
     // ============================================================
     // Part 171: Practice Fitness Check 懒加载
     // ============================================================
-
     loadPracticeFitnessCheck: function(onReady, onFail) {
         var moduleName = 'practiceFitnessCheck';
         if (this._lazyLoaded[moduleName]) {
@@ -531,7 +526,7 @@
                 if (onFail) onFail('PracticeFitnessCheck load failed');
             }
         }.bind(this));
-    },
+    }
 
     _waitForPracticeFitnessCheck: function(onReady, onFail) {
         var attempts = 0;
@@ -550,6 +545,10 @@
                 if (onFail) onFail('Timeout waiting for PracticeFitnessCheck');
             }
         }, 100);
+    }
+
+    isLazyLoaded(moduleName) {
+      return !!this._lazyLoaded[moduleName];
     }
 
     // ============================================================
