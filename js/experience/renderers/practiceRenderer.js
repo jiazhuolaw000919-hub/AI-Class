@@ -827,12 +827,11 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                     .map(function(a) { return a.evidence; });
             }
         };
-    }
+    },
 
     // ============================================================
     // 🔥 Part 173: Reflection Method
     // ============================================================
-
     _promptReflection: function(activityId) {
         var reflection = prompt('💭 What did you learn or notice?\n\n(Your reflection will be saved to Notes)');
         if (!reflection || !reflection.trim()) return;
