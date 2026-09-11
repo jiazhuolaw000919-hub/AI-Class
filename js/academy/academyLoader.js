@@ -386,6 +386,62 @@
             }
         }, 100);
     },
+
+    // ============================================================
+    // Part 170: Video Activity 懒加载
+    // ============================================================
+
+    loadVideoActivity: function(onReady, onFail) {
+        var moduleName = 'videoActivity';
+        if (this._lazyLoaded[moduleName]) {
+            console.log('[AcademyLoader] ⏭️ VideoActivity already lazy-loaded');
+            if (onReady) onReady(true);
+            return;
+        }
+        if (this._lazyLoading[moduleName]) {
+            console.log('[AcademyLoader] ⏳ VideoActivity already loading...');
+            this._waitForVideoActivity(onReady, onFail);
+            return;
+        }
+        this._lazyLoading[moduleName] = true;
+        console.log('[AcademyLoader] 🔄 Lazy loading VideoActivity...');
+
+        var files = [
+            '/js/experience/videoEvidenceContract.js',
+            '/js/experience/renderers/videoRenderer.js'
+        ];
+
+        this._loadScriptsSequentially(files, function(success) {
+            this._lazyLoading[moduleName] = false;
+            if (success && window.LawAIApp?.VideoRenderer) {
+                this._lazyLoaded[moduleName] = true;
+                console.log('[AcademyLoader] ✅ VideoActivity loaded');
+                if (onReady) onReady(true);
+            } else {
+                console.warn('[AcademyLoader] ⚠️ VideoActivity load failed');
+                if (onFail) onFail('VideoActivity load failed');
+            }
+        }.bind(this));
+    },
+
+    _waitForVideoActivity: function(onReady, onFail) {
+        var attempts = 0;
+        var maxAttempts = 50;
+        var interval = setInterval(function() {
+            attempts++;
+            var renderer = window.LawAIApp?.VideoRenderer;
+            if (renderer) {
+                clearInterval(interval);
+                if (onReady) onReady(true);
+                return;
+            }
+            if (attempts >= maxAttempts) {
+                clearInterval(interval);
+                console.warn('[AcademyLoader] ⏰ VideoActivity wait timeout');
+                if (onFail) onFail('Timeout waiting for VideoActivity');
+            }
+        }, 100);
+    },
     
     _waitForSettingsAuthority: function(onReady, onFail) {
         var attempts = 0;
@@ -772,6 +828,8 @@
           { id: 'experienceContract', path: '/js/academy/experienceContract.js' },
           { id: 'calendarAuthority', path: '/js/calendar/CalendarAuthority.js' },
           { id: 'notesAuthority', path: '/js/notes/NotesAuthority.js' },
+          { id: 'videoEvidenceContract', path: '/js/experience/videoEvidenceContract.js' }
+          { id: 'videoRenderer', path: '/js/experience/renderers/videoRenderer.js' },
           { id: 'surfaceIntegration', path: '/js/academy/surfaceIntegration.js' }
         ]
       };
@@ -786,7 +844,9 @@
     healthCheck() {
         var auth = window.LawAIApp?.CalendarAuthority;
         var notesAuth = window.LawAIApp?.NotesAuthority;
-        var settingsAuth = window.LawAIApp?.SettingsAuthority;  // 🆕
+        var settingsAuth = window.LawAIApp?.SettingsAuthority;
+        var curriculumAuth = window.LawAIApp?.CurriculumAuthority;
+        var videoRenderer = window.LawAIApp?.VideoRenderer;
         return {
             status: this.status,
             health: this.health,
@@ -818,7 +878,12 @@
                 loading: curriculumAuth ? curriculumAuth.loading : false,
                 isReady: curriculumAuth ? curriculumAuth.isReady : false,
                 schoolCount: curriculumAuth && curriculumAuth.isReady ? curriculumAuth.getAllSchools().length : 0
-            }
+            },
+            videoActivity: {  // 🆕 Part 170
+              initialized: videoRenderer ? true : false,
+              isReady: videoRenderer ? true : false,
+              evidenceContract: !!(window.LawAIApp?.VideoEvidenceContract)
+          }
         };
     }
 
