@@ -827,7 +827,6 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                     .map(function(a) { return a.evidence; });
             }
         };
-    },
 
     // ============================================================
     // 🔥 Part 173: Reflection Method
