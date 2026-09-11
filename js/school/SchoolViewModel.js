@@ -495,6 +495,344 @@
                 return { available: false, status: 'ERROR', count: 0 };
             }
         },
+
+        /**
+         * 构建 Lesson 详情（Part 169）
+         */
+        buildLessonDetail: function(lessonId) {
+            var curriculum = window.LawAIApp?.CurriculumAuthority;
+            if (!curriculum || !curriculum.isReady) {
+                return { lesson: null, status: 'LOADING' };
+            }
+        
+            var lesson = curriculum.getLesson(lessonId);
+            if (!lesson) {
+                return { lesson: null, status: 'NOT_FOUND' };
+            }
+        
+            // 获取上下文
+            var subject = lesson.subjectId ? curriculum.getSubject(lesson.subjectId) : null;
+            var course = subject && subject.courseId ? curriculum.getCourse(subject.courseId) : null;
+            var school = course && course.schoolId ? curriculum.getSchool(course.schoolId) : null;
+        
+            return {
+                status: 'READY',
+        
+                // ============================================================
+                // 1. IDENTITY (from Curriculum)
+                // ============================================================
+                identity: {
+                    lessonId: lesson.id,
+                    title: lesson.title || lesson.name || 'Untitled Lesson',
+                    description: lesson.description || '',
+                    status: lesson.status || 'ACTIVE',
+                    duration: lesson.duration || null,
+                    difficulty: lesson.difficulty || null,
+                    type: lesson.type || 'reading',
+                    source: 'Curriculum'
+                },
+        
+                // ============================================================
+                // 2. CONTEXT (from Curriculum - navigation only)
+                // ============================================================
+                context: {
+                    subject: subject ? {
+                        subjectId: subject.id,
+                        title: subject.title || subject.name
+                    } : null,
+                    course: course ? {
+                        courseId: course.id,
+                        title: course.title || course.name
+                    } : null,
+                    school: school ? {
+                        schoolId: school.id,
+                        title: school.name
+                    } : null,
+                    breadcrumb: this._buildBreadcrumb(school, course, subject, lesson)
+                },
+        
+                // ============================================================
+                // 3. LEARNING OBJECTIVES (from Curriculum)
+                // ============================================================
+                learningObjectives: this._getLessonObjectives(lesson),
+        
+                // ============================================================
+                // 4. PREREQUISITES (from Curriculum)
+                // ============================================================
+                prerequisites: this._getLessonPrerequisites(lessonId),
+        
+                // ============================================================
+                // 5. ACTIVITIES (from Curriculum/Experience)
+                // ============================================================
+                activities: this._getLessonActivities(lesson),
+        
+                // ============================================================
+                // 6. PROGRESS (from Progress - read-only)
+                // ============================================================
+                progress: this._getLessonProgress(lessonId),
+        
+                // ============================================================
+                // 7. MASTERY (from Mastery - read-only)
+                // ============================================================
+                mastery: this._getLessonMastery(lessonId),
+        
+                // ============================================================
+                // 8. RECOMMENDATION (from Recommendation - read-only)
+                // ============================================================
+                recommendation: this._getLessonRecommendation(lessonId),
+        
+                // ============================================================
+                // 9. SCHEDULE (from CalendarAuthority - read-only)
+                // ============================================================
+                schedule: this._getLessonSchedule(lessonId),
+        
+                // ============================================================
+                // 10. NOTES (from NotesAuthority - read-only)
+                // ============================================================
+                notes: this._getLessonNotes(lessonId),
+        
+                // ============================================================
+                // 11. CONTENT (from ContentLoader)
+                // ============================================================
+                content: this._getLessonContent(lesson)
+            };
+        },
+        
+        // ============================================================
+        // Private: Lesson helpers
+        // ============================================================
+        
+        _buildBreadcrumb: function(school, course, subject, lesson) {
+            var parts = [];
+            if (school) parts.push(school.name);
+            if (course) parts.push(course.title || course.name);
+            if (subject) parts.push(subject.title || subject.name);
+            if (lesson) parts.push(lesson.title || lesson.name);
+            return parts.join(' → ');
+        },
+        
+        _getLessonObjectives: function(lesson) {
+            if (lesson.learningObjectives && Array.isArray(lesson.learningObjectives)) {
+                return {
+                    available: true,
+                    objectives: lesson.learningObjectives,
+                    source: 'Curriculum'
+                };
+            }
+            return {
+                available: false,
+                status: 'NOT_AVAILABLE',
+                source: 'Curriculum'
+            };
+        },
+        
+        _getLessonPrerequisites: function(lessonId) {
+            var curriculum = window.LawAIApp?.CurriculumAuthority;
+            if (!curriculum) {
+                return { available: false, status: 'UNKNOWN', required: [], suggested: [] };
+            }
+        
+            var prereqs = curriculum.getPrerequisites(lessonId) || [];
+            var required = prereqs.filter(function(p) { return p.type === 'required'; });
+            var suggested = prereqs.filter(function(p) { return p.type === 'suggested'; });
+        
+            return {
+                available: true,
+                required: required.map(function(p) {
+                    var l = curriculum.getLesson(p.lessonId);
+                    return {
+                        lessonId: p.lessonId,
+                        name: l ? l.title || l.name : 'Unknown',
+                        satisfied: p.satisfied === true
+                    };
+                }),
+                suggested: suggested.map(function(p) {
+                    var l = curriculum.getLesson(p.lessonId);
+                    return {
+                        lessonId: p.lessonId,
+                        name: l ? l.title || l.name : 'Unknown'
+                    };
+                }),
+                source: 'Curriculum'
+            };
+        },
+        
+        _getLessonActivities: function(lesson) {
+            // 从 Curriculum 或 ContentLoader 读取
+            if (lesson.activities && Array.isArray(lesson.activities)) {
+                return {
+                    available: true,
+                    activities: lesson.activities.map(function(a, idx) {
+                        return {
+                            activityId: a.id || ('activity_' + idx),
+                            activityType: a.type || 'reading',
+                            title: a.title || 'Activity',
+                            description: a.description || '',
+                            order: idx + 1,
+                            duration: a.duration || null,
+                            source: 'Curriculum'
+                        };
+                    }),
+                    source: 'Curriculum'
+                };
+            }
+            // Fallback: 从 ContentLoader 获取
+            var contentLoader = window.LawAIApp?.ContentLoader;
+            if (contentLoader && contentLoader.getLessonActivities) {
+                try {
+                    var acts = contentLoader.getLessonActivities(lesson.id);
+                    if (acts && acts.length > 0) {
+                        return {
+                            available: true,
+                            activities: acts,
+                            source: 'ContentLoader'
+                        };
+                    }
+                } catch (e) {}
+            }
+            return {
+                available: false,
+                status: 'NOT_AVAILABLE',
+                activities: [],
+                source: 'Curriculum'
+            };
+        },
+        
+        _getLessonProgress: function(lessonId) {
+            var progressEngine = window.LawAIApp?.ProgressEngine;
+            if (!progressEngine) {
+                return { available: false, status: 'UNKNOWN' };
+            }
+            try {
+                if (typeof progressEngine.getLessonProgress === 'function') {
+                    var p = progressEngine.getLessonProgress(lessonId);
+                    return {
+                        available: true,
+                        percent: p.percent || 0,
+                        status: p.status || 'unknown',
+                        source: 'Progress'
+                    };
+                }
+                // Fallback
+                if (typeof progressEngine.isLessonCompleted === 'function') {
+                    var completed = progressEngine.isLessonCompleted(lessonId);
+                    return {
+                        available: true,
+                        completed: completed,
+                        status: completed ? 'completed' : 'not_started',
+                        source: 'Progress'
+                    };
+                }
+            } catch (e) {}
+            return { available: false, status: 'UNKNOWN' };
+        },
+        
+        _getLessonMastery: function(lessonId) {
+            var masteryEngine = window.LawAIApp?.MasteryEngine;
+            if (!masteryEngine || typeof masteryEngine.getLessonMastery !== 'function') {
+                return { available: false, status: 'UNKNOWN' };
+            }
+            try {
+                var m = masteryEngine.getLessonMastery(lessonId);
+                return {
+                    available: true,
+                    level: m.level || 'unknown',
+                    label: m.label || 'Unknown',
+                    source: 'Mastery'
+                };
+            } catch (e) {
+                return { available: false, status: 'ERROR' };
+            }
+        },
+        
+        _getLessonRecommendation: function(lessonId) {
+            var recEngine = window.LawAIApp?.RecommendationEngine;
+            if (!recEngine || typeof recEngine.getRecommendationFor !== 'function') {
+                return null;
+            }
+            try {
+                var rec = recEngine.getRecommendationFor(lessonId);
+                if (rec && rec.isRecommended) {
+                    return {
+                        isRecommended: true,
+                        reason: rec.reason || null,
+                        confidence: rec.confidence || 'moderate',
+                        source: 'Recommendation'
+                    };
+                }
+                return null;
+            } catch (e) {
+                return null;
+            }
+        },
+        
+        _getLessonSchedule: function(lessonId) {
+            var calAuth = window.LawAIApp?.CalendarAuthority;
+            if (!calAuth || !calAuth.isReady) {
+                return { available: false, status: 'UNKNOWN', count: 0 };
+            }
+            try {
+                var allSchedules = calAuth.getUpcomingSchedules(50);
+                var lessonSchedules = allSchedules.filter(function(s) {
+                    return s.activityRef && s.activityRef.indexOf(lessonId) !== -1;
+                });
+                return {
+                    available: true,
+                    count: lessonSchedules.length,
+                    nextSession: lessonSchedules.length > 0 ? {
+                        scheduleId: lessonSchedules[0].scheduleId,
+                        startAt: lessonSchedules[0].startAt
+                    } : null,
+                    source: 'Calendar'
+                };
+            } catch (e) {
+                return { available: false, status: 'ERROR', count: 0 };
+            }
+        },
+        
+        _getLessonNotes: function(lessonId) {
+            var notesAuth = window.LawAIApp?.NotesAuthority;
+            if (!notesAuth || !notesAuth.isReady) {
+                return { available: false, status: 'UNKNOWN', count: 0 };
+            }
+            try {
+                var allNotes = notesAuth.getAllNotes();
+                var lessonNotes = allNotes.filter(function(n) {
+                    return n.relatedLessonRef === lessonId;
+                });
+                return {
+                    available: true,
+                    count: lessonNotes.length,
+                    source: 'Notes'
+                };
+            } catch (e) {
+                return { available: false, status: 'ERROR', count: 0 };
+            }
+        },
+        
+        _getLessonContent: function(lesson) {
+            var contentLoader = window.LawAIApp?.ContentLoader;
+            if (!contentLoader) {
+                return { available: false, status: 'NOT_AVAILABLE' };
+            }
+            try {
+                // 尝试从缓存获取
+                if (contentLoader.isLessonLoaded && contentLoader.isLessonLoaded(lesson.id)) {
+                    return {
+                        available: true,
+                        loaded: true,
+                        source: 'ContentLoader'
+                    };
+                }
+                return {
+                    available: true,
+                    loaded: false,
+                    source: 'ContentLoader'
+                };
+            } catch (e) {
+                return { available: false, status: 'ERROR' };
+            }
+        },
         
         // ============================================================
         // Private: Read from other authorities
