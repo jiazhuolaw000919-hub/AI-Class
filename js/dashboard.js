@@ -149,47 +149,60 @@ LawAIApp.Dashboard = {
         }
     }
 
-  // 🔥 Part 162: Core-Derived Dashboard — Read Only
-  var coreResult = null;
-  var viewModel = null;
-  var surfaceData = null;
-  
-  try {
-    // 从 Core Intelligence 获取权威数据 (只读)
-    coreResult = this._getCoreIntelligenceResult();
-    if (coreResult) {
-      surfaceData = LawAIApp.DashboardSurfaceAdapter 
+      // 🔥 Part 162: Core-Derived Dashboard — Read Only
+    // ⚠️ 必须先声明 viewModel，再使用
+    var coreResult = null;
+    var viewModel = null;
+    var surfaceData = null;
+
+    try {
+      coreResult = this._getCoreIntelligenceResult();
+      if (coreResult) {
+        surfaceData = LawAIApp.DashboardSurfaceAdapter
           ? LawAIApp.DashboardSurfaceAdapter.adapt(coreResult)
           : null;
-      viewModel = LawAIApp.DashboardViewModel
+        viewModel = LawAIApp.DashboardViewModel
           ? LawAIApp.DashboardViewModel.toRenderModel(surfaceData)
           : null;
+      }
+    } catch (e) {
+      console.warn('[Dashboard] Core Intelligence read error:', e);
     }
-  } catch (e) {
-    console.warn('[Dashboard] Core Intelligence read error:', e);
-  }
-  
-  // 🔥 Part 162: 如果 ViewModel 可用，使用它；否则 fallback 到现有数据
-  if (viewModel) {
-    // Hero 数据来自 Core
-    if (viewModel.hero) {
-      heroData = {
-        greeting: viewModel.hero.greeting || heroData.greeting,
-        message: viewModel.hero.message || heroData.message,
-        cta: viewModel.hero.cta || heroData.cta,
-        ctaLink: viewModel.hero.ctaLink || heroData.ctaLink,
-        showStreak: viewModel.hero.showStreak !== undefined ? viewModel.hero.showStreak : true
-      };
+
+    // ✅ 现在 viewModel 已经声明并赋值，可以安全使用
+    const completionRate = viewModel && viewModel.progress
+      ? (viewModel.progress.overall || 0).toFixed(1)
+      : (progress.completedLessons && progress.completedLessons.length > 0
+          ? ((progress.completedLessons.length / 365) * 100).toFixed(1)
+          : '0.0');
+
+    const currentStage = progress.currentStage || 'Foundation';
+    const lastCompletedDate = this._getLastCompletedDate(streakData);
+    const noteCount = this._getNoteCount();
+
+    // 🔥 heroData 用 let，因为后面会被 ViewModel 覆盖
+    let heroData = this._getHeroData(learnerState, progress, streakData);
+
+    // 🔥 Part 162: 如果 ViewModel 可用，用它的数据覆盖 heroData
+    if (viewModel) {
+      if (viewModel.hero) {
+        heroData = {
+          greeting: viewModel.hero.greeting || heroData.greeting,
+          message: viewModel.hero.message || heroData.message,
+          cta: viewModel.hero.cta || heroData.cta,
+          ctaLink: viewModel.hero.ctaLink || heroData.ctaLink,
+          showStreak: viewModel.hero.showStreak !== undefined ? viewModel.hero.showStreak : true
+        };
+      }
+
+      // 进度来自 Core (只读)
+      if (viewModel.progress && viewModel.progress.overall !== undefined) {
+        progress.completionPercent = viewModel.progress.overall;
+      }
+
+      // 🔥 保存 ViewModel 供后续使用
+      this._lastViewModel = viewModel;
     }
-    
-    // 进度来自 Core (只读)
-    if (viewModel.progress && viewModel.progress.overall !== undefined) {
-      progress.completionPercent = viewModel.progress.overall;
-    }
-    
-    // 🔥 保存 ViewModel 供后续使用
-    this._lastViewModel = viewModel;
-  }
 
     const html = this._buildHTML({
       progress,
