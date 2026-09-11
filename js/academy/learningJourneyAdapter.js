@@ -304,21 +304,45 @@
         // ============================================================
         // 5. PUBLIC API — Lesson
         // ============================================================
-
         getModuleLessons: function(moduleId) {
             console.log('[LearningJourneyAdapter] 📖 Getting lessons for module:', moduleId);
 
-            var academyRegistry = window.LawAIApp?.AcademyRegistry;
-            if (!academyRegistry) {
-                console.warn('[LearningJourneyAdapter] AcademyRegistry not available');
-                return [];
+            var lessons = [];
+
+            // 1. 先尝试从 SubjectRegistry 拿（moduleId 就是 subjectId）
+            var sr = window.LawAIApp?.SubjectRegistry;
+            if (sr && typeof sr.getSubject === 'function') {
+                var subject = sr.getSubject(moduleId);
+                if (subject && subject.lessons) {
+                    lessons = subject.lessons.map(function(l) {
+                        return (typeof l === 'string') ? { id: l, title: l, name: l } : l;
+                    });
+                }
             }
 
-            var lessons = [];
-            if (typeof academyRegistry.getLessonsByModule === 'function') {
-                lessons = academyRegistry.getLessonsByModule(moduleId);
-            } else {
-                console.warn('[LearningJourneyAdapter] getLessonsByModule not available');
+            // 2. Fallback: CurriculumAuthority
+            if (lessons.length === 0) {
+                var ca = window.LawAIApp?.CurriculumAuthority;
+                if (ca && typeof ca.getLessonsBySubject === 'function') {
+                    try {
+                        var caLessons = ca.getLessonsBySubject(moduleId) || [];
+                        lessons = caLessons;
+                    } catch (e) {}
+                }
+            }
+
+            // 3. Fallback: AcademyRegistry（兼容老代码）
+            if (lessons.length === 0) {
+                var academyRegistry = window.LawAIApp?.AcademyRegistry;
+                if (academyRegistry && typeof academyRegistry.getLessonsByModule === 'function') {
+                    try {
+                        lessons = academyRegistry.getLessonsByModule(moduleId) || [];
+                    } catch (e) {}
+                }
+            }
+
+            if (lessons.length === 0) {
+                console.warn('[LearningJourneyAdapter] No lessons found for module:', moduleId);
                 return [];
             }
 
@@ -326,17 +350,20 @@
             var completedLessons = state.completedLessons || [];
 
             return lessons.map(function(lesson, index) {
-                var isCompleted = completedLessons.indexOf(lesson.id) !== -1;
-                var isActive = state.currentLessonId === lesson.id;
+                var lessonId = (typeof lesson === 'string') ? lesson : (lesson.id || lesson.lessonId);
+                var isCompleted = completedLessons.indexOf(lessonId) !== -1;
+                var isActive = state.currentLessonId === lessonId;
 
                 return {
-                    id: lesson.id,
-                    moduleId: lesson.moduleId || moduleId,
-                    name: lesson.title || lesson.name || 'Untitled Lesson',
-                    description: lesson.description || '',
-                    order: lesson.order !== undefined ? lesson.order : index + 1,
-                    duration: lesson.duration || 0,
-                    status: lesson.status || 'draft',
+                    id: lessonId,
+                    moduleId: moduleId,
+                    subjectId: moduleId,
+                    name: (typeof lesson === 'object' ? (lesson.title || lesson.name) : lesson) || 'Untitled Lesson',
+                    title: (typeof lesson === 'object' ? (lesson.title || lesson.name) : lesson) || 'Untitled Lesson',
+                    description: (typeof lesson === 'object' ? lesson.description : '') || '',
+                    order: (typeof lesson === 'object' ? lesson.order : index + 1) || (index + 1),
+                    duration: (typeof lesson === 'object' ? lesson.duration : 0) || 0,
+                    status: (typeof lesson === 'object' ? lesson.status : 'active') || 'active',
                     isCompleted: isCompleted,
                     isActive: isActive,
                     _raw: lesson
@@ -347,19 +374,49 @@
         getLessonDetail: function(lessonId) {
             console.log('[LearningJourneyAdapter] 📖 Getting lesson detail:', lessonId);
 
-            var academyRegistry = window.LawAIApp?.AcademyRegistry;
-            if (!academyRegistry) {
-                console.warn('[LearningJourneyAdapter] AcademyRegistry not available');
-                return null;
+            var lesson = null;
+
+            // 1. 优先从 CurriculumAuthority 拿（你的真实数据源）
+            var ca = window.LawAIApp?.CurriculumAuthority;
+            if (ca && typeof ca.getLesson === 'function') {
+                try {
+                    lesson = ca.getLesson(lessonId);
+                } catch (e) {}
             }
 
-            var lesson = null;
-            if (typeof academyRegistry.getLesson === 'function') {
-                lesson = academyRegistry.getLesson(lessonId);
+            // 2. Fallback: SubjectRegistry 遍历
+            if (!lesson) {
+                var sr = window.LawAIApp?.SubjectRegistry;
+                if (sr && typeof sr.getAllSubjects === 'function') {
+                    var allSubjects = sr.getAllSubjects();
+                    for (var i = 0; i < allSubjects.length; i++) {
+                        var subj = allSubjects[i];
+                        var lessons = subj.lessons || [];
+                        for (var j = 0; j < lessons.length; j++) {
+                            var l = lessons[j];
+                            var lid = (typeof l === 'string') ? l : (l.id || l.lessonId);
+                            if (lid === lessonId) {
+                                lesson = (typeof l === 'string') ? { id: l, title: l, name: l } : l;
+                                break;
+                            }
+                        }
+                        if (lesson) break;
+                    }
+                }
+            }
+
+            // 3. Fallback: AcademyRegistry（兼容老代码）
+            if (!lesson) {
+                var academyRegistry = window.LawAIApp?.AcademyRegistry;
+                if (academyRegistry && typeof academyRegistry.getLesson === 'function') {
+                    try {
+                        lesson = academyRegistry.getLesson(lessonId);
+                    } catch (e) {}
+                }
             }
 
             if (!lesson) {
-                console.warn('[LearningJourneyAdapter] Lesson not found:', lessonId);
+                console.warn('[LearningJourneyAdapter] Lesson not found anywhere:', lessonId);
                 return null;
             }
 
@@ -367,16 +424,43 @@
             var isCompleted = state.completedLessons && state.completedLessons.indexOf(lessonId) !== -1;
             var isActive = state.currentLessonId === lessonId;
 
+            // 推断 subjectId
+            var subjectId = lesson.subjectId || null;
+            if (!subjectId) {
+                // 从 SubjectRegistry 反查
+                var sr2 = window.LawAIApp?.SubjectRegistry;
+                if (sr2 && typeof sr2.getAllSubjects === 'function') {
+                    var subs = sr2.getAllSubjects();
+                    for (var k = 0; k < subs.length; k++) {
+                        var ls = subs[k].lessons || [];
+                        for (var m = 0; m < ls.length; m++) {
+                            var li = ls[m];
+                            var lid2 = (typeof li === 'string') ? li : (li.id || li.lessonId);
+                            if (lid2 === lessonId) {
+                                subjectId = subs[k].id;
+                                break;
+                            }
+                        }
+                        if (subjectId) break;
+                    }
+                }
+            }
+
             return {
-                id: lesson.id,
-                moduleId: lesson.moduleId || '',
+                id: lesson.id || lessonId,
+                moduleId: lesson.moduleId || subjectId || '',
+                subjectId: subjectId,
+                courseId: lesson.courseId || null,
                 name: lesson.title || lesson.name || 'Untitled Lesson',
+                title: lesson.title || lesson.name || 'Untitled Lesson',
                 description: lesson.description || '',
                 duration: lesson.duration || 0,
-                status: lesson.status || 'draft',
+                status: lesson.status || 'active',
                 content: lesson.content || '',
+                lessons: lesson.lessons || null,
                 isCompleted: isCompleted,
                 isActive: isActive,
+                progress: isCompleted ? 100 : (isActive ? 50 : 0),
                 _raw: lesson
             };
         },
