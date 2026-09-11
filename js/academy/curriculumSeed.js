@@ -1,6 +1,6 @@
 // js/academy/curriculumSeed.js
 // Part 57.5 — Curriculum Seed (Initial Data)
-// v2.0.0 — 加 Course / Subject 数据 + 注册到 CourseRegistry / SubjectRegistry
+// v2.0.1 — 加 Course / Subject + 用 _s4:true 覆盖 legacy course
 
 (function() {
     'use strict';
@@ -11,7 +11,7 @@
     }
 
     var CurriculumSeed = {
-        version: '2.0.0',
+        version: '2.0.1',
         loaded: false,
 
         // ============================================================
@@ -91,6 +91,7 @@
 
         // ============================================================
         // 3. SEED DATA — Courses 🆕
+        // 🔥 _s4: true 允许覆盖 CourseRegistry.DEFAULT_COURSES 里的同名 course
         // ============================================================
         courses: [
             {
@@ -103,7 +104,8 @@
                 icon: '🤖',
                 difficulty: 'beginner',
                 estimatedHours: 10,
-                status: 'active'
+                status: 'active',
+                _s4: true                              // 🔥 允许覆盖 legacy
             },
             {
                 id: 'course-prompt-engineering',
@@ -115,7 +117,8 @@
                 icon: '✍️',
                 difficulty: 'beginner',
                 estimatedHours: 5,
-                status: 'active'
+                status: 'active',
+                _s4: true
             },
             {
                 id: 'course-business-strategy',
@@ -127,7 +130,8 @@
                 icon: '📊',
                 difficulty: 'intermediate',
                 estimatedHours: 8,
-                status: 'active'
+                status: 'active',
+                _s4: true
             }
         ],
 
@@ -295,7 +299,7 @@
             console.log('[CurriculumSeed] 🌱 Loading seed data...');
 
             try {
-                // 1. Schools → SchoolRegistry
+                // ── 1. Schools → SchoolRegistry
                 var schoolRegistry = window.LawAIApp?.SchoolRegistry;
                 if (schoolRegistry && typeof schoolRegistry.register === 'function') {
                     this.schools.forEach(function(school) {
@@ -306,7 +310,7 @@
                     console.warn('[CurriculumSeed] SchoolRegistry not available');
                 }
 
-                // 2. Programs → ProgramRegistry
+                // ── 2. Programs → ProgramRegistry
                 var programRegistry = window.LawAIApp?.ProgramRegistry;
                 if (programRegistry && typeof programRegistry.register === 'function') {
                     this.programs.forEach(function(program) {
@@ -317,49 +321,41 @@
                     console.warn('[CurriculumSeed] ProgramRegistry not available');
                 }
 
-                // 3. 🆕 Courses → CourseRegistry
+                // ── 3. Courses → CourseRegistry (🔊 用 _s4:true 覆盖 legacy)
                 var courseRegistry = window.LawAIApp?.CourseRegistry;
-                if (courseRegistry) {
-                    var registered = 0;
+                if (courseRegistry && typeof courseRegistry.register === 'function') {
+                    var courseOk = 0;
                     this.courses.forEach(function(course) {
                         try {
-                            if (typeof courseRegistry.register === 'function') {
-                                courseRegistry.register(course);
-                                registered++;
-                            } else if (typeof courseRegistry.registerCourse === 'function') {
-                                courseRegistry.registerCourse(course);
-                                registered++;
-                            } else if (courseRegistry._courses && typeof courseRegistry._courses.set === 'function') {
-                                courseRegistry._courses.set(course.id, course);
-                                registered++;
-                            }
+                            courseRegistry.register(course);   // _s4:true 会自动覆盖
+                            courseOk++;
                         } catch (e) {
                             console.warn('[CurriculumSeed] Course register failed:', course.id, e);
                         }
                     });
-                    console.log('[CurriculumSeed] ✅ Courses:', registered, '/', this.courses.length);
+                    console.log('[CurriculumSeed] ✅ Courses:', courseOk, '/', this.courses.length);
                 } else {
                     console.warn('[CurriculumSeed] CourseRegistry not available');
                 }
 
-                // 4. 🆕 Subjects → SubjectRegistry
+                // ── 4. Subjects → SubjectRegistry
                 var subjectRegistry = window.LawAIApp?.SubjectRegistry;
                 if (subjectRegistry && typeof subjectRegistry.register === 'function') {
-                    var registered = 0;
+                    var subjectOk = 0;
                     this.subjects.forEach(function(subject) {
                         try {
                             subjectRegistry.register(subject);
-                            registered++;
+                            subjectOk++;
                         } catch (e) {
                             console.warn('[CurriculumSeed] Subject register failed:', subject.id, e);
                         }
                     });
-                    console.log('[CurriculumSeed] ✅ Subjects:', registered, '/', this.subjects.length);
+                    console.log('[CurriculumSeed] ✅ Subjects:', subjectOk, '/', this.subjects.length);
                 } else {
                     console.warn('[CurriculumSeed] SubjectRegistry not available');
                 }
 
-                // 5. Modules → AcademyRegistry
+                // ── 5. Modules → AcademyRegistry
                 var academyRegistry = window.LawAIApp?.AcademyRegistry;
                 if (academyRegistry && typeof academyRegistry.registerModule === 'function') {
                     this.modules.forEach(function(module) {
@@ -368,7 +364,7 @@
                     console.log('[CurriculumSeed] ✅ Modules:', this.modules.length);
                 }
 
-                // 6. Lessons → AcademyRegistry
+                // ── 6. Lessons → AcademyRegistry
                 if (academyRegistry && typeof academyRegistry.registerLesson === 'function') {
                     this.lessons.forEach(function(lesson) {
                         try { academyRegistry.registerLesson(lesson); } catch (e) {}
@@ -387,28 +383,35 @@
                     lessons: this.lessons.length
                 });
 
-                // 🔥 通知 CurriculumAuthority 重新 ingest
+                // ── 🔥 通知 CurriculumAuthority 重新 ingest
                 var ca = window.LawAIApp?.CurriculumAuthority;
                 if (ca && typeof ca._ingestFromRegistries === 'function') {
                     setTimeout(function() {
                         ca._ingestFromRegistries();
                         console.log('[CurriculumSeed] 🔄 Re-ingested to CurriculumAuthority');
-                        console.log('[CurriculumSeed] === 验证 ===');
-                        console.log('CA.schools:', ca.getAllSchools?.()?.length);
-                        console.log('CA.courses:', ca.getAllCourses?.()?.length);
-                        console.log('CA.subjects:', ca.getSubjectsByCourse?.('course-ai-fundamentals')?.length);
-                        console.log('CA.lesson lesson-ai-intro:', ca.getLesson?.('lesson-ai-intro'));
 
-                        // 重新渲染
-                        if (window.LawAIApp?.AcademyExperienceManager?.render) {
-                            try {
-                                window.LawAIApp.AcademyExperienceManager.render();
-                            } catch (e) {}
-                        }
+                        // ── 验证
+                        setTimeout(function() {
+                            console.log('[CurriculumSeed] === 验证 ===');
+                            console.log('CA.schools:', ca.getAllSchools?.()?.length);
+                            console.log('CA.courses:', ca.getAllCourses?.()?.length);
+                            console.log('CA.subjects(course-ai-fundamentals):', ca.getSubjectsByCourse?.('course-ai-fundamentals')?.length);
+                            console.log('CA.lesson(lesson-ai-intro):', ca.getLesson?.('lesson-ai-intro'));
+
+                            // ── 重新渲染
+                            if (window.LawAIApp?.AcademyExperienceManager?.render) {
+                                try {
+                                    window.LawAIApp.AcademyExperienceManager.render();
+                                    console.log('[CurriculumSeed] ✅ Re-rendered');
+                                } catch (e) {}
+                            }
+                        }, 300);
                     }, 100);
+                } else {
+                    console.warn('[CurriculumSeed] CurriculumAuthority not available for ingest');
                 }
 
-                console.log('[CurriculumSeed] ✅ Seed data loaded successfully');
+                console.log('[CurriculumSeed] ✅ Seed data loaded');
 
             } catch (error) {
                 console.error('[CurriculumSeed] Load failed:', error);
@@ -442,21 +445,17 @@
         }
     };
 
-    if (!window.LawAIApp) {
-        window.LawAIApp = {};
-    }
-
+    if (!window.LawAIApp) window.LawAIApp = {};
     window.LawAIApp.CurriculumSeed = CurriculumSeed;
 
     console.log('[CurriculumSeed] Module loaded (v' + CurriculumSeed.version + ')');
 
     // ============================================================
-    // Auto-Load
+    // Auto-Load — 等 3 个 Registry 都就绪
     // ============================================================
     function autoLoadSeed() {
-        // 🔥 等 SchoolRegistry / CourseRegistry / SubjectRegistry 都就绪
         var attempts = 0;
-        var maxAttempts = 60;
+        var maxAttempts = 80;
         var interval = setInterval(function() {
             attempts++;
             var schoolReg = window.LawAIApp?.SchoolRegistry;
@@ -466,13 +465,17 @@
             if (schoolReg && courseReg && subjectReg) {
                 clearInterval(interval);
                 console.log('[CurriculumSeed] Registries ready, loading...');
-                CurriculumSeed.load();
+
+                // 🔥 再等一小会儿，确保 CourseRegistry 的 DEFAULT_COURSES 已经注册完
+                setTimeout(function() {
+                    CurriculumSeed.load();
+                }, 200);
                 return;
             }
 
             if (attempts >= maxAttempts) {
                 clearInterval(interval);
-                console.warn('[CurriculumSeed] Registries timeout, loading anyway...');
+                console.warn('[CurriculumSeed] Timeout, loading anyway...');
                 CurriculumSeed.load();
             }
         }, 100);
