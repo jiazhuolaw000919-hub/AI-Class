@@ -94,13 +94,17 @@ LawAIApp.Dashboard = {
     levelInfo = this._getLevelInfo();
     achievements = this._getAchievements();
 
-    if (contract) {
-      const validation = contract.validate({
-        status: progress.completedLessons.length > 0 ? 'IN_PROGRESS' : 'NOT_STARTED',
-        authority: 'COURSE'
-      });
-      if (!validation.valid) {
-        console.warn('[Dashboard] State validation warning:', validation.errors);
+    if (contract && typeof contract.validate === 'function') {
+      try {
+        const validation = contract.validate({
+          status: progress.completedLessons.length > 0 ? 'IN_PROGRESS' : 'NOT_STARTED',
+          authority: 'COURSE'
+        });
+        if (validation && !validation.valid) {
+          console.warn('[Dashboard] State validation warning:', validation.errors);
+        }
+      } catch (e) {
+        console.warn('[Dashboard] Contract validation error:', e);
       }
     }
 
@@ -109,7 +113,7 @@ LawAIApp.Dashboard = {
     const todayLesson = this._getTodayLesson(allLessons, progress);
     const dailyBriefingHTML = this._getDailyBriefing();
 
-        // 🔥 Part 162: Core-Derived Dashboard — Read Only
+    // 🔥 Part 162: Core-Derived Dashboard — Read Only
     // ⚠️ 必须先声明 viewModel，再使用
     var coreResult = null;
     var viewModel = null;
