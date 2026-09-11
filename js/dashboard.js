@@ -1355,12 +1355,20 @@ LawAIApp.Dashboard = {
   },
 
   _getNoteCount: function() {
+    // 🔥 Part 164: 优先使用 NotesAuthority
+    var auth = window.LawAIApp?.NotesAuthority;
+    if (auth && auth.initialized) {
+        try {
+            return auth.getAllNotes().length;
+        } catch (e) {}
+    }
+    // Fallback
     try {
-      var notes = window.LawAIApp?.Notes || window.LawAIApp?.KnowledgeCapture;
-      if (notes && typeof notes.getNotes === 'function') {
-        var notesList = notes.getNotes();
-        return notesList ? notesList.length : 0;
-      }
+        var notes = window.LawAIApp?.Notes || window.LawAIApp?.KnowledgeCapture;
+        if (notes && typeof notes.getNotes === 'function') {
+            var notesList = notes.getNotes();
+            return notesList ? notesList.length : 0;
+        }
     } catch (e) {}
     return 0;
   },
@@ -1479,27 +1487,35 @@ LawAIApp.Dashboard = {
   },
 
   _handleReflectionResponse: function(insightId, response) {
-    console.log('[Dashboard] Reflection response:', insightId, response);
-
-    if (response && response.length > 0) {
-      var notes = window.LawAIApp?.Notes || window.LawAIApp?.KnowledgeCapture;
-      if (notes && typeof notes.create === 'function') {
-        var note = notes.create({
-          title: 'Learning Reflection',
-          content: response,
-          type: 'REFLECTION',
-          source: 'dashboard',
-          tags: ['reflection']
-        });
-        if (note) {
-          if (window.LawAIApp?.Toast && typeof window.LawAIApp.Toast.success === 'function') {
-            window.LawAIApp.Toast.success('✅ Reflection saved to Notes');
+      console.log('[Dashboard] Reflection response:', insightId, response);
+  
+      if (!response || response.length === 0) return;
+  
+      // 🔥 Part 164: 通过 NotesAuthority 创建笔记
+      var auth = window.LawAIApp?.NotesAuthority;
+      if (auth && auth.initialized) {
+          var result = auth.create({
+              title: 'Learning Reflection',
+              content: response,
+              noteType: 'REFLECTION',
+              source: 'dashboard',
+              tags: ['reflection'],
+              createdBy: 'learner'
+          });
+  
+          if (result.success) {
+              if (window.LawAIApp?.Toast?.success) {
+                  LawAIApp.Toast.success('✅ Reflection saved to Notes');
+              }
+              this._reflectionStates[insightId] = false;
+              this.render();
           }
-          this._reflectionStates[insightId] = false;
-          this.render();
-        }
+      } else {
+          console.warn('[Dashboard] NotesAuthority not ready');
+          if (window.LawAIApp?.Toast?.info) {
+              LawAIApp.Toast.info('📝 Notes loading, please retry');
+          }
       }
-    }
   },
 
   // ============================================================
@@ -1580,57 +1596,55 @@ LawAIApp.Dashboard = {
         }
       },
       'save': function() {
-        // 触发反思保存
-        var insightId = 'loop_' + Date.now();
-        var reflectionText = 'I chose to save this learning moment.';
-        var notes = window.LawAIApp?.Notes || window.LawAIApp?.KnowledgeCapture;
-        if (notes && typeof notes.create === 'function') {
-          var note = notes.create({
-            title: 'Learning Loop Save',
-            content: reflectionText,
-            type: 'REFLECTION',
-            source: 'dashboard-learning-loop',
-            tags: ['learning-loop', 'save']
-          });
-          if (note && window.LawAIApp?.Toast) {
-            LawAIApp.Toast.success('✅ Saved to Notes');
+          var auth = window.LawAIApp?.NotesAuthority;
+          if (auth && auth.initialized) {
+              var result = auth.create({
+                  title: 'Learning Loop Save',
+                  content: 'I chose to save this learning moment.',
+                  noteType: 'REFLECTION',
+                  source: 'dashboard-learning-loop',
+                  tags: ['learning-loop', 'save'],
+                  createdBy: 'learner'
+              });
+              if (result.success && window.LawAIApp?.Toast) {
+                  LawAIApp.Toast.success('✅ Saved to Notes');
+              }
+          } else {
+              if (window.LawAIApp?.Toast) {
+                  LawAIApp.Toast.info('📝 Notes loading...');
+              }
           }
-        } else {
-          if (window.LawAIApp?.Toast) {
-            LawAIApp.Toast.info('📝 Notes will be available soon');
-          }
-        }
-        // 刷新 Dashboard 以更新状态
-        setTimeout(function() { LawAIApp.Dashboard.render(); }, 300);
+          setTimeout(function() { LawAIApp.Dashboard.render(); }, 300);
       },
       'schedule': function() {
-        var cal = window.LawAIApp?.CalendarEngine;
-        if (cal && cal.initialized && typeof cal.createEvent === 'function') {
-          try {
-            var lc = window.LawAIApp?.LearningContext;
-            var ctx = lc ? lc.getContext() : null;
-            cal.createEvent({
-              title: 'Review: ' + (ctx?.lesson?.name || 'Learning'),
-              description: 'Scheduled from Dashboard Learning Loop',
-              type: 'review',
-              date: new Date(Date.now() + 86400000).toISOString() // tomorrow
-            });
-            if (window.LawAIApp?.Toast) {
-              LawAIApp.Toast.success('📅 Scheduled for tomorrow');
-            }
-          } catch (e) {
-            console.warn('[Dashboard][Part74] Calendar error:', e);
-            if (window.LawAIApp?.Toast) {
-              LawAIApp.Toast.info('📅 Calendar coming soon');
-            }
+          var auth = window.LawAIApp?.CalendarAuthority;
+          if (auth && auth.initialized) {
+              var lc = window.LawAIApp?.LearningContext;
+              var ctx = lc ? lc.getContext() : null;
+              var tomorrow = new Date(Date.now() + 86400000);
+              tomorrow.setHours(19, 0, 0, 0);
+      
+              var result = auth.create({
+                  title: 'Review: ' + (ctx?.lesson?.name || 'Learning'),
+                  activityRef: 'review_' + Date.now(),
+                  startAt: tomorrow.toISOString(),
+                  duration: 30,
+                  source: 'dashboard-learning-loop'
+              });
+      
+              if (result.success && window.LawAIApp?.Toast) {
+                  LawAIApp.Toast.success('📅 Scheduled for tomorrow');
+              } else if (result.conflict) {
+                  if (window.LawAIApp?.Toast) {
+                      LawAIApp.Toast.info('📅 Schedule conflict detected');
+                  }
+              }
+          } else {
+              if (window.LawAIApp?.Toast) {
+                  LawAIApp.Toast.info('📅 Calendar loading...');
+              }
           }
-        } else {
-          if (window.LawAIApp?.Toast) {
-            LawAIApp.Toast.info('📅 Calendar coming soon');
-          }
-        }
-        // 刷新 Dashboard
-        setTimeout(function() { LawAIApp.Dashboard.render(); }, 300);
+          setTimeout(function() { LawAIApp.Dashboard.render(); }, 300);
       },
       'dismiss': function() {
         // 记录 dismiss 但不惩罚
@@ -2817,22 +2831,14 @@ LawAIApp.Dashboard = {
    * 获取即将到来的日程
    */
   _getUpcomingSchedule: function() {
-      var cal = window.LawAIApp?.CalendarEngine;
-      if (!cal) return [];
-
-      try {
-          // 简化版本：从 localStorage 或现有状态获取
-          var stored = localStorage.getItem('dashboardUpcomingSchedule');
-          if (stored) {
-              var parsed = JSON.parse(stored);
-              if (parsed && parsed.length > 0) {
-                  return parsed;
-              }
-          }
-          return [];
-      } catch (e) {
-          return [];
-      }
+    // 🔥 Part 163: 优先使用 CalendarAuthority
+    var auth = window.LawAIApp?.CalendarAuthority;
+    if (auth && auth.initialized) {
+        try {
+            return auth.getUpcomingSchedules(5);
+        } catch (e) {}
+    }
+    return [];
   },
 
   /**
@@ -3393,138 +3399,43 @@ _renderRecommendationCard: function(rec) {
   _hasPrerequisiteLogic: false,
   _mutatesCalendar: false,
   _mutatesSettings: false,
-    _mutatesRecommendation: false,
+  _mutatesRecommendation: false,
 
   // ============================================================
-  // 🔥 直接渲染 Calendar（完整版 - 懒加载 + 内联 fallback）
+  // Part 163: Calendar Navigation (via Event)
   // ============================================================
   _renderCalendarView: function() {
-    console.log('[Dashboard] 📅 Rendering Calendar...');
-
-    var container = document.getElementById('app') || 
-                    document.getElementById('law-runtime-root') || 
-                    document.getElementById('dashboard-root');
-    if (!container) {
-      console.warn('[Dashboard] No container for Calendar');
-      return;
-    }
-
-    // 🔥 优先使用完整 Calendar
-    if (window.LawAIApp?.Calendar && typeof window.LawAIApp.Calendar.render === 'function') {
-      try {
-        window.LawAIApp.Calendar._root = container;
-        window.LawAIApp.Calendar.render();
-        console.log('[Dashboard] ✅ Full Calendar rendered');
-        return;
-      } catch (e) {
-        console.warn('[Dashboard] Full Calendar error:', e);
+      console.log('[Dashboard] 📅 Opening Calendar...');
+  
+      // 🔥 Part 163: 通过 EventAdapter 发送事件
+      var eventAdapter = LawAIApp.DashboardEventAdapter;
+      if (eventAdapter) {
+          eventAdapter.sendPrimaryActionSelected('view_calendar', null, {
+              source: 'dashboard'
+          });
       }
-    }
-
-    // 🔥 懒加载完整 Calendar
-    if (window.LawAIApp?.AcademyLoader?.loadCalendarLazy) {
-      window.LawAIApp.AcademyLoader.loadCalendarLazy(function(calendar) {
-        try {
-          window.LawAIApp.Calendar = calendar;   // ✅ 覆盖回来
-          calendar._root = container;
-          calendar.render();
-          console.log('[Dashboard] ✅ Lazy Calendar rendered');
-        } catch (e) {
-          console.warn('[Dashboard] Lazy Calendar error:', e);
-        }
+  
+      // 触发导航事件，让 Academy 页面处理
+      var event = new CustomEvent('NAVIGATE_TO_CALENDAR', {
+          detail: { source: 'dashboard' }
       });
-      return;   // ✅ 关键：懒加载成功就不再跑 inline
-    }
-
-    // 🔥 先用内联 Calendar 渲染（快速显示）
-    var inlineCalendar = {
-      currentYear: new Date().getFullYear(),
-      currentMonth: new Date().getMonth(),
-      render: function() {
-        var monthName = new Date(this.currentYear, this.currentMonth).toLocaleString('default', { month: 'long' });
-        var daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-        var firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
-        
-        var gridHTML = '';
-        for (var i = 0; i < firstDay; i++) gridHTML += '<div></div>';
-        for (var d = 1; d <= daysInMonth; d++) {
-          var isToday = d === new Date().getDate() && 
-                          this.currentMonth === new Date().getMonth() && 
-                          this.currentYear === new Date().getFullYear();
-          gridHTML += '<div style="padding:12px 6px;text-align:center;border-radius:8px;background:' + 
-            (isToday ? 'rgba(74,158,255,0.15)' : 'rgba(255,255,255,0.03)') + 
-            ';color:' + (isToday ? '#4a9eff' : '#e2e8f0') + 
-            ';font-size:14px;cursor:pointer;font-family:inherit;">' + d + '</div>';
-        }
-
-        container.innerHTML = `
-          <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
-            <div style="display:flex;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
-              <button onclick="LawAIApp.Dashboard._forceRender()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">← Back to Dashboard</button>
-            </div>
-            <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">📅 Calendar</h2>
-            <p style="color:#94a3b8;margin:0 0 20px;">${monthName} ${this.currentYear}</p>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-              <button onclick="LawAIApp.Calendar.changeMonth(-1)" style="padding:8px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;cursor:pointer;font-family:inherit;">←</button>
-              <span style="font-weight:600;font-size:18px;">${monthName} ${this.currentYear}</span>
-              <button onclick="LawAIApp.Calendar.changeMonth(1)" style="padding:8px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;cursor:pointer;font-family:inherit;">→</button>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:12px;color:#64748b;margin-bottom:8px;">
-              <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">${gridHTML}</div>
-          </div>
-        `;
-      },
-      changeMonth: function(delta) {
-        this.currentMonth += delta;
-        if (this.currentMonth > 11) { this.currentMonth = 0; this.currentYear++; }
-        if (this.currentMonth < 0) { this.currentMonth = 11; this.currentYear--; }
-        this.render();
-      }
-    };
-    
-    window.LawAIApp = window.LawAIApp || {};
-    window.LawAIApp.Calendar = inlineCalendar;
-    inlineCalendar.render();
+      document.dispatchEvent(event);
   },
 
-  // ============================================================
-  // 🔥 直接渲染 Settings（不跳转）
-  // ============================================================
   _renderSettingsView: function() {
-    console.log('[Dashboard] ⚙️ Loading real Settings...');
-    
-    var container = document.getElementById('app') || document.getElementById('law-runtime-root') || document.getElementById('dashboard-root');
-    if (!container) return;
+    console.log('[Dashboard] ⚙️ Opening Settings...');
 
-    // 检查 Settings 是否已加载
-    if (window.LawAIApp?.Settings && typeof window.LawAIApp.Settings.render === 'function') {
-        try {
-            window.LawAIApp.Settings._root = container;
-            window.LawAIApp.Settings.render();
-            return;
-        } catch (e) {
-            console.warn('[Dashboard] Settings render error:', e);
-        }
+    var eventAdapter = LawAIApp.DashboardEventAdapter;
+    if (eventAdapter) {
+        eventAdapter.sendPrimaryActionSelected('view_settings', null, {
+            source: 'dashboard'
+        });
     }
 
-    // 动态加载 settings.js
-    container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Settings...</div>';
-    
-    var script = document.createElement('script');
-    script.src = '/js/settings.js?v=' + Date.now();
-    script.async = true;
-    script.onload = function() {
-        if (window.LawAIApp?.Settings) {
-            window.LawAIApp.Settings._root = container;
-            window.LawAIApp.Settings.render();
-        }
-    };
-    script.onerror = function() {
-        container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">❌ Failed to load Settings</div>';
-    };
-    document.head.appendChild(script);
+    var event = new CustomEvent('NAVIGATE_TO_SETTINGS', {
+        detail: { source: 'dashboard' }
+    });
+    document.dispatchEvent(event);
   },
 
   // ============================================================
@@ -4176,88 +4087,20 @@ _renderRecommendationCard: function(rec) {
       resultDiv.innerHTML = html;
   },
 
-  // ============================================================
-  // 🔥 直接渲染 Notes（不跳转）
-  // ============================================================
-    _renderNotesView: function() {
-    console.log('[Dashboard] 📝 Loading real Notes...');
-    
-    var container = document.getElementById('app') || document.getElementById('law-runtime-root') || document.getElementById('dashboard-root');
-    if (!container) return;
+  _renderNotesView: function() {
+    console.log('[Dashboard] 📝 Opening Notes...');
 
-    // 🔥 检查 Notes 是否已加载
-    if (window.LawAIApp?.Notes && typeof window.LawAIApp.Notes.render === 'function') {
-      try {
-        window.LawAIApp.Notes._root = container;
-        window.LawAIApp.Notes.render();
-        console.log('[Dashboard] ✅ Real Notes rendered');
-        return;
-      } catch (e) {
-        console.warn('[Dashboard] Notes render error:', e);
-      }
+    var eventAdapter = LawAIApp.DashboardEventAdapter;
+    if (eventAdapter) {
+        eventAdapter.sendPrimaryActionSelected('view_notes', null, {
+            source: 'dashboard'
+        });
     }
 
-    // 🔥 检查 NotesView 是否已加载（Academy 的 NotesView）
-    if (window.LawAIApp?.NotesView && typeof window.LawAIApp.NotesView.render === 'function') {
-      try {
-        window.LawAIApp.NotesView.render(container);
-        console.log('[Dashboard] ✅ NotesView rendered');
-        return;
-      } catch (e) {
-        console.warn('[Dashboard] NotesView render error:', e);
-      }
-    }
-
-    // 🔥 检查 KnowledgeCapture 是否已加载
-    if (window.LawAIApp?.KnowledgeCapture && typeof window.LawAIApp.KnowledgeCapture.render === 'function') {
-      try {
-        window.LawAIApp.KnowledgeCapture.render(container);
-        console.log('[Dashboard] ✅ KnowledgeCapture rendered');
-        return;
-      } catch (e) {
-        console.warn('[Dashboard] KnowledgeCapture render error:', e);
-      }
-    }
-
-    // 🔥 未加载，动态加载 notes.js
-    console.log('[Dashboard] 📥 Loading notes.js...');
-    
-    container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Notes...</div>';
-    
-    var files = [
-      '/js/academy/knowledgeCapture.js',
-      '/js/academy/notes.js'
-    ];
-    
-    var loaded = 0;
-    var self = this;
-    
-    files.forEach(function(file) {
-      var script = document.createElement('script');
-      script.src = file + '?v=' + Date.now();
-      script.async = true;
-      script.onload = function() {
-        loaded++;
-        console.log('[Dashboard] ✅ Loaded:', file);
-        if (loaded === files.length) {
-          // 所有文件加载完成
-          if (window.LawAIApp?.Notes && typeof window.LawAIApp.Notes.render === 'function') {
-            window.LawAIApp.Notes._root = container;
-            window.LawAIApp.Notes.render();
-          } else if (window.LawAIApp?.NotesView && typeof window.LawAIApp.NotesView.render === 'function') {
-            window.LawAIApp.NotesView.render(container);
-          } else {
-            console.warn('[Dashboard] ⚠️ Notes not found after load');
-            container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">❌ Notes not available</div>';
-          }
-        }
-      };
-      script.onerror = function() {
-        loaded++;
-        console.warn('[Dashboard] ⚠️ Failed:', file);
-      };
-      document.head.appendChild(script);
+    var event = new CustomEvent('NAVIGATE_TO_NOTES', {
+        detail: { source: 'dashboard' }
     });
+    document.dispatchEvent(event);
   },
 
   /**
