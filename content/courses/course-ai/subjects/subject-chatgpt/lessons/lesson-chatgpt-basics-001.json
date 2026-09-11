@@ -1,0 +1,183 @@
+{
+  "id": "lesson-chatgpt-basics-001",
+  "version": "1.0.0",
+  "title": "ChatGPT Fundamentals",
+  "slug": "chatgpt-fundamentals",
+  "subjectId": "subject-chatgpt",
+  "courseId": "course-ai",
+  "moduleId": null,
+  "order": 1,
+  "estimatedMinutes": 20,
+  "difficulty": "beginner",
+  "status": "published",
+  "description": "Understand what ChatGPT is, how it works, and how to use it effectively for real tasks.",
+  "learningObjectives": [
+    "Explain what ChatGPT is and how it works",
+    "Identify the types of tasks ChatGPT excels at",
+    "Recognize the limitations of ChatGPT"
+  ],
+  "sections": [
+    {
+      "id": "section-01",
+      "type": "foundation",
+      "title": "What is ChatGPT?",
+      "content": [
+        {
+          "type": "text",
+          "content": "ChatGPT is a conversational AI system developed by OpenAI. It is built on top of large language models (GPT-4, GPT-4o) that have been fine-tuned to follow instructions and hold conversations."
+        },
+        {
+          "type": "definition",
+          "content": "GPT: Generative Pre-trained Transformer—a type of large language model architecture."
+        },
+        {
+          "type": "text",
+          "content": "Unlike search engines that retrieve existing content, ChatGPT generates new text based on patterns learned from massive datasets."
+        }
+      ]
+    },
+    {
+      "id": "section-02",
+      "type": "core",
+      "title": "What ChatGPT Is Good At",
+      "content": [
+        {
+          "type": "text",
+          "content": "ChatGPT excels at: drafting text, summarizing documents, explaining concepts, brainstorming ideas, translating languages, writing code, and answering questions."
+        },
+        {
+          "type": "example",
+          "content": "Common uses: 'Summarize this article,' 'Write a professional email,' 'Explain quantum computing to a beginner,' 'Debug this Python code.'"
+        }
+      ]
+    },
+    {
+      "id": "section-03",
+      "type": "advanced",
+      "title": "What ChatGPT Is NOT Good At",
+      "content": [
+        {
+          "type": "text",
+          "content": "ChatGPT can hallucinate: it may invent facts, citations, or events that sound plausible but are false. Always verify important claims."
+        },
+        {
+          "type": "text",
+          "content": "It also has a knowledge cutoff and does not know about events after its training date. For current information, use search-augmented tools or verify externally."
+        },
+        {
+          "type": "text",
+          "content": "Understanding these limitations is essential. ChatGPT is a powerful assistant, not an oracle."
+        }
+      ]
+    }
+  ],
+  "video": {
+    "provider": "youtube",
+    "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao",
+    "title": "Getting Started with ChatGPT",
+    "durationMinutes": 8
+  },
+  "flashcards": [
+    {
+      "id": "fc-601",
+      "front": "What does GPT stand for?",
+      "back": "Generative Pre-trained Transformer.",
+      "difficulty": "foundation",
+      "tags": ["gpt"]
+    },
+    {
+      "id": "fc-602",
+      "front": "What is ChatGPT best at?",
+      "back": "Text generation, summarization, explanation, brainstorming, translation, coding.",
+      "difficulty": "core",
+      "tags": ["capabilities"]
+    },
+    {
+      "id": "fc-603",
+      "front": "What is hallucination in AI?",
+      "back": "When a model generates plausible-sounding but false information.",
+      "difficulty": "advanced",
+      "tags": ["limitations"]
+    }
+  ],
+  "practice": {
+    "enabled": true,
+    "type": "mixed",
+    "items": [
+      {
+        "id": "practice-601",
+        "type": "multipleChoice",
+        "question": "Which is a limitation of ChatGPT?",
+        "options": [
+          "It cannot generate text",
+          "It can hallucinate facts",
+          "It cannot answer questions",
+          "It cannot be used for writing"
+        ],
+        "answer": 1,
+        "explanation": "ChatGPT can hallucinate—generating plausible but false information."
+      },
+      {
+        "id": "practice-602",
+        "type": "shortAnswer",
+        "question": "Why is it important to verify ChatGPT's output?",
+        "answer": "Because ChatGPT can hallucinate and has a knowledge cutoff—it may generate plausible but incorrect information.",
+        "explanation": "Verification is essential because ChatGPT is probabilistic, not factual."
+      }
+    ]
+  },
+  "notes": {
+    "summary": "ChatGPT is a conversational AI based on GPT models, excellent for text tasks but prone to hallucination.",
+    "keyPoints": [
+      "ChatGPT = conversational AI on GPT models",
+      "Excels at: writing, summarizing, explaining, coding",
+      "Can hallucinate false information",
+      "Has knowledge cutoff—not real-time",
+      "Verify important claims"
+    ],
+    "importantTerms": [
+      { "term": "GPT", "definition": "Generative Pre-trained Transformer." },
+      { "term": "Hallucination", "definition": "AI-generated false information." }
+    ]
+  },
+  "aiTools": [
+    {
+      "provider": "chatgpt",
+      "role": "reasoning",
+      "recommendedFor": ["general assistance", "writing", "coding"]
+    }
+  ],
+  "resources": [
+    {
+      "id": "resource-601",
+      "title": "OpenAI Documentation",
+      "type": "official",
+      "url": "https://platform.openai.com/docs",
+      "provider": "OpenAI"
+    }
+  ],
+  "news": [
+    {
+      "id": "news-601",
+      "title": "OpenAI Releases New Model Updates",
+      "source": "OpenAI Blog",
+      "date": "2026-08-01",
+      "summary": "OpenAI continues to improve GPT models with better reasoning and multimodal support.",
+      "relatedLesson": "lesson-chatgpt-basics-001"
+    }
+  ],
+  "relatedLessons": [
+    "lesson-chatgpt-advanced-001"
+  ],
+  "keyTakeaways": [
+    "ChatGPT is a conversational AI powered by GPT models.",
+    "It is excellent at text tasks but can hallucinate.",
+    "Always verify important output."
+  ],
+  "metadata": {
+    "author": "Law AI Academy",
+    "language": "en"
+  },
+  "createdAt": "2026-09-11T00:00:00Z",
+  "updatedAt": "2026-09-11T00:00:00Z"
+}
