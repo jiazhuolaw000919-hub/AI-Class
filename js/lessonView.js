@@ -47,12 +47,99 @@ LawAIApp.Views.LessonView = {
     // ============================================================
     // 数据加载
     // ============================================================
-
     _loadLesson: function(lessonId) {
-        var day = parseInt(lessonId.replace('day-', '').replace('day', ''));
-        if (isNaN(day)) {
-            day = parseInt(lessonId);
+        console.log('[LessonView] _loadLesson 尝试加载:', lessonId);
+
+        // ============================================================
+        // 1. 🔥 优先从 Academy 系统（CurriculumAuthority / SubjectRegistry）拿
+        // ============================================================
+        var ca = window.LawAIApp?.CurriculumAuthority;
+        var sr = window.LawAIApp?.SubjectRegistry;
+
+        // 1.1 从 CurriculumAuthority 拿
+        if (ca && typeof ca.getLesson === 'function') {
+            try {
+                var caLesson = ca.getLesson(lessonId);
+                if (caLesson) {
+                    console.log('[LessonView] ✅ 从 CurriculumAuthority 拿到 lesson');
+                    // 标准化数据格式
+                    return {
+                        lessonId: caLesson.id || lessonId,
+                        title: caLesson.title || caLesson.name || 'Untitled Lesson',
+                        shortTitle: caLesson.title || caLesson.name || 'Lesson',
+                        description: caLesson.description || '',
+                        summary: caLesson.summary || caLesson.description || '',
+                        category: caLesson.category || 'General',
+                        difficulty: caLesson.difficulty || 'Beginner',
+                        estimatedMinutes: caLesson.duration || 10,
+                        estimatedXP: caLesson.xp || 20,
+                        tags: caLesson.tags || [],
+                        keywords: caLesson.keywords || [],
+                        moduleId: caLesson.subjectId || caLesson.moduleId,
+                        officialVideo: caLesson.video?.url || caLesson.officialVideo || null,
+                        video: caLesson.video || null,
+                        quiz: caLesson.quiz || null,
+                        content: caLesson.content || null,
+                        sections: caLesson.sections || null,
+                        keyTakeaways: caLesson.keyTakeaways || null,
+                        flashcards: caLesson.flashcards || null,
+                        practice: caLesson.practice || null,
+                        _raw: caLesson,
+                        _source: 'CurriculumAuthority'
+                    };
+                }
+            } catch (e) {
+                console.warn('[LessonView] CA.getLesson 失败:', e);
+            }
         }
+
+        // 1.2 从 SubjectRegistry 遍历找
+        if (sr && typeof sr.getAllSubjects === 'function') {
+            try {
+                var subjects = sr.getAllSubjects();
+                for (var i = 0; i < subjects.length; i++) {
+                    var subj = subjects[i];
+                    var lessons = subj.lessons || [];
+                    for (var j = 0; j < lessons.length; j++) {
+                        var l = lessons[j];
+                        var lid = (typeof l === 'string') ? l : (l.id || l.lessonId);
+                        if (lid === lessonId) {
+                            var lessonObj = (typeof l === 'string') 
+                                ? { id: l, title: l, name: l } 
+                                : l;
+                            console.log('[LessonView] ✅ 从 SubjectRegistry 拿到 lesson');
+                            return {
+                                lessonId: lessonObj.id || lessonId,
+                                title: lessonObj.title || lessonObj.name || 'Untitled Lesson',
+                                shortTitle: lessonObj.title || lessonObj.name || 'Lesson',
+                                description: lessonObj.description || '',
+                                summary: lessonObj.summary || lessonObj.description || '',
+                                difficulty: lessonObj.difficulty || 'Beginner',
+                                estimatedMinutes: lessonObj.duration || 10,
+                                estimatedXP: lessonObj.xp || 20,
+                                tags: lessonObj.tags || [],
+                                moduleId: subj.id,
+                                officialVideo: lessonObj.video?.url || null,
+                                video: lessonObj.video || null,
+                                quiz: lessonObj.quiz || null,
+                                _raw: lessonObj,
+                                _source: 'SubjectRegistry'
+                            };
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('[LessonView] SR 遍历失败:', e);
+            }
+        }
+
+        // ============================================================
+        // 2. Fallback: 老的 Day-based 系统
+        // ============================================================
+        console.log('[LessonView] ⚠️ Academy 系统里没找到，尝试 Day-based 系统');
+
+        var day = parseInt(lessonId.replace('day-', '').replace('day', ''));
+        if (isNaN(day)) day = parseInt(lessonId);
         if (isNaN(day) || day < 1) day = 1;
         if (day > 365) day = 365;
 
@@ -66,13 +153,13 @@ LawAIApp.Views.LessonView = {
         try {
             if (LawAIApp.ModuleData && LawAIApp.ModuleData.modules) {
                 var allModules = LawAIApp.ModuleData.modules;
-                for (var i = 0; i < allModules.length; i++) {
-                    var mod = allModules[i];
+                for (var k = 0; k < allModules.length; k++) {
+                    var mod = allModules[k];
                     if (LawAIApp.LessonData && typeof LawAIApp.LessonData.getLessonsByModule === 'function') {
-                        var lessons = LawAIApp.LessonData.getLessonsByModule(mod.id);
-                        for (var j = 0; j < lessons.length; j++) {
-                            if (lessons[j].lessonId === lessonId) {
-                                return lessons[j];
+                        var lsns = LawAIApp.LessonData.getLessonsByModule(mod.id);
+                        for (var m = 0; m < lsns.length; m++) {
+                            if (lsns[m].lessonId === lessonId) {
+                                return lsns[m];
                             }
                         }
                     }
@@ -84,19 +171,21 @@ LawAIApp.Views.LessonView = {
             return LawAIApp.LessonEngine.createLesson(day);
         }
 
+        // ============================================================
+        // 3. 兜底
+        // ============================================================
         return {
-            lessonId: 'day-' + day,
-            day: day,
-            title: 'Day ' + day,
-            shortTitle: 'Day ' + day,
-            description: 'Continue your AI learning journey.',
+            lessonId: lessonId,
+            title: 'Lesson ' + lessonId,
+            shortTitle: 'Lesson',
+            description: 'Lesson content unavailable.',
             category: 'General',
             difficulty: 'Beginner',
             estimatedMinutes: 10,
             estimatedXP: 20,
-            tags: ['AI', 'Learning'],
-            keywords: ['AI', 'learning'],
-            moduleId: 'module_ai_foundation'
+            tags: [],
+            keywords: [],
+            moduleId: null
         };
     },
 
@@ -718,20 +807,56 @@ LawAIApp.Views.LessonView = {
 
     _renderVideoActivity: function(activity) {
         var url = activity.metadata?.url || activity.content;
+        var embedUrl = this._toEmbedUrl(url);
+        
+        if (!embedUrl) {
+            return `
+                <div style="...警告...">
+                    <p>⚠️ 视频链接无效</p>
+                    <a href="${url}" target="_blank">在新窗口打开</a>
+                </div>
+            `;
+        }
+        
         return `
             <div style="background:rgba(74,158,255,0.04);border-radius:12px;padding:12px 16px;margin-bottom:16px;border:1px solid rgba(74,158,255,0.06);">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
                     <span style="font-size:14px;">🎬</span>
                     <span style="font-size:11px;color:#4a9eff;font-weight:500;">Video</span>
                 </div>
-                <a href="${url}" target="_blank" style="color:#4a9eff;text-decoration:none;font-size:13px;">
-                    Watch on YouTube →
-                </a>
-                <p style="margin:4px 0 0;font-size:11px;color:#64748b;">Video content will be embedded in the future.</p>
+                <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;background:#0a0a0a;">
+                    <iframe src="${embedUrl}" 
+                            style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen
+                            referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                </div>
             </div>
         `;
     },
-
+    
+    // 🔥 工具函数
+    _toEmbedUrl: function(url) {
+        if (!url) return null;
+        
+        // 已经是 embed URL
+        if (/youtube\.com\/embed\//.test(url)) return url;
+        
+        // watch URL → embed
+        var watchMatch = url.match(/youtube\.com\/watch\?v=([^&]+)/);
+        if (watchMatch) return 'https://www.youtube.com/embed/' + watchMatch[1];
+        
+        // youtu.be → embed
+        var shortMatch = url.match(/youtu\.be\/([^?]+)/);
+        if (shortMatch) return 'https://www.youtube.com/embed/' + shortMatch[1];
+        
+        // 无效 URL
+        if (/^https?:\/\/(www\.)?youtube\.com\/?$/.test(url)) return null;
+        
+        // 其他 URL 原样返回
+        return url;
+    },
+    
     _renderPracticeActivity: function(activity) {
         // 复用现有 Practice 逻辑
         return `
