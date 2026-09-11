@@ -581,25 +581,6 @@
         }
       }, 100);
     }
-    
-    _waitForActivityFitnessCheck: function(onReady, onFail) {
-        var attempts = 0;
-        var maxAttempts = 50;
-        var interval = setInterval(function() {
-            attempts++;
-            var fc = window.LawAIApp?.Experience?.ActivityFitnessCheck;
-            if (fc) {
-                clearInterval(interval);
-                if (onReady) onReady(fc);
-                return;
-            }
-            if (attempts >= maxAttempts) {
-                clearInterval(interval);
-                console.warn('[AcademyLoader] ⏰ ActivityFitnessCheck wait timeout');
-                if (onFail) onFail('Timeout waiting for ActivityFitnessCheck');
-            }
-        }, 100);
-    },
 
     _waitForPracticeFitnessCheck(onReady, onFail) {
       var attempts = 0;
