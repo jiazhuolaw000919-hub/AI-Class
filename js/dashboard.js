@@ -303,7 +303,6 @@ LawAIApp.Dashboard = {
 
   _getHeroData: function(state, progress, streakData) {
     const completed = progress.completedLessons?.length || 0;
-    const streak = streakData.currentStreak || 0;
 
     const states = {
       'not_started': {
@@ -544,7 +543,6 @@ LawAIApp.Dashboard = {
     var lc = window.LawAIApp?.LearningContext;
     var hasActiveSession = false;
     var hasLearningData = false;
-    var hasRecentActivity = false;
 
     if (lc && lc.initialized) {
       try {
@@ -720,7 +718,6 @@ LawAIApp.Dashboard = {
     // 2. 获取活跃推荐
     var de = window.LawAIApp?.DecisionExperience;
     var hasActiveRecommendation = false;
-    var recommendationCount = 0;
     var primaryRecommendation = null;
 
     if (de && de.initialized) {
@@ -1374,9 +1371,13 @@ LawAIApp.Dashboard = {
 
   _getAuthorityStatus: function() {
     var contract = window.LawAIApp?.ExperienceContract;
-    if (contract) {
-      var status = contract.getStatus();
-      return status.initialized ? 'Contract Active' : 'Contract Pending';
+    if (contract && typeof contract.getStatus === 'function') {
+      try {
+        var status = contract.getStatus();
+        return (status && status.initialized) ? 'Contract Active' : 'Contract Pending';
+      } catch (e) {
+        console.warn('[Dashboard] getStatus error:', e);
+      }
     }
     return 'Direct Engine Access';
   },
@@ -1912,7 +1913,6 @@ LawAIApp.Dashboard = {
     const completedCount = progress.completedLessons?.length || 0;
     const totalCount = 365;
 
-    const heroGreeting = heroData.greeting || 'Ready to learn?';
     const heroMessage = heroData.message || 'Explore the Academy and begin your journey.';
     const ctaText = heroData.cta || 'Explore Academy';
     const ctaLink = heroData.ctaLink || '/pages/academy.html';
@@ -2617,10 +2617,7 @@ LawAIApp.Dashboard = {
   },
 
   _initAnimations: function() {
-    var self = this;
-    setTimeout(function() {
-      self._loadRecommendations();
-    }, 300);
+    console.log('[Dashboard] Animations initialized');
   },
 
   _loadRecommendations: function() {
@@ -2825,7 +2822,6 @@ LawAIApp.Dashboard = {
 
       try {
           // 简化版本：从 localStorage 或现有状态获取
-          var upcoming = [];
           var stored = localStorage.getItem('dashboardUpcomingSchedule');
           if (stored) {
               var parsed = JSON.parse(stored);
@@ -3285,83 +3281,51 @@ LawAIApp.Dashboard = {
   // Part 82: Adaptive Recommendation Renderer
   // ============================================================
  _renderAdaptiveRecommendations: function() {
-    // 🔥 Part 162: 只从 ViewModel 读取推荐，不自己计算
     var viewModel = this._lastViewModel;
-    
-    if (!viewModel || !viewModel.recommendation) {
-      return `
-        <div style="color:#64748b;font-size:12px;text-align:center;padding:8px 0;">
-          ${viewModel && viewModel.system && viewModel.system.degraded 
-            ? '⚠️ Recommendations temporarily unavailable.' 
-            : 'Complete more lessons to get personalized recommendations.'}
-        </div>
-      `;
+
+    // 优先用 ViewModel
+    if (viewModel && viewModel.recommendation) {
+        return this._renderRecommendationCard(viewModel.recommendation);
     }
-  
-    var rec = viewModel.recommendation;
-    
-    // 构建推荐卡片
-    var html = `
-      <div style="
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 14px;
-        background: rgba(74,158,255,0.04);
-        border-radius: 10px;
-        border: 1px solid rgba(74,158,255,0.06);
-      ">
-        <span style="font-size: 18px;">📌</span>
-        <div style="flex: 1; min-width: 0;">
-          <div style="font-size: 13px; font-weight: 500; color: #e2e8f0;">
-            ${rec.title || 'Recommended'}
-          </div>
-          <div style="font-size: 11px; color: #94a3b8;">
-            ${rec.description || ''}
-          </div>
-          ${rec.reason ? `
-            <div style="font-size: 10px; color: #4a9eff; opacity: 0.7; margin-top: 2px;">
-              💡 ${rec.reason}
-            </div>
-          ` : ''}
-          ${rec.confidence ? `
-            <div style="font-size: 9px; color: #64748b; margin-top: 1px;">
-              Confidence: ${rec.confidence}
-            </div>
-          ` : ''}
+
+    // Fallback: 用 DecisionExperience
+    var de = window.LawAIApp?.DecisionExperience;
+    if (de && de.initialized && typeof de.getOptions === 'function') {
+        try {
+            var options = de.getOptions({ includeDismissed: false, maxCount: 1 });
+            if (options && options.length > 0) {
+                return this._renderRecommendationCard({
+                    title: options[0].title,
+                    description: options[0].summary || '',
+                    reason: options[0].reason,
+                    id: options[0].id,
+                    targetId: options[0].targetId
+                });
+            }
+        } catch (e) {}
+    }
+
+    // 最后兜底
+    return `
+        <div style="color:#64748b;font-size:12px;text-align:center;padding:8px 0;">
+            Complete more lessons to get personalized recommendations.
         </div>
-        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-          ${rec.alternatives && rec.alternatives.length > 0 ? `
-            <button onclick="LawAIApp.Dashboard._showAlternatives()" style="
-              padding: 2px 10px;
-              background: rgba(255,255,255,0.03);
-              border: 1px solid rgba(255,255,255,0.06);
-              border-radius: 100px;
-              color: #64748b;
-              font-size: 9px;
-              cursor: pointer;
-              font-family: inherit;
-            ">${rec.alternatives.length}+</button>
-          ` : ''}
-          <button onclick="LawAIApp.Dashboard._handleAdaptiveChoice('${rec.id || 'rec_' + Date.now()}', 'recommendation', '${rec.targetId || ''}')" style="
-            padding: 4px 16px;
-            background: #4a9eff;
-            border: none;
-            border-radius: 100px;
-            color: white;
-            font-size: 11px;
-            font-weight: 500;
-            cursor: pointer;
-            font-family: inherit;
-          ">
-            Go →
-          </button>
+    `;
+},
+
+_renderRecommendationCard: function(rec) {
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;background:rgba(74,158,255,0.04);border-radius:10px;border:1px solid rgba(74,158,255,0.06);">
+        <span style="font-size:18px;">📌</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:500;color:#e2e8f0;">${rec.title || 'Recommended'}</div>
+          <div style="font-size:11px;color:#94a3b8;">${rec.description || ''}</div>
+          ${rec.reason ? `<div style="font-size:10px;color:#4a9eff;opacity:0.7;margin-top:2px;">💡 ${rec.reason}</div>` : ''}
         </div>
+        <button onclick="LawAIApp.Dashboard._handleAdaptiveChoice('${rec.id || ''}', 'recommendation', '${rec.targetId || ''}')" style="padding:4px 16px;background:#4a9eff;border:none;border-radius:100px;color:white;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;">Go →</button>
       </div>
     `;
-  
-    return html;
-  },
+},
 
   // ============================================================
   // Part 162: Architecture Fitness Check
@@ -3461,6 +3425,7 @@ LawAIApp.Dashboard = {
     if (window.LawAIApp?.AcademyLoader?.loadCalendarLazy) {
       window.LawAIApp.AcademyLoader.loadCalendarLazy(function(calendar) {
         try {
+          window.LawAIApp.Calendar = calendar;   // ✅ 覆盖回来
           calendar._root = container;
           calendar.render();
           console.log('[Dashboard] ✅ Lazy Calendar rendered');
@@ -3468,6 +3433,7 @@ LawAIApp.Dashboard = {
           console.warn('[Dashboard] Lazy Calendar error:', e);
         }
       });
+      return;   // ✅ 关键：懒加载成功就不再跑 inline
     }
 
     // 🔥 先用内联 Calendar 渲染（快速显示）
