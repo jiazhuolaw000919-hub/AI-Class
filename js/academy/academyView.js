@@ -1608,7 +1608,7 @@ function __safeCall(pathOrObj) {
         },
 
         /**
-         * 🔥 Part 58.2: Course Learning View (含 Module 列表)
+         * 🔥 Course Learning View — 直接显示 Subjects（不依赖 modules）
          */
         _renderCourseLearningView: function(container, courseId) {
             var courseRegistry = safeGet(window, 'LawAIApp.CourseRegistry');
@@ -1627,11 +1627,22 @@ function __safeCall(pathOrObj) {
                 return;
             }
 
-            // 获取学习状态和 Modules
+            // 🔥 直接拿 Subjects（不走 modules）
+            var curriculum = window.LawAIApp?.CurriculumAuthority;
+            var subjectRegistry = window.LawAIApp?.SubjectRegistry;
+
+            var subjects = [];
+            if (curriculum && typeof curriculum.getSubjectsByCourse === 'function') {
+                subjects = curriculum.getSubjectsByCourse(courseId) || [];
+            }
+            if (subjects.length === 0 && subjectRegistry) {
+                subjects = subjectRegistry.getSubjectsByCourse(courseId) || [];
+            }
+
+            // 进度
             var adapter = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
             var state = adapter ? adapter.getState() : null;
             var progress = state ? state.progress : 0;
-            var modules = adapter ? adapter.getCourseModules(courseId) : [];
 
             var html = '';
 
@@ -1639,7 +1650,7 @@ function __safeCall(pathOrObj) {
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToCourse', '${courseId}')" 
-                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
+                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to Course
                     </button>
                     <span style="color: #64748b; font-size: 13px; margin-left: auto;">📖 Learning Mode</span>
@@ -1652,72 +1663,51 @@ function __safeCall(pathOrObj) {
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
                         <span style="font-size: 40px;">📖</span>
                         <div>
-                            <h1 style="font-size: 24px; font-weight: 700; margin: 0 0 4px 0;">${course.title}</h1>
+                            <h1 style="font-size: 24px; font-weight: 700; margin: 0 0 4px 0;">${course.title || course.name}</h1>
                             <p style="color: #94a3b8; font-size: 14px; margin: 0;">${course.description || ''}</p>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 16px; background: rgba(74,158,255,0.06); border-radius: 8px; padding: 12px 16px; border: 1px solid rgba(74,158,255,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                            <span style="color: #94a3b8; font-size: 13px;">📊 Learning Progress</span>
+                            <span style="color: #4a9eff; font-weight: 600;">${progress}%</span>
+                        </div>
+                        <div style="margin-top: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 4px; overflow: hidden;">
+                            <div style="background: linear-gradient(90deg, #4a9eff, #10b981); height: 100%; width: ${Math.min(100, progress)}%; transition: width 0.3s;"></div>
                         </div>
                     </div>
             `;
 
-            // 进度条
-            html += `
-                <div style="margin-top: 16px; background: rgba(74,158,255,0.06); border-radius: 8px; padding: 12px 16px; border: 1px solid rgba(74,158,255,0.1);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                        <span style="color: #94a3b8; font-size: 13px;">📊 Course Progress</span>
-                        <span style="color: #4a9eff; font-weight: 600;">${progress}%</span>
-                    </div>
-                    <div style="margin-top: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 4px; overflow: hidden;">
-                        <div style="background: linear-gradient(90deg, #4a9eff, #10b981); height: 100%; width: ${Math.min(100, progress)}%; transition: width 0.3s;"></div>
-                    </div>
-                </div>
-            `;
-
-            // Module 列表
-            if (modules && modules.length > 0) {
+            // 🔥 显示 Subjects 列表
+            if (subjects && subjects.length > 0) {
                 html += `
                     <div style="margin-top: 24px;">
-                        <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📋 Modules (${modules.length})</h2>
+                        <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📚 Subjects (${subjects.length})</h2>
                         <div style="display: flex; flex-direction: column; gap: 10px;">
                 `;
 
-                modules.forEach(function(module, index) {
-                    var moduleProgress = module.progress || 0;
-                    var isCompleted = module.isCompleted || false;
-                    var isActive = module.isActive || false;
-                    var statusIcon = isCompleted ? '✅' : isActive ? '▶️' : '📄';
-                    var statusColor = isCompleted ? '#10b981' : isActive ? '#4a9eff' : '#64748b';
-                    var borderColor = isActive ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.06)';
-                    var bgColor = isActive ? 'rgba(74,158,255,0.08)' : 'rgba(255,255,255,0.03)';
+                subjects.forEach(function(subject, index) {
+                    var lessonCount = subject.lessons ? subject.lessons.length : 0;
 
                     html += `
-                        <div style="background: ${bgColor}; border-radius: 10px; padding: 14px 18px; border: 1px solid ${borderColor}; cursor: pointer; transition: all 0.2s;"
-                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectModule', '${module.id}')"
-                             onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
-                             onmouseout="this.style.background='${bgColor}'">
+                        <div style="background: rgba(255,255,255,0.03); border-radius: 10px; padding: 16px 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
+                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectSubject', '${subject.id}')"
+                             onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
+                             onmouseout="this.style.background='rgba(255,255,255,0.03)'">
                             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                                 <div style="display: flex; align-items: center; gap: 12px;">
-                                    <span style="font-size: 18px;">${statusIcon}</span>
+                                    <span style="font-size: 20px;">${subject.icon || '📖'}</span>
                                     <div>
-                                        <div style="font-weight: 500; font-size: 15px; color: ${isCompleted ? '#94a3b8' : '#e2e8f0'};">
-                                            ${index + 1}. ${module.name}
+                                        <div style="font-weight: 500; font-size: 15px; color: #e2e8f0;">
+                                            ${index + 1}. ${subject.title || subject.name}
                                         </div>
-                                        ${module.description ? `<div style="color: #64748b; font-size: 13px;">${module.description}</div>` : ''}
+                                        ${subject.description ? `<div style="color: #64748b; font-size: 13px; margin-top: 2px;">${subject.description}</div>` : ''}
+                                        <div style="color: #64748b; font-size: 12px; margin-top: 4px;">📖 ${lessonCount} lessons</div>
                                     </div>
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div style="text-align: right;">
-                                        <div style="font-size: 13px; color: ${isCompleted ? '#10b981' : '#94a3b8'};">
-                                            ${isCompleted ? '✅ Completed' : moduleProgress + '%'}
-                                        </div>
-                                        <div style="font-size: 11px; color: #64748b;">${module.lessonCount || 0} lessons</div>
-                                    </div>
-                                    <span style="color: ${statusColor}; font-size: 16px;">→</span>
-                                </div>
+                                <span style="color: #4a9eff; font-size: 16px;">→</span>
                             </div>
-                            ${!isCompleted && moduleProgress > 0 ? `
-                                <div style="margin-top: 8px; background: rgba(255,255,255,0.06); border-radius: 3px; height: 3px; overflow: hidden;">
-                                    <div style="background: #4a9eff; height: 100%; width: ${Math.min(100, moduleProgress)}%; transition: width 0.3s;"></div>
-                                </div>
-                            ` : ''}
                         </div>
                     `;
                 });
@@ -1726,11 +1716,11 @@ function __safeCall(pathOrObj) {
             } else {
                 html += `
                     <div style="margin-top: 24px;">
-                        <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📋 Modules</h2>
+                        <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📚 Subjects</h2>
                         <div style="text-align: center; padding: 60px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08);">
                             <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
-                            <p style="font-size: 16px; margin: 0; font-weight: 500;">No modules available for this course yet</p>
-                            <p style="font-size: 14px; margin: 4px 0 0; color: #94a3b8;">Module content coming soon</p>
+                            <p style="font-size: 16px; margin: 0; font-weight: 500;">No subjects available for this course yet</p>
+                            <p style="font-size: 14px; margin: 4px 0 0; color: #94a3b8;">Content coming soon</p>
                         </div>
                     </div>
                 `;
