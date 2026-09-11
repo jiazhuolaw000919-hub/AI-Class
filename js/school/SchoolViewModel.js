@@ -126,6 +126,275 @@
             };
         },
 
+        /**
+         * 构建 Course 详情（Part 167）
+         * 包含：identity, objectives, prerequisites, structure, progress, mastery, recommendation, schedule, notes
+         */
+        buildCourseDetail: function(courseId) {
+            var curriculum = window.LawAIApp?.CurriculumAuthority;
+            if (!curriculum || !curriculum.isReady) {
+                return { course: null, status: 'LOADING' };
+            }
+        
+            var course = curriculum.getCourse(courseId);
+            if (!course) {
+                return { course: null, status: 'NOT_FOUND' };
+            }
+        
+            var subjects = curriculum.getSubjectsByCourse(courseId);
+            var self = this;
+        
+            return {
+                status: 'READY',
+        
+                // ============================================================
+                // 1. IDENTITY (from Curriculum)
+                // ============================================================
+                identity: {
+                    courseId: course.id,
+                    name: course.title || course.name || 'Untitled Course',
+                    description: course.description || '',
+                    icon: course.icon || '📘',
+                    difficulty: course.difficulty || 'beginner',
+                    category: course.category || null,
+                    schoolId: course.schoolId || null,
+                    status: course.status || 'ACTIVE',
+                    estimatedHours: course.estimatedHours || null,
+                    source: 'Curriculum'
+                },
+        
+                // ============================================================
+                // 2. LEARNING OBJECTIVES (from Curriculum)
+                // ============================================================
+                learningObjectives: this._getLearningObjectives(course),
+        
+                // ============================================================
+                // 3. PREREQUISITES (from Curriculum)
+                // ============================================================
+                prerequisites: this._getPrerequisites(courseId),
+        
+                // ============================================================
+                // 4. STRUCTURE (from Curriculum)
+                // ============================================================
+                structure: {
+                    subjects: subjects.map(function(s) {
+                        return {
+                            subjectId: s.id,
+                            title: s.title || s.name,
+                            description: s.description || '',
+                            lessonCount: s.lessons ? s.lessons.length : 0,
+                            source: 'Curriculum'
+                        };
+                    }),
+                    subjectCount: subjects.length
+                },
+        
+                // ============================================================
+                // 5. PROGRESS (from Progress - read-only)
+                // ============================================================
+                progress: this._getCourseProgress(courseId),
+        
+                // ============================================================
+                // 6. MASTERY (from Mastery - read-only)
+                // ============================================================
+                mastery: this._getCourseMastery(courseId),
+        
+                // ============================================================
+                // 7. RECOMMENDATION (from Recommendation - read-only)
+                // ============================================================
+                recommendation: this._getCourseRecommendation(courseId),
+        
+                // ============================================================
+                // 8. SCHEDULE (from CalendarAuthority - read-only)
+                // ============================================================
+                schedule: this._getCourseSchedule(courseId),
+        
+                // ============================================================
+                // 9. NOTES (from NotesAuthority - read-only)
+                // ============================================================
+                notes: this._getCourseNotes(courseId),
+        
+                // ============================================================
+                // 10. LEARNER ACTIONS
+                // ============================================================
+                actions: this._getAvailableActions(course, courseId)
+            };
+        },
+        
+        // ============================================================
+        // Private: Read from other authorities
+        // ============================================================
+        
+        _getLearningObjectives: function(course) {
+            // 从 Curriculum 读取
+            if (course.learningObjectives && Array.isArray(course.learningObjectives)) {
+                return {
+                    available: true,
+                    objectives: course.learningObjectives,
+                    source: 'Curriculum'
+                };
+            }
+            // 如果 Curriculum 没有定义
+            return {
+                available: false,
+                status: 'NOT_AVAILABLE',
+                source: 'Curriculum'
+            };
+        },
+        
+        _getPrerequisites: function(courseId) {
+            var curriculum = window.LawAIApp?.CurriculumAuthority;
+            if (!curriculum) {
+                return { available: false, status: 'UNKNOWN', required: [], suggested: [] };
+            }
+        
+            // 从 Curriculum 读取
+            var prereqs = curriculum.getPrerequisites(courseId) || [];
+        
+            // 区分 required 和 suggested
+            var required = prereqs.filter(function(p) { return p.type === 'required'; });
+            var suggested = prereqs.filter(function(p) { return p.type === 'suggested'; });
+        
+            return {
+                available: true,
+                required: required.map(function(p) {
+                    var c = curriculum.getCourse(p.courseId);
+                    return {
+                        courseId: p.courseId,
+                        name: c ? c.title || c.name : 'Unknown',
+                        satisfied: p.satisfied === true
+                    };
+                }),
+                suggested: suggested.map(function(p) {
+                    var c = curriculum.getCourse(p.courseId);
+                    return {
+                        courseId: p.courseId,
+                        name: c ? c.title || c.name : 'Unknown'
+                    };
+                }),
+                source: 'Curriculum'
+            };
+        },
+        
+        _getCourseSchedule: function(courseId) {
+            // 🔥 Part 167: 从 CalendarAuthority 读取
+            var calAuth = window.LawAIApp?.CalendarAuthority;
+            if (!calAuth || !calAuth.isReady) {
+                return { available: false, status: 'UNKNOWN', nextSession: null, count: 0 };
+            }
+        
+            try {
+                var allSchedules = calAuth.getUpcomingSchedules(50);
+                var courseSchedules = allSchedules.filter(function(s) {
+                    return s.activityRef && s.activityRef.indexOf(courseId) !== -1;
+                });
+        
+                if (courseSchedules.length === 0) {
+                    return {
+                        available: true,
+                        nextSession: null,
+                        count: 0,
+                        source: 'Calendar'
+                    };
+                }
+        
+                // 最近的 session
+                var next = courseSchedules[0];
+                return {
+                    available: true,
+                    nextSession: {
+                        scheduleId: next.scheduleId,
+                        title: next.title,
+                        startAt: next.startAt,
+                        duration: next.duration
+                    },
+                    count: courseSchedules.length,
+                    source: 'Calendar'
+                };
+            } catch (e) {
+                return { available: false, status: 'ERROR', nextSession: null, count: 0 };
+            }
+        },
+        
+        _getCourseNotes: function(courseId) {
+            // 🔥 Part 167: 从 NotesAuthority 读取
+            var notesAuth = window.LawAIApp?.NotesAuthority;
+            if (!notesAuth || !notesAuth.isReady) {
+                return { available: false, status: 'UNKNOWN', count: 0, recent: [] };
+            }
+        
+            try {
+                var allNotes = notesAuth.getAllNotes();
+                var courseNotes = allNotes.filter(function(n) {
+                    return n.relatedCourseRef === courseId;
+                });
+        
+                // 按时间排序
+                courseNotes.sort(function(a, b) {
+                    return new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt);
+                });
+        
+                return {
+                    available: true,
+                    count: courseNotes.length,
+                    recent: courseNotes.slice(0, 3).map(function(n) {
+                        return {
+                            noteId: n.noteId,
+                            title: n.title,
+                            preview: (n.content || '').substring(0, 80) + (n.content && n.content.length > 80 ? '...' : ''),
+                            updatedAt: n.updatedAt
+                        };
+                    }),
+                    source: 'Notes'
+                };
+            } catch (e) {
+                return { available: false, status: 'ERROR', count: 0, recent: [] };
+            }
+        },
+        
+        _getAvailableActions: function(course, courseId) {
+            var actions = [];
+        
+            // Navigation
+            actions.push({
+                id: 'open_course',
+                label: 'Open Course',
+                type: 'NAVIGATION',
+                target: courseId
+            });
+        
+            // 检查是否可以开始
+            var prereqs = this._getPrerequisites(courseId);
+            var hasUnmetPrereqs = prereqs.required && prereqs.required.some(function(p) { return !p.satisfied; });
+        
+            if (!hasUnmetPrereqs) {
+                actions.push({
+                    id: 'start_learning',
+                    label: 'Start Learning',
+                    type: 'LEARNING_ACTION',
+                    target: courseId
+                });
+            }
+        
+            // 可以 schedule
+            actions.push({
+                id: 'schedule',
+                label: 'Schedule Session',
+                type: 'CALENDAR_COMMAND',
+                target: courseId
+            });
+        
+            // 可以 view notes
+            actions.push({
+                id: 'view_notes',
+                label: 'View Notes',
+                type: 'NAVIGATION',
+                target: 'notes'
+            });
+        
+            return actions;
+        },
+
         // ============================================================
         // Read from other authorities (只读)
         // ============================================================
