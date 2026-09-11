@@ -111,6 +111,7 @@
 
         // Lesson
         getLesson: function(id) { return _lessons[id] || null; },
+        getAllLessons: function() { return Object.values(_lessons); },
         getLessonsBySubject: function(subjectId) {
             return Object.values(_lessons).filter(function(l) { return l.subjectId === subjectId; });
         },
@@ -199,6 +200,8 @@
         },
 
         _ingestFromRegistries: function() {
+            var self = this;
+            
             // 从 SchoolRegistry 加载
             if (window.LawAIApp?.SchoolRegistry?.getAllSchools) {
                 var schools = window.LawAIApp.SchoolRegistry.getAllSchools();
@@ -221,6 +224,81 @@
                 Object.keys(_schools).length, 'schools,',
                 Object.keys(_courses).length, 'courses,',
                 Object.keys(_subjects).length, 'subjects');
+            
+            // 🆕 异步加载所有 Subjects 的 Lessons
+            self._loadAllLessons();
+        },
+        
+        // 🆕 异步加载所有 Lessons
+        _loadAllLessons: function() {
+            var self = this;
+            var loader = window.LawAIApp?.ContentLoader || window.LawAIApp?.S4ContentLoader;
+            
+            if (!loader || typeof loader.loadLesson !== 'function') {
+                console.log('[CurriculumAuthority] ContentLoader not ready for lessons');
+                return;
+            }
+            
+            // 遍历所有 subjects，加载各自的 lessons
+            var subjectIds = Object.keys(_subjects);
+            if (subjectIds.length === 0) return;
+            
+            console.log('[CurriculumAuthority] Loading lessons for', subjectIds.length, 'subjects...');
+            
+            var pending = subjectIds.length;
+            
+            subjectIds.forEach(function(subjectId) {
+                var subject = _subjects[subjectId];
+                if (!subject || !subject.lessons || subject.lessons.length === 0) {
+                    pending--;
+                    return;
+                }
+                
+                var lessonIds = subject.lessons;
+                var courseId = subject.courseId;
+                
+                lessonIds.forEach(function(lessonId) {
+                    // 跳过已加载
+                    if (_lessons[lessonId]) return;
+                    
+                    loader.loadLesson(courseId, subjectId, lessonId)
+                        .then(function(lessonData) {
+                            if (lessonData) {
+                                _lessons[lessonId] = {
+                                    id: lessonData.id,
+                                    subjectId: lessonData.subjectId || subjectId,
+                                    courseId: lessonData.courseId || courseId,
+                                    title: lessonData.title,
+                                    description: lessonData.description,
+                                    order: lessonData.order,
+                                    estimatedMinutes: lessonData.estimatedMinutes,
+                                    difficulty: lessonData.difficulty,
+                                    status: lessonData.status || 'published',
+                                    learningObjectives: lessonData.learningObjectives,
+                                    sections: lessonData.sections,
+                                    video: lessonData.video,
+                                    practice: lessonData.practice,
+                                    flashcards: lessonData.flashcards,
+                                    notes: lessonData.notes,
+                                    _loaded: true
+                                };
+                                console.log('[CurriculumAuthority] ✅ Loaded lesson:', lessonId);
+                            }
+                        })
+                        .catch(function(e) {
+                            console.warn('[CurriculumAuthority] Failed to load lesson:', lessonId, e);
+                        });
+                });
+                
+                pending--;
+                
+                // 全部完成时触发更新
+                if (pending === 0) {
+                    setTimeout(function() {
+                        self._notifyReady();
+                    }, 500);
+                }
+            });
         },
 
         _emit: function(eventName, data) {
