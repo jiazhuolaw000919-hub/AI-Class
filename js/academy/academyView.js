@@ -1119,86 +1119,117 @@ function __safeCall(pathOrObj) {
             container.innerHTML = html;
         },
 
+        /**
+         * 🔥 Program / Course View（兼容）
+         */
         _renderProgramView: function(container, programId) {
-            // 🔥 Part 166: 通过 SchoolViewModel 读取
             var viewModel = window.LawAIApp?.SchoolViewModel;
             if (!viewModel) {
                 container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">⏳ Loading...</div>';
                 return;
             }
-        
-            // Program 等同于 Course 的另一种叫法，用 buildCourseCard
-            var course = viewModel.buildCourseCard(programId);
-        
-            if (course.status === 'UNKNOWN') {
+
+            // 🔥 先尝试从 CourseRegistry 拿（因为 programId 实际是 courseId）
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            var course = null;
+            if (courseRegistry) {
+                course = courseRegistry.getCourse(programId);
+            }
+
+            // Fallback: 用 buildCourseCard
+            if (!course) {
+                var card = viewModel.buildCourseCard(programId);
+                if (card && card.status !== 'UNKNOWN') {
+                    course = card;
+                }
+            }
+
+            if (!course) {
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
-                        <p>Program not found</p>
+                        <div style="font-size: 48px; margin-bottom: 16px;">📖</div>
+                        <p>Course not found</p>
                         <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.goHome')" 
-                                style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer; font-family: inherit;">
+                                style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
                             ← Back to Academy
                         </button>
                     </div>
                 `;
                 return;
             }
-        
+
+            // 🔥 从 CurriculumAuthority / SubjectRegistry 拿 subjects
             var curriculum = window.LawAIApp?.CurriculumAuthority;
-            var subjects = curriculum ? curriculum.getSubjectsByCourse(programId) : [];
-            var school = curriculum ? curriculum.getSchool(course.schoolId) : null;
-        
-            var levelColor = course.difficulty === 'beginner' ? '#10b981' : 
-                            course.difficulty === 'intermediate' ? '#f59e0b' : '#ef4444';
-            var levelEmoji = course.difficulty === 'beginner' ? '🟢' : 
-                            course.difficulty === 'intermediate' ? '🟡' : '🔴';
-        
+            var subjectRegistry = window.LawAIApp?.SubjectRegistry;
+
+            var subjects = [];
+            if (curriculum && typeof curriculum.getSubjectsByCourse === 'function') {
+                subjects = curriculum.getSubjectsByCourse(programId) || [];
+            }
+            if (subjects.length === 0 && subjectRegistry) {
+                subjects = subjectRegistry.getSubjectsByCourse(programId) || [];
+            }
+
+            var schoolId = course.schoolId || null;
+            var title = course.title || course.name || 'Course';
+            var description = course.description || '';
+            var icon = course.icon || '📚';
+            var difficulty = course.difficulty || 'beginner';
+
+            var levelColor = difficulty === 'beginner' ? '#10b981' : 
+                            difficulty === 'intermediate' ? '#f59e0b' : '#ef4444';
+            var levelEmoji = difficulty === 'beginner' ? '🟢' : 
+                            difficulty === 'intermediate' ? '🟡' : '🔴';
+
             var html = '';
-        
+
             // 返回栏
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSchool', '${course.schoolId}')" 
+                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSchool', '${schoolId || ''}')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to School
                     </button>
                     <span style="color: #64748b; font-size: 13px; margin-left: auto;">📚 Course</span>
                 </div>
             `;
-        
+
             // Course 头部
             html += `
                 <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
-                        <span style="font-size: 48px;">${course.icon || '📚'}</span>
+                        <span style="font-size: 48px;">${icon}</span>
                         <div>
-                            <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 4px 0;">${course.name}</h1>
-                            <p style="color: #94a3b8; font-size: 14px; margin: 0;">${course.description || ''}</p>
+                            <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 4px 0;">${title}</h1>
+                            <p style="color: #94a3b8; font-size: 14px; margin: 0;">${description}</p>
                         </div>
                     </div>
                     <div style="display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
-                        <span style="color: ${levelColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${levelEmoji} ${course.difficulty || 'beginner'}</span>
+                        <span style="color: ${levelColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${levelEmoji} ${difficulty}</span>
                         <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 ${subjects.length} subjects</span>
                     </div>
             `;
-        
+
             // Subject 列表
             if (subjects && subjects.length > 0) {
                 html += `<h2 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px 0;">📖 Subjects (${subjects.length})</h2>`;
                 html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">`;
-        
+
                 for (var i = 0; i < subjects.length; i++) {
                     var subject = subjects[i];
+                    var lessonCount = subject.lessons ? subject.lessons.length : 0;
                     html += `
                         <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
                              onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectSubject', '${subject.id}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.04)'">
                             <h3 style="font-size: 15px; font-weight: 600; margin: 0 0 4px 0;">${subject.title || subject.name}</h3>
-                            <p style="color: #94a3b8; font-size: 13px; margin: 0;">${subject.description || ''}</p>
+                            <p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px 0;">${subject.description || ''}</p>
+                            <span style="color: #64748b; font-size: 12px;">📖 ${lessonCount} lessons</span>
                         </div>
                     `;
                 }
-        
+
                 html += `</div>`;
             } else {
                 html += `
@@ -1207,7 +1238,7 @@ function __safeCall(pathOrObj) {
                     </div>
                 `;
             }
-        
+
             html += `</div>`;
             container.innerHTML = html;
         },
@@ -1488,70 +1519,6 @@ function __safeCall(pathOrObj) {
         },
 
         /**
-         * 渲染 Module 列表
-         */
-        _renderModuleList: function(modules, courseId) {
-            var html = `
-                <div style="margin-top: 8px;">
-                    <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📋 Modules (${modules.length})</h2>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-            `;
-
-            modules.forEach(function(module, index) {
-                var moduleProgress = module.progress || 0;
-                var isCompleted = module.isCompleted || false;
-                var isActive = module.isActive || false;
-                var lessonCount = module.lessonCount || 0;
-                var completedLessons = module.completedLessonCount || 0;
-
-                var statusIcon = isCompleted ? '✅' : isActive ? '▶️' : '📄';
-                var statusColor = isCompleted ? '#10b981' : isActive ? '#4a9eff' : '#64748b';
-                var statusText = isCompleted ? 'Completed' : isActive ? 'In Progress' : 'Not Started';
-                var borderColor = isActive ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.06)';
-                var bgColor = isActive ? 'rgba(74,158,255,0.06)' : 'rgba(255,255,255,0.02)';
-
-                var progressLabel = isCompleted ? '100%' : moduleProgress + '%';
-
-                html += `
-                    <div style="background: ${bgColor}; border-radius: 12px; padding: 14px 18px; border: 1px solid ${borderColor}; cursor: pointer; transition: all 0.2s;"
-                         onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectModule', '${module.id}')"
-                         onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
-                         onmouseout="this.style.background='${bgColor}'">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">
-                            <div style="display: flex; align-items: flex-start; gap: 12px; flex: 1; min-width: 150px;">
-                                <span style="font-size: 18px; color: ${statusColor}; width: 28px; text-align: center;">${statusIcon}</span>
-                                <div style="flex: 1; min-width: 100px;">
-                                    <div style="font-weight: 500; font-size: 15px; color: ${isCompleted ? '#94a3b8' : '#e2e8f0'};">
-                                        ${String(index + 1).padStart(2, '0')}. ${module.name}
-                                    </div>
-                                    ${module.description ? `<div style="color: #64748b; font-size: 13px; margin-top: 2px;">${module.description}</div>` : ''}
-                                    <div style="display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
-                                        <span style="color: #64748b; font-size: 12px;">📖 ${completedLessons}/${lessonCount} lessons</span>
-                                        <span style="color: ${statusColor}; font-size: 12px;">${statusText}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
-                                <div style="text-align: right; min-width: 50px;">
-                                    <div style="font-size: 14px; font-weight: 500; color: ${isCompleted ? '#10b981' : '#4a9eff'};">${progressLabel}</div>
-                                </div>
-                                <span style="color: ${statusColor}; font-size: 16px;">→</span>
-                            </div>
-                        </div>
-                        ${!isCompleted && moduleProgress > 0 ? `
-                            <div style="margin-top: 8px; background: rgba(255,255,255,0.06); border-radius: 3px; height: 3px; overflow: hidden; max-width: 300px;">
-                                <div style="background: #4a9eff; height: 100%; width: ${Math.min(100, moduleProgress)}%; transition: width 0.3s;"></div>
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            });
-
-            html += `</div></div>`;
-            return html;
-        },
-
-        /**
          * 渲染 Course Not Found
          */
         _renderCourseNotFound: function() {
@@ -1568,16 +1535,16 @@ function __safeCall(pathOrObj) {
         },
 
         /**
-         * 渲染 Empty Module State
+         * 🔥 通用空状态（课程/科目/模块都可复用）
          */
         _renderEmptyModuleState: function() {
             return `
                 <div style="margin-top: 24px;">
-                    <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📋 Modules</h2>
+                    <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📚 Content</h2>
                     <div style="text-align: center; padding: 60px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08);">
                         <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
-                        <p style="font-size: 16px; margin: 0; font-weight: 500;">Course content is being prepared</p>
-                        <p style="font-size: 14px; margin: 4px 0 0; color: #94a3b8;">Check back soon for modules and lessons</p>
+                        <p style="font-size: 16px; margin: 0; font-weight: 500;">Content is being prepared</p>
+                        <p style="font-size: 14px; margin: 4px 0 0; color: #94a3b8;">Check back soon for lessons</p>
                     </div>
                 </div>
             `;
@@ -1730,17 +1697,28 @@ function __safeCall(pathOrObj) {
             container.innerHTML = html;
         },
 
-        /**
-         * 🔥 Part 58.3: Module View
+         /**
+         * 🔥 Module View（兼容 — 实际上是 Subject 视图）
          */
         _renderModuleView: function(container, moduleId) {
-            var academyRegistry = safeGet(window, 'LawAIApp.AcademyRegistry');
-            var module = academyRegistry ? academyRegistry.getModule(moduleId) : null;
+            // 🔥 优先从 SubjectRegistry 拿
+            var subjectRegistry = window.LawAIApp?.SubjectRegistry;
+            var subject = subjectRegistry ? subjectRegistry.getSubject(moduleId) : null;
 
-            if (!module) {
+            // Fallback：从 CurriculumAuthority 拿
+            if (!subject) {
+                var ca = window.LawAIApp?.CurriculumAuthority;
+                if (ca && typeof ca.getSubject === 'function') {
+                    subject = ca.getSubject(moduleId);
+                }
+            }
+
+            if (!subject) {
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
-                        <p>Module not found</p>
+                        <div style="font-size: 48px; margin-bottom: 16px;">📖</div>
+                        <p>Subject not found</p>
+                        <p style="font-size: 12px; color: #64748b;">ID: ${moduleId}</p>
                         <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.goHome')" 
                                 style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
                             ← Back to Academy
@@ -1750,100 +1728,44 @@ function __safeCall(pathOrObj) {
                 return;
             }
 
-            var adapter = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
-            var state = adapter ? adapter.getState() : null;
-            var moduleProgress = state && state.moduleProgress ? state.moduleProgress[moduleId] || 0 : 0;
-            var isModuleCompleted = state && state.completedModules ? state.completedModules.indexOf(moduleId) !== -1 : false;
-
-            var lessonCount = module.lessons ? module.lessons.length : 0;
-            var completedLessons = 0;
-            if (state && state.completedLessons && module.lessons) {
-                completedLessons = module.lessons.filter(function(lesson) {
-                    return state.completedLessons.indexOf(lesson.id) !== -1;
-                }).length;
+            var courseId = subject.courseId;
+            var course = null;
+            var courseRegistry = window.LawAIApp?.CourseRegistry;
+            if (courseRegistry && courseId) {
+                course = courseRegistry.getCourse(courseId);
             }
 
-            var courseId = module.courseId || module.programId || (state && state.currentCourseId) || '';
-
-            // 🔥 Part 81: Path 上下文指示器
-            var pathContext = '';
-            if (adapter && typeof adapter.getLearningPath === 'function') {
-                var path = adapter.getLearningPath(courseId);
-                if (path && !path.isEmpty) {
-                    var currentIdx = path.currentIndex;
-                    var total = path.totalCount;
-                    if (currentIdx >= 0 && total > 0) {
-                        var positionLabel = (currentIdx + 1) + ' of ' + total;
-                        var progressEmoji = path.progress >= 100 ? '✅' : '📍';
-                        pathContext = `
-                            <span style="color: #64748b; font-size: 12px; background: rgba(255,255,255,0.04); padding: 2px 12px; border-radius: 12px;">
-                                ${progressEmoji} Path: ${positionLabel} · ${path.progress}% complete
-                            </span>
-                        `;
-                    }
-                }
-            }
+            var lessons = subject.lessons || [];
 
             var html = '';
 
             // 返回栏
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToCourse', '${courseId}')" 
+                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToCourse', '${courseId || ''}')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to Course
                     </button>
-                    <span style="color: #64748b; font-size: 13px; margin-left: auto;">📋 Module</span>
+                    <span style="color: #64748b; font-size: 13px; margin-left: auto;">📖 Subject</span>
                 </div>
             `;
 
-            var statusIcon = isModuleCompleted ? '✅' : '📄';
-            var statusColor = isModuleCompleted ? '#10b981' : '#4a9eff';
-            var statusText = isModuleCompleted ? 'Completed' : 'In Progress';
-
+            // Subject 头部
             html += `
                 <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
-                        <span style="font-size: 40px;">${statusIcon}</span>
+                        <span style="font-size: 48px;">${subject.icon || '📖'}</span>
                         <div>
-                            <h1 style="font-size: 24px; font-weight: 700; margin: 0 0 4px 0;">${module.name}</h1>
-                            ${module.description ? `<p style="color: #94a3b8; font-size: 14px; margin: 0;">${module.description}</p>` : ''}
+                            <h1 style="font-size: 24px; font-weight: 700; margin: 0 0 4px 0;">${subject.title || subject.name}</h1>
+                            ${subject.description ? `<p style="color: #94a3b8; font-size: 14px; margin: 0;">${subject.description}</p>` : ''}
                         </div>
                     </div>
                     <div style="display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
-                        <span style="color: ${statusColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${statusIcon} ${statusText}</span>
-                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 ${lessonCount} lessons</span>
-                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📊 ${moduleProgress}% complete</span>
-                        ${pathContext}
+                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 ${lessons.length} lessons</span>
                     </div>
             `;
 
-            // 进度条
-            var progressData = adapter ? adapter.getModuleProgress(moduleId) : { progress: 0, completed: false };
-            var displayProgress = progressData.progress || 0;
-            var isCompleted = progressData.completed || false;
-
-            html += `
-                <div style="margin-top: 16px; background: rgba(74,158,255,0.06); border-radius: 8px; padding: 12px 16px; border: 1px solid rgba(74,158,255,0.1);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                        <span style="color: #94a3b8; font-size: 13px;">📊 Module Progress</span>
-                        <span style="color: #4a9eff; font-weight: 600;">${displayProgress}%</span>
-                    </div>
-                    <div style="margin-top: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 4px; overflow: hidden;">
-                        <div style="background: linear-gradient(90deg, #4a9eff, ${isCompleted ? '#10b981' : '#4a9eff'}); height: 100%; width: ${Math.min(100, displayProgress)}%; transition: width 0.5s;"></div>
-                    </div>
-                    ${lessonCount > 0 ? `
-                        <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 12px; color: #64748b;">
-                            <span>📖 ${completedLessons} / ${lessonCount} lessons completed</span>
-                            ${isCompleted ? '<span style="color: #10b981;">✅ Completed</span>' : ''}
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-
-            // Lesson 列表
-            var lessons = adapter ? adapter.getModuleLessons(moduleId) : [];
-
+            // Lessons 列表
             if (lessons && lessons.length > 0) {
                 html += `
                     <div style="margin-top: 24px;">
@@ -1852,35 +1774,37 @@ function __safeCall(pathOrObj) {
                 `;
 
                 lessons.forEach(function(lesson, index) {
-                    var lessonCompleted = lesson.isCompleted || false;
-                    var lessonActive = lesson.isActive || false;
-                    var lStatusIcon = lessonCompleted ? '✅' : lessonActive ? '▶️' : '○';
-                    var lStatusColor = lessonCompleted ? '#10b981' : lessonActive ? '#4a9eff' : '#64748b';
-                    var lStatusText = lessonCompleted ? 'Completed' : lessonActive ? 'In Progress' : 'Not Started';
-                    var lBorderColor = lessonActive ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.06)';
-                    var lBgColor = lessonActive ? 'rgba(74,158,255,0.06)' : 'rgba(255,255,255,0.02)';
+                    // 🔥 兼容字符串 ID 和对象两种格式
+                    var lessonId, lessonTitle, lessonDesc, lessonDuration;
+                    if (typeof lesson === 'string') {
+                        lessonId = lesson;
+                        lessonTitle = lesson;
+                        lessonDesc = '';
+                        lessonDuration = null;
+                    } else {
+                        lessonId = lesson.id || lesson.lessonId;
+                        lessonTitle = lesson.title || lesson.name || 'Untitled Lesson';
+                        lessonDesc = lesson.description || '';
+                        lessonDuration = lesson.duration || null;
+                    }
 
                     html += `
-                        <div style="background: ${lBgColor}; border-radius: 10px; padding: 12px 16px; border: 1px solid ${lBorderColor}; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;"
-                             onclick="window.location.href='/pages/lesson.html?lessonId=${lesson.id}'"
+                        <div style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
+                             onclick="window.location.href='/pages/lesson.html?lessonId=${lessonId}'"
                              onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
-                             onmouseout="this.style.background='${lBgColor}'">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <span style="font-size: 16px; color: ${lStatusColor}; width: 24px; text-align: center;">${lStatusIcon}</span>
-                                <div>
-                                    <div style="font-weight: 500; font-size: 14px; color: ${lessonCompleted ? '#94a3b8' : '#e2e8f0'};">
-                                        ${String(index + 1).padStart(2, '0')}. ${lesson.name}
+                             onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <span style="font-size: 14px; color: #64748b; font-weight: 500; min-width: 32px;">${String(index + 1).padStart(2, '0')}</span>
+                                    <div>
+                                        <div style="font-weight: 500; font-size: 14px;">${lessonTitle}</div>
+                                        ${lessonDesc ? `<div style="color: #64748b; font-size: 12px; margin-top: 2px;">${lessonDesc}</div>` : ''}
                                     </div>
-                                    ${lesson.description ? `<div style="color: #64748b; font-size: 12px;">${lesson.description}</div>` : ''}
                                 </div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <div style="display: flex; gap: 8px; align-items: center;">
-                                    ${lesson.duration ? `<span style="color: #64748b; font-size: 12px;">⏱️ ${lesson.duration}min</span>` : ''}
-                                    <span style="color: ${lStatusColor}; font-size: 11px; background: rgba(255,255,255,0.06); padding: 2px 10px; border-radius: 12px;">${lStatusText}</span>
-                                    ${!lessonCompleted && !lessonActive ? `<span style="color: #64748b; font-size: 9px;">🔓 Free to explore</span>` : ''}
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    ${lessonDuration ? `<span style="color: #64748b; font-size: 11px;">⏱️ ${lessonDuration}min</span>` : ''}
+                                    <span style="color: #4a9eff; font-size: 16px;">→</span>
                                 </div>
-                                <span style="color: ${lStatusColor}; font-size: 14px;">→</span>
                             </div>
                         </div>
                     `;
@@ -1889,13 +1813,8 @@ function __safeCall(pathOrObj) {
                 html += `</div></div>`;
             } else {
                 html += `
-                    <div style="margin-top: 24px;">
-                        <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📖 Lessons</h2>
-                        <div style="text-align: center; padding: 40px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08);">
-                            <div style="font-size: 32px; margin-bottom: 12px;">📝</div>
-                            <p style="font-size: 15px; margin: 0; font-weight: 500;">No lessons available for this module yet</p>
-                            <p style="font-size: 13px; margin: 4px 0 0; color: #94a3b8;">Lesson content coming soon</p>
-                        </div>
+                    <div style="text-align: center; padding: 40px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; margin-top: 16px;">
+                        <p>📝 No lessons available for this subject yet.</p>
                     </div>
                 `;
             }
