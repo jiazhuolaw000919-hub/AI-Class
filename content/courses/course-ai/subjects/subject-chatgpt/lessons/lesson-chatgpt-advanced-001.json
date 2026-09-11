@@ -1,0 +1,192 @@
+{
+  "id": "lesson-chatgpt-advanced-001",
+  "version": "1.0.0",
+  "title": "Advanced ChatGPT",
+  "slug": "advanced-chatgpt",
+  "subjectId": "subject-chatgpt",
+  "courseId": "course-ai",
+  "moduleId": null,
+  "order": 2,
+  "estimatedMinutes": 30,
+  "difficulty": "advanced",
+  "status": "published",
+  "description": "Go beyond basic chat: custom GPTs, code interpreter, file analysis, and API integration for real workflows.",
+  "learningObjectives": [
+    "Create custom GPTs for specific tasks",
+    "Use ChatGPT's code interpreter and file analysis",
+    "Design multi-step workflows with ChatGPT"
+  ],
+  "sections": [
+    {
+      "id": "section-01",
+      "type": "foundation",
+      "title": "Custom GPTs",
+      "content": [
+        {
+          "type": "text",
+          "content": "Custom GPTs let you configure ChatGPT for specific tasks with preset instructions, knowledge files, and tools. They are shareable and reusable."
+        },
+        {
+          "type": "definition",
+          "content": "Custom GPT: A configured version of ChatGPT with custom instructions, knowledge, and capabilities."
+        },
+        {
+          "type": "example",
+          "content": "Examples: 'Legal Contract Reviewer' with contract templates, 'Code Reviewer' with style guides, 'Marketing Copywriter' with brand voice documents."
+        }
+      ]
+    },
+    {
+      "id": "section-02",
+      "type": "core",
+      "title": "Code Interpreter and File Analysis",
+      "content": [
+        {
+          "type": "text",
+          "content": "ChatGPT can execute Python code in a sandboxed environment, analyze uploaded files (CSV, Excel, PDF, images), and generate charts."
+        },
+        {
+          "type": "example",
+          "content": "Upload a CSV of sales data → ask ChatGPT to compute totals, generate a chart, and identify trends. It runs the code and returns results."
+        },
+        {
+          "type": "text",
+          "content": "This turns ChatGPT into a data analysis assistant, not just a text generator."
+        }
+      ]
+    },
+    {
+      "id": "section-03",
+      "type": "advanced",
+      "title": "API and Automation",
+      "content": [
+        {
+          "type": "text",
+          "content": "The OpenAI API lets you integrate ChatGPT into your own applications. This is how businesses build custom AI tools, chatbots, and automation."
+        },
+        {
+          "type": "text",
+          "content": "With the API you can: process thousands of documents, build custom assistants, integrate with your app, and control costs and rate limits."
+        },
+        {
+          "type": "text",
+          "content": "Advanced workflows combine: custom GPTs + API + automation tools (Zapier, Make) + external data sources."
+        }
+      ]
+    }
+  ],
+  "video": {
+    "provider": "youtube",
+    "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao",
+    "title": "Advanced ChatGPT Workflows",
+    "durationMinutes": 15
+  },
+  "flashcards": [
+    {
+      "id": "fc-701",
+      "front": "What is a Custom GPT?",
+      "back": "A configured ChatGPT with custom instructions, knowledge, and capabilities.",
+      "difficulty": "core",
+      "tags": ["custom-gpt"]
+    },
+    {
+      "id": "fc-702",
+      "front": "What can ChatGPT's code interpreter do?",
+      "back": "Execute Python code, analyze files, and generate charts.",
+      "difficulty": "core",
+      "tags": ["code-interpreter"]
+    },
+    {
+      "id": "fc-703",
+      "front": "Why use the OpenAI API?",
+      "back": "To integrate ChatGPT into your own applications for custom AI workflows.",
+      "difficulty": "advanced",
+      "tags": ["api"]
+    }
+  ],
+  "practice": {
+    "enabled": true,
+    "type": "mixed",
+    "items": [
+      {
+        "id": "practice-701",
+        "type": "multipleChoice",
+        "question": "What can you upload to ChatGPT for file analysis?",
+        "options": [
+          "Only text files",
+          "Only images",
+          "CSV, Excel, PDF, and images",
+          "Nothing"
+        ],
+        "answer": 2,
+        "explanation": "ChatGPT can analyze CSV, Excel, PDF, and images when using code interpreter."
+      },
+      {
+        "id": "practice-702",
+        "type": "shortAnswer",
+        "question": "Describe a workflow that combines ChatGPT with automation tools.",
+        "answer": "Example: Automatically process incoming emails, use ChatGPT API to draft responses, then send via email automation—all without manual steps.",
+        "explanation": "Combining ChatGPT API with tools like Zapier enables end-to-end automation."
+      }
+    ]
+  },
+  "notes": {
+    "summary": "Advanced ChatGPT: Custom GPTs, code interpreter for data analysis, and API for automation workflows.",
+    "keyPoints": [
+      "Custom GPTs = configured ChatGPT for specific tasks",
+      "Code interpreter executes Python + analyzes files",
+      "API enables integration into your apps",
+      "Combining tools produces powerful workflows"
+    ],
+    "importantTerms": [
+      { "term": "Custom GPT", "definition": "Configured ChatGPT for a task." },
+      { "term": "Code Interpreter", "definition": "Sandboxed Python execution." },
+      { "term": "API", "definition": "Programmatic access to ChatGPT." }
+    ]
+  },
+  "aiTools": [
+    {
+      "provider": "chatgpt",
+      "role": "reasoning",
+      "recommendedFor": ["custom GPTs", "data analysis", "API workflows"]
+    },
+    {
+      "provider": "claude",
+      "role": "writing",
+      "recommendedFor": ["complex documents", "long-form output"]
+    }
+  ],
+  "resources": [
+    {
+      "id": "resource-701",
+      "title": "OpenAI API Documentation",
+      "type": "official",
+      "url": "https://platform.openai.com/docs",
+      "provider": "OpenAI"
+    }
+  ],
+  "news": [
+    {
+      "id": "news-701",
+      "title": "GPT Store Launches New Custom GPTs",
+      "source": "OpenAI Blog",
+      "date": "2026-08-15",
+      "summary": "OpenAI's GPT Store now hosts thousands of custom GPTs for specialized tasks.",
+      "relatedLesson": "lesson-chatgpt-advanced-001"
+    }
+  ],
+  "relatedLessons": [
+    "lesson-chatgpt-basics-001"
+  ],
+  "keyTakeaways": [
+    "Custom GPTs let you build specialized assistants.",
+    "Code interpreter turns ChatGPT into a data analyst.",
+    "API integration enables real automation."
+  ],
+  "metadata": {
+    "author": "Law AI Academy",
+    "language": "en"
+  },
+  "createdAt": "2026-09-11T00:00:00Z",
+  "updatedAt": "2026-09-11T00:00:00Z"
+}
