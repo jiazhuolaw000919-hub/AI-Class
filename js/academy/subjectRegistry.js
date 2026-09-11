@@ -1,6 +1,7 @@
 // js/academy/subjectRegistry.js
 // S4 Subject Registry — 管理 Subject 的注册、查询和发现
 // Law AI Academy Season 4
+// v1.0.1 — 加载完成后广播事件，供 UI 刷新
 
 (function() {
     'use strict';
@@ -15,43 +16,34 @@
             this._subjects = new Map();
             this._subjectsByCourse = new Map();
             this.initialized = false;
-            this.version = '1.0.0';
+            this.version = '1.0.1';
+            this._loadPromise = null;
         }
 
-        /**
-         * 初始化 Subject Registry
-         */
         initialize() {
             if (this.initialized) {
                 console.log('[SubjectRegistry] Already initialized');
                 return this;
             }
-
             console.log('[SubjectRegistry] 📖 Initializing...');
             this.initialized = true;
             return this;
         }
 
-        /**
-         * 注册 Subject
-         */
         register(subjectData) {
             if (!subjectData.id) {
                 console.warn('[SubjectRegistry] Subject: id is required');
                 return null;
             }
-
             if (!subjectData.title) {
                 console.warn('[SubjectRegistry] Subject: title is required');
                 return null;
             }
-
             if (!subjectData.courseId) {
                 console.warn('[SubjectRegistry] Subject: courseId is required');
                 return null;
             }
 
-            // 如果已存在，检查版本
             if (this._subjects.has(subjectData.id)) {
                 const existing = this._subjects.get(subjectData.id);
                 if (existing.version !== subjectData.version) {
@@ -71,7 +63,6 @@
 
             this._subjects.set(subjectData.id, subject);
 
-            // 按 Course 索引
             if (!this._subjectsByCourse.has(subjectData.courseId)) {
                 this._subjectsByCourse.set(subjectData.courseId, []);
             }
@@ -90,15 +81,11 @@
             return subject.id;
         }
 
-        /**
-         * 批量注册 Subjects
-         */
         registerAll(subjects) {
             if (!Array.isArray(subjects)) {
                 console.warn('[SubjectRegistry] registerAll expects array');
                 return [];
             }
-
             const results = [];
             for (const subject of subjects) {
                 const id = this.register(subject);
@@ -107,23 +94,14 @@
             return results;
         }
 
-        /**
-         * 获取单个 Subject
-         */
         getSubject(id) {
             return this._subjects.get(id) || null;
         }
 
-        /**
-         * 获取所有 Subjects
-         */
         getAllSubjects() {
             return Array.from(this._subjects.values());
         }
 
-        /**
-         * 按 Course 获取 Subjects
-         */
         getSubjectsByCourse(courseId) {
             const subjectIds = this._subjectsByCourse.get(courseId) || [];
             const subjects = [];
@@ -133,36 +111,24 @@
             }
             return subjects;
         }
-        
-                /**
-         * ═══ Part 17: 检查 Subject 是否存在 ═══
-         */
+
         hasSubject(subjectId) {
             if (!subjectId) return false;
             return this._subjects.has(subjectId);
         }
 
-        /**
-         * 获取活跃 Subjects
-         */
         getActiveSubjects() {
             return this.getAllSubjects().filter(s => s.status === 'published');
         }
 
-        /**
-         * 按状态筛选
-         */
         getSubjectsByStatus(status) {
             return this.getAllSubjects().filter(s => s.status === status);
         }
 
-        /**
-         * ═══ Part 19: 获取 Subject 摘要（轻量级） ═══
-         */
         getSubjectSummary(subjectId) {
             var subject = this.getSubject(subjectId);
             if (!subject) return null;
-            
+
             return {
                 id: subject.id,
                 title: subject.title,
@@ -174,10 +140,6 @@
             };
         }
 
-         /**
-         * 🔥 Part 80: 获取 Module 兼容格式
-         * 将 Subject 数据转换为 Module 格式，供 AcademyView 使用
-         */
         getModuleCompatible(subjectId) {
             var subject = this.getSubject(subjectId);
             if (!subject) return null;
@@ -193,13 +155,14 @@
                 learningObjectives: subject.learningObjectives || subject.objectives || [],
                 metadata: subject.metadata || {},
                 status: subject.status || 'published',
-                // 保留原始 Subject 数据
                 _subject: subject
             };
         }
 
         /**
          * 从 S4 ContentLoader 同步 Subjects
+         * @param {string} courseId - Course ID
+         * @returns {Promise<boolean>}
          */
         async loadFromS4(courseId) {
             const loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
@@ -208,8 +171,12 @@
                 return false;
             }
 
+            if (typeof loader.loadCourseSubjects !== 'function') {
+                console.warn('[SubjectRegistry] ContentLoader.loadCourseSubjects not available');
+                return false;
+            }
+
             try {
-                // 加载 Course 的所有 Subjects
                 const subjects = await loader.loadCourseSubjects(courseId);
                 if (!subjects || subjects.length === 0) {
                     console.warn('[SubjectRegistry] No subjects found for course:', courseId);
@@ -218,11 +185,22 @@
 
                 let count = 0;
                 for (const subject of subjects) {
+                    // 🔥 确保 subject 有 courseId
+                    if (!subject.courseId) {
+                        subject.courseId = courseId;
+                    }
                     const id = this.register(subject);
                     if (id) count++;
                 }
 
                 console.log('[SubjectRegistry] ✅ Loaded ' + count + ' subjects from S4 for course:', courseId);
+
+                // 🔥 广播事件，供 UI 刷新
+                this._emit('SUBJECTS_LOADED', {
+                    courseId: courseId,
+                    count: count
+                });
+
                 return true;
             } catch (e) {
                 console.warn('[SubjectRegistry] S4 load failed:', e);
@@ -231,8 +209,55 @@
         }
 
         /**
-         * 获取统计
+         * 🔥 一次性加载所有 course 的 subjects
          */
+        async loadAllCourses() {
+            if (this._loadPromise) {
+                return this._loadPromise;
+            }
+
+            this._loadPromise = (async () => {
+                var courses = [];
+                var curriculum = window.LawAIApp?.CurriculumAuthority;
+
+                // 尝试从 CurriculumAuthority 拿所有 course
+                if (curriculum && typeof curriculum.getAllCourses === 'function') {
+                    try {
+                        courses = curriculum.getAllCourses() || [];
+                    } catch (e) {}
+                }
+
+                // 如果没有，尝试硬编码一个默认列表（兜底）
+                if (courses.length === 0) {
+                    console.warn('[SubjectRegistry] No courses from CurriculumAuthority, using default: course-ai');
+                    courses = [{ id: 'course-ai' }];
+                }
+
+                console.log('[SubjectRegistry] 🔄 Loading subjects for ' + courses.length + ' courses...');
+
+                let total = 0;
+                for (const c of courses) {
+                    try {
+                        const ok = await this.loadFromS4(c.id);
+                        if (ok) total++;
+                    } catch (e) {
+                        console.warn('[SubjectRegistry] Failed to load course:', c.id, e);
+                    }
+                }
+
+                console.log('[SubjectRegistry] ✅ All courses loaded, total successful: ' + total);
+                this._emit('SUBJECTS_ALL_LOADED', {
+                    courseCount: courses.length,
+                    successCount: total,
+                    totalSubjects: this._subjects.size
+                });
+
+                return total > 0;
+            })();
+
+            return this._loadPromise;
+        }
+
         getStats() {
             const subjects = this.getAllSubjects();
             const active = this.getActiveSubjects();
@@ -249,9 +274,6 @@
             };
         }
 
-        /**
-         * 获取状态
-         */
         getStatus() {
             return {
                 initialized: this.initialized,
@@ -261,18 +283,12 @@
             };
         }
 
-        /**
-         * 清空注册表
-         */
         clear() {
             this._subjects.clear();
             this._subjectsByCourse.clear();
             console.log('[SubjectRegistry] Cleared');
         }
 
-        /**
-         * 私有事件发射
-         */
         _emit(eventName, data) {
             try {
                 const event = new CustomEvent(eventName, { detail: data || {} });
@@ -282,9 +298,7 @@
                 if (window.LawAIApp?.EventBus && typeof window.LawAIApp.EventBus.emit === 'function') {
                     window.LawAIApp.EventBus.emit(eventName, data);
                 }
-            } catch (err) {
-                // 忽略
-            }
+            } catch (err) {}
         }
     }
 
@@ -299,13 +313,20 @@
     const subjectRegistry = new SubjectRegistry();
     window.LawAIApp.SubjectRegistry = subjectRegistry;
 
+    // ============================================================
     // 自动初始化
+    // ============================================================
+
     function autoInit() {
         subjectRegistry.initialize();
-        // 尝试从 S4 加载 subjects
+
+        // 🔥 修复：延迟一点，等 CurriculumAuthority 加载
+        // 然后尝试加载所有 course 的 subjects
         setTimeout(() => {
-            subjectRegistry.loadFromS4('course-ai').catch(() => {});
-        }, 800);
+            subjectRegistry.loadAllCourses().catch((e) => {
+                console.warn('[SubjectRegistry] Auto-load failed:', e);
+            });
+        }, 500);
     }
 
     if (document.readyState === 'complete') {
@@ -316,6 +337,6 @@
         });
     }
 
-    console.log('[SubjectRegistry] Module loaded');
+    console.log('[SubjectRegistry] Module loaded (v1.0.1)');
 
 })();
