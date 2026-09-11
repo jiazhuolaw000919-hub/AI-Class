@@ -414,9 +414,9 @@
                 app.appendChild(container);
 
                 // 尝试用 LessonView 渲染
-                if (window.LawAIApp?.LessonView && 
-                    typeof window.LawAIApp.LessonView.render === 'function') {
-                    window.LawAIApp.LessonView.render(lessonId, container);
+                var lessonView = window.LawAIApp?.Views?.LessonView || window.LawAIApp?.LessonView;
+                if (lessonView && typeof lessonView.render === 'function') {
+                    lessonView.render(lessonId, container);
                     console.log('✅ Lesson rendered via LessonView');
                     return;
                 }
