@@ -1,6 +1,6 @@
 // js/academy/academyLoader.js
 // Part 57.4-57.6 REBUILD — AcademyLoader Architecture Reset
-// v2.1.0 — 添加 Calendar/Settings/CalendarAuthority/NotesAuthority 懒加载支持
+// v2.1.1 — 修复类方法语法错误 + 数组逗号 + 顺序加载
 
 (function() {
   'use strict';
@@ -12,7 +12,7 @@
 
   class AcademyLoader {
     constructor() {
-      this.version = '2.1.0';
+      this.version = '2.1.1';
       this.status = 'idle';
       this.health = 'pending';
 
@@ -28,22 +28,24 @@
       this._manifest = null;
 
       this._lazyLoaded = {
-          calendar: false,
-          settings: false,
-          calendarAuthority: false,
-          notesAuthority: false,
-          settingsAuthority: false,
-          curriculumAuthority: false
+        calendar: false,
+        settings: false,
+        calendarAuthority: false,
+        notesAuthority: false,
+        settingsAuthority: false,
+        curriculumAuthority: false,
+        videoActivity: false
       };
       this._lazyLoading = {
-          calendar: false,
-          settings: false,
-          calendarAuthority: false,
-          notesAuthority: false,
-          settingsAuthority: false,
-          curriculumAuthority: false
+        calendar: false,
+        settings: false,
+        calendarAuthority: false,
+        notesAuthority: false,
+        settingsAuthority: false,
+        curriculumAuthority: false,
+        videoActivity: false
       };
-    
+
       this._moduleChecks = {
         academyExperienceManager: function() { return !!(window.LawAIApp && window.LawAIApp.AcademyExperienceManager); },
         academyView: function() { return !!(window.LawAIApp && window.LawAIApp.AcademyView); },
@@ -112,61 +114,67 @@
       return this.start();
     }
 
+    // ============================================================
+    // Calendar 懒加载
+    // ============================================================
     loadCalendarLazy(onReady, onFail) {
-        var moduleName = 'calendar';
-        if (this._lazyLoaded[moduleName]) {
-            console.log('[AcademyLoader] ⏭️ Calendar already lazy-loaded');
-            if (onReady) onReady(window.LawAIApp?.Calendar);
-            return;
-        }
-        if (this._lazyLoading[moduleName]) {
-            console.log('[AcademyLoader] ⏳ Calendar already loading...');
-            return;
-        }
-        this.loadCalendarAuthority(function(auth) {
-            console.log('[AcademyLoader] ✅ CalendarAuthority ready, loading Calendar UI...');
-            this._loadCalendarUI(onReady, onFail);
-        }.bind(this), function(error) {
-            console.warn('[AcademyLoader] ⚠️ CalendarAuthority failed, loading Calendar anyway...');
-            this._loadCalendarUI(onReady, onFail);
-        }.bind(this));
+      var moduleName = 'calendar';
+      if (this._lazyLoaded[moduleName]) {
+        console.log('[AcademyLoader] ⏭️ Calendar already lazy-loaded');
+        if (onReady) onReady(window.LawAIApp?.Calendar);
+        return;
+      }
+      if (this._lazyLoading[moduleName]) {
+        console.log('[AcademyLoader] ⏳ Calendar already loading...');
+        return;
+      }
+      this.loadCalendarAuthority(function(auth) {
+        console.log('[AcademyLoader] ✅ CalendarAuthority ready, loading Calendar UI...');
+        this._loadCalendarUI(onReady, onFail);
+      }.bind(this), function(error) {
+        console.warn('[AcademyLoader] ⚠️ CalendarAuthority failed, loading Calendar anyway...');
+        this._loadCalendarUI(onReady, onFail);
+      }.bind(this));
     }
 
     _loadCalendarUI(onReady, onFail) {
-        var moduleName = 'calendar';
-        if (this._lazyLoaded[moduleName]) {
-            if (onReady) onReady(window.LawAIApp?.Calendar);
-            return;
+      var moduleName = 'calendar';
+      if (this._lazyLoaded[moduleName]) {
+        if (onReady) onReady(window.LawAIApp?.Calendar);
+        return;
+      }
+      if (this._lazyLoading[moduleName]) return;
+      this._lazyLoading[moduleName] = true;
+      console.log('[AcademyLoader] 🔄 Loading Calendar UI...');
+
+      var files = [
+        '/js/calendarEngine.js',
+        '/js/calendarPlanner.js',
+        '/js/calendarTimeline.js',
+        '/js/calendarEngineAdapter.js',
+        '/js/calendar/CalendarSurfaceAdapter.js',
+        '/js/calendar/CalendarViewModel.js',
+        '/js/calendar/CalendarEventAdapter.js',
+        '/js/calendar/CalendarRenderer.js',
+        '/js/calendar.js'
+      ];
+
+      this._loadScriptsSequentially(files, function(success) {
+        this._lazyLoading[moduleName] = false;
+        if (success && window.LawAIApp?.Calendar) {
+          this._lazyLoaded[moduleName] = true;
+          console.log('[AcademyLoader] ✅ Calendar UI loaded');
+          if (onReady) onReady(window.LawAIApp.Calendar);
+        } else {
+          console.warn('[AcademyLoader] ⚠️ Calendar UI load incomplete');
+          if (onFail) onFail('Calendar UI load failed');
         }
-        if (this._lazyLoading[moduleName]) return;
-        this._lazyLoading[moduleName] = true;
-        console.log('[AcademyLoader] 🔄 Loading Calendar UI...');
-
-        var files = [
-            '/js/calendarEngine.js',
-            '/js/calendarPlanner.js',
-            '/js/calendarTimeline.js',
-            '/js/calendarEngineAdapter.js',
-            '/js/calendar/CalendarSurfaceAdapter.js',
-            '/js/calendar/CalendarViewModel.js',
-            '/js/calendar/CalendarEventAdapter.js',
-            '/js/calendar/CalendarRenderer.js',
-            '/js/calendar.js'
-        ];
-
-        this._loadScriptsSequentially(files, function(success) {
-            this._lazyLoading[moduleName] = false;
-            if (success && window.LawAIApp?.Calendar) {
-                this._lazyLoaded[moduleName] = true;
-                console.log('[AcademyLoader] ✅ Calendar UI loaded');
-                if (onReady) onReady(window.LawAIApp.Calendar);
-            } else {
-                console.warn('[AcademyLoader] ⚠️ Calendar UI load incomplete');
-                if (onFail) onFail('Calendar UI load failed');
-            }
-        }.bind(this));
+      }.bind(this));
     }
 
+    // ============================================================
+    // Settings 懒加载
+    // ============================================================
     loadSettingsLazy(onReady, onFail) {
       var moduleName = 'settings';
       if (this._lazyLoaded[moduleName]) {
@@ -196,500 +204,511 @@
       }.bind(this));
     }
 
+    // ============================================================
+    // CalendarAuthority 懒加载
+    // ============================================================
     loadCalendarAuthority(onReady, onFail) {
-        var moduleName = 'calendarAuthority';
-        if (this._lazyLoaded[moduleName]) {
-            console.log('[AcademyLoader] ⏭️ CalendarAuthority already lazy-loaded');
-            if (onReady) onReady(window.LawAIApp?.CalendarAuthority);
-            return;
+      var moduleName = 'calendarAuthority';
+      if (this._lazyLoaded[moduleName]) {
+        console.log('[AcademyLoader] ⏭️ CalendarAuthority already lazy-loaded');
+        if (onReady) onReady(window.LawAIApp?.CalendarAuthority);
+        return;
+      }
+      if (this._lazyLoading[moduleName]) {
+        console.log('[AcademyLoader] ⏳ CalendarAuthority already loading...');
+        this._waitForCalendarAuthority(onReady, onFail);
+        return;
+      }
+      this._lazyLoading[moduleName] = true;
+      console.log('[AcademyLoader] 🔄 Lazy loading CalendarAuthority...');
+
+      var files = ['/js/calendar/CalendarAuthority.js'];
+
+      this._loadScriptsSequentially(files, function(success) {
+        this._lazyLoading[moduleName] = false;
+        if (success && window.LawAIApp?.CalendarAuthority) {
+          this._lazyLoaded[moduleName] = true;
+          console.log('[AcademyLoader] ✅ CalendarAuthority loaded');
+
+          var auth = window.LawAIApp.CalendarAuthority;
+          if (auth.initialized) {
+            if (onReady) onReady(auth);
+          } else {
+            auth.onReady(function(readyAuth) {
+              if (onReady) onReady(readyAuth);
+            });
+          }
+        } else {
+          console.warn('[AcademyLoader] ⚠️ CalendarAuthority load failed');
+          if (onFail) onFail('CalendarAuthority load failed');
         }
-        if (this._lazyLoading[moduleName]) {
-            console.log('[AcademyLoader] ⏳ CalendarAuthority already loading...');
-            this._waitForCalendarAuthority(onReady, onFail);
-            return;
-        }
-        this._lazyLoading[moduleName] = true;
-        console.log('[AcademyLoader] 🔄 Lazy loading CalendarAuthority...');
-
-        var files = ['/js/calendar/CalendarAuthority.js'];
-
-        this._loadScriptsSequentially(files, function(success) {
-            this._lazyLoading[moduleName] = false;
-            if (success && window.LawAIApp?.CalendarAuthority) {
-                this._lazyLoaded[moduleName] = true;
-                console.log('[AcademyLoader] ✅ CalendarAuthority loaded');
-
-                var auth = window.LawAIApp.CalendarAuthority;
-                if (auth.initialized) {
-                    if (onReady) onReady(auth);
-                } else {
-                    auth.onReady(function(readyAuth) {
-                        if (onReady) onReady(readyAuth);
-                    });
-                }
-            } else {
-                console.warn('[AcademyLoader] ⚠️ CalendarAuthority load failed');
-                if (onFail) onFail('CalendarAuthority load failed');
-            }
-        }.bind(this));
+      }.bind(this));
     }
 
     _waitForCalendarAuthority(onReady, onFail) {
-        var attempts = 0;
-        var maxAttempts = 50;
-        var interval = setInterval(function() {
-            attempts++;
-            var auth = window.LawAIApp?.CalendarAuthority;
-            if (auth && auth.initialized) {
-                clearInterval(interval);
-                if (onReady) onReady(auth);
-                return;
-            }
-            if (attempts >= maxAttempts) {
-                clearInterval(interval);
-                console.warn('[AcademyLoader] ⏰ CalendarAuthority wait timeout');
-                if (onFail) onFail('Timeout waiting for CalendarAuthority');
-            }
-        }, 100);
+      var attempts = 0;
+      var maxAttempts = 50;
+      var interval = setInterval(function() {
+        attempts++;
+        var auth = window.LawAIApp?.CalendarAuthority;
+        if (auth && auth.initialized) {
+          clearInterval(interval);
+          if (onReady) onReady(auth);
+          return;
+        }
+        if (attempts >= maxAttempts) {
+          clearInterval(interval);
+          console.warn('[AcademyLoader] ⏰ CalendarAuthority wait timeout');
+          if (onFail) onFail('Timeout waiting for CalendarAuthority');
+        }
+      }, 100);
     }
 
+    // ============================================================
+    // NotesAuthority 懒加载
+    // ============================================================
     loadNotesAuthority(onReady, onFail) {
-        var moduleName = 'notesAuthority';
-        if (this._lazyLoaded[moduleName]) {
-            console.log('[AcademyLoader] ⏭️ NotesAuthority already lazy-loaded');
-            if (onReady) onReady(window.LawAIApp?.NotesAuthority);
-            return;
+      var moduleName = 'notesAuthority';
+      if (this._lazyLoaded[moduleName]) {
+        console.log('[AcademyLoader] ⏭️ NotesAuthority already lazy-loaded');
+        if (onReady) onReady(window.LawAIApp?.NotesAuthority);
+        return;
+      }
+      if (this._lazyLoading[moduleName]) {
+        console.log('[AcademyLoader] ⏳ NotesAuthority already loading...');
+        this._waitForNotesAuthority(onReady, onFail);
+        return;
+      }
+      this._lazyLoading[moduleName] = true;
+      console.log('[AcademyLoader] 🔄 Lazy loading NotesAuthority...');
+
+      var files = ['/js/notes/NotesAuthority.js'];
+
+      this._loadScriptsSequentially(files, function(success) {
+        this._lazyLoading[moduleName] = false;
+        if (success && window.LawAIApp?.NotesAuthority) {
+          this._lazyLoaded[moduleName] = true;
+          console.log('[AcademyLoader] ✅ NotesAuthority loaded');
+
+          var auth = window.LawAIApp.NotesAuthority;
+          if (auth.initialized) {
+            if (onReady) onReady(auth);
+          } else {
+            auth.onReady(function(readyAuth) {
+              if (onReady) onReady(readyAuth);
+            });
+          }
+        } else {
+          console.warn('[AcademyLoader] ⚠️ NotesAuthority load failed');
+          if (onFail) onFail('NotesAuthority load failed');
         }
-        if (this._lazyLoading[moduleName]) {
-            console.log('[AcademyLoader] ⏳ NotesAuthority already loading...');
-            this._waitForNotesAuthority(onReady, onFail);
-            return;
+      }.bind(this));
+    }
+
+    _waitForNotesAuthority(onReady, onFail) {
+      var attempts = 0;
+      var maxAttempts = 50;
+      var interval = setInterval(function() {
+        attempts++;
+        var auth = window.LawAIApp?.NotesAuthority;
+        if (auth && auth.initialized) {
+          clearInterval(interval);
+          if (onReady) onReady(auth);
+          return;
         }
-        this._lazyLoading[moduleName] = true;
-        console.log('[AcademyLoader] 🔄 Lazy loading NotesAuthority...');
-    
-        var files = ['/js/notes/NotesAuthority.js'];
-    
-        this._loadScriptsSequentially(files, function(success) {
-            this._lazyLoading[moduleName] = false;
-            if (success && window.LawAIApp?.NotesAuthority) {
-                this._lazyLoaded[moduleName] = true;
-                console.log('[AcademyLoader] ✅ NotesAuthority loaded');
-    
-                var auth = window.LawAIApp.NotesAuthority;
-                if (auth.initialized) {
-                    if (onReady) onReady(auth);
-                } else {
-                    auth.onReady(function(readyAuth) {
-                        if (onReady) onReady(readyAuth);
-                    });
-                }
-            } else {
-                console.warn('[AcademyLoader] ⚠️ NotesAuthority load failed');
-                if (onFail) onFail('NotesAuthority load failed');
-            }
-        }.bind(this));
+        if (attempts >= maxAttempts) {
+          clearInterval(interval);
+          console.warn('[AcademyLoader] ⏰ NotesAuthority wait timeout');
+          if (onFail) onFail('Timeout waiting for NotesAuthority');
+        }
+      }, 100);
     }
 
     // ============================================================
     // Part 165: SettingsAuthority 懒加载
     // ============================================================
-    loadSettingsAuthority: function(onReady, onFail) {
-        var moduleName = 'settingsAuthority';
-        if (this._lazyLoaded[moduleName]) {
-            console.log('[AcademyLoader] ⏭️ SettingsAuthority already lazy-loaded');
-            if (onReady) onReady(window.LawAIApp?.SettingsAuthority);
-            return;
+    loadSettingsAuthority(onReady, onFail) {
+      var moduleName = 'settingsAuthority';
+      if (this._lazyLoaded[moduleName]) {
+        console.log('[AcademyLoader] ⏭️ SettingsAuthority already lazy-loaded');
+        if (onReady) onReady(window.LawAIApp?.SettingsAuthority);
+        return;
+      }
+      if (this._lazyLoading[moduleName]) {
+        console.log('[AcademyLoader] ⏳ SettingsAuthority already loading...');
+        this._waitForSettingsAuthority(onReady, onFail);
+        return;
+      }
+      this._lazyLoading[moduleName] = true;
+      console.log('[AcademyLoader] 🔄 Lazy loading SettingsAuthority...');
+
+      var files = ['/js/settings/SettingsAuthority.js'];
+
+      this._loadScriptsSequentially(files, function(success) {
+        this._lazyLoading[moduleName] = false;
+        if (success && window.LawAIApp?.SettingsAuthority) {
+          this._lazyLoaded[moduleName] = true;
+          console.log('[AcademyLoader] ✅ SettingsAuthority loaded');
+
+          var auth = window.LawAIApp.SettingsAuthority;
+          if (auth.initialized) {
+            if (onReady) onReady(auth);
+          } else {
+            auth.onReady(function(readyAuth) {
+              if (onReady) onReady(readyAuth);
+            });
+          }
+        } else {
+          console.warn('[AcademyLoader] ⚠️ SettingsAuthority load failed');
+          if (onFail) onFail('SettingsAuthority load failed');
         }
-        if (this._lazyLoading[moduleName]) {
-            console.log('[AcademyLoader] ⏳ SettingsAuthority already loading...');
-            this._waitForSettingsAuthority(onReady, onFail);
-            return;
+      }.bind(this));
+    }
+
+    _waitForSettingsAuthority(onReady, onFail) {
+      var attempts = 0;
+      var maxAttempts = 50;
+      var interval = setInterval(function() {
+        attempts++;
+        var auth = window.LawAIApp?.SettingsAuthority;
+        if (auth && auth.initialized) {
+          clearInterval(interval);
+          if (onReady) onReady(auth);
+          return;
         }
-        this._lazyLoading[moduleName] = true;
-        console.log('[AcademyLoader] 🔄 Lazy loading SettingsAuthority...');
-    
-        var files = ['/js/settings/SettingsAuthority.js'];
-    
-        this._loadScriptsSequentially(files, function(success) {
-            this._lazyLoading[moduleName] = false;
-            if (success && window.LawAIApp?.SettingsAuthority) {
-                this._lazyLoaded[moduleName] = true;
-                console.log('[AcademyLoader] ✅ SettingsAuthority loaded');
-    
-                var auth = window.LawAIApp.SettingsAuthority;
-                if (auth.initialized) {
-                    if (onReady) onReady(auth);
-                } else {
-                    auth.onReady(function(readyAuth) {
-                        if (onReady) onReady(readyAuth);
-                    });
-                }
-            } else {
-                console.warn('[AcademyLoader] ⚠️ SettingsAuthority load failed');
-                if (onFail) onFail('SettingsAuthority load failed');
-            }
-        }.bind(this));
-    },
+        if (attempts >= maxAttempts) {
+          clearInterval(interval);
+          console.warn('[AcademyLoader] ⏰ SettingsAuthority wait timeout');
+          if (onFail) onFail('Timeout waiting for SettingsAuthority');
+        }
+      }, 100);
+    }
 
     // ============================================================
     // Part 166: CurriculumAuthority 懒加载
     // ============================================================
-    
-    loadCurriculumAuthority: function(onReady, onFail) {
-        var moduleName = 'curriculumAuthority';
-        if (this._lazyLoaded[moduleName]) {
-            if (onReady) onReady(window.LawAIApp?.CurriculumAuthority);
-            return;
+    loadCurriculumAuthority(onReady, onFail) {
+      var moduleName = 'curriculumAuthority';
+      if (this._lazyLoaded[moduleName]) {
+        if (onReady) onReady(window.LawAIApp?.CurriculumAuthority);
+        return;
+      }
+      if (this._lazyLoading[moduleName]) {
+        this._waitForCurriculumAuthority(onReady, onFail);
+        return;
+      }
+      this._lazyLoading[moduleName] = true;
+
+      var files = [
+        '/js/curriculum/CurriculumAuthority.js',
+        '/js/school/SchoolViewModel.js'
+      ];
+
+      this._loadScriptsSequentially(files, function(success) {
+        this._lazyLoading[moduleName] = false;
+        if (success && window.LawAIApp?.CurriculumAuthority) {
+          this._lazyLoaded[moduleName] = true;
+          var auth = window.LawAIApp.CurriculumAuthority;
+          if (auth.initialized) {
+            if (onReady) onReady(auth);
+          } else {
+            auth.onReady(function(a) { if (onReady) onReady(a); });
+          }
+        } else {
+          if (onFail) onFail('CurriculumAuthority load failed');
         }
-        if (this._lazyLoading[moduleName]) {
-            this._waitForCurriculumAuthority(onReady, onFail);
-            return;
+      }.bind(this));
+    }
+
+    _waitForCurriculumAuthority(onReady, onFail) {
+      var attempts = 0;
+      var maxAttempts = 50;
+      var interval = setInterval(function() {
+        attempts++;
+        var auth = window.LawAIApp?.CurriculumAuthority;
+        if (auth && auth.initialized) {
+          clearInterval(interval);
+          if (onReady) onReady(auth);
+          return;
         }
-        this._lazyLoading[moduleName] = true;
-    
-        var files = [
-            '/js/curriculum/CurriculumAuthority.js',
-            '/js/school/SchoolViewModel.js'
-        ];
-    
-        this._loadScriptsSequentially(files, function(success) {
-            this._lazyLoading[moduleName] = false;
-            if (success && window.LawAIApp?.CurriculumAuthority) {
-                this._lazyLoaded[moduleName] = true;
-                var auth = window.LawAIApp.CurriculumAuthority;
-                if (auth.initialized) {
-                    if (onReady) onReady(auth);
-                } else {
-                    auth.onReady(function(a) { if (onReady) onReady(a); });
-                }
-            } else {
-                if (onFail) onFail('CurriculumAuthority load failed');
-            }
-        }.bind(this));
-    },
-    
-    _waitForCurriculumAuthority: function(onReady, onFail) {
-        var attempts = 0;
-        var interval = setInterval(function() {
-            attempts++;
-            var auth = window.LawAIApp?.CurriculumAuthority;
-            if (auth && auth.initialized) {
-                clearInterval(interval);
-                if (onReady) onReady(auth);
-                return;
-            }
-            if (attempts >= 50) {
-                clearInterval(interval);
-                if (onFail) onFail('Timeout');
-            }
-        }, 100);
-    },
+        if (attempts >= maxAttempts) {
+          clearInterval(interval);
+          if (onFail) onFail('Timeout waiting for CurriculumAuthority');
+        }
+      }, 100);
+    }
 
     // ============================================================
     // Part 170: Video Activity 懒加载
     // ============================================================
+    loadVideoActivity(onReady, onFail) {
+      var moduleName = 'videoActivity';
+      if (this._lazyLoaded[moduleName]) {
+        console.log('[AcademyLoader] ⏭️ VideoActivity already lazy-loaded');
+        if (onReady) onReady(true);
+        return;
+      }
+      if (this._lazyLoading[moduleName]) {
+        console.log('[AcademyLoader] ⏳ VideoActivity already loading...');
+        this._waitForVideoActivity(onReady, onFail);
+        return;
+      }
+      this._lazyLoading[moduleName] = true;
+      console.log('[AcademyLoader] 🔄 Lazy loading VideoActivity...');
 
-    loadVideoActivity: function(onReady, onFail) {
-        var moduleName = 'videoActivity';
-        if (this._lazyLoaded[moduleName]) {
-            console.log('[AcademyLoader] ⏭️ VideoActivity already lazy-loaded');
-            if (onReady) onReady(true);
-            return;
+      var files = [
+        '/js/experience/videoEvidenceContract.js',
+        '/js/experience/renderers/videoRenderer.js'
+      ];
+
+      this._loadScriptsSequentially(files, function(success) {
+        this._lazyLoading[moduleName] = false;
+        if (success && window.LawAIApp?.VideoRenderer) {
+          this._lazyLoaded[moduleName] = true;
+          console.log('[AcademyLoader] ✅ VideoActivity loaded');
+          if (onReady) onReady(true);
+        } else {
+          console.warn('[AcademyLoader] ⚠️ VideoActivity load failed');
+          if (onFail) onFail('VideoActivity load failed');
         }
-        if (this._lazyLoading[moduleName]) {
-            console.log('[AcademyLoader] ⏳ VideoActivity already loading...');
-            this._waitForVideoActivity(onReady, onFail);
-            return;
-        }
-        this._lazyLoading[moduleName] = true;
-        console.log('[AcademyLoader] 🔄 Lazy loading VideoActivity...');
-
-        var files = [
-            '/js/experience/videoEvidenceContract.js',
-            '/js/experience/renderers/videoRenderer.js'
-        ];
-
-        this._loadScriptsSequentially(files, function(success) {
-            this._lazyLoading[moduleName] = false;
-            if (success && window.LawAIApp?.VideoRenderer) {
-                this._lazyLoaded[moduleName] = true;
-                console.log('[AcademyLoader] ✅ VideoActivity loaded');
-                if (onReady) onReady(true);
-            } else {
-                console.warn('[AcademyLoader] ⚠️ VideoActivity load failed');
-                if (onFail) onFail('VideoActivity load failed');
-            }
-        }.bind(this));
-    },
-
-    _waitForVideoActivity: function(onReady, onFail) {
-        var attempts = 0;
-        var maxAttempts = 50;
-        var interval = setInterval(function() {
-            attempts++;
-            var renderer = window.LawAIApp?.VideoRenderer;
-            if (renderer) {
-                clearInterval(interval);
-                if (onReady) onReady(true);
-                return;
-            }
-            if (attempts >= maxAttempts) {
-                clearInterval(interval);
-                console.warn('[AcademyLoader] ⏰ VideoActivity wait timeout');
-                if (onFail) onFail('Timeout waiting for VideoActivity');
-            }
-        }, 100);
-    },
-    
-    _waitForSettingsAuthority: function(onReady, onFail) {
-        var attempts = 0;
-        var maxAttempts = 50;
-        var interval = setInterval(function() {
-            attempts++;
-            var auth = window.LawAIApp?.SettingsAuthority;
-            if (auth && auth.initialized) {
-                clearInterval(interval);
-                if (onReady) onReady(auth);
-                return;
-            }
-            if (attempts >= maxAttempts) {
-                clearInterval(interval);
-                console.warn('[AcademyLoader] ⏰ SettingsAuthority wait timeout');
-                if (onFail) onFail('Timeout waiting for SettingsAuthority');
-            }
-        }, 100);
+      }.bind(this));
     }
-    
-    _waitForNotesAuthority(onReady, onFail) {
-        var attempts = 0;
-        var maxAttempts = 50;
-        var interval = setInterval(function() {
-            attempts++;
-            var auth = window.LawAIApp?.NotesAuthority;
-            if (auth && auth.initialized) {
-                clearInterval(interval);
-                if (onReady) onReady(auth);
-                return;
-            }
-            if (attempts >= maxAttempts) {
-                clearInterval(interval);
-                console.warn('[AcademyLoader] ⏰ NotesAuthority wait timeout');
-                if (onFail) onFail('Timeout waiting for NotesAuthority');
-            }
-        }, 100);
+
+    _waitForVideoActivity(onReady, onFail) {
+      var attempts = 0;
+      var maxAttempts = 50;
+      var interval = setInterval(function() {
+        attempts++;
+        var renderer = window.LawAIApp?.VideoRenderer;
+        if (renderer) {
+          clearInterval(interval);
+          if (onReady) onReady(true);
+          return;
+        }
+        if (attempts >= maxAttempts) {
+          clearInterval(interval);
+          console.warn('[AcademyLoader] ⏰ VideoActivity wait timeout');
+          if (onFail) onFail('Timeout waiting for VideoActivity');
+        }
+      }, 100);
     }
 
     isLazyLoaded(moduleName) {
       return !!this._lazyLoaded[moduleName];
     }
 
+    // ============================================================
+    // 内联 Calendar / Settings 兜底实现
+    // ============================================================
     _createInlineCalendar() {
-        return {
-            currentYear: new Date().getFullYear(),
-            currentMonth: new Date().getMonth(),
-    
-            render: function(container) {
-                if (!container) container = document.getElementById('academy-root');
-                if (!container) return;
-    
-                var monthName = new Date(this.currentYear, this.currentMonth).toLocaleString('default', { month: 'long' });
-                var daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-                var firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
-    
-                var gridHTML = '';
-                for (var i = 0; i < firstDay; i++) gridHTML += '<div></div>';
-                for (var d = 1; d <= daysInMonth; d++) {
-                    var isToday = d === new Date().getDate() && 
-                                    this.currentMonth === new Date().getMonth() && 
-                                    this.currentYear === new Date().getFullYear();
-                    gridHTML += '<div style="padding:12px 6px;text-align:center;border-radius:8px;background:' + 
-                        (isToday ? 'rgba(74,158,255,0.15)' : 'rgba(255,255,255,0.03)') + 
-                        ';border:1px solid ' + (isToday ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.04)') + 
-                        ';color:' + (isToday ? '#4a9eff' : '#e2e8f0') + 
-                        ';font-size:14px;cursor:pointer;font-family:inherit;">' + d + '</div>';
-                }
-    
-                container.innerHTML = `
-                    <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
-                        <div style="display:flex;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
-                            <button onclick="window.location.href='/pages/academy.html'" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">← Back to Academy</button>
-                            <button onclick="history.back()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">⬅️ 返回上一页</button>
-                        </div>
-                        <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">📅 Calendar</h2>
-                        <p style="color:#94a3b8;margin:0 0 20px;">${monthName} ${this.currentYear}</p>
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                            <button onclick="LawAIApp.AcademyLoader._inlineCalendarChangeMonth(-1)" style="padding:8px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;cursor:pointer;font-family:inherit;">←</button>
-                            <span style="font-weight:600;font-size:18px;">${monthName} ${this.currentYear}</span>
-                            <button onclick="LawAIApp.AcademyLoader._inlineCalendarChangeMonth(1)" style="padding:8px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;cursor:pointer;font-family:inherit;">→</button>
-                        </div>
-                        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:12px;color:#64748b;margin-bottom:8px;">
-                            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-                        </div>
-                        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">${gridHTML}</div>
-                    </div>
-                `;
-            },
-    
-            changeMonth: function(delta) {
-                this.currentMonth += delta;
-                if (this.currentMonth > 11) { this.currentMonth = 0; this.currentYear++; }
-                if (this.currentMonth < 0) { this.currentMonth = 11; this.currentYear--; }
-                this.render();
-            }
-        };
-    }
-    
-    _inlineCalendarChangeMonth(delta) {
-        var cal = window.LawAIApp?.AcademyLoader?._inlineCalendar;
-        if (cal) cal.changeMonth(delta);
-    }
-    
-    _onDayClick(day) {
-        if (window.LawAIApp?.Toast?.info) LawAIApp.Toast.info('📅 Day ' + day + ' selected');
-    }
-    
-    _createInlineSettings() {
-        return {
-            render: function(container) {
-                if (!container) container = document.getElementById('academy-root');
-                if (!container) return;
-    
-                container.innerHTML = `
-                    <div style="max-width:700px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
-                        <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
-                            <button onclick="window.location.href='/pages/academy.html'" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">← Back to Academy</button>
-                        </div>
-                        <h2 style="margin:0 0 20px;font-size:24px;font-weight:700;">⚙️ Settings</h2>
-                        <div style="display:flex;flex-direction:column;gap:12px;">
-                            <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
-                                <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">👤 Profile</h3>
-                                <p style="margin:0;color:#94a3b8;font-size:13px;">Manage your profile settings</p>
-                            </div>
-                            <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
-                                <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">🎯 Learning Preferences</h3>
-                                <p style="margin:0;color:#94a3b8;font-size:13px;">Adjust your learning preferences</p>
-                            </div>
-                            <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
-                                <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">🔔 Notifications</h3>
-                                <p style="margin:0;color:#94a3b8;font-size:13px;">Manage notification settings</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-        };
-    }
-    
-    renderCalendar(container, onReady, onError) {
-        if (!container) container = document.getElementById('academy-root');
-        if (!container) { if (onError) onError('Container not found'); return; }
-    
-        container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Calendar...</div>';
-    
-        var self = this;
-    
-        if (this.loadCalendarLazy) {
-            this.loadCalendarLazy(function(calendar) {
-                if (container) {
-                    calendar._root = container;
-                    calendar.render();
-                    if (onReady) onReady(calendar);
-                }
-            }, function(error) {
-                var inlineCal = self._createInlineCalendar();
-                self._inlineCalendar = inlineCal;
-                inlineCal.render(container);
-                if (onError) onError(error);
-            });
-        } else {
-            var inlineCal = this._createInlineCalendar();
-            this._inlineCalendar = inlineCal;
-            inlineCal.render(container);
-            if (onReady) onReady(inlineCal);
+      return {
+        currentYear: new Date().getFullYear(),
+        currentMonth: new Date().getMonth(),
+
+        render: function(container) {
+          if (!container) container = document.getElementById('academy-root');
+          if (!container) return;
+
+          var monthName = new Date(this.currentYear, this.currentMonth).toLocaleString('default', { month: 'long' });
+          var daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+          var firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
+
+          var gridHTML = '';
+          for (var i = 0; i < firstDay; i++) gridHTML += '<div></div>';
+          for (var d = 1; d <= daysInMonth; d++) {
+            var isToday = d === new Date().getDate() &&
+                          this.currentMonth === new Date().getMonth() &&
+                          this.currentYear === new Date().getFullYear();
+            gridHTML += '<div style="padding:12px 6px;text-align:center;border-radius:8px;background:' +
+              (isToday ? 'rgba(74,158,255,0.15)' : 'rgba(255,255,255,0.03)') +
+              ';border:1px solid ' + (isToday ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.04)') +
+              ';color:' + (isToday ? '#4a9eff' : '#e2e8f0') +
+              ';font-size:14px;cursor:pointer;font-family:inherit;">' + d + '</div>';
+          }
+
+          container.innerHTML = `
+            <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+                <button onclick="window.location.href='/pages/academy.html'" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">← Back to Academy</button>
+                <button onclick="history.back()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">⬅️ 返回上一页</button>
+              </div>
+              <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">📅 Calendar</h2>
+              <p style="color:#94a3b8;margin:0 0 20px;">${monthName} ${this.currentYear}</p>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <button onclick="LawAIApp.AcademyLoader._inlineCalendarChangeMonth(-1)" style="padding:8px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;cursor:pointer;font-family:inherit;">←</button>
+                <span style="font-weight:600;font-size:18px;">${monthName} ${this.currentYear}</span>
+                <button onclick="LawAIApp.AcademyLoader._inlineCalendarChangeMonth(1)" style="padding:8px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;cursor:pointer;font-family:inherit;">→</button>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:12px;color:#64748b;margin-bottom:8px;">
+                <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">${gridHTML}</div>
+            </div>
+          `;
+        },
+
+        changeMonth: function(delta) {
+          this.currentMonth += delta;
+          if (this.currentMonth > 11) { this.currentMonth = 0; this.currentYear++; }
+          if (this.currentMonth < 0) { this.currentMonth = 11; this.currentYear--; }
+          this.render();
         }
-    }
-    
-    renderSettings: function(container, onReady, onError) {
-        if (!container) container = document.getElementById('academy-root');
-        if (!container) {
-            if (onError) onError('Container not found');
-            return;
-        }
-    
-        container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Settings...</div>';
-    
-        var self = this;
-    
-        // 🔥 Part 165: 先确保 SettingsAuthority 就绪
-        this.loadSettingsAuthority(function(auth) {
-            console.log('[AcademyLoader] ✅ SettingsAuthority ready, loading Settings UI...');
-            self._loadSettingsUI(container, onReady, onError);
-        }, function(error) {
-            console.warn('[AcademyLoader] ⚠️ SettingsAuthority failed, loading Settings anyway...');
-            self._loadSettingsUI(container, onReady, onError);
-        });
-    },
-    
-    _loadSettingsUI: function(container, onReady, onError) {
-        if (window.LawAIApp?.Settings && typeof window.LawAIApp.Settings.render === 'function') {
-            try {
-                window.LawAIApp.Settings._root = container;
-                window.LawAIApp.Settings.render();
-                if (onReady) onReady(window.LawAIApp.Settings);
-                return;
-            } catch (e) {
-                console.warn('[AcademyLoader] Settings render error:', e);
-            }
-        }
-    
-        var self = this;
-        this.loadSettingsLazy(function(settings) {
-            if (container) {
-                try { settings.render(); if (onReady) onReady(settings); } catch (e) {}
-            }
-        }, function(error) {
-            console.warn('[AcademyLoader] Settings load failed:', error);
-            var inlineSettings = self._createInlineSettings();
-            inlineSettings.render(container);
-            if (onError) onError(error);
-        });
-    }
-    
-    updateNavHighlight(activeTab) {
-        document.querySelectorAll('.nav-item').forEach(function(nav) {
-            if (nav.dataset.tab === activeTab) {
-                nav.style.color = '#4a9eff';
-                nav.classList.add('active');
-            } else {
-                nav.style.color = '#64748b';
-                nav.classList.remove('active');
-            }
-        });
+      };
     }
 
-    _loadScriptsSequentially(files, callback) {
-        var self = this;
-        var index = 0;
-        var failed = [];
-    
-        function loadNext() {
-            if (index >= files.length) {
-                callback(failed.length === 0);
-                return;
-            }
-            var file = files[index++];
-            var script = document.createElement('script');
-            script.src = file + '?v=' + Date.now();
-            script.async = false;   // 保持顺序
-            script.onload = loadNext;
-            script.onerror = function() {
-                failed.push(file);
-                loadNext();
-            };
-            document.head.appendChild(script);
+    _inlineCalendarChangeMonth(delta) {
+      var cal = window.LawAIApp?.AcademyLoader?._inlineCalendar;
+      if (cal) cal.changeMonth(delta);
+    }
+
+    _onDayClick(day) {
+      if (window.LawAIApp?.Toast?.info) LawAIApp.Toast.info('📅 Day ' + day + ' selected');
+    }
+
+    _createInlineSettings() {
+      return {
+        render: function(container) {
+          if (!container) container = document.getElementById('academy-root');
+          if (!container) return;
+
+          container.innerHTML = `
+            <div style="max-width:700px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
+                <button onclick="window.location.href='/pages/academy.html'" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;">← Back to Academy</button>
+              </div>
+              <h2 style="margin:0 0 20px;font-size:24px;font-weight:700;">⚙️ Settings</h2>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+                  <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">👤 Profile</h3>
+                  <p style="margin:0;color:#94a3b8;font-size:13px;">Manage your profile settings</p>
+                </div>
+                <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+                  <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">🎯 Learning Preferences</h3>
+                  <p style="margin:0;color:#94a3b8;font-size:13px;">Adjust your learning preferences</p>
+                </div>
+                <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+                  <h3 style="margin:0 0 8px;font-size:14px;font-weight:600;">🔔 Notifications</h3>
+                  <p style="margin:0;color:#94a3b8;font-size:13px;">Manage notification settings</p>
+                </div>
+              </div>
+            </div>
+          `;
         }
-        loadNext();
+      };
+    }
+
+    renderCalendar(container, onReady, onError) {
+      if (!container) container = document.getElementById('academy-root');
+      if (!container) { if (onError) onError('Container not found'); return; }
+
+      container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Calendar...</div>';
+
+      var self = this;
+
+      if (this.loadCalendarLazy) {
+        this.loadCalendarLazy(function(calendar) {
+          if (container) {
+            calendar._root = container;
+            calendar.render();
+            if (onReady) onReady(calendar);
+          }
+        }, function(error) {
+          var inlineCal = self._createInlineCalendar();
+          self._inlineCalendar = inlineCal;
+          inlineCal.render(container);
+          if (onError) onError(error);
+        });
+      } else {
+        var inlineCal = this._createInlineCalendar();
+        this._inlineCalendar = inlineCal;
+        inlineCal.render(container);
+        if (onReady) onReady(inlineCal);
+      }
+    }
+
+    renderSettings(container, onReady, onError) {
+      if (!container) container = document.getElementById('academy-root');
+      if (!container) {
+        if (onError) onError('Container not found');
+        return;
+      }
+
+      container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Settings...</div>';
+
+      var self = this;
+
+      // 🔥 Part 165: 先确保 SettingsAuthority 就绪
+      this.loadSettingsAuthority(function(auth) {
+        console.log('[AcademyLoader] ✅ SettingsAuthority ready, loading Settings UI...');
+        self._loadSettingsUI(container, onReady, onError);
+      }, function(error) {
+        console.warn('[AcademyLoader] ⚠️ SettingsAuthority failed, loading Settings anyway...');
+        self._loadSettingsUI(container, onReady, onError);
+      });
+    }
+
+    _loadSettingsUI(container, onReady, onError) {
+      if (window.LawAIApp?.Settings && typeof window.LawAIApp.Settings.render === 'function') {
+        try {
+          window.LawAIApp.Settings._root = container;
+          window.LawAIApp.Settings.render();
+          if (onReady) onReady(window.LawAIApp.Settings);
+          return;
+        } catch (e) {
+          console.warn('[AcademyLoader] Settings render error:', e);
+        }
+      }
+
+      var self = this;
+      this.loadSettingsLazy(function(settings) {
+        if (container) {
+          try { settings.render(); if (onReady) onReady(settings); } catch (e) {}
+        }
+      }, function(error) {
+        console.warn('[AcademyLoader] Settings load failed:', error);
+        var inlineSettings = self._createInlineSettings();
+        inlineSettings.render(container);
+        if (onError) onError(error);
+      });
+    }
+
+    updateNavHighlight(activeTab) {
+      document.querySelectorAll('.nav-item').forEach(function(nav) {
+        if (nav.dataset.tab === activeTab) {
+          nav.style.color = '#4a9eff';
+          nav.classList.add('active');
+        } else {
+          nav.style.color = '#64748b';
+          nav.classList.remove('active');
+        }
+      });
+    }
+
+    // ============================================================
+    // ✅ 真正的顺序加载（保留依赖顺序）
+    // ============================================================
+    _loadScriptsSequentially(files, callback) {
+      var index = 0;
+      var failed = [];
+
+      function loadNext() {
+        if (index >= files.length) {
+          callback(failed.length === 0);
+          return;
+        }
+        var file = files[index++];
+        var script = document.createElement('script');
+        script.src = file + '?v=' + Date.now();
+        script.async = false; // 保持顺序
+        script.onload = loadNext;
+        script.onerror = function() {
+          failed.push(file);
+          loadNext();
+        };
+        document.head.appendChild(script);
+      }
+
+      loadNext();
     }
 
     async _doStart() {
@@ -848,49 +867,49 @@
     }
 
     healthCheck() {
-        var auth = window.LawAIApp?.CalendarAuthority;
-        var notesAuth = window.LawAIApp?.NotesAuthority;
-        var settingsAuth = window.LawAIApp?.SettingsAuthority;
-        var curriculumAuth = window.LawAIApp?.CurriculumAuthority;
-        var videoRenderer = window.LawAIApp?.VideoRenderer;
-        return {
-            status: this.status,
-            health: this.health,
-            version: this.version,
-            loadedModules: this.loadedModules,
-            failedModules: this.failedModules,
-            lazyLoaded: this._lazyLoaded,
-            lazyLoading: this._lazyLoading,
-            calendarAuthority: {
-                initialized: auth ? auth.initialized : false,
-                loading: auth ? auth.loading : false,
-                isReady: auth ? auth.isReady : false,
-                scheduleCount: auth && auth.isReady ? auth.getAllSchedules().length : 0
-            },
-            notesAuthority: {
-                initialized: notesAuth ? notesAuth.initialized : false,
-                loading: notesAuth ? notesAuth.loading : false,
-                isReady: notesAuth ? notesAuth.isReady : false,
-                noteCount: notesAuth && notesAuth.isReady ? notesAuth.getAllNotes().length : 0
-            },
-            settingsAuthority: {  // 🆕
-                initialized: settingsAuth ? settingsAuth.initialized : false,
-                loading: settingsAuth ? settingsAuth.loading : false,
-                isReady: settingsAuth ? settingsAuth.isReady : false,
-                settingsCount: settingsAuth && settingsAuth.isReady ? Object.keys(settingsAuth.getAll()).length : 0
-            },
-            curriculumAuthority: {
-                initialized: curriculumAuth ? curriculumAuth.initialized : false,
-                loading: curriculumAuth ? curriculumAuth.loading : false,
-                isReady: curriculumAuth ? curriculumAuth.isReady : false,
-                schoolCount: curriculumAuth && curriculumAuth.isReady ? curriculumAuth.getAllSchools().length : 0
-            },
-            videoActivity: {  // 🆕 Part 170
-              initialized: videoRenderer ? true : false,
-              isReady: videoRenderer ? true : false,
-              evidenceContract: !!(window.LawAIApp?.VideoEvidenceContract)
-          }
-        };
+      var auth = window.LawAIApp?.CalendarAuthority;
+      var notesAuth = window.LawAIApp?.NotesAuthority;
+      var settingsAuth = window.LawAIApp?.SettingsAuthority;
+      var curriculumAuth = window.LawAIApp?.CurriculumAuthority;
+      var videoRenderer = window.LawAIApp?.VideoRenderer;
+      return {
+        status: this.status,
+        health: this.health,
+        version: this.version,
+        loadedModules: this.loadedModules,
+        failedModules: this.failedModules,
+        lazyLoaded: this._lazyLoaded,
+        lazyLoading: this._lazyLoading,
+        calendarAuthority: {
+          initialized: auth ? auth.initialized : false,
+          loading: auth ? auth.loading : false,
+          isReady: auth ? auth.isReady : false,
+          scheduleCount: auth && auth.isReady ? auth.getAllSchedules().length : 0
+        },
+        notesAuthority: {
+          initialized: notesAuth ? notesAuth.initialized : false,
+          loading: notesAuth ? notesAuth.loading : false,
+          isReady: notesAuth ? notesAuth.isReady : false,
+          noteCount: notesAuth && notesAuth.isReady ? notesAuth.getAllNotes().length : 0
+        },
+        settingsAuthority: {
+          initialized: settingsAuth ? settingsAuth.initialized : false,
+          loading: settingsAuth ? settingsAuth.loading : false,
+          isReady: settingsAuth ? settingsAuth.isReady : false,
+          settingsCount: settingsAuth && settingsAuth.isReady ? Object.keys(settingsAuth.getAll()).length : 0
+        },
+        curriculumAuthority: {
+          initialized: curriculumAuth ? curriculumAuth.initialized : false,
+          loading: curriculumAuth ? curriculumAuth.loading : false,
+          isReady: curriculumAuth ? curriculumAuth.isReady : false,
+          schoolCount: curriculumAuth && curriculumAuth.isReady ? curriculumAuth.getAllSchools().length : 0
+        },
+        videoActivity: {
+          initialized: videoRenderer ? true : false,
+          isReady: videoRenderer ? true : false,
+          evidenceContract: !!(window.LawAIApp?.VideoEvidenceContract)
+        }
+      };
     }
 
     async recover() {
