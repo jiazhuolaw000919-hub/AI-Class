@@ -445,7 +445,30 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                         ${_result.explanation ? `<p style="margin:6px 0 0;font-size:12px;color:#94a3b8;line-height:1.5;">${_result.explanation}</p>` : ''}
                     </div>
                 `;
-
+            
+                // 🔥 Part 173: Retry / Reflection 选项
+                html += `
+                    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+                `;
+            
+                if (!isCorrect) {
+                    // 不正确时显示 "Try again"
+                    html += `
+                        <button id="practice-retry-btn" style="padding:6px 16px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.12);border-radius:8px;color:#4a9eff;font-size:12px;cursor:pointer;font-family:inherit;">
+                            🔄 Try again
+                        </button>
+                    `;
+                }
+            
+                // 无论对错都可以反思
+                html += `
+                        <button onclick="LawAIApp.Experience.Renderers.PracticeRenderer._promptReflection('${_activity.id}')" 
+                                style="padding:6px 16px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.12);border-radius:8px;color:#c4b5fd;font-size:12px;cursor:pointer;font-family:inherit;">
+                            💭 ${isCorrect ? 'What did you learn?' : 'Reflect on this'}
+                        </button>
+                    </div>
+                `;
+            
                 // 如果已完成，显示完成状态
                 if (_submitted && _result.correct) {
                     html += `
@@ -455,10 +478,6 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                     `;
                 }
             }
-
-            html += `</div>`;
-            return html;
-        }
 
         // ============================================================
         // Bind Events
@@ -588,15 +607,27 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                 });
             }
 
-            // 键盘支持 (Enter 提交)
-            var textInput = _container.querySelector('#practice-text-input');
-            if (textInput) {
-                textInput.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        var submitBtn = _container.querySelector('#practice-submit-btn');
-                        if (submitBtn) submitBtn.click();
-                    }
+            // 🔥 Part 173: Retry 按钮
+            var retryBtn = _container.querySelector('#practice-retry-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', function() {
+                    // 重置当前状态，允许重试
+                    _evaluated = false;
+                    _submitted = false;
+                    _selectedOption = null;
+                    _result = null;
+                    _isDuplicateSubmit = false;
+                    
+                    // 注意：保留 _attemptHistory，因为 Part 130 要求
+                    // 保留所有 attempt 历史
+                    
+                    // 重新渲染
+                    _render();
+                    
+                    // 发射重试信号
+                    _emitAttemptSignal('ACTIVITY_RETRY', {
+                        attemptNumber: _attemptNumber + 1
+                    });
                 });
             }
         }
@@ -796,6 +827,38 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                     .map(function(a) { return a.evidence; });
             }
         };
+    }
+
+    // ============================================================
+    // 🔥 Part 173: Reflection Method
+    // ============================================================
+
+    _promptReflection: function(activityId) {
+        var reflection = prompt('💭 What did you learn or notice?\n\n(Your reflection will be saved to Notes)');
+        if (!reflection || !reflection.trim()) return;
+
+        // 🔥 Part 173: 通过 NotesAuthority 保存
+        var notesAuth = window.LawAIApp?.NotesAuthority;
+        if (!notesAuth || !notesAuth.isReady) {
+            if (window.LawAIApp?.Toast?.info) {
+                LawAIApp.Toast.info('📓 Notes loading, please retry');
+            }
+            return;
+        }
+
+        var result = notesAuth.create({
+            title: 'Practice Reflection',
+            content: reflection,
+            noteType: 'REFLECTION',
+            source: 'practice-activity',
+            createdBy: 'learner',
+            tags: ['practice', 'reflection'],
+            relatedActivityRef: activityId
+        });
+
+        if (result.success && window.LawAIApp?.Toast?.success) {
+            LawAIApp.Toast.success('💭 Reflection saved to Notes');
+        }
     }
 };
 
