@@ -1011,16 +1011,26 @@ function __safeCall(pathOrObj) {
         },
 
         _renderSchoolView: function(container, schoolId) {
-            var schoolRegistry = window.LawAIApp && window.LawAIApp.SchoolRegistry;
-            var programRegistry = window.LawAIApp && window.LawAIApp.ProgramRegistry;
-
-            var school = schoolRegistry ? schoolRegistry.getSchool(schoolId) : null;
-            var programs = programRegistry ? programRegistry.getProgramsBySchool(schoolId) : [];
-
-            if (!school) {
+            // 🔥 Part 166: 通过 SchoolViewModel 读取
+            var viewModel = window.LawAIApp?.SchoolViewModel;
+        
+            if (!viewModel) {
+                container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">⏳ Loading School...</div>';
+                return;
+            }
+        
+            var detail = viewModel.buildSchoolDetail(schoolId);
+        
+            if (detail.status === 'LOADING') {
+                container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">⏳ Loading School...</div>';
+                return;
+            }
+        
+            if (detail.status === 'NOT_FOUND') {
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
-                        <p>School not found</p>
+                        <div style="font-size: 48px; margin-bottom: 16px;">🏛️</div>
+                        <p style="font-size: 16px; margin: 0;">School not found</p>
                         <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.goHome')" 
                                 style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer; font-family: inherit;">
                             ← Back to Academy
@@ -1029,9 +1039,13 @@ function __safeCall(pathOrObj) {
                 `;
                 return;
             }
-
+        
+            var school = detail.school;
+            var courses = detail.courses;
+        
             var html = '';
-
+        
+            // 返回栏
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.goHome')" 
@@ -1041,7 +1055,8 @@ function __safeCall(pathOrObj) {
                     <span style="color: #64748b; font-size: 13px; margin-left: auto;">🏛️ Academy</span>
                 </div>
             `;
-
+        
+            // School 头部
             html += `
                 <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
@@ -1052,29 +1067,37 @@ function __safeCall(pathOrObj) {
                         </div>
                     </div>
             `;
-
-            if (programs && programs.length > 0) {
-                html += `<h2 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px 0;">📚 Programs (${programs.length})</h2>`;
+        
+            // Course 列表
+            if (courses && courses.length > 0) {
+                html += `<h2 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px 0;">📚 Courses (${courses.length})</h2>`;
                 html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">`;
-
-                for (var i = 0; i < programs.length; i++) {
-                    var program = programs[i];
-                    var levelLabel = program.level || 'beginner';
-                    var levelColor = levelLabel === 'beginner' ? '#10b981' : levelLabel === 'intermediate' ? '#f59e0b' : '#ef4444';
-                    var levelEmoji = levelLabel === 'beginner' ? '🟢' : levelLabel === 'intermediate' ? '🟡' : '🔴';
-
+        
+                for (var i = 0; i < courses.length; i++) {
+                    var course = courses[i];
+                    var levelColor = course.difficulty === 'beginner' ? '#10b981' : 
+                                    course.difficulty === 'intermediate' ? '#f59e0b' : '#ef4444';
+                    var levelEmoji = course.difficulty === 'beginner' ? '🟢' : 
+                                    course.difficulty === 'intermediate' ? '🟡' : '🔴';
+        
+                    // 🔥 Part 166: 进度来自 ViewModel（原自 Progress）
+                    var progressText = course.progress && course.progress.available
+                        ? course.progress.percent + '%'
+                        : '—';
+        
                     html += `
                         <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToProgram', '${program.id}')"
+                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToCourse', '${course.courseId}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.04)'">
                             <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
-                                <div>
-                                    <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 4px 0;">${program.name}</h3>
-                                    <p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px 0;">${program.description || ''}</p>
-                                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                                        <span style="color: ${levelColor}; font-size: 12px; background: rgba(255,255,255,0.06); padding: 2px 10px; border-radius: 12px;">${levelEmoji} ${levelLabel.charAt(0).toUpperCase() + levelLabel.slice(1)}</span>
-                                        <span style="color: #64748b; font-size: 12px;">${program.modules ? program.modules.length : 0} modules</span>
+                                <div style="flex: 1;">
+                                    <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 4px 0;">${course.name}</h3>
+                                    <p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px 0;">${course.description || ''}</p>
+                                    <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                                        <span style="color: ${levelColor}; font-size: 12px; background: rgba(255,255,255,0.06); padding: 2px 10px; border-radius: 12px;">${levelEmoji} ${course.difficulty || 'beginner'}</span>
+                                        <span style="color: #64748b; font-size: 12px;">${course.subjectCount || 0} subjects</span>
+                                        <span style="color: #4a9eff; font-size: 12px;">📊 ${progressText}</span>
                                     </div>
                                 </div>
                                 <span style="color: #4a9eff; font-size: 18px;">→</span>
@@ -1082,112 +1105,109 @@ function __safeCall(pathOrObj) {
                         </div>
                     `;
                 }
-
+        
                 html += `</div>`;
             } else {
                 html += `
                     <div style="text-align: center; padding: 40px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; margin-top: 16px;">
-                        <p>No programs available for this school yet.</p>
+                        <p>📝 No courses available for this school yet.</p>
                     </div>
                 `;
             }
-
+        
             html += `</div>`;
             container.innerHTML = html;
         },
 
         _renderProgramView: function(container, programId) {
-            var programRegistry = safeGet(window, 'LawAIApp.ProgramRegistry');
-            var courseRegistry = safeGet(window, 'LawAIApp.CourseRegistry');
-
-            var program = programRegistry ? programRegistry.getProgram(programId) : null;
-            var courses = courseRegistry ? courseRegistry.getCoursesByProgram(programId) : [];
-
-            if (!program) {
+            // 🔥 Part 166: 通过 SchoolViewModel 读取
+            var viewModel = window.LawAIApp?.SchoolViewModel;
+            if (!viewModel) {
+                container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">⏳ Loading...</div>';
+                return;
+            }
+        
+            // Program 等同于 Course 的另一种叫法，用 buildCourseCard
+            var course = viewModel.buildCourseCard(programId);
+        
+            if (course.status === 'UNKNOWN') {
                 container.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         <p>Program not found</p>
                         <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.goHome')" 
-                                style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer;">
+                                style="margin-top: 16px; padding: 8px 20px; background: #4a9eff; border: none; border-radius: 8px; color: white; cursor: pointer; font-family: inherit;">
                             ← Back to Academy
                         </button>
                     </div>
                 `;
                 return;
             }
-
-            var levelLabel = program.level || 'beginner';
-            var levelColor = levelLabel === 'beginner' ? '#10b981' : levelLabel === 'intermediate' ? '#f59e0b' : '#ef4444';
-            var levelEmoji = levelLabel === 'beginner' ? '🟢' : levelLabel === 'intermediate' ? '🟡' : '🔴';
-            var statusLabel = program.status || 'active';
-            var statusColor = statusLabel === 'active' ? '#10b981' : statusLabel === 'draft' ? '#f59e0b' : '#64748b';
-
+        
+            var curriculum = window.LawAIApp?.CurriculumAuthority;
+            var subjects = curriculum ? curriculum.getSubjectsByCourse(programId) : [];
+            var school = curriculum ? curriculum.getSchool(course.schoolId) : null;
+        
+            var levelColor = course.difficulty === 'beginner' ? '#10b981' : 
+                            course.difficulty === 'intermediate' ? '#f59e0b' : '#ef4444';
+            var levelEmoji = course.difficulty === 'beginner' ? '🟢' : 
+                            course.difficulty === 'intermediate' ? '🟡' : '🔴';
+        
             var html = '';
-
+        
+            // 返回栏
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSchool', '${program.schoolId}')" 
-                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
+                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSchool', '${course.schoolId}')" 
+                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to School
                     </button>
-                    <span style="color: #64748b; font-size: 13px; margin-left: auto;">🏛️ Academy</span>
+                    <span style="color: #64748b; font-size: 13px; margin-left: auto;">📚 Course</span>
                 </div>
             `;
-
+        
+            // Course 头部
             html += `
                 <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
                     <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
-                        <span style="font-size: 48px;">📚</span>
+                        <span style="font-size: 48px;">${course.icon || '📚'}</span>
                         <div>
-                            <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 4px 0;">${program.name}</h1>
-                            <p style="color: #94a3b8; font-size: 14px; margin: 0;">${program.description || ''}</p>
+                            <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 4px 0;">${course.name}</h1>
+                            <p style="color: #94a3b8; font-size: 14px; margin: 0;">${course.description || ''}</p>
                         </div>
                     </div>
                     <div style="display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
-                        <span style="color: ${levelColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${levelEmoji} ${levelLabel.charAt(0).toUpperCase() + levelLabel.slice(1)}</span>
-                        <span style="color: ${statusColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)}</span>
-                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${(program.modules && program.modules.length) || 0} modules</span>
+                        <span style="color: ${levelColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${levelEmoji} ${course.difficulty || 'beginner'}</span>
+                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 ${subjects.length} subjects</span>
                     </div>
             `;
-
-            if (courses && courses.length > 0) {
-                html += `<h2 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px 0;">📖 Courses (${courses.length})</h2>`;
+        
+            // Subject 列表
+            if (subjects && subjects.length > 0) {
+                html += `<h2 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px 0;">📖 Subjects (${subjects.length})</h2>`;
                 html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">`;
-
-                courses.forEach(function(course) {
-                    var courseStatus = course.status || 'active';
-                    var courseStatusColor = courseStatus === 'active' ? '#10b981' : courseStatus === 'draft' ? '#f59e0b' : '#64748b';
-
+        
+                for (var i = 0; i < subjects.length; i++) {
+                    var subject = subjects[i];
                     html += `
                         <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToCourse', '${course.id}')"
+                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectSubject', '${subject.id}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.04)'">
-                            <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
-                                <div>
-                                    <h3 style="font-size: 15px; font-weight: 600; margin: 0 0 4px 0;">${course.title}</h3>
-                                    <p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px 0;">${course.description || ''}</p>
-                                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                                        <span style="color: ${courseStatusColor}; font-size: 11px; background: rgba(255,255,255,0.06); padding: 2px 10px; border-radius: 12px;">${courseStatus}</span>
-                                        <span style="color: #64748b; font-size: 11px;">${(course.modules && course.modules.length) || 0} modules</span>
-                                    </div>
-                                </div>
-                                <span style="color: #4a9eff; font-size: 16px;">→</span>
-                            </div>
+                            <h3 style="font-size: 15px; font-weight: 600; margin: 0 0 4px 0;">${subject.title || subject.name}</h3>
+                            <p style="color: #94a3b8; font-size: 13px; margin: 0;">${subject.description || ''}</p>
                         </div>
                     `;
-                });
-
+                }
+        
                 html += `</div>`;
             } else {
                 html += `
                     <div style="text-align: center; padding: 40px 20px; color: #64748b; background: rgba(255,255,255,0.03); border-radius: 12px; margin-top: 16px;">
-                        <p>📝 No courses available for this program yet.</p>
-                        <p style="font-size: 13px;">Content is being prepared</p>
+                        <p>📝 No subjects available for this course yet.</p>
                     </div>
                 `;
             }
-
+        
             html += `</div>`;
             container.innerHTML = html;
         },
@@ -1196,89 +1216,115 @@ function __safeCall(pathOrObj) {
          * 🔥 Part 59.2: Course Experience (升级版)
          */
         _renderCourseView: function(container, courseId) {
-            var courseRegistry = safeGet(window, 'LawAIApp.CourseRegistry');
-            var course = courseRegistry ? courseRegistry.getCourse(courseId) : null;
-
-            if (!course) {
+            // 🔥 Part 166: 通过 SchoolViewModel 读取
+            var viewModel = window.LawAIApp?.SchoolViewModel;
+            if (!viewModel) {
+                container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">⏳ Loading...</div>';
+                return;
+            }
+        
+            var course = viewModel.buildCourseCard(courseId);
+        
+            if (course.status === 'UNKNOWN') {
                 container.innerHTML = this._renderCourseNotFound();
                 return;
             }
-
-            // 获取学习状态
-            var adapter = safeGet(window, 'LawAIApp.LearningJourneyAdapter');
-            var courseState = adapter ? adapter.getCourseState(courseId) : null;
-            var progress = courseState ? courseState.progress : 0;
-            var modules = adapter ? adapter.getCourseModules(courseId) : [];
-
-            // 计算完成状态
-            var isCompleted = courseState ? courseState.isCompleted : false;
-            var hasProgress = progress > 0 && progress < 100;
-            var isNotStarted = progress === 0;
-
-            // 获取课程元数据
-            var difficultyLabel = course.difficulty || 'beginner';
-            var difficultyColor = this._getDifficultyColor(difficultyLabel);
-            var difficultyEmoji = this._getDifficultyEmoji(difficultyLabel);
-            var statusLabel = course.status || 'active';
-
-            // 构建进度标签
-            var progressLabel = isCompleted ? '✅ Completed' : hasProgress ? progress + '% complete' : '📝 Not started';
-
+        
+            var curriculum = window.LawAIApp?.CurriculumAuthority;
+            var subjects = curriculum ? curriculum.getSubjectsByCourse(courseId) : [];
+        
+            var levelColor = course.difficulty === 'beginner' ? '#10b981' : 
+                            course.difficulty === 'intermediate' ? '#f59e0b' : '#ef4444';
+            var levelEmoji = course.difficulty === 'beginner' ? '🟢' : 
+                            course.difficulty === 'intermediate' ? '🟡' : '🔴';
+        
+            // 进度显示
+            var progressPercent = course.progress && course.progress.available 
+                ? course.progress.percent 
+                : 0;
+            var progressLabel = course.progress && course.progress.available
+                ? progressPercent + '%'
+                : '—';
+        
             var html = '';
-
-            // ============================================================
-            // 1. 返回栏
-            // ============================================================
+        
+            // 返回栏
             html += `
                 <div class="academy-back-bar" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToProgram', '${course.programId || ''}')" 
-                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
-                        <span style="font-size:16px;">←</span> Back to Program
-                    </button>
-                    <span style="color: #475569; font-size: 14px;">|</span>
-                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.goHome')" 
-                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.04); color: #94a3b8; border: 1px solid rgba(255,255,255,0.06); font-family: inherit;">
-                        <span style="font-size:14px;">🏠</span> Dashboard
+                    <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSchool', '${course.schoolId || ''}')" 
+                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
+                        <span style="font-size:16px;">←</span> Back to School
                     </button>
                     <span style="color: #64748b; font-size: 13px; margin-left: auto;">📖 Course</span>
                 </div>
             `;
-
-            // ============================================================
-            // 2. Course Header
-            // ============================================================
+        
+            // 主内容
             html += `
                 <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
                     <div style="display: flex; align-items: flex-start; gap: 20px; margin-bottom: 12px; flex-wrap: wrap;">
                         <div style="font-size: 56px; line-height: 1;">${course.icon || '📘'}</div>
                         <div style="flex: 1; min-width: 200px;">
-                            <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 4px 0;">${course.title}</h1>
+                            <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 4px 0;">${course.name}</h1>
                             <p style="color: #94a3b8; font-size: 15px; margin: 0 0 8px 0;">${course.description || ''}</p>
                             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                ${course.programId ? `<span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📚 Program: ${course.programId}</span>` : ''}
-                                <span style="color: ${difficultyColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${difficultyEmoji} ${difficultyLabel.charAt(0).toUpperCase() + difficultyLabel.slice(1)}</span>
-                                <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)}</span>
-                                ${course.estimatedHours ? `<span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">⏱️ ${course.estimatedHours}h</span>` : ''}
-                                <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 ${modules.length} modules</span>
+                                <span style="color: ${levelColor}; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">${levelEmoji} ${course.difficulty || 'beginner'}</span>
+                                <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 ${subjects.length} subjects</span>
                             </div>
                         </div>
                     </div>
+        
+                    <!-- 进度面板 -->
+                    <div style="margin: 20px 0 24px 0; background: rgba(74,158,255,0.04); border-radius: 14px; padding: 20px 24px; border: 1px solid rgba(74,158,255,0.08);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                            <div>
+                                <div style="font-size: 13px; color: #94a3b8;">📊 Progress</div>
+                                <div style="font-size: 28px; font-weight: 700; color: #4a9eff;">${progressLabel}</div>
+                            </div>
+                            <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.startCourse', '${courseId}')" 
+                                    style="padding: 12px 32px; background: #4a9eff; border: none; border-radius: 10px; color: white; font-weight: 600; font-size: 16px; cursor: pointer; font-family: inherit;">
+                                🚀 Continue Learning
+                            </button>
+                        </div>
+                        ${progressPercent > 0 ? `
+                            <div style="margin-top: 12px; background: rgba(255,255,255,0.06); border-radius: 4px; height: 6px; overflow: hidden;">
+                                <div style="background: linear-gradient(90deg, #4a9eff, #10b981); height: 100%; width: ${progressPercent}%; transition: width 0.5s;"></div>
+                            </div>
+                        ` : ''}
+                    </div>
             `;
-
-            // ============================================================
-            // 3. Progress Summary + Primary Action
-            // ============================================================
-            html += this._renderCourseActionPanel(courseId, progress, isCompleted, hasProgress, isNotStarted);
-
-            // ============================================================
-            // 4. Module List
-            // ============================================================
-            if (modules && modules.length > 0) {
-                html += this._renderModuleList(modules, courseId);
+        
+            // Subject 列表
+            if (subjects && subjects.length > 0) {
+                html += `
+                    <div style="margin-top: 8px;">
+                        <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📋 Subjects (${subjects.length})</h2>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                `;
+        
+                for (var i = 0; i < subjects.length; i++) {
+                    var subject = subjects[i];
+                    html += `
+                        <div style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
+                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectSubject', '${subject.id}')"
+                             onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
+                             onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-weight: 500; font-size: 15px;">${subject.title || subject.name}</div>
+                                    ${subject.description ? `<div style="color: #64748b; font-size: 13px; margin-top: 2px;">${subject.description}</div>` : ''}
+                                </div>
+                                <span style="color: #4a9eff; font-size: 16px;">→</span>
+                            </div>
+                        </div>
+                    `;
+                }
+        
+                html += `</div></div>`;
             } else {
                 html += this._renderEmptyModuleState();
             }
-
+        
             html += `</div>`;
             container.innerHTML = html;
         },
