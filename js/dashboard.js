@@ -109,47 +109,7 @@ LawAIApp.Dashboard = {
     const todayLesson = this._getTodayLesson(allLessons, progress);
     const dailyBriefingHTML = this._getDailyBriefing();
 
-    // 🔥 Part 162: Core-Derived Dashboard — Read Only
-    // ⚠️ 必须先声明 viewModel，再使用
-    var coreResult = null;
-    var viewModel = null;
-    var surfaceData = null;
-    
-    try {
-        coreResult = this._getCoreIntelligenceResult();
-        if (coreResult) {
-            surfaceData = LawAIApp.DashboardSurfaceAdapter 
-                ? LawAIApp.DashboardSurfaceAdapter.adapt(coreResult)
-                : null;
-            viewModel = LawAIApp.DashboardViewModel
-                ? LawAIApp.DashboardViewModel.toRenderModel(surfaceData)
-                : null;
-        }
-    } catch (e) {
-        console.warn('[Dashboard] Core Intelligence read error:', e);
-    }
-    
-    // ✅ 现在 viewModel 已经声明并赋值，可以安全使用
-    const completionRate = viewModel && viewModel.progress 
-      ? (viewModel.progress.overall || 0).toFixed(1)
-      : (progress.completedLessons && progress.completedLessons.length > 0
-          ? ((progress.completedLessons.length / 365) * 100).toFixed(1)
-          : '0.0');
-    
-    const currentStage = progress.currentStage || 'Foundation';
-    const lastCompletedDate = this._getLastCompletedDate(streakData);
-    const noteCount = this._getNoteCount();
-    
-    let heroData = this._getHeroData(learnerState, progress, streakData);
-    
-    // 后续的 ViewModel 覆盖逻辑保留
-    if (viewModel) {
-        if (viewModel.hero) {
-            heroData = { ... };  // ⚠️ 注意：heroData 是 const，这里会报错！
-        }
-    }
-
-      // 🔥 Part 162: Core-Derived Dashboard — Read Only
+        // 🔥 Part 162: Core-Derived Dashboard — Read Only
     // ⚠️ 必须先声明 viewModel，再使用
     var coreResult = null;
     var viewModel = null;
