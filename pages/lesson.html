@@ -29,7 +29,7 @@
 
         #breadcrumb-nav, .back-header { display: none !important; }
 
-        /* ===== 顶部：返回 + 时间（独立，不在 bar 里） ===== */
+        /* ===== 顶部：返回 + 时间 ===== */
         .lesson-top {
             display: flex;
             justify-content: space-between;
@@ -107,8 +107,8 @@
             line-height: 16px;
         }
 
-        /* ===== Day Bar（独立小 bar） ===== */
-        .day-bar {
+        /* ===== Lesson Meta Bar（替代 Day Bar） ===== */
+        .lesson-meta-bar {
             display: flex;
             align-items: center;
             gap: 10px;
@@ -118,19 +118,20 @@
             border: 1px solid rgba(255,255,255,0.05);
             margin-bottom: 20px;
             width: fit-content;
+            flex-wrap: wrap;
         }
-        .day-bar .icon { 
+        .lesson-meta-bar .icon { 
             font-size: 14px; 
             opacity: 0.6;
         }
-        .day-bar .label {
+        .lesson-meta-bar .label {
             font-size: 10px;
             font-weight: 500;
             color: #64748b;
             letter-spacing: 0.5px;
             text-transform: uppercase;
         }
-        .day-bar .number {
+        .lesson-meta-bar .number {
             font-size: 14px;
             font-weight: 700;
             color: #4a9eff;
@@ -140,6 +141,18 @@
             line-height: 22px;
             min-width: 26px;
             text-align: center;
+        }
+        .lesson-meta-bar .difficulty {
+            font-size: 11px;
+            font-weight: 500;
+            color: #10b981;
+            background: rgba(16,185,129,0.1);
+            padding: 1px 10px;
+            border-radius: 12px;
+        }
+        .lesson-meta-bar .duration {
+            font-size: 11px;
+            color: #64748b;
         }
 
         /* ===== 课程内容 ===== */
@@ -201,6 +214,45 @@
         .lesson-content .complete-btn:hover { background: #3b8be8; transform: scale(1.02); }
         .lesson-content .complete-btn:active { transform: scale(0.97); }
 
+        /* ===== section 内 content 项 ===== */
+        .lesson-content .content-item {
+            font-size: 14px;
+            color: #e2e8f0;
+            line-height: 1.7;
+            margin: 8px 0;
+        }
+        .lesson-content .content-item.definition {
+            background: rgba(74,158,255,0.06);
+            border-left: 3px solid #4a9eff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            color: #94a3b8;
+        }
+        .lesson-content .content-item.example {
+            background: rgba(139,92,246,0.06);
+            border-left: 3px solid #8b5cf6;
+            padding: 8px 12px;
+            border-radius: 6px;
+            color: #94a3b8;
+        }
+
+        /* ===== Loading / Error ===== */
+        .loading-state, .error-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+        }
+        .loading-state .spinner {
+            font-size: 48px;
+            margin-bottom: 16px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        .error-state .icon { font-size: 48px; margin-bottom: 16px; }
+
         /* ===== 底部导航 ===== */
         .bottom-nav {
             position: fixed;
@@ -242,15 +294,15 @@
             .lesson-top .time-group .date { font-size: 11px; }
             .lesson-top .time-group .time-display { font-size: 13px; }
             .lesson-top .time-group .seconds { font-size: 10px; min-width: 18px; }
-            .day-bar { padding: 4px 12px 4px 10px; }
-            .day-bar .number { font-size: 13px; line-height: 20px; min-width: 22px; }
+            .lesson-meta-bar { padding: 4px 12px 4px 10px; }
+            .lesson-meta-bar .number { font-size: 13px; line-height: 20px; min-width: 22px; }
             .lesson-content .title { font-size: 20px; }
         }
         @media (max-width: 420px) {
             .lesson-top .back-btn { font-size: 11px; padding: 4px 10px; }
             .lesson-top .time-group { gap: 4px; }
-            .day-bar .number { font-size: 12px; min-width: 20px; }
-            .day-bar .label { font-size: 9px; }
+            .lesson-meta-bar .number { font-size: 12px; min-width: 20px; }
+            .lesson-meta-bar .label { font-size: 9px; }
         }
     </style>
 </head>
@@ -273,61 +325,78 @@
     <script src="/js/progressEngine.js"></script>
     <script src="/js/systemComposer.js"></script>
     <script src="/js/app.js"></script>
-    <script src="/js/lessonView.js"></script>
+    <script src="/js/academy/contentLoader.js"></script>
+    <script src="/js/academy/subjectRegistry.js"></script>
+    <script src="/js/academy/courseRegistry.js"></script>
     <script src="/js/router.js"></script>
 
     <script>
         (function() {
-            console.log('📄 Lesson page loaded (Day Bar + Time outside)');
+            'use strict';
 
-            // ===== 获取 Lesson ID =====
+            console.log('📄 Lesson page loaded (S4 Native v3.0.0)');
+
+            // ============================================================
+            // 1. 获取 lessonId（兼容多种 URL 参数）
+            // ============================================================
             function getLessonIdFromURL() {
                 var params = new URLSearchParams(window.location.search);
-                return params.get('lessonId') || params.get('id') || params.get('day') || null;
+                return params.get('lessonId') 
+                    || params.get('id') 
+                    || params.get('lesson') 
+                    || null;
             }
 
-            var lessonId = getLessonIdFromURL() || 'day-1';
-            var dayNumber = lessonId.replace('day-', '').replace('day', '');
+            var lessonId = getLessonIdFromURL();
+
+            // ⚠️ v3.0.0: 不再 fallback 到 'day-1'！
+            // 如果 URL 没有 lessonId，显示错误页面
+            if (!lessonId) {
+                console.error('❌ 未提供 lessonId！请在 URL 加上 ?lessonId=xxx');
+                document.getElementById('app').innerHTML = `
+                    <div class="error-state">
+                        <div class="icon">⚠️</div>
+                        <h2>未提供 lessonId</h2>
+                        <p>请在 URL 加上 <code>?lessonId=lesson-ai-fundamentals-001</code></p>
+                        <p><a href="/pages/academy.html" style="color:#4a9eff;">← 返回 Academy</a></p>
+                    </div>
+                `;
+                return;
+            }
+
             console.log('📖 Loading lesson:', lessonId);
 
-            // ===== 动态时间 =====
+            // ============================================================
+            // 2. 动态时间显示
+            // ============================================================
             var timeInterval = null;
 
             function getFormattedDateTime() {
                 var now = new Date();
                 var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
                 var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                
-                var weekday = days[now.getDay()];
-                var month = months[now.getMonth()];
-                var date = now.getDate();
-                var year = now.getFullYear();
 
                 var hours = now.getHours();
                 var ampm = hours >= 12 ? 'PM' : 'AM';
                 var displayHours = hours % 12 || 12;
-                var minutes = String(now.getMinutes()).padStart(2, '0');
-                var seconds = String(now.getSeconds()).padStart(2, '0');
 
                 return {
-                    weekday: weekday,
-                    date: month + ' ' + date + ', ' + year,
-                    time: displayHours + ':' + minutes,
-                    seconds: seconds,
+                    weekday: days[now.getDay()],
+                    date: months[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear(),
+                    time: displayHours + ':' + String(now.getMinutes()).padStart(2, '0'),
+                    seconds: String(now.getSeconds()).padStart(2, '0'),
                     ampm: ampm
                 };
             }
 
             function updateTime() {
+                var dt = getFormattedDateTime();
                 var weekdayEl = document.getElementById('lesson-weekday');
                 var dateEl = document.getElementById('lesson-date');
                 var timeEl = document.getElementById('lesson-time');
                 var secondsEl = document.getElementById('lesson-seconds');
                 var ampmEl = document.getElementById('lesson-ampm');
 
-                if (!timeEl) return;
-
-                var dt = getFormattedDateTime();
                 if (weekdayEl) weekdayEl.textContent = dt.weekday;
                 if (dateEl) dateEl.textContent = dt.date;
                 if (timeEl) timeEl.textContent = dt.time;
@@ -335,7 +404,9 @@
                 if (ampmEl) ampmEl.textContent = dt.ampm;
             }
 
-            // ===== 导航 =====
+            // ============================================================
+            // 3. 导航
+            // ============================================================
             function setupNav() {
                 document.querySelectorAll('.nav-item').forEach(function(item) {
                     item.addEventListener('click', function(e) {
@@ -350,7 +421,9 @@
                 });
             }
 
-            // ===== 渲染 Top（返回 + 时间） =====
+            // ============================================================
+            // 4. 渲染 Top
+            // ============================================================
             function renderTop(app) {
                 if (document.getElementById('lesson-top')) return;
 
@@ -378,90 +451,324 @@
                 timeInterval = setInterval(updateTime, 1000);
             }
 
-            // ===== 渲染 Day Bar（独立小 bar） =====
-            function renderDayBar(app) {
-                if (document.getElementById('day-bar')) return;
+            // ============================================================
+            // 5. 渲染 Meta Bar（替代 Day Bar）
+            // ============================================================
+            function renderMetaBar(app, lesson) {
+                if (document.getElementById('lesson-meta-bar')) return;
+
+                var order = lesson.order || '—';
+                var difficulty = lesson.difficulty || 'foundation';
+                var minutes = lesson.estimatedMinutes || lesson.duration || '—';
 
                 var bar = document.createElement('div');
-                bar.id = 'day-bar';
-                bar.className = 'day-bar';
+                bar.id = 'lesson-meta-bar';
+                bar.className = 'lesson-meta-bar';
                 bar.innerHTML = `
                     <span class="icon">📖</span>
-                    <span class="label">Day</span>
-                    <span class="number">${dayNumber}</span>
+                    <span class="label">Lesson</span>
+                    <span class="number">${order}</span>
+                    <span class="difficulty">${difficulty}</span>
+                    <span class="duration">⏱️ ${minutes} min</span>
                 `;
 
                 app.appendChild(bar);
             }
 
-            // ===== 渲染 Lesson =====
-            function renderLesson() {
+            // ============================================================
+            // 6. 渲染 Lesson 主体（从 JSON 数据）
+            // ============================================================
+            function renderLessonContent(container, lesson) {
+                var html = '';
+
+                // ── 标题 ──
+                html += `<h1 class="title">${lesson.title || 'Untitled Lesson'}</h1>`;
+
+                // ── 描述 ──
+                if (lesson.description) {
+                    html += `<p class="subtitle">${lesson.description}</p>`;
+                }
+
+                // ── 学习目标 ──
+                if (lesson.learningObjectives && lesson.learningObjectives.length > 0) {
+                    html += `
+                        <div class="section">
+                            <h3>🎯 Learning Objectives</h3>
+                            <ul>
+                                ${lesson.learningObjectives.map(function(o) {
+                                    return '<li>' + o + '</li>';
+                                }).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                // ── Sections ──
+                if (lesson.sections && lesson.sections.length > 0) {
+                    lesson.sections.forEach(function(section) {
+                        html += `
+                            <div class="section">
+                                <h3>${section.title || 'Section'}</h3>
+                        `;
+
+                        if (section.content && section.content.length > 0) {
+                            section.content.forEach(function(item) {
+                                var type = item.type || 'text';
+                                var content = item.content || '';
+
+                                if (type === 'definition') {
+                                    html += `<div class="content-item definition">📘 ${content}</div>`;
+                                } else if (type === 'example') {
+                                    html += `<div class="content-item example">💡 ${content}</div>`;
+                                } else {
+                                    html += `<div class="content-item">${content}</div>`;
+                                }
+                            });
+                        }
+
+                        html += `</div>`;
+                    });
+                }
+
+                // ── Video ──
+                if (lesson.video && lesson.video.url) {
+                    var embedUrl = lesson.video.url;
+                    var watchMatch = lesson.video.url.match(/youtube\.com\/watch\?v=([^&]+)/);
+                    if (watchMatch) {
+                        embedUrl = 'https://www.youtube.com/embed/' + watchMatch[1];
+                    }
+                    var shortMatch = lesson.video.url.match(/youtu\.be\/([^?]+)/);
+                    if (shortMatch) {
+                        embedUrl = 'https://www.youtube.com/embed/' + shortMatch[1];
+                    }
+
+                    html += `
+                        <div class="section">
+                            <h3>🎬 ${lesson.video.title || 'Video'}</h3>
+                            <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;background:#0a0a0a;">
+                                <iframe src="${embedUrl}" 
+                                        style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowfullscreen></iframe>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // ── Flashcards ──
+                if (lesson.flashcards && lesson.flashcards.length > 0) {
+                    html += `
+                        <div class="section">
+                            <h3>🃏 Flashcards (${lesson.flashcards.length})</h3>
+                    `;
+                    lesson.flashcards.forEach(function(fc) {
+                        html += `
+                            <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 14px;margin:6px 0;">
+                                <div style="font-size:13px;color:#4a9eff;font-weight:500;">Q: ${fc.front}</div>
+                                <div style="font-size:13px;color:#94a3b8;margin-top:4px;">A: ${fc.back}</div>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+
+                // ── Practice ──
+                if (lesson.practice && lesson.practice.enabled && lesson.practice.items && lesson.practice.items.length > 0) {
+                    html += `
+                        <div class="section">
+                            <h3>✍️ Practice (${lesson.practice.items.length})</h3>
+                    `;
+                    lesson.practice.items.forEach(function(p, idx) {
+                        html += `
+                            <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px 14px;margin:6px 0;border-left:3px solid #4a9eff;">
+                                <div style="font-size:14px;font-weight:500;">${idx+1}. ${p.question}</div>
+                                ${p.options ? `<div style="font-size:13px;color:#94a3b8;margin-top:6px;">
+                                    ${p.options.map(function(opt, i) {
+                                        return '<div style="padding:2px 0;">' + String.fromCharCode(65 + i) + '. ' + opt + '</div>';
+                                    }).join('')}
+                                </div>` : ''}
+                                ${p.explanation ? `<div style="font-size:12px;color:#64748b;margin-top:6px;">💡 ${p.explanation}</div>` : ''}
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+
+                // ── Key Takeaways ──
+                if (lesson.keyTakeaways && lesson.keyTakeaways.length > 0) {
+                    html += `
+                        <div class="section">
+                            <h3>🎯 Key Takeaways</h3>
+                            <ul>
+                                ${lesson.keyTakeaways.map(function(t) {
+                                    return '<li>' + t + '</li>';
+                                }).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                // ── 完成按钮 ──
+                html += `
+                    <button class="complete-btn" onclick="window.markLessonComplete()">
+                        ✅ Mark Complete
+                    </button>
+                `;
+
+                container.innerHTML = html;
+            }
+
+            // ============================================================
+            // 7. 加载 Lesson（从 S4 ContentLoader）
+            // ============================================================
+            async function loadLessonFromContentLoader(lessonId) {
+                var loader = window.LawAIApp?.ContentLoader || window.LawAIApp?.S4ContentLoader;
+                if (!loader) {
+                    throw new Error('ContentLoader 不存在');
+                }
+
+                // 方法 1：用 getLessonManifest 拿到 courseId / subjectId
+                if (typeof loader.getLessonManifest === 'function') {
+                    try {
+                        var manifest = await loader.getLessonManifest(lessonId);
+                        if (manifest && manifest.courseId && manifest.subjectId) {
+                            console.log('📋 Manifest found:', manifest);
+                            return await loader.loadLesson(
+                                manifest.courseId,
+                                manifest.subjectId,
+                                lessonId
+                            );
+                        }
+                    } catch (e) {
+                        console.warn('getLessonManifest failed:', e);
+                    }
+                }
+
+                // 方法 2：遍历 SubjectRegistry 找 lesson 所属的 subject
+                var sr = window.LawAIApp?.SubjectRegistry;
+                if (sr && typeof sr.getAllSubjects === 'function') {
+                    var subjects = sr.getAllSubjects();
+                    for (var i = 0; i < subjects.length; i++) {
+                        var subject = subjects[i];
+                        var lessons = subject.lessons || [];
+                        for (var j = 0; j < lessons.length; j++) {
+                            var l = lessons[j];
+                            var lid = (typeof l === 'string') ? l : (l.id || l.lessonId);
+                            if (lid === lessonId) {
+                                console.log('📋 Found via SubjectRegistry:', subject.id);
+                                return await loader.loadLesson(
+                                    subject.courseId,
+                                    subject.id,
+                                    lessonId
+                                );
+                            }
+                        }
+                    }
+                }
+
+                // 方法 3：直接从 URL 猜（兜底，可能不准）
+                throw new Error('无法定位 lesson 的 courseId/subjectId');
+            }
+
+            // ============================================================
+            // 8. 主流程
+            // ============================================================
+            async function renderLesson() {
                 var app = document.getElementById('app');
                 if (!app) return;
 
                 app.innerHTML = '';
 
-                // 1. Top: 返回 + 时间
+                // Top
                 renderTop(app);
 
-                // 2. Day Bar（独立小 bar）
-                renderDayBar(app);
-
-                // 3. 内容容器
+                // Loading
                 var container = document.createElement('div');
                 container.id = 'lesson-content';
                 container.className = 'lesson-content';
-                app.appendChild(container);
-
-                // 尝试用 LessonView 渲染
-                var lessonView = window.LawAIApp?.Views?.LessonView || window.LawAIApp?.LessonView;
-                if (lessonView && typeof lessonView.render === 'function') {
-                    lessonView.render(lessonId, container);
-                    console.log('✅ Lesson rendered via LessonView');
-                    return;
-                }
-
-                // Fallback
                 container.innerHTML = `
-                    <div style="text-align:center;padding:60px 20px;color:#94a3b8;">
-                        <div style="font-size:48px;margin-bottom:16px;">📖</div>
-                        <h2 style="color:#e2e8f0;font-size:20px;">Lesson ${dayNumber}</h2>
+                    <div class="loading-state">
+                        <div class="spinner">⏳</div>
                         <p>Loading lesson content...</p>
-                        <p style="font-size:13px;color:#64748b;margin-top:8px;">
-                            <button class="complete-btn" onclick="window.markLessonComplete()">✅ Mark Complete</button>
-                        </p>
                     </div>
                 `;
+                app.appendChild(container);
+
+                try {
+                    // 加载 JSON
+                    var lesson = await loadLessonFromContentLoader(lessonId);
+
+                    if (!lesson) {
+                        throw new Error('Lesson 数据为空');
+                    }
+
+                    console.log('✅ Lesson loaded:', lesson);
+
+                    // 清空 container，重新渲染
+                    app.innerHTML = '';
+                    renderTop(app);
+                    renderMetaBar(app, lesson);
+
+                    var contentContainer = document.createElement('div');
+                    contentContainer.id = 'lesson-content';
+                    contentContainer.className = 'lesson-content';
+                    app.appendChild(contentContainer);
+
+                    renderLessonContent(contentContainer, lesson);
+                    console.log('✅ Lesson rendered');
+
+                } catch (err) {
+                    console.error('❌ Load failed:', err);
+                    container.innerHTML = `
+                        <div class="error-state">
+                            <div class="icon">⚠️</div>
+                            <h2>无法加载课程</h2>
+                            <p>${err.message || '未知错误'}</p>
+                            <p style="font-size:12px;color:#64748b;">Lesson ID: ${lessonId}</p>
+                            <p style="margin-top:16px;">
+                                <a href="/pages/academy.html" style="color:#4a9eff;">← 返回 Academy</a>
+                            </p>
+                        </div>
+                    `;
+                }
             }
 
-            // ===== 标记完成 =====
+            // ============================================================
+            // 9. 标记完成
+            // ============================================================
             window.markLessonComplete = function() {
                 if (window.LawAIApp?.Toast?.success) {
-                    LawAIApp.Toast.success('✅ Day ' + dayNumber + ' completed! +20 XP');
+                    LawAIApp.Toast.success('✅ Lesson completed!');
                 } else {
-                    alert('✅ Day ' + dayNumber + ' completed! +20 XP');
+                    alert('✅ Lesson completed!');
                 }
                 try {
                     if (window.LawAIApp?.ProgressEngine?.completeLesson) {
                         LawAIApp.ProgressEngine.completeLesson(lessonId);
                     }
-                } catch (e) { console.warn('Progress save failed:', e); }
+                } catch (e) {
+                    console.warn('Progress save failed:', e);
+                }
             };
 
-            // ===== 启动 =====
+            // ============================================================
+            // 10. 启动
+            // ============================================================
             function waitForReady() {
-                if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                    setupNav();
-                    if (window.LawAIApp?.LessonView || window.LawAIApp?.LessonEngine) {
+                var check = function() {
+                    if (window.LawAIApp?.ContentLoader) {
+                        setupNav();
                         renderLesson();
                     } else {
-                        document.addEventListener('SYSTEM_READY', function() { setTimeout(renderLesson, 300); });
-                        setTimeout(renderLesson, 3000);
+                        setTimeout(check, 300);
                     }
+                };
+
+                if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                    setTimeout(check, 300);
                 } else {
                     document.addEventListener('DOMContentLoaded', function() {
-                        setupNav();
-                        setTimeout(renderLesson, 500);
+                        setTimeout(check, 300);
                     });
                 }
             }
