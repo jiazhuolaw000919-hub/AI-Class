@@ -404,50 +404,31 @@
             return this;
         },
 
-        startLesson: function(lessonId) {
-            console.log('[AcademyExperienceManager] 🚀 Starting lesson (in-page):', lessonId);
+        selectLesson: function(lessonId) {
+            console.log('[AcademyExperienceManager] 📍 Selecting lesson (in-page):', lessonId);
         
-            var adapter = window.LawAIApp && window.LawAIApp.LearningJourneyAdapter;
-            if (adapter) {
-                var lesson = adapter.getLessonDetail ? adapter.getLessonDetail(lessonId) : null;
-                if (lesson) {
-                    var session = adapter.startLessonSession ? adapter.startLessonSession(lessonId) : null;
-                    if (session) {
-                        this._state.currentLessonId = lessonId;
-                        this._state.currentModuleId = lesson.moduleId || this._state.currentModuleId;
-                        this._state.viewMode = 'lesson';
-                        this._state.sessionStatus = 'active';
-                        this._state.currentSessionId = session.id;
-                    }
-                } else {
-                    console.warn('[AcademyExperienceManager] Lesson not found in adapter:', lessonId);
-                }
-            } else {
-                // 没有 adapter 也能开始
-                this._state.currentLessonId = lessonId;
-                this._state.viewMode = 'lesson';
-            }
+            this._state.currentLessonId = lessonId;
+            this._state.viewMode = 'lesson';
         
-            // 🔥 v6.3.0: 用 LessonView 在 academy-root 里渲染
+            // 🔥 用 LessonView 在 academy-root 里渲染（不跳转）
             var container = document.getElementById('academy-root');
             if (container) {
                 var lessonView = window.LawAIApp?.Views?.LessonView || window.LawAIApp?.LessonView;
                 if (lessonView && typeof lessonView.render === 'function') {
+                    // 更新 URL（不跳转）
                     var url = '/pages/academy.html?view=lesson&lessonId=' + encodeURIComponent(lessonId);
                     window.history.pushState({ view: 'lesson', lessonId: lessonId }, '', url);
         
+                    console.log('[AcademyExperienceManager] 🎨 Rendering lesson in-page:', lessonId);
                     lessonView.render(lessonId, container);
                 } else {
+                    console.warn('[AcademyExperienceManager] LessonView not available, fallback to lesson.html');
                     window.location.href = '/pages/lesson.html?lessonId=' + encodeURIComponent(lessonId);
                 }
+            } else {
+                console.warn('[AcademyExperienceManager] #academy-root not found');
             }
         
-            this._emit('ACADEMY_VIEW_CHANGED', {
-                viewMode: 'lesson',
-                currentLessonId: lessonId
-            });
-        
-            console.log('[AcademyExperienceManager] ✅ Lesson started:', lessonId);
             return this;
         },
 
