@@ -1827,16 +1827,27 @@ function __safeCall(pathOrObj) {
          * Part 168: Subject View — 通过 SchoolViewModel 读取
          */
         _renderSubjectView: function(container, subjectId) {
-            // 🔥 Part 168: 通过 SchoolViewModel 读取完整 Subject 详情
-            var viewModel = window.LawAIApp?.SchoolViewModel;
+            console.log('[AcademyView] 🎨 _renderSubjectView:', subjectId);
+        
+            var viewModel = window.LawAIApp && window.LawAIApp.SchoolViewModel;
             if (!viewModel || !viewModel.buildSubjectDetail) {
+                console.error('[AcademyView] SchoolViewModel not available');
                 container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">⏳ Loading Subject...</div>';
                 return;
             }
         
-            var detail = viewModel.buildSubjectDetail(subjectId);
+            var detail;
+            try {
+                detail = viewModel.buildSubjectDetail(subjectId);
+            } catch (e) {
+                console.error('[AcademyView] buildSubjectDetail threw:', e);
+                container.innerHTML = '<div style="padding:40px;text-align:center;color:#f87171;">Error building subject: ' + e.message + '</div>';
+                return;
+            }
         
-            if (detail.status === 'LOADING') {
+            console.log('[AcademyView] subject detail:', detail.status, detail.structure);
+        
+            if (!detail || detail.status === 'LOADING') {
                 container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">⏳ Loading Subject...</div>';
                 return;
             }
@@ -1846,37 +1857,21 @@ function __safeCall(pathOrObj) {
                 return;
             }
         
-            var subject = detail.identity;
-            var courseContext = detail.courseContext;
-            var objectives = detail.learningObjectives;
-            var prereqs = detail.prerequisites;
-            var structure = detail.structure;
-            var progress = detail.progress;
-            var mastery = detail.mastery;
-            var recommendation = detail.recommendation;
-            var schedule = detail.schedule;
-            var notes = detail.notes;
-        
-            // 进度显示
-            var progressPercent = progress && progress.available ? progress.percent : 0;
-            var progressLabel = progress && progress.available 
-                ? (progress.completed + '/' + progress.total) 
-                : '—';
-            var progressPercentLabel = progress && progress.available ? progressPercent + '%' : '—';
-        
-            // 掌握度显示
-            var masteryLabel = mastery && mastery.available ? (mastery.label || 'Unknown') : 'Unavailable';
+            // 🔥 从 detail 取数据
+            var subject = detail.identity || {};
+            var courseContext = detail.courseContext || null;
+            var structure = detail.structure || { lessons: [], lessonCount: 0 };
+            var lessons = structure.lessons || [];
+            var lessonCount = structure.lessonCount || lessons.length;
         
             var html = '';
         
-            // ============================================================
-            // 1. 返回栏
-            // ============================================================
+            // ===== 返回栏 =====
             var backTarget = courseContext ? courseContext.courseId : '';
-            var backLabel = courseContext ? ('Back to ' + courseContext.title) : 'Back to Course';
+            var backLabel = courseContext ? ('Back to ' + (courseContext.title || 'Course')) : 'Back to Course';
         
             html += `
-                <div class="academy-back-bar" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToCourse', '${backTarget}')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> ${backLabel}
@@ -1885,130 +1880,49 @@ function __safeCall(pathOrObj) {
                 </div>
             `;
         
-            // ============================================================
-            // 2. Subject Header
-            // ============================================================
+            // ===== Subject 头部 =====
             html += `
                 <div style="padding: 0 16px 32px; color: #e2e8f0; font-family: 'Inter', -apple-system, sans-serif; max-width: 1200px; margin: 0 auto;">
-                    <div style="display: flex; align-items: flex-start; gap: 20px; margin-bottom: 12px; flex-wrap: wrap;">
-                        <div style="font-size: 56px; line-height: 1;">${subject.icon}</div>
-                        <div style="flex: 1; min-width: 200px;">
-                            <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 4px 0;">${subject.title}</h1>
-                            <p style="color: #94a3b8; font-size: 15px; margin: 0 0 8px 0;">${subject.description}</p>
-                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 ${structure.lessonCount} lessons</span>
-                                ${subject.estimatedHours ? `<span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">⏱️ ${subject.estimatedHours}h</span>` : ''}
-                            </div>
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px;">
+                        <span style="font-size: 48px;">${subject.icon || '📖'}</span>
+                        <div>
+                            <h1 style="font-size: 24px; font-weight: 700; margin: 0 0 4px 0;">${subject.title || 'Untitled Subject'}</h1>
+                            ${subject.description ? `<p style="color: #94a3b8; font-size: 14px; margin: 0;">${subject.description}</p>` : ''}
                         </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
+                        <span style="color: #64748b; font-size: 13px; background: rgba(255,255,255,0.06); padding: 2px 12px; border-radius: 12px;">📖 ${lessonCount} lessons</span>
                     </div>
             `;
         
-            // ============================================================
-            // 3. Recommendation Context
-            // ============================================================
-            if (recommendation && recommendation.isRecommended) {
+            // ===== Lessons 列表 =====
+            if (lessons && lessons.length > 0) {
                 html += `
-                    <div style="margin: 16px 0; background: rgba(139,92,246,0.06); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(139,92,246,0.12); border-left: 3px solid #8b5cf6;">
-                        <div style="font-size: 11px; color: #8b5cf6; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 4px;">💡 RECOMMENDED</div>
-                        <div style="font-size: 14px; color: #e2e8f0;">${recommendation.reason || 'Suggested for you'}</div>
-                    </div>
-                `;
-            }
-        
-            // ============================================================
-            // 4. Progress + Mastery 面板
-            // ============================================================
-            html += `
-                <div style="margin: 20px 0 24px 0; background: rgba(74,158,255,0.04); border-radius: 14px; padding: 20px 24px; border: 1px solid rgba(74,158,255,0.08);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-                        <div style="display: flex; gap: 24px; flex-wrap: wrap;">
-                            <div>
-                                <div style="font-size: 12px; color: #94a3b8;">📊 Progress</div>
-                                <div style="font-size: 24px; font-weight: 700; color: #4a9eff;">${progressPercentLabel}</div>
-                                <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${progressLabel} lessons</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 12px; color: #94a3b8;">🧠 Mastery</div>
-                                <div style="font-size: 24px; font-weight: 700; color: #8b5cf6;">${masteryLabel}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        
-            // ============================================================
-            // 5. Prerequisites
-            // ============================================================
-            if (prereqs.available && (prereqs.required.length > 0 || prereqs.suggested.length > 0)) {
-                html += `
-                    <div style="margin-bottom: 24px; background: rgba(245,158,11,0.04); border-radius: 12px; padding: 16px 20px; border: 1px solid rgba(245,158,11,0.08);">
-                        <div style="font-size: 12px; color: #f59e0b; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 8px;">📋 PREREQUISITES</div>
-                `;
-        
-                if (prereqs.required.length > 0) {
-                    html += `<div style="margin-bottom: 8px;">
-                        <div style="font-size: 11px; color: #ef4444; margin-bottom: 4px;">Required</div>`;
-                    prereqs.required.forEach(function(p) {
-                        var icon = p.satisfied ? '✅' : '⭕';
-                        html += `<div style="font-size: 13px; color: #e2e8f0; padding: 2px 0;">${icon} ${p.name}</div>`;
-                    });
-                    html += `</div>`;
-                }
-        
-                if (prereqs.suggested.length > 0) {
-                    html += `<div>
-                        <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Suggested</div>`;
-                    prereqs.suggested.forEach(function(p) {
-                        html += `<div style="font-size: 13px; color: #94a3b8; padding: 2px 0;">○ ${p.name}</div>`;
-                    });
-                    html += `</div>`;
-                }
-        
-                html += `</div>`;
-            }
-        
-            // ============================================================
-            // 6. Learning Objectives
-            // ============================================================
-            if (objectives.available && objectives.objectives.length > 0) {
-                html += `
-                    <div style="margin-bottom: 24px;">
-                        <h2 style="font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">🎯 Learning Objectives</h2>
-                        <div style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 16px 20px; border: 1px solid rgba(255,255,255,0.04);">
-                            <ul style="margin: 0; padding-left: 20px; color: #94a3b8;">
-                                ${objectives.objectives.map(function(o) {
-                                    return `<li style="padding: 4px 0; font-size: 13px;">${o}</li>`;
-                                }).join('')}
-                            </ul>
-                        </div>
-                    </div>
-                `;
-            }
-        
-            // ============================================================
-            // 7. Lessons 列表
-            // ============================================================
-            if (structure.lessons && structure.lessons.length > 0) {
-                html += `
-                    <div style="margin-top: 8px;">
-                        <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📖 Lessons (${structure.lessonCount})</h2>
+                    <div style="margin-top: 24px;">
+                        <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 16px 0;">📖 Lessons (${lessons.length})</h2>
                         <div style="display: flex; flex-direction: column; gap: 8px;">
                 `;
         
-                for (var i = 0; i < structure.lessons.length; i++) {
-                    var lesson = structure.lessons[i];
-                    var lessonNum = String(lesson.order).padStart(2, '0');
+                for (var i = 0; i < lessons.length; i++) {
+                    var lesson = lessons[i];
+                    var lessonId = lesson.lessonId || lesson.id;
+                    if (!lessonId) {
+                        console.warn('[AcademyView] lesson missing id:', lesson);
+                        continue;
+                    }
+                    var lessonNum = String(lesson.order || (i + 1)).padStart(2, '0');
         
-                   html += `
-                        <div style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectLesson', '${lesson.lessonId}')"
+                    html += `
+                        <div data-lesson-id="${lessonId}"
+                             style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
+                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectLesson', '${lessonId}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.02)'">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     <span style="font-size: 14px; color: #64748b; font-weight: 500; min-width: 32px;">${lessonNum}</span>
                                     <div>
-                                        <div style="font-weight: 500; font-size: 14px;">${lesson.title}</div>
+                                        <div style="font-weight: 500; font-size: 14px;">${lesson.title || lessonId}</div>
                                         ${lesson.description ? `<div style="color: #64748b; font-size: 12px; margin-top: 2px;">${lesson.description}</div>` : ''}
                                     </div>
                                 </div>
@@ -2030,33 +1944,10 @@ function __safeCall(pathOrObj) {
                 `;
             }
         
-            // ============================================================
-            // 8. Schedule Context
-            // ============================================================
-            if (schedule && schedule.available && schedule.count > 0) {
-                html += `
-                    <div style="margin-top: 24px; background: rgba(74,158,255,0.04); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(74,158,255,0.08);">
-                        <div style="font-size: 12px; color: #4a9eff; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 8px;">📅 SCHEDULED</div>
-                        <div style="font-size: 13px; color: #e2e8f0;">${schedule.count} session${schedule.count > 1 ? 's' : ''} scheduled</div>
-                        ${schedule.nextSession ? `<div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Next: ${new Date(schedule.nextSession.startAt).toLocaleString()}</div>` : ''}
-                    </div>
-                `;
-            }
-        
-            // ============================================================
-            // 9. Notes Context
-            // ============================================================
-            if (notes && notes.available && notes.count > 0) {
-                html += `
-                    <div style="margin-top: 16px; background: rgba(139,92,246,0.04); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(139,92,246,0.08);">
-                        <div style="font-size: 12px; color: #8b5cf6; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 8px;">📓 YOUR NOTES</div>
-                        <div style="font-size: 13px; color: #e2e8f0;">${notes.count} note${notes.count > 1 ? 's' : ''} linked to this subject</div>
-                    </div>
-                `;
-            }
-        
             html += `</div>`;
             container.innerHTML = html;
+        
+            console.log('[AcademyView] ✅ Subject rendered, lessons in DOM:', document.querySelectorAll('[data-lesson-id]').length);
         },
         
         /**
