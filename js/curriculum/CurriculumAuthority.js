@@ -1,5 +1,15 @@
 // /js/curriculum/CurriculumAuthority.js
 // Part 166 — 唯一的 Curriculum 权威
+// v2.0.0 — 修复 lesson 异步加载 + 幂等性
+//
+// ⚠️ v2.0.0 变更:
+//   1. _loadAllLessons 的 pending 计数 bug 修复
+//      旧版 subject 无 lesson 时直接 `return`，不检查 pending === 0，
+//      导致 _notifyReady 永远不触发，UI 无法进入 lesson。
+//   2. _ingestFromRegistries 幂等性：同一 subject 不会重复 load。
+//   3. _loadAllLessons 加锁：防止并发多次加载。
+//   4. 加载完 lesson 后强制 _notifyReady，让 UI 刷新。
+//   5. 增加 clear() 方法，重新 ingest 前清空旧数据。
 
 (function() {
     'use strict';
@@ -12,7 +22,11 @@
     var _initialized = false;
     var _loading = false;
     var _readyCallbacks = [];
-    var _version = '1.0.0';
+    var _version = '2.0.0';
+
+    // 🔥 v2.0.0: 防止并发重复加载 lesson
+    var _lessonsLoading = false;
+    var _lessonsLoadedForSubject = {};
 
     var CurriculumAuthority = {
         get initialized() { return _initialized; },
@@ -28,36 +42,56 @@
             return this;
         },
 
-        // 🆕 监听 Registry 更新事件，重新 ingest
+        // ============================================================
+        // 事件监听
+        // ============================================================
         _setupEventListeners: function() {
             var self = this;
-            
+
             // 当 CourseRegistry 更新时，重新 ingest
             document.addEventListener('COURSE_REGISTRY_UPDATED', function() {
                 console.log('[CurriculumAuthority] COURSE_REGISTRY_UPDATED received, re-ingesting...');
                 self._ingestFromRegistries();
                 self._notifyReady();
             });
-            
+
             // 当 SubjectRegistry 更新时
             document.addEventListener('SUBJECT_REGISTRY_UPDATED', function() {
                 console.log('[CurriculumAuthority] SUBJECT_REGISTRY_UPDATED received, re-ingesting...');
                 self._ingestFromRegistries();
                 self._notifyReady();
             });
-            
-            // 当 SchoolRegistry 更新时
+
+            // SchoolRegistry 更新
+            document.addEventListener('SCHOOL_REGISTRY_READY', function() {
+                console.log('[CurriculumAuthority] SCHOOL_REGISTRY_READY received, re-ingesting...');
+                self._ingestFromRegistries();
+                self._notifyReady();
+            });
+
             document.addEventListener('SCHOOL_REGISTERED', function() {
                 self._ingestFromRegistries();
                 self._notifyReady();
             });
-            
+
             document.addEventListener('COURSE_REGISTERED', function() {
                 self._ingestFromRegistries();
                 self._notifyReady();
             });
-            
+
             document.addEventListener('SUBJECT_REGISTERED', function() {
+                self._ingestFromRegistries();
+                self._notifyReady();
+            });
+
+            document.addEventListener('SUBJECTS_LOADED', function() {
+                console.log('[CurriculumAuthority] SUBJECTS_LOADED received, re-ingesting...');
+                self._ingestFromRegistries();
+                self._notifyReady();
+            });
+
+            document.addEventListener('SUBJECTS_ALL_LOADED', function() {
+                console.log('[CurriculumAuthority] SUBJECTS_ALL_LOADED received, re-ingesting...');
                 self._ingestFromRegistries();
                 self._notifyReady();
             });
@@ -70,7 +104,7 @@
                 subjectCount: Object.keys(_subjects).length,
                 lessonCount: Object.keys(_lessons).length
             });
-            
+
             if (window.LawAIApp?.AcademyExperienceManager?.render) {
                 setTimeout(function() {
                     try {
@@ -79,7 +113,7 @@
                 }, 100);
             }
         },
-        
+
         onReady: function(cb) {
             if (_initialized) { cb(this); return; }
             _readyCallbacks.push(cb);
@@ -105,6 +139,7 @@
 
         // Subject
         getSubject: function(id) { return _subjects[id] || null; },
+        getAllSubjects: function() { return Object.values(_subjects); },
         getSubjectsByCourse: function(courseId) {
             return Object.values(_subjects).filter(function(s) { return s.courseId === courseId; });
         },
@@ -171,6 +206,19 @@
             return { success: true };
         },
 
+        /**
+         * 🔥 v2.0.0: 清空所有数据（重新 ingest 前调用）
+         */
+        clear: function() {
+            _schools = {};
+            _courses = {};
+            _subjects = {};
+            _lessons = {};
+            _prerequisites = {};
+            _lessonsLoadedForSubject = {};
+            console.log('[CurriculumAuthority] 🧹 Cleared');
+        },
+
         // ============================================================
         // 私有
         // ============================================================
@@ -179,7 +227,6 @@
             var self = this;
             setTimeout(function() {
                 try {
-                    // 从现有的 Registry 加载
                     self._ingestFromRegistries();
                 } catch (e) {
                     console.warn('[CurriculumAuthority] Load error:', e);
@@ -194,14 +241,15 @@
 
                 self._emit('CURRICULUM_AUTHORITY_READY', {
                     schoolCount: Object.keys(_schools).length,
-                    courseCount: Object.keys(_courses).length
+                    courseCount: Object.keys(_courses).length,
+                    subjectCount: Object.keys(_subjects).length
                 });
             }, 0);
         },
 
         _ingestFromRegistries: function() {
             var self = this;
-            
+
             // 从 SchoolRegistry 加载
             if (window.LawAIApp?.SchoolRegistry?.getAllSchools) {
                 var schools = window.LawAIApp.SchoolRegistry.getAllSchools();
@@ -224,79 +272,151 @@
                 Object.keys(_schools).length, 'schools,',
                 Object.keys(_courses).length, 'courses,',
                 Object.keys(_subjects).length, 'subjects');
-            
-            // 🆕 异步加载所有 Subjects 的 Lessons
+
+            // 🔥 v2.0.0: 异步加载所有 Subjects 的 Lessons
             self._loadAllLessons();
         },
-        
-        // 🆕 异步加载所有 Lessons
+
+        /**
+         * 🔥 v2.0.0: 异步加载所有 Lessons
+         * 修复了 pending 计数 bug：
+         *   - 旧版 subject 无 lesson 时直接 `return`，不检查 pending === 0
+         *   - 新版用 try/finally 保证每个 subject 处理完后都检查 pending
+         *   - 加锁防止并发重复加载
+         */
         _loadAllLessons: function() {
             var self = this;
-            var loader = window.LawAIApp?.ContentLoader || window.LawAIApp?.S4ContentLoader;
-            
-            if (!loader || typeof loader.loadLesson !== 'function') {
-                console.log('[CurriculumAuthority] ContentLoader not ready for lessons');
+
+            // 🔥 加锁，防止并发
+            if (_lessonsLoading) {
+                console.log('[CurriculumAuthority] Lessons already loading, skip');
                 return;
             }
-            
+
+            var loader = window.LawAIApp?.ContentLoader || window.LawAIApp?.S4ContentLoader;
+
+            if (!loader || typeof loader.loadLesson !== 'function') {
+                console.log('[CurriculumAuthority] ContentLoader not ready for lessons, will retry in 500ms');
+                setTimeout(function() { self._loadAllLessons(); }, 500);
+                return;
+            }
+
             // 遍历所有 subjects，加载各自的 lessons
             var subjectIds = Object.keys(_subjects);
-            if (subjectIds.length === 0) return;
-            
-            console.log('[CurriculumAuthority] Loading lessons for', subjectIds.length, 'subjects...');
-            
-            var pending = subjectIds.length;
-            
-            subjectIds.forEach(function(subjectId) {
-                var subject = _subjects[subjectId];
-                if (!subject || !subject.lessons || subject.lessons.length === 0) {
-                    pending--;
-                    return;
-                }
-                
-                var lessonIds = subject.lessons;
-                var courseId = subject.courseId;
-                
-                lessonIds.forEach(function(lessonId) {
-                    // 跳过已加载
-                    if (_lessons[lessonId]) return;
-                    
-                    loader.loadLesson(courseId, subjectId, lessonId)
-                        .then(function(lessonData) {
-                            if (lessonData) {
-                                _lessons[lessonId] = {
-                                    id: lessonData.id,
-                                    subjectId: lessonData.subjectId || subjectId,
-                                    courseId: lessonData.courseId || courseId,
-                                    title: lessonData.title,
-                                    description: lessonData.description,
-                                    order: lessonData.order,
-                                    estimatedMinutes: lessonData.estimatedMinutes,
-                                    difficulty: lessonData.difficulty,
-                                    status: lessonData.status || 'published',
-                                    learningObjectives: lessonData.learningObjectives,
-                                    sections: lessonData.sections,
-                                    video: lessonData.video,
-                                    practice: lessonData.practice,
-                                    flashcards: lessonData.flashcards,
-                                    notes: lessonData.notes,
-                                    _loaded: true
-                                };
-                                console.log('[CurriculumAuthority] ✅ Loaded lesson:', lessonId);
-                            }
-                        })
-                        .catch(function(e) {
-                            console.warn('[CurriculumAuthority] Failed to load lesson:', lessonId, e);
-                        });
-                });
-                
-                pending--;
-                
-                // 全部完成时触发更新
-                if (pending === 0) {
+            if (subjectIds.length === 0) {
+                console.log('[CurriculumAuthority] No subjects to load lessons for');
+                return;
+            }
+
+            // 过滤掉已经加载过的 subject
+            var subjectsToLoad = subjectIds.filter(function(subjectId) {
+                return !_lessonsLoadedForSubject[subjectId];
+            });
+
+            if (subjectsToLoad.length === 0) {
+                console.log('[CurriculumAuthority] All subjects already loaded');
+                return;
+            }
+
+            _lessonsLoading = true;
+            console.log('[CurriculumAuthority] Loading lessons for', subjectsToLoad.length, 'subjects...');
+
+            // 🔥 修复: 用计数器而不是 pending--
+            var totalSubjects = subjectsToLoad.length;
+            var completedSubjects = 0;
+            var totalLessonsLoaded = 0;
+
+            function onSubjectComplete() {
+                completedSubjects++;
+                if (completedSubjects >= totalSubjects) {
+                    _lessonsLoading = false;
+                    console.log('[CurriculumAuthority] ✅ All lessons loaded, total:', totalLessonsLoaded);
+
+                    // 🔥 强制 notify
                     setTimeout(function() {
                         self._notifyReady();
-                    }, 500);
+                    }, 300);
+                }
+            }
+
+            subjectsToLoad.forEach(function(subjectId) {
+                var subject = _subjects[subjectId];
+
+                // 🔥 修复: 用 try/finally 保证 onSubjectComplete 一定被调用
+                try {
+                    if (!subject || !subject.lessons || subject.lessons.length === 0) {
+                        _lessonsLoadedForSubject[subjectId] = true;
+                        return;  // finally 会调用 onSubjectComplete
+                    }
+
+                    var lessonIds = subject.lessons;
+                    var courseId = subject.courseId;
+                    var lessonCount = lessonIds.length;
+                    var completedLessons = 0;
+
+                    function onLessonComplete() {
+                        completedLessons++;
+                        if (completedLessons >= lessonCount) {
+                            _lessonsLoadedForSubject[subjectId] = true;
+                            onSubjectComplete();
+                        }
+                    }
+
+                    lessonIds.forEach(function(lessonId) {
+                        // 🔥 兼容 lesson 是字符串或对象
+                        var realLessonId = (typeof lessonId === 'string')
+                            ? lessonId
+                            : (lessonId.id || lessonId.lessonId);
+
+                        if (!realLessonId) {
+                            onLessonComplete();
+                            return;
+                        }
+
+                        // 跳过已加载
+                        if (_lessons[realLessonId]) {
+                            onLessonComplete();
+                            return;
+                        }
+
+                        loader.loadLesson(courseId, subjectId, realLessonId)
+                            .then(function(lessonData) {
+                                if (lessonData) {
+                                    _lessons[realLessonId] = {
+                                        id: lessonData.id || realLessonId,
+                                        subjectId: lessonData.subjectId || subjectId,
+                                        courseId: lessonData.courseId || courseId,
+                                        title: lessonData.title,
+                                        description: lessonData.description,
+                                        order: lessonData.order,
+                                        estimatedMinutes: lessonData.estimatedMinutes,
+                                        difficulty: lessonData.difficulty,
+                                        status: lessonData.status || 'published',
+                                        learningObjectives: lessonData.learningObjectives,
+                                        sections: lessonData.sections,
+                                        video: lessonData.video,
+                                        practice: lessonData.practice,
+                                        flashcards: lessonData.flashcards,
+                                        notes: lessonData.notes,
+                                        _loaded: true
+                                    };
+                                    totalLessonsLoaded++;
+                                    console.log('[CurriculumAuthority] ✅ Loaded lesson:', realLessonId);
+                                }
+                            })
+                            .catch(function(e) {
+                                console.warn('[CurriculumAuthority] Failed to load lesson:', realLessonId, e);
+                            })
+                            .then(function() {
+                                // finally 语义，无论成功失败都调
+                                onLessonComplete();
+                            });
+                    });
+                } finally {
+                    // 🔥 修复: 无 lesson 的 subject 也要正确计数
+                    if (!subject || !subject.lessons || subject.lessons.length === 0) {
+                        onSubjectComplete();
+                    }
                 }
             });
         },
@@ -329,6 +449,6 @@
         });
     }
 
-    console.log('[CurriculumAuthority] Module loaded (Part 166)');
+    console.log('[CurriculumAuthority] Module loaded (Part 166 v2.0.0)');
 
 })();
