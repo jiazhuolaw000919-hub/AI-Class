@@ -368,38 +368,128 @@
             });
 
             // ============================================================
-            // 初始化 Academy
+            // 🔥 初始化 Academy（支持 view=xxx URL 参数路由）
             // ============================================================
             function initAcademy() {
-                if (window.location.search.includes('view=calendar')) {
-                    var container = document.getElementById('academy-root');
-                    if (container) loader.renderCalendar(container);
+                var params = new URLSearchParams(window.location.search);
+                var view = params.get('view');
+                var container = document.getElementById('academy-root');
+
+                console.log('[Academy] initAcademy, view =', view);
+
+                if (!container) {
+                    console.warn('[Academy] #academy-root not found');
                     return;
-                }
-                if (window.location.search.includes('view=settings')) {
-                    var container = document.getElementById('academy-root');
-                    if (container) loader.renderSettings(container);
-                    return;
-                }
-                if (window.location.search.includes('view=lesson')) {
-                    var params = new URLSearchParams(window.location.search);
-                    var lessonId = params.get('id') || params.get('lessonId');
-                    if (lessonId) {
-                        console.log('[Academy] 🎯 URL 请求 lesson:', lessonId);
-                        window.location.href = '/pages/lesson.html?lessonId=' + encodeURIComponent(lessonId);
-                        return;
-                    }
                 }
 
-                try {
+                // ============================================================
+                // 1. Calendar
+                // ============================================================
+                if (view === 'calendar') {
+                    loader.renderCalendar(container);
+                    return;
+                }
+
+                // ============================================================
+                // 2. Settings
+                // ============================================================
+                if (view === 'settings') {
+                    loader.renderSettings(container);
+                    return;
+                }
+
+                // ============================================================
+                // 3. Lesson → 用 LessonView 在页面内渲染（不跳转）
+                // ============================================================
+                if (view === 'lesson') {
+                    var lessonId = params.get('lessonId') || params.get('id');
+                    if (!lessonId) {
+                        console.warn('[Academy] view=lesson 但没有 lessonId');
+                        return;
+                    }
+
+                    console.log('[Academy] 📖 Render lesson in-page:', lessonId);
+
+                    // 确保 AcademyExperienceManager 初始化
                     if (window.LawAIApp?.AcademyExperienceManager) {
                         if (!window.LawAIApp.AcademyExperienceManager.initialized) {
                             window.LawAIApp.AcademyExperienceManager.init();
                         }
-                        window.LawAIApp.AcademyExperienceManager.render();
+                        window.LawAIApp.AcademyExperienceManager._state.currentLessonId = lessonId;
+                        window.LawAIApp.AcademyExperienceManager._state.viewMode = 'lesson';
                     }
-                } catch (e) {
-                    console.warn('[Academy] Init error:', e);
+
+                    // 直接用 LessonView 渲染
+                    var lessonView = window.LawAIApp?.Views?.LessonView || window.LawAIApp?.LessonView;
+                    if (lessonView && typeof lessonView.render === 'function') {
+                        lessonView.render(lessonId, container);
+                    } else {
+                        // LessonView 还没加载好，轮询等待
+                        container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">⏳ Loading LessonView...</div>';
+                        var retries = 0;
+                        var retryInterval = setInterval(function() {
+                            retries++;
+                            var lv = window.LawAIApp?.Views?.LessonView || window.LawAIApp?.LessonView;
+                            if (lv && typeof lv.render === 'function') {
+                                clearInterval(retryInterval);
+                                lv.render(lessonId, container);
+                            } else if (retries > 20) {
+                                clearInterval(retryInterval);
+                                container.innerHTML = '<div style="padding:40px;text-align:center;color:#ef4444;">❌ LessonView 未加载，请刷新页面</div>';
+                            }
+                        }, 200);
+                    }
+                    return;
+                }
+
+                // ============================================================
+                // 4. School / Course / Subject → 设置 state 并渲染
+                // ============================================================
+                if (window.LawAIApp?.AcademyExperienceManager) {
+                    if (!window.LawAIApp.AcademyExperienceManager.initialized) {
+                        window.LawAIApp.AcademyExperienceManager.init();
+                    }
+
+                    var manager = window.LawAIApp.AcademyExperienceManager;
+
+                    if (view === 'school') {
+                        var schoolId = params.get('schoolId');
+                        if (schoolId) {
+                            console.log('[Academy] 🏛️ Restore school view:', schoolId);
+                            manager._state.currentSchoolId = schoolId;
+                            manager._state.viewMode = 'school';
+                            manager.render();
+                            return;
+                        }
+                    }
+
+                    if (view === 'course') {
+                        var courseId = params.get('courseId');
+                        if (courseId) {
+                            console.log('[Academy] 📚 Restore course view:', courseId);
+                            manager._state.currentCourseId = courseId;
+                            manager._state.viewMode = 'course';
+                            manager.render();
+                            return;
+                        }
+                    }
+
+                    if (view === 'subject') {
+                        var subjectId = params.get('subjectId');
+                        if (subjectId) {
+                            console.log('[Academy] 📖 Restore subject view:', subjectId);
+                            manager._state.currentSubjectId = subjectId;
+                            manager._state.viewMode = 'subject';
+                            manager.render();
+                            return;
+                        }
+                    }
+
+                    // 默认：Dashboard
+                    console.log('[Academy] 🏠 Default: dashboard');
+                    manager.render();
+                } else {
+                    console.warn('[Academy] AcademyExperienceManager not available');
                 }
             }
 
