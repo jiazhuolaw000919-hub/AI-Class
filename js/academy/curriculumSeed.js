@@ -1,15 +1,13 @@
 // js/academy/curriculumSeed.js
 // Part 57.5 — Curriculum Seed (Initial Data)
-// v2.1.0 — 移除假 courses/subjects/lessons，改由 S4 ContentLoader 提供
+// v2.2.0 — 只保留 school-science / school-business / school-art
 //
-// ⚠️ 重要变更 (v2.1.0):
-//   之前这里硬编码了 course-ai-fundamentals / subject-what-is-ai 等假数据，
-//   会污染 CourseRegistry / SubjectRegistry，导致 UI 点击 lesson 时
-//   拼出 /content/courses/course-ai-fundamentals/... 的 404 路径。
-//
-//   现在：courses / subjects / lessons 全部交给 S4 ContentLoader 从
-//   /content/courses/{courseId}/... 真实文件加载。
-//   本文件只保留 schools / programs / modules 这些"骨架"数据。
+// ⚠️ 变更历史:
+//   v2.1.0: 移除假 courses/subjects/lessons，改由 S4 ContentLoader 提供
+//   v2.2.0: 移除 school-ai / school-technology，只保留 3 个真实 school
+//            (school-science / school-business / school-art)
+//            与你磁盘上 /content/courses/course-ai/course.json 的
+//            schoolId: "school-science" 保持一致。
 
 (function() {
     'use strict';
@@ -20,55 +18,42 @@
     }
 
     var CurriculumSeed = {
-        version: '2.1.0',
+        version: '2.2.0',
         loaded: false,
 
         // ============================================================
         // 1. SEED DATA — Schools
         // ============================================================
+        // ⚠️ v2.2.0: 只保留 3 个真实 school
+        //   之前有 school-ai / school-technology，与真实 course 的
+        //   schoolId 不匹配，导致 UI 上出现 5 个 school 但只有 1 个能进 course。
         schools: [
             {
-                id: 'school-ai',
-                name: 'School of Artificial Intelligence',
-                shortName: 'AI School',
-                description: 'AI literacy, tools, automation, agents, and AI systems',
-                icon: '🤖',
-                color: '#4a9eff',
-                status: 'active'
-            },
-            {
-                id: 'school-business',
-                name: 'School of Business',
-                shortName: 'Business School',
-                description: 'Business strategy, entrepreneurship, management, finance, and productivity',
-                icon: '💼',
-                color: '#10b981',
-                status: 'active'
-            },
-            {
-                id: 'school-technology',
-                name: 'School of Technology',
-                shortName: 'Tech School',
-                description: 'Software development, mobile development, game development, and system design',
-                icon: '⚡',
-                color: '#f59e0b',
-                status: 'active'
-            },
-            // 🔥 兼容 S4 content.json 里出现的 school-science / school-art
-            {
                 id: 'school-science',
-                name: 'School of Science',
-                shortName: 'Science School',
-                description: 'Science, AI, data, and research-driven programs',
+                name: 'Science',
+                displayName: 'Science',
+                shortName: 'Science',
+                description: 'AI, Programming, Data Science, Mathematics, Technology, and Engineering.',
                 icon: '🔬',
                 color: '#8b5cf6',
                 status: 'active'
             },
             {
+                id: 'school-business',
+                name: 'Business',
+                displayName: 'Business',
+                shortName: 'Business',
+                description: 'Business, Finance, Marketing, Entrepreneurship, Management, and Career.',
+                icon: '📊',
+                color: '#10b981',
+                status: 'active'
+            },
+            {
                 id: 'school-art',
-                name: 'School of Art',
-                shortName: 'Art School',
-                description: 'Design, creative work, and media production',
+                name: 'Art',
+                displayName: 'Art',
+                shortName: 'Art',
+                description: 'Design, UI/UX, Photography, Video, Creative Writing, and Digital Art.',
                 icon: '🎨',
                 color: '#ec4899',
                 status: 'active'
@@ -78,10 +63,11 @@
         // ============================================================
         // 2. SEED DATA — Programs
         // ============================================================
+        // ⚠️ v2.2.0: schoolId 全部改成真实存在的 3 个 school
         programs: [
             {
                 id: 'program-ai-foundations',
-                schoolId: 'school-ai',
+                schoolId: 'school-science',          // ← 改：原 school-ai
                 name: 'AI Foundations',
                 description: 'Essential AI concepts and applications',
                 level: 'beginner',
@@ -90,7 +76,7 @@
             },
             {
                 id: 'program-ai-prompting',
-                schoolId: 'school-ai',
+                schoolId: 'school-science',          // ← 改：原 school-ai
                 name: 'Prompt Engineering',
                 description: 'Master the art of prompting AI models',
                 level: 'beginner',
@@ -107,16 +93,6 @@
                 modules: []
             },
             {
-                id: 'program-tech-development',
-                schoolId: 'school-technology',
-                name: 'Software Development',
-                description: 'Build software with modern practices',
-                level: 'beginner',
-                status: 'active',
-                modules: []
-            },
-            // 🔥 S4 兼容：curriculumAuthority 可能会引用这两个 programId
-            {
                 id: 'program-science',
                 schoolId: 'school-science',
                 name: 'Science Program',
@@ -125,59 +101,29 @@
                 status: 'active',
                 modules: []
             }
+            // ⚠️ v2.2.0: 移除 program-tech-development（原属 school-technology）
         ],
 
         // ============================================================
         // 3. SEED DATA — Courses
         // ============================================================
         // ⚠️ v2.1.0: 已清空。
-        //
-        // 之前这里硬编码了:
-        //   - course-ai-fundamentals
-        //   - course-prompt-engineering
-        //   - course-business-strategy
-        // 这些 id 在 /content/courses/ 下不存在，导致:
-        //   1) CourseRegistry 被假数据污染
-        //   2) 渲染 subject 页面时拼出 404 URL
-        //
-        // 现在 Courses 全部由 S4 通道加载:
-        //   - courseRegistry._loadS4Courses() 从
-        //     /content/courses/{courseId}/course.json 读取
-        //   - fallback 硬编码 ['course-ai'] 已在 courseRegistry 里
-        //
-        // 如果你确实需要在这里加 course，请确保:
-        //   ✅ id 与 /content/courses/{id}/course.json 目录名一致
-        //   ✅ 不要与 S4 加载的真实 course 冲突
+        // Course 全部由 S4 ContentLoader 从
+        // /content/courses/{courseId}/course.json 真实加载。
         courses: [],
 
         // ============================================================
         // 4. SEED DATA — Subjects
         // ============================================================
         // ⚠️ v2.1.0: 已清空。
-        //
-        // 之前这里硬编码了:
-        //   - subject-what-is-ai     (courseId: course-ai-fundamentals)
-        //   - subject-ai-today       (courseId: course-ai-fundamentals)
-        //   - subject-prompt-basics  (courseId: course-prompt-engineering)
-        //   - subject-strategy-basics(courseId: course-business-strategy)
-        // 并且 lessons 里塞的是**对象**而不是字符串 id，
-        // 导致 LessonView 拼 URL 时出现 [object%20Object]。
-        //
-        // 现在 Subjects 全部由 S4 通道加载:
-        //   - subjectRegistry.loadAllCourses() → loader.loadCourseSubjects()
-        //   - 从 /content/courses/{courseId}/subjects/{subjectId}/subject.json 读取
-        //
-        // 如果你确实需要在这里加 subject，请遵守:
-        //   ✅ id 与磁盘 subject 目录名一致
-        //   ✅ courseId 必须指向真实存在的 course
-        //   ✅ lessons 数组里**只能放字符串 id**，不能放对象！
+        // Subject 全部由 S4 ContentLoader 从
+        // /content/courses/{courseId}/subjects/{subjectId}/subject.json 读取。
         subjects: [],
 
         // ============================================================
         // 5. SEED DATA — Modules
         // ============================================================
-        // 保留：这些是"课程内部的模块"概念，与 S4 course/subject/lesson 是不同层。
-        // 目前没有 UI 直接依赖，保留作兼容。
+        // 保留：课程内部的"模块"概念，与 S4 course/subject/lesson 是不同层。
         modules: [
             {
                 id: 'module-ai-intro',
@@ -201,13 +147,8 @@
         // 6. SEED DATA — Lessons
         // ============================================================
         // ⚠️ v2.1.0: 已清空。
-        //
-        // 之前这里的 lesson-what-is-ai 属于 day-based 老架构，
-        // 与 S4 lesson-ai-fundamentals-001 是两套体系，容易混淆。
-        //
-        // 现在 Lessons 全部由 S4 通道加载:
-        //   - ContentLoader.loadLesson(courseId, subjectId, lessonId)
-        //   - 从 /content/courses/{courseId}/subjects/{subjectId}/lessons/{lessonId}.json 读取
+        // Lesson 全部由 S4 ContentLoader 从
+        // /content/courses/{courseId}/subjects/{subjectId}/lessons/{lessonId}.json 读取。
         lessons: [],
 
         // ============================================================
@@ -254,8 +195,6 @@
                 }
 
                 // ── 3. Courses → CourseRegistry
-                // v2.1.0: courses 数组为空，这里跳过。
-                // Course 由 CourseRegistry._loadS4Courses() 异步加载。
                 var courseRegistry = window.LawAIApp?.CourseRegistry;
                 if (courseRegistry && typeof courseRegistry.register === 'function') {
                     if (this.courses.length > 0) {
@@ -277,8 +216,6 @@
                 }
 
                 // ── 4. Subjects → SubjectRegistry
-                // v2.1.0: subjects 数组为空，这里跳过。
-                // Subject 由 SubjectRegistry.loadAllCourses() 异步加载。
                 var subjectRegistry = window.LawAIApp?.SubjectRegistry;
                 if (subjectRegistry && typeof subjectRegistry.register === 'function') {
                     if (this.subjects.length > 0) {
@@ -313,7 +250,6 @@
                 }
 
                 // ── 6. Lessons → AcademyRegistry
-                // v2.1.0: lessons 数组为空，这里跳过。
                 if (academyRegistry && typeof academyRegistry.registerLesson === 'function') {
                     if (this.lessons.length > 0) {
                         this.lessons.forEach(function(lesson) {
@@ -336,7 +272,7 @@
                     subjects: this.subjects.length,
                     modules: this.modules.length,
                     lessons: this.lessons.length,
-                    source: 'seed-v2.1.0'
+                    source: 'seed-v2.2.0'
                 });
 
                 // ── 🔥 通知 CurriculumAuthority 重新 ingest
@@ -350,14 +286,16 @@
                             // ── 验证（延迟等 S4 加载）
                             setTimeout(function() {
                                 console.log('[CurriculumSeed] === 验证 (after S4 load) ===');
+                                console.log('SchoolRegistry schools:',
+                                    window.LawAIApp?.SchoolRegistry?.getAllSchools?.()?.map(function(s) { return s.id; }));
                                 console.log('CourseRegistry courses:',
                                     window.LawAIApp?.CourseRegistry?.getAllCourses?.()?.map(function(c) { return c.id; }));
                                 console.log('SubjectRegistry subjects:',
                                     window.LawAIApp?.SubjectRegistry?.getAllSubjects?.()?.map(function(s) { return s.id; }));
                                 console.log('CA.courses:',
-                                    ca.getAllCourses?.()?.length);
+                                    ca.getAllCourses?.()?.map(function(c) { return c.id; }));
                                 console.log('CA.subjects(course-ai):',
-                                    ca.getSubjectsByCourse?.('course-ai')?.length);
+                                    ca.getSubjectsByCourse?.('course-ai')?.map(function(s) { return s.id; }));
                             }, 1500);
 
                             // ── 重新渲染
