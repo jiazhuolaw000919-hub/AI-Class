@@ -2141,52 +2141,35 @@ LawAIApp.Dashboard = {
         `;
       }
 
-      // ── 完整 Insight Card ──
+      // 🔥 Part 174: 简化 Insight Card — 折叠次要交互
       insightHTML = `
         <div style="
           background: rgba(74,158,255,0.04);
-          border-radius: 8px;
-          padding: 14px 16px;
-          margin-bottom: 12px;
+          border-radius: 12px;
+          padding: 16px 18px;
+          margin-bottom: 16px;
           border-left: 3px solid #4a9eff;
         ">
-          <!-- Fact -->
-          <div style="margin-bottom: 4px;">
-            <span style="font-size: 10px; color: #64748b; font-weight: 500; letter-spacing: 0.5px;">🔍 OBSERVED</span>
-            <div style="font-size: 14px; color: #e2e8f0; margin-top: 2px;">${insight.fact}</div>
+          <!-- Fact + Interpretation (合并显示) -->
+          <div style="display: flex; align-items: flex-start; gap: 10px;">
+            <span style="font-size: 18px; line-height: 1.4;">💡</span>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: 14px; color: #e2e8f0; line-height: 1.5; margin-bottom: 4px;">${insight.fact}</div>
+              <div style="font-size: 13px; color: #94a3b8; line-height: 1.5;">${insight.interpretation}</div>
+              <div style="font-size: 10px; color: #64748b; margin-top: 6px;">${confidenceLabel}</div>
+            </div>
           </div>
           
-          <!-- Interpretation -->
-          <div style="margin-bottom: 6px; padding-left: 4px; border-left: 2px solid rgba(74,158,255,0.15); padding-left: 10px;">
-            <span style="font-size: 10px; color: #4a9eff; font-weight: 500; letter-spacing: 0.5px;">💡 INTERPRETATION</span>
-            <div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">${insight.interpretation}</div>
-            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">${confidenceLabel}</div>
-          </div>
+          <!-- Dialogue Trigger (只在 idle/dismissed 时显示) -->
+          ${dialogueState === 'idle' || dialogueState === 'dismissed' ? `
+            <div style="margin-top: 12px;">
+              ${dialogueTrigger}
+            </div>
+          ` : ''}
           
-          <!-- Part 72: Dialogue Trigger + Options -->
-          ${dialogueState === 'idle' || dialogueState === 'dismissed' ? dialogueTrigger : ''}
+          <!-- Dialogue Options (open 状态) -->
           ${dialogueState === 'open' ? dialogueOptions : ''}
           ${dialogueStatus}
-          
-          <!-- Part 72: Self-assessment (always available) -->
-          ${selfAssessmentHTML}
-          
-          <!-- Part 71: Reflection (toggled) -->
-          ${reflectionHTML}
-          
-          <!-- Part 71: Disagree button -->
-          <div style="margin-top: 6px;">
-            <button onclick="LawAIApp.Dashboard._handleDisagree('${insightId}')" style="
-              background: transparent;
-              border: none;
-              color: #64748b;
-              font-size: 10px;
-              cursor: pointer;
-              text-decoration: underline;
-              font-family: inherit;
-              padding: 2px 4px;
-            ">This doesn't feel accurate</button>
-          </div>
         </div>
       `;
     }
@@ -2196,7 +2179,7 @@ LawAIApp.Dashboard = {
     const CARD_BORDER = '1px solid rgba(255,255,255,0.04)';
     const CARD_PADDING = '20px';
 
-    const isDebugMode = true;
+    const isDebugMode = false;
     const authorityHTML = isDebugMode ? `
       <section style="
         background: rgba(255,255,255,0.015);
@@ -2226,73 +2209,57 @@ LawAIApp.Dashboard = {
       font-family: 'Inter', -apple-system, sans-serif;
     ">
 
-      <!-- 🔥 EXPLORE 导航 -->
-      <section style="
-        margin-bottom: 16px;
-        padding: 14px 18px;
-        background: rgba(255,255,255,0.02);
-        border-radius: 100px;
-        border: 1px solid rgba(255,255,255,0.04);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
-        justify-content: center;
-        animation: heroFadeIn 0.4s ease;
-      ">
-        <span style="
-          font-size: 12px;
-          color: #64748b;
-          font-weight: 500;
-          letter-spacing: 0.6px;
-          margin-right: 6px;
-        ">EXPLORE</span>
-        ${[
-          { icon: '📚', label: 'Academy', url: '/pages/academy.html' },
-          { icon: '📓', label: 'Notes', action: 'notes' },
-          { icon: '🧠', label: 'Intelligence', url: null },
-          { icon: '💬', label: 'Chat', url: null },
-          { icon: '📅', label: 'Calendar', action: 'calendar' },
-          { icon: '⚙️', label: 'Settings', action: 'settings' },
-          { icon: '📋', label: 'Prompts', url: null },
-          { icon: '🎯', label: 'Goals', url: null },
-          { icon: '🧠', label: 'Mentor', url: null },
-          { icon: '🚀', label: 'Showcase', url: null },
-          { icon: '🕸️', label: 'Knowledge Graph', action: 'knowledgeGraph' }
-        ].map(function(btn) {
-            var onClick;
-            if (btn.url) {
-              onClick = "window.location.href='" + btn.url + "'";
-            } else if (btn.action === 'calendar') {
-              onClick = "LawAIApp.Dashboard._renderCalendarView()";
-            } else if (btn.action === 'settings') {
-              onClick = "LawAIApp.Dashboard._renderSettingsView()";
-            } else if (btn.action === 'notes') {
-              onClick = "LawAIApp.Dashboard._renderNotesView()";
-            } else if (btn.action === 'knowledgeGraph') {
-              onClick = "LawAIApp.Dashboard._renderKnowledgeGraphView()"
-            } else {
-              onClick = "if(window.LawAIApp&&window.LawAIApp.Toast&&typeof window.LawAIApp.Toast.info==='function'){window.LawAIApp.Toast.info('" + btn.label + " coming soon! 🚧')}else{alert('" + btn.label + " coming soon! 🚧')}";
-            }
-          
-          return `
-          <button onclick="${onClick}" style="
-            padding: 8px 18px;
-            background: transparent;
-            border: none;
-            border-radius: 100px;
-            color: #94a3b8;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-            white-space: nowrap;
-          " onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#e2e8f0'" onmouseout="this.style.background='transparent';this.style.color='#94a3b8'">
-            ${btn.icon} ${btn.label}
-          </button>
-          `;
-        }).join('')}
-      </section>
+     <!-- 🔥 Part 174: 简化 EXPLORE 导航 — 只保留核心 -->
+    <section style="
+      margin-bottom: 24px;
+      padding: 12px 18px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 100px;
+      border: 1px solid rgba(255,255,255,0.04);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      justify-content: center;
+      animation: heroFadeIn 0.4s ease;
+    ">
+      ${[
+        { icon: '📚', label: 'Academy', url: '/pages/academy.html' },
+        { icon: '📅', label: 'Calendar', action: 'calendar' },
+        { icon: '📓', label: 'Notes', action: 'notes' },
+        { icon: '⚙️', label: 'Settings', action: 'settings' }
+      ].map(function(btn) {
+        var onClick;
+        if (btn.url) {
+          onClick = "window.location.href='" + btn.url + "'";
+        } else if (btn.action === 'calendar') {
+          onClick = "LawAIApp.Dashboard._renderCalendarView()";
+        } else if (btn.action === 'settings') {
+          onClick = "LawAIApp.Dashboard._renderSettingsView()";
+        } else if (btn.action === 'notes') {
+          onClick = "LawAIApp.Dashboard._renderNotesView()";
+        } else {
+          onClick = "if(window.LawAIApp&&window.LawAIApp.Toast){window.LawAIApp.Toast.info('" + btn.label + " coming soon')}";
+        }
+        
+        return `
+        <button onclick="${onClick}" style="
+          padding: 8px 18px;
+          background: transparent;
+          border: none;
+          border-radius: 100px;
+          color: #94a3b8;
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-family: inherit;
+          white-space: nowrap;
+        " onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#e2e8f0'" onmouseout="this.style.background='transparent';this.style.color='#94a3b8'">
+          ${btn.icon} ${btn.label}
+        </button>
+        `;
+      }).join('')}
+    </section>
 
       <!-- 🔥 HERO -->
       <section id="dashboard-hero" style="
@@ -2891,112 +2858,72 @@ LawAIApp.Dashboard = {
    * 构建连续性卡片 HTML
    */
   _buildContinuityHTML: function() {
-    // 🔥 添加常量定义（从 _buildHTML 复制过来）
-    var CARD_RADIUS = '16px';
-    var CARD_BG = 'rgba(255,255,255,0.025)';
-    var CARD_BORDER = '1px solid rgba(255,255,255,0.04)';
-    var CARD_PADDING = '20px';
-
+    // 🔥 Part 174: 只在有 Reflection 时显示
     var context = this._getContinuityContext();
-
-    var html = '';
-  
-    if (!context.hasRecentLearning && !context.hasReflection && !context.hasUpcoming) {
-        return '';
+    
+    if (!context.hasReflection) {
+      return '';
     }
-
-    html += `
-        <section style="
-            background: ${CARD_BG};
-            border-radius: ${CARD_RADIUS};
-            padding: ${CARD_PADDING};
-            border: ${CARD_BORDER};
-            margin-bottom: 16px;
+    
+    // ... 只渲染 Reflection 部分
+    var html = `
+      <section style="
+        background: rgba(255,255,255,0.025);
+        border-radius: 16px;
+        padding: 20px;
+        border: 1px solid rgba(255,255,255,0.04);
+        margin-bottom: 16px;
+      ">
+        <p style="
+          margin: 0 0 10px;
+          font-size: 11px;
+          color: #64748b;
+          font-weight: 500;
+          letter-spacing: 0.6px;
         ">
-            <p style="
-                margin: 0 0 10px;
-                font-size: 11px;
-                color: #64748b;
-                font-weight: 500;
-                letter-spacing: 0.6px;
-            ">  
-                📚 LEARNING CONTINUITY
-            </p>
-            <div style="font-size: 13px; color: #94a3b8; line-height: 1.6;">
-                ${context.message}
-            </div>
+          📚 RECENT REFLECTION
+        </p>
     `;
-
-    if (context.hasReflection && context.recentReflections.length > 0) {
-        var ref = context.recentReflections[0];
-        var preview = ref.content ? ref.content.substring(0, 80) + (ref.content.length > 80 ? '...' : '') : 'Saved reflection';
-        html += `
-            <div style="
-                margin-top: 8px;
-                padding: 8px 12px;
-                background: rgba(255,255,255,0.02);
-                border-radius: 6px;
-                border-left: 2px solid #4a9eff;
-                font-size: 12px;
-                color: #e2e8f0;
-            ">
-                💭 ${preview}
-            </div>
-        `;  
-    }
-
-    if (context.hasUpcoming && context.upcomingItems.length > 0) {
-        html += `
-            <div style="
-                margin-top: 8px;
-                display: flex;
-                gap: 12px;
-                flex-wrap: wrap;
-                font-size: 11px;
-                color: #64748b;
-            ">
-                ${context.upcomingItems.map(function(item) {
-                    return `<span style="background: rgba(255,255,255,0.03); padding: 2px 12px; border-radius: 100px;">📅 ${item.title || 'Review'}</span>`;
-                }).join('')}
-            </div>
-        `;  
-    }
-
+    
+    var ref = context.recentReflections[0];
+    var preview = ref.content ? ref.content.substring(0, 120) + (ref.content.length > 120 ? '...' : '') : 'Saved reflection';
     html += `
-            <div style="
-                margin-top: 10px;
-                display: flex;
-                gap: 8px;
-                flex-wrap: wrap;
-                border-top: 1px solid rgba(255,255,255,0.04);
-                padding-top: 10px;
-            ">
-                <button onclick="window.location.href='/pages/academy.html'" style="
-                    padding: 4px 14px;
-                    background: rgba(74,158,255,0.06);
-                    border: 1px solid rgba(74,158,255,0.08);
-                    border-radius: 100px;
-                    color: #94a3b8;
-                    font-size: 10px;
-                    cursor: pointer;
-                    font-family: inherit;
-                ">📚 Continue Learning</button>
-                ${context.hasReflection ? `<button onclick="window.location.href='/pages/academy.html#notes'" style="
-                    padding: 4px 14px;
-                    background: rgba(255,255,255,0.02);
-                    border: 1px solid rgba(255,255,255,0.04);
-                    border-radius: 100px;
-                    color: #94a3b8;
-                    font-size: 10px;
-                    cursor: pointer;
-                    font-family: inherit;
-                ">📓 View Notes</button>` : ''}
-            </div>
-        </section>
+      <div style="
+        padding: 10px 14px;
+        background: rgba(74,158,255,0.04);
+        border-radius: 8px;
+        border-left: 2px solid #4a9eff;
+        font-size: 13px;
+        color: #e2e8f0;
+        line-height: 1.5;
+      ">
+        💭 ${preview}
+      </div>
     `;
-
+    
+    html += `
+        <div style="
+          margin-top: 12px;
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        ">
+          <button onclick="LawAIApp.Dashboard._renderNotesView()" style="
+            padding: 4px 14px;
+            background: rgba(74,158,255,0.06);
+            border: 1px solid rgba(74,158,255,0.08);
+            border-radius: 100px;
+            color: #4a9eff;
+            font-size: 10px;
+            cursor: pointer;
+            font-family: inherit;
+          ">📓 View Notes</button>
+        </div>
+      </section>
+    `;
+    
     return html;
-},
+  },
   
   // ============================================================
   // Part 74: Learning Loop Renderer
@@ -3008,8 +2935,8 @@ LawAIApp.Dashboard = {
   _renderLearningLoop: function() {
     var loopData = this._getLearningLoopData();
 
-    if (loopData.isQuiet && loopData.quietMessage) {
-      return `
+   if (loopData.isQuiet && loopData.quietMessage) {
+    return '';
         <div style="
           background: rgba(255,255,255,0.02);
           border-radius: 12px;
