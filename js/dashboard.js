@@ -2935,29 +2935,10 @@ LawAIApp.Dashboard = {
   _renderLearningLoop: function() {
     var loopData = this._getLearningLoopData();
 
-   if (loopData.isQuiet && loopData.quietMessage) {
-      return '';
-        <div style="
-          background: rgba(255,255,255,0.02);
-          border-radius: 12px;
-          padding: 16px 20px;
-          border: 1px solid rgba(255,255,255,0.04);
-          margin-bottom: 16px;
-        ">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-            <span style="font-size: 14px;">🌱</span>
-            <span style="font-size: 11px; color: #64748b; font-weight: 500; letter-spacing: 0.6px;">LEARNING LOOP</span>
-            <span style="font-size: 9px; color: #64748b; background: rgba(255,255,255,0.04); padding: 2px 10px; border-radius: 100px;">QUIET</span>
-          </div>
-          <div style="font-size: 14px; color: #94a3b8; padding: 4px 0 2px 0;">
-            ${loopData.quietMessage}
-          </div>
-          <div style="font-size: 11px; color: #475569; margin-top: 4px;">
-            Check back when you're ready to continue.
-          </div>
-        </div>
-      `;
-    }
+  // 🔥 Part 174: 简化 — QUIET 状态不显示，保持安静
+  if (loopData.isQuiet && loopData.quietMessage) {
+    return '';  // 安静时不显示
+  }
 
     // 如果完全没有活跃 Loop，不显示
     if (!loopData.hasActiveLoop) {
