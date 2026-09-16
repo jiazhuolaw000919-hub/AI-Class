@@ -576,6 +576,11 @@
             return this;
         },
 
+        selectSubject: function(subjectId) {
+            console.log('[AcademyExperienceManager] 📍 selectSubject (alias) →', subjectId);
+            return this.navigateToSubject(subjectId);
+        },
+
         continueLearning: function() {
             console.log('[AcademyExperienceManager] 📖 Continuing learning...');
 
