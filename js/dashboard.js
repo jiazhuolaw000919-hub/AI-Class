@@ -3420,37 +3420,102 @@ _renderRecommendationCard: function(rec) {
   // Part 163: Calendar Navigation (via Event)
   // ============================================================
   _renderCalendarView: function() {
-      console.log('[Dashboard] 📅 Opening Calendar...');
+      console.log('[Dashboard] 📅 Rendering Calendar...');
   
-      // 🔥 Part 163: 通过 EventAdapter 发送事件
-      var eventAdapter = LawAIApp.DashboardEventAdapter;
-      if (eventAdapter) {
-          eventAdapter.sendPrimaryActionSelected('view_calendar', null, {
-              source: 'dashboard'
-          });
+      var container = document.getElementById('app') || 
+                      document.getElementById('law-runtime-root') || 
+                      document.getElementById('dashboard-root');
+      if (!container) return;
+  
+      var now = new Date();
+      var year = now.getFullYear();
+      var month = now.getMonth();
+      var monthName = now.toLocaleString('default', { month: 'long' });
+      var daysInMonth = new Date(year, month + 1, 0).getDate();
+      var firstDay = new Date(year, month, 1).getDay();
+  
+      var gridHTML = '';
+      for (var i = 0; i < firstDay; i++) gridHTML += '<div></div>';
+      for (var d = 1; d <= daysInMonth; d++) {
+          var isToday = d === now.getDate();
+          gridHTML += '<div style="padding:12px 6px;text-align:center;border-radius:8px;background:' +
+              (isToday ? 'rgba(74,158,255,0.15)' : 'rgba(255,255,255,0.03)') +
+              ';color:' + (isToday ? '#4a9eff' : '#e2e8f0') +
+              ';font-size:14px;">' + d + '</div>';
       }
   
-      // 触发导航事件，让 Academy 页面处理
-      var event = new CustomEvent('NAVIGATE_TO_CALENDAR', {
-          detail: { source: 'dashboard' }
-      });
-      document.dispatchEvent(event);
+      container.innerHTML = `
+        <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
+          <button onclick="LawAIApp.Dashboard.render()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
+          <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">📅 Calendar</h2>
+          <p style="color:#94a3b8;margin:0 0 20px;">${monthName} ${year}</p>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:12px;color:#64748b;margin-bottom:8px;">
+            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;">${gridHTML}</div>
+        </div>
+      `;
   },
 
-  _renderSettingsView: function() {
-    console.log('[Dashboard] ⚙️ Opening Settings...');
-
-    var eventAdapter = LawAIApp.DashboardEventAdapter;
-    if (eventAdapter) {
-        eventAdapter.sendPrimaryActionSelected('view_settings', null, {
-            source: 'dashboard'
-        });
-    }
-
-    var event = new CustomEvent('NAVIGATE_TO_SETTINGS', {
-        detail: { source: 'dashboard' }
-    });
-    document.dispatchEvent(event);
+ _renderSettingsView: function() {
+      console.log('[Dashboard] ⚙️ Rendering Settings...');
+  
+      var container = document.getElementById('app') || 
+                      document.getElementById('law-runtime-root') || 
+                      document.getElementById('dashboard-root');
+      if (!container) return;
+  
+      // 1. 已加载 → 直接 render
+      if (window.LawAIApp && window.LawAIApp.Settings && typeof window.LawAIApp.Settings.render === 'function') {
+          try {
+              window.LawAIApp.Settings._root = container;
+              window.LawAIApp.Settings.render();
+              console.log('[Dashboard] ✅ Settings rendered (cached)');
+              return;
+          } catch (e) {
+              console.warn('[Dashboard] Settings render error:', e);
+          }
+      }
+  
+      // 2. 显示 loading
+      container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Settings...</div>';
+  
+      // 3. 防止重复插 script
+      if (document.getElementById('settings-script-loader')) {
+          return;
+      }
+  
+      // 4. 动态加载 settings.js
+      var script = document.createElement('script');
+      script.id = 'settings-script-loader';
+      script.src = '/js/settings.js?v=' + Date.now();
+      script.async = true;
+      script.onload = function() {
+          console.log('[Dashboard] ✅ settings.js loaded');
+          if (window.LawAIApp && window.LawAIApp.Settings && typeof window.LawAIApp.Settings.render === 'function') {
+              window.LawAIApp.Settings._root = container;
+              window.LawAIApp.Settings.render();
+          } else {
+              container.innerHTML = `
+                <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
+                  <button onclick="LawAIApp.Dashboard.render()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
+                  <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">⚙️ Settings</h2>
+                  <p style="color:#94a3b8;">Settings module not available.</p>
+                </div>
+              `;
+          }
+      };
+      script.onerror = function() {
+          console.warn('[Dashboard] ⚠️ Failed to load settings.js');
+          container.innerHTML = `
+            <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
+              <button onclick="LawAIApp.Dashboard.render()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
+              <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">⚙️ Settings</h2>
+              <p style="color:#94a3b8;">Settings module not available.</p>
+            </div>
+          `;
+      };
+      document.head.appendChild(script);
   },
 
   // ============================================================
@@ -4103,19 +4168,105 @@ _renderRecommendationCard: function(rec) {
   },
 
   _renderNotesView: function() {
-    console.log('[Dashboard] 📝 Opening Notes...');
-
-    var eventAdapter = LawAIApp.DashboardEventAdapter;
-    if (eventAdapter) {
-        eventAdapter.sendPrimaryActionSelected('view_notes', null, {
-            source: 'dashboard'
-        });
-    }
-
-    var event = new CustomEvent('NAVIGATE_TO_NOTES', {
-        detail: { source: 'dashboard' }
-    });
-    document.dispatchEvent(event);
+      console.log('[Dashboard] 📝 Rendering Notes...');
+  
+      var container = document.getElementById('app') || 
+                      document.getElementById('law-runtime-root') || 
+                      document.getElementById('dashboard-root');
+      if (!container) return;
+  
+      // 1. 已加载 → 直接 render（依次尝试 3 个入口）
+      if (window.LawAIApp) {
+          var candidates = [
+              window.LawAIApp.Notes,
+              window.LawAIApp.NotesView,
+              window.LawAIApp.KnowledgeCapture
+          ];
+          for (var i = 0; i < candidates.length; i++) {
+              var mod = candidates[i];
+              if (mod && typeof mod.render === 'function') {
+                  try {
+                      mod._root = container;
+                      mod.render(container);
+                      console.log('[Dashboard] ✅ Notes rendered (cached)');
+                      return;
+                  } catch (e) {
+                      console.warn('[Dashboard] Notes render error:', e);
+                  }
+              }
+          }
+      }
+  
+      // 2. 显示 loading
+      container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Notes...</div>';
+  
+      // 3. 防止重复插 script
+      if (document.getElementById('notes-script-loader')) {
+          return;
+      }
+  
+      // 4. 动态加载 notes.js（+ knowledgeCapture.js）
+      var files = [
+          '/js/academy/knowledgeCapture.js',
+          '/js/academy/notes.js'
+      ];
+      var loaded = 0;
+      var self = this;
+  
+      files.forEach(function(file) {
+          var script = document.createElement('script');
+          script.id = 'notes-script-loader';   // 用同一个 id 标记"已开始加载"
+          script.src = file + '?v=' + Date.now();
+          script.async = true;
+          script.onload = function() {
+              loaded++;
+              console.log('[Dashboard] ✅ Loaded:', file);
+              if (loaded === files.length) {
+                  self._renderNotesFinal(container);
+              }
+          };
+          script.onerror = function() {
+              loaded++;
+              console.warn('[Dashboard] ⚠️ Failed:', file);
+              if (loaded === files.length) {
+                  self._renderNotesFinal(container);
+              }
+          };
+          document.head.appendChild(script);
+      });
+  },
+  
+  // 🔥 辅助函数：Notes 加载完成后统一渲染
+  _renderNotesFinal: function(container) {
+      if (!container) return;
+  
+      var candidates = [
+          window.LawAIApp && window.LawAIApp.Notes,
+          window.LawAIApp && window.LawAIApp.NotesView,
+          window.LawAIApp && window.LawAIApp.KnowledgeCapture
+      ];
+      for (var i = 0; i < candidates.length; i++) {
+          var mod = candidates[i];
+          if (mod && typeof mod.render === 'function') {
+              try {
+                  mod._root = container;
+                  mod.render(container);
+                  console.log('[Dashboard] ✅ Notes rendered (after load)');
+                  return;
+              } catch (e) {
+                  console.warn('[Dashboard] Notes render error:', e);
+              }
+          }
+      }
+  
+      // 都不可用 → 显示 fallback
+      container.innerHTML = `
+        <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
+          <button onclick="LawAIApp.Dashboard.render()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
+          <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">📓 Notes</h2>
+          <p style="color:#94a3b8;">Notes module not available.</p>
+        </div>
+      `;
   },
 
   /**
