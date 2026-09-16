@@ -363,6 +363,34 @@
             return this;
         },
 
+        selectLesson: function(lessonId) {
+            console.log('[AcademyExperienceManager] 📍 Selecting lesson (in-page):', lessonId);
+        
+            this._state.currentLessonId = lessonId;
+            this._state.viewMode = 'lesson';
+        
+            // 🔥 用 LessonView 在 academy-root 里渲染（不跳转）
+            var container = document.getElementById('academy-root');
+            if (container) {
+                var lessonView = window.LawAIApp?.Views?.LessonView || window.LawAIApp?.LessonView;
+                if (lessonView && typeof lessonView.render === 'function') {
+                    // 更新 URL（不跳转）
+                    var url = '/pages/academy.html?view=lesson&lessonId=' + encodeURIComponent(lessonId);
+                    window.history.pushState({ view: 'lesson', lessonId: lessonId }, '', url);
+        
+                    console.log('[AcademyExperienceManager] 🎨 Rendering lesson in-page:', lessonId);
+                    lessonView.render(lessonId, container);
+                } else {
+                    console.warn('[AcademyExperienceManager] LessonView not available, fallback to lesson.html');
+                    window.location.href = '/pages/lesson.html?lessonId=' + encodeURIComponent(lessonId);
+                }
+            } else {
+                console.warn('[AcademyExperienceManager] #academy-root not found');
+            }
+        
+            return this;
+        },
+
         startLesson: function(lessonId) {
             console.log('[AcademyExperienceManager] 🚀 Starting lesson:', lessonId);
         
@@ -401,34 +429,6 @@
             });
         
             console.log('[AcademyExperienceManager] ✅ Lesson started:', lessonId);
-            return this;
-        },
-
-        selectLesson: function(lessonId) {
-            console.log('[AcademyExperienceManager] 📍 Selecting lesson (in-page):', lessonId);
-        
-            this._state.currentLessonId = lessonId;
-            this._state.viewMode = 'lesson';
-        
-            // 🔥 用 LessonView 在 academy-root 里渲染（不跳转）
-            var container = document.getElementById('academy-root');
-            if (container) {
-                var lessonView = window.LawAIApp?.Views?.LessonView || window.LawAIApp?.LessonView;
-                if (lessonView && typeof lessonView.render === 'function') {
-                    // 更新 URL（不跳转）
-                    var url = '/pages/academy.html?view=lesson&lessonId=' + encodeURIComponent(lessonId);
-                    window.history.pushState({ view: 'lesson', lessonId: lessonId }, '', url);
-        
-                    console.log('[AcademyExperienceManager] 🎨 Rendering lesson in-page:', lessonId);
-                    lessonView.render(lessonId, container);
-                } else {
-                    console.warn('[AcademyExperienceManager] LessonView not available, fallback to lesson.html');
-                    window.location.href = '/pages/lesson.html?lessonId=' + encodeURIComponent(lessonId);
-                }
-            } else {
-                console.warn('[AcademyExperienceManager] #academy-root not found');
-            }
-        
             return this;
         },
 
