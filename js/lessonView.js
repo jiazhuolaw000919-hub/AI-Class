@@ -1254,9 +1254,9 @@ LawAIApp.Views.LessonView = {
         if (LawAIApp.Toast?.info) {
             LawAIApp.Toast.info('✏️ Practice mode coming soon!');
         }
-    }
+    },
 
-        /**
+    /**
      * 🔥 v5.0.0: Practice Activity 回调
      */
     startPracticeForActivity: function(activityId) {
@@ -1339,7 +1339,7 @@ LawAIApp.Views.LessonView = {
         if (LawAIApp.Toast?.success) {
             LawAIApp.Toast.success('🧠 Quiz submitted');
         }
-    },
+    }
 };
 
 console.log('📖 LessonView V4.1 ready (Classroom Edition + Navigation)');
