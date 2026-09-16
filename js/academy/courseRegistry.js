@@ -1,13 +1,33 @@
 // js/academy/courseRegistry.js
 // S4 扩展版 — 从 ContentRegistry 动态加载
+// v2.1.0 — 清空 DEFAULT_COURSES（磁盘上不存在，导致 404）
+//
+// ⚠️ v2.1.0 变更:
+//   旧版 DEFAULT_COURSES 里硬编码了 7 个假 course:
+//     - course-ai-fundamentals
+//     - course-prompt-engineering
+//     - course-ai-agents
+//     - course-business-strategy
+//     - course-entrepreneurship
+//     - course-web-development
+//     - course-system-design
+//   这些 course 在 /content/courses/ 下**根本不存在**，
+//   导致 UI 遍历 getAllCourses() 时对每个假 course 发 fetch → 404。
+//
+//   现在：DEFAULT_COURSES = []，所有 course 全部由
+//   _loadS4Courses() 从 /content/courses/{courseId}/course.json 真实加载。
+//   如果 ContentLoader 拿不到 index，fallback 硬编码 ['course-ai']。
+
 (function() {
     'use strict';
 
     if (window.LawAIApp && window.LawAIApp.CourseRegistry) {
+        // ============================================================
         // 如果已存在，进行扩展而不是重新创建
+        // ============================================================
         console.log('[CourseRegistry] Extending existing...');
         const existing = window.LawAIApp.CourseRegistry;
-        
+
         // 添加 S4 方法
         existing.loadFromS4 = async function() {
             const registry = window.LawAIApp?.S4ContentRegistry || window.LawAIApp?.ContentRegistry;
@@ -65,68 +85,30 @@
         constructor() {
             this._courses = new Map();
             this.initialized = false;
-            this.version = '2.0.0';
+            this.version = '2.1.0';
             this._s4Loaded = false;
 
-            // 保留旧 DEFAULT_COURSES 作为 fallback
-            this.DEFAULT_COURSES = [
-                {
-                    id: 'course-ai-fundamentals',
-                    programId: 'program-ai-foundations',
-                    title: 'AI Fundamentals',
-                    description: 'Essential AI concepts and applications',
-                    modules: [],
-                    _legacy: true
-                },
-                {
-                    id: 'course-prompt-engineering',
-                    programId: 'program-ai-prompting',
-                    title: 'Prompt Engineering Foundations',
-                    description: 'Master the art of prompting AI models',
-                    modules: [],
-                    _legacy: true
-                },
-                {
-                    id: 'course-ai-agents',
-                    programId: 'program-ai-agents',
-                    title: 'AI Agents Introduction',
-                    description: 'Build intelligent AI agents and automations',
-                    modules: [],
-                    _legacy: true
-                },
-                {
-                    id: 'course-business-strategy',
-                    programId: 'program-business-strategy',
-                    title: 'Business Strategy Foundations',
-                    description: 'Strategic thinking and planning',
-                    modules: [],
-                    _legacy: true
-                },
-                {
-                    id: 'course-entrepreneurship',
-                    programId: 'program-business-entrepreneurship',
-                    title: 'Entrepreneurship Basics',
-                    description: 'Start and grow your business',
-                    modules: [],
-                    _legacy: true
-                },
-                {
-                    id: 'course-web-development',
-                    programId: 'program-tech-development',
-                    title: 'Web Development Foundations',
-                    description: 'Build web applications with modern practices',
-                    modules: [],
-                    _legacy: true
-                },
-                {
-                    id: 'course-system-design',
-                    programId: 'program-tech-system-design',
-                    title: 'Software Architecture Basics',
-                    description: 'Design scalable systems and architectures',
-                    modules: [],
-                    _legacy: true
-                }
-            ];
+            // ============================================================
+            // ⚠️ v2.1.0: DEFAULT_COURSES 已清空
+            // ============================================================
+            // 之前这里硬编码了以下 course:
+            //   - course-ai-fundamentals
+            //   - course-prompt-engineering
+            //   - course-ai-agents
+            //   - course-business-strategy
+            //   - course-entrepreneurship
+            //   - course-web-development
+            //   - course-system-design
+            //
+            // 这些 course 在 /content/courses/ 下**根本不存在**，
+            // 导致 UI 遍历 getAllCourses() 时对每个假 course 发 fetch → 404。
+            //
+            // 现在所有 course 全部由 _loadS4Courses() 从
+            // /content/courses/{courseId}/course.json 真实加载。
+            //
+            // 如果你确实需要加 fallback course，请确保磁盘上真的有
+            // /content/courses/{id}/course.json 文件！
+            this.DEFAULT_COURSES = [];
         }
 
         initialize() {
@@ -137,10 +119,17 @@
 
             console.log('[CourseRegistry] 📖 Initializing...');
 
-            // 先加载默认课程（保证兼容）
-            this.DEFAULT_COURSES.forEach((course) => {
-                this.register(course);
-            });
+            // ============================================================
+            // ⚠️ v2.1.0: DEFAULT_COURSES 为空时跳过注册
+            // ============================================================
+            if (this.DEFAULT_COURSES.length > 0) {
+                this.DEFAULT_COURSES.forEach((course) => {
+                    this.register(course);
+                });
+                console.log('[CourseRegistry] Registered', this.DEFAULT_COURSES.length, 'default courses');
+            } else {
+                console.log('[CourseRegistry] ⏭️ No default courses (all via S4)');
+            }
 
             this.initialized = true;
 
@@ -158,21 +147,21 @@
 
         async _loadS4Courses() {
             if (this._s4Loaded) return;
-            
+
             // 🔥 新方案：直接从 ContentLoader 加载
             var self = this;
             var loader = window.LawAIApp?.ContentLoader || window.LawAIApp?.S4ContentLoader;
-            
+
             if (!loader || typeof loader.loadCourse !== 'function') {
                 console.log('[CourseRegistry] ContentLoader not ready, will retry in 1s...');
                 setTimeout(function() { self._loadS4Courses(); }, 1000);
                 return;
             }
-            
+
             try {
                 // 1. 加载课程索引
                 var s4CourseIds = [];
-                
+
                 if (typeof loader.loadCourseIndex === 'function') {
                     try {
                         var index = await loader.loadCourseIndex();
@@ -190,23 +179,24 @@
                         console.warn('[CourseRegistry] loadCourseIndex failed:', e);
                     }
                 }
-                
+
                 // 2. Fallback: 硬编码已知的 S4 courses
+                // ⚠️ 这里只有真实存在的 course-ai
                 if (s4CourseIds.length === 0) {
                     s4CourseIds = ['course-ai'];
                 }
-                
+
                 console.log('[CourseRegistry] Loading S4 courses:', s4CourseIds);
-                
+
                 var count = 0;
-                
+
                 for (var i = 0; i < s4CourseIds.length; i++) {
                     var courseId = s4CourseIds[i];
                     if (this._courses.has(courseId)) continue;
-                    
+
                     var course = await loader.loadCourse(courseId);
                     if (!course) continue;
-                    
+
                     // 3. 注册到 CourseRegistry
                     this._courses.set(course.id, {
                         id: course.id,
@@ -222,10 +212,10 @@
                         _s4: true,
                         _metadata: course.metadata || {}
                     });
-                    
+
                     count++;
                     console.log('[CourseRegistry] ✅ Loaded:', courseId);
-                    
+
                     // 4. 加载该 Course 的所有 Subjects
                     var subjectIds = course.subjects || [];
                     for (var j = 0; j < subjectIds.length; j++) {
@@ -255,16 +245,16 @@
                         }
                     }
                 }
-                
+
                 this._s4Loaded = true;
                 console.log('[CourseRegistry] ✅ Loaded ' + count + ' S4 courses');
-                
+
                 // 5. 触发更新事件
                 this._emit('COURSE_REGISTRY_UPDATED', {
                     courses: this.getAllCourses(),
                     count: this._courses.size
                 });
-                
+
             } catch (e) {
                 console.warn('[CourseRegistry] S4 load error:', e);
                 // 失败后重试一次
@@ -283,7 +273,6 @@
                 return null;
             }
 
-            // 第 143-146 行，修改为：
             if (!courseData.programId && !courseData.schoolId) {
                 console.warn('[CourseRegistry] Course: programId or schoolId is required');
                 return null;
@@ -315,7 +304,7 @@
                 }
             }
 
-           const course = {
+            const course = {
                 ...courseData,
                 status: courseData.status || 'active',
                 modules: courseData.modules || [],  // 🔥 确保 modules 数组存在
@@ -338,7 +327,7 @@
             return course.id;
         }
 
-                getCourse(id) {
+        getCourse(id) {
             return this._courses.get(id) || null;
         }
 
@@ -348,7 +337,7 @@
         getCourseSummary(courseId) {
             var course = this.getCourse(courseId);
             if (!course) return null;
-            
+
             return {
                 id: course.id,
                 title: course.title,
@@ -495,6 +484,6 @@
         });
     }
 
-    console.log('[CourseRegistry] Module loaded (S4 Extended)');
+    console.log('[CourseRegistry] Module loaded (S4 Extended v2.1.0)');
 
 })();
