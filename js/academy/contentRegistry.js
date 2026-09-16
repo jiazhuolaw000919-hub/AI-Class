@@ -1,483 +1,489 @@
-// contentRegistry.js — S4 扩展版
+// js/academy/courseRegistry.js
+// S4 扩展版 — 从 ContentRegistry 动态加载
+// v2.1.0 — 清空 DEFAULT_COURSES（磁盘上不存在，导致 404）
+//
+// ⚠️ v2.1.0 变更:
+//   旧版 DEFAULT_COURSES 里硬编码了 7 个假 course:
+//     - course-ai-fundamentals
+//     - course-prompt-engineering
+//     - course-ai-agents
+//     - course-business-strategy
+//     - course-entrepreneurship
+//     - course-web-development
+//     - course-system-design
+//   这些 course 在 /content/courses/ 下**根本不存在**，
+//   导致 UI 遍历 getAllCourses() 时对每个假 course 发 fetch → 404。
+//
+//   现在：DEFAULT_COURSES = []，所有 course 全部由
+//   _loadS4Courses() 从 /content/courses/{courseId}/course.json 真实加载。
+//   如果 ContentLoader 拿不到 index，fallback 硬编码 ['course-ai']。
+
 (function() {
     'use strict';
 
-    // ============================================================
-    // 原有 ContentRegistry 保留
-    // ============================================================
-    const OriginalRegistry = window.LawAIApp?.ContentRegistry || {};
-
-    // ============================================================
-    // S4 ContentRegistry 扩展
-    // ============================================================
-    const S4ContentRegistry = {
-        // ---------- 原有方法（保留） ----------
-        _getStore: OriginalRegistry._getStore || function() {
-            return LawAIApp.StorageEngine?.get('content_registry', {}) || {};
-        },
-        _save: OriginalRegistry._save || function(store) {
-            LawAIApp.StorageEngine?.set('content_registry', store);
-        },
-        register: OriginalRegistry.register || function(contentObject) {
-            const store = this._getStore();
-            const id = contentObject.contentId;
-            if (!id) return null;
-            store[id] = {
-                ...contentObject,
-                registeredAt: store[id]?.registeredAt || new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            };
-            this._save(store);
-            LawAIApp.EventBus?.emit('ContentCreated', { contentId: id });
-            return store[id];
-        },
-        get: OriginalRegistry.get || function(contentId) {
-            return this._getStore()[contentId] || null;
-        },
-        filter: OriginalRegistry.filter || function({ type, academyId, courseId, status } = {}) {
-            const store = this._getStore();
-            return Object.values(store).filter(item => {
-                if (type && item.type !== type) return false;
-                if (academyId && item.academyId !== academyId) return false;
-                if (courseId && item.courseId !== courseId) return false;
-                if (status && item.status !== status) return false;
-                return true;
-            });
-        },
-        archive: OriginalRegistry.archive || function(contentId) {
-            const store = this._getStore();
-            if (store[contentId]) {
-                store[contentId].status = 'archived';
-                store[contentId].archivedAt = new Date().toISOString();
-                this._save(store);
-                LawAIApp.EventBus?.emit('ContentArchived', { contentId });
-            }
-        },
-
+    if (window.LawAIApp && window.LawAIApp.CourseRegistry) {
         // ============================================================
-        // ═══ S4 新增方法 ═══
+        // 如果已存在，进行扩展而不是重新创建
         // ============================================================
+        console.log('[CourseRegistry] Extending existing...');
+        const existing = window.LawAIApp.CourseRegistry;
 
-        /**
-         * S4: 注册 Course（自动从 course.json 提取信息）
-         */
-        registerCourse: function(courseData) {
-            if (!courseData.id) {
-                console.warn('[S4ContentRegistry] Course id required');
-                return null;
-            }
-
-            const entry = {
-                contentId: `s4_course_${courseData.id}`,
-                type: 'course',
-                courseId: courseData.id,
-                school: courseData.school,
-                title: courseData.title,
-                description: courseData.description,
-                version: courseData.version,
-                status: courseData.status || 'published',
-                subjectCount: courseData.subjects?.length || 0,
-                metadata: {
-                    targetLearningTime: courseData.targetLearningTime,
-                    recommendedAI: courseData.recommendedAI
-                },
-                registeredAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            };
-
-            return this.register(entry);
-        },
-
-        /**
-         * S4: 注册 Subject
-         */
-        registerSubject: function(subjectData) {
-            if (!subjectData.id) {
-                console.warn('[S4ContentRegistry] Subject id required');
-                return null;
-            }
-
-            const entry = {
-                contentId: `s4_subject_${subjectData.id}`,
-                type: 'subject',
-                subjectId: subjectData.id,
-                courseId: subjectData.courseId,
-                title: subjectData.title,
-                description: subjectData.description,
-                version: subjectData.version,
-                status: subjectData.status || 'published',
-                lessonCount: subjectData.lessons?.length || 0,
-                registeredAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            };
-
-            return this.register(entry);
-        },
-
-        /**
-         * S4: 注册 Lesson
-         */
-        registerLesson: function(lessonData) {
-            if (!lessonData.id) {
-                console.warn('[S4ContentRegistry] Lesson id required');
-                return null;
-            }
-
-            const entry = {
-                contentId: `s4_lesson_${lessonData.id}`,
-                type: 'lesson',
-                lessonId: lessonData.id,
-                subjectId: lessonData.subjectId,
-                title: lessonData.title,
-                difficulty: lessonData.difficulty,
-                estimatedDuration: lessonData.estimatedDuration,
-                version: lessonData.version,
-                status: lessonData.status || 'published',
-                hasVideo: !!lessonData.video?.url,
-                hasPractice: (lessonData.practice?.length || 0) > 0,
-                hasQuiz: (lessonData.quiz?.length || 0) > 0,
-                registeredAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            };
-
-            return this.register(entry);
-        },
-
-        /**
-         * S4: 获取所有 Course 条目
-         */
-        getCourses: function() {
-            return this.filter({ type: 'course' });
-        },
-
-        /**
-         * S4: 获取某 School 的所有 Course
-         */
-        getCoursesBySchool: function(schoolId) {
-            return this.filter({ type: 'course' }).filter(c => c.school === schoolId);
-        },
-
-        /**
-         * S4: 获取某 Course 的所有 Subject
-         */
-        getSubjectsByCourse: function(courseId) {
-            return this.filter({ type: 'subject' }).filter(s => s.courseId === courseId);
-        },
-
-        /**
-         * S4: 获取某 Subject 的所有 Lesson
-         */
-        getLessonsBySubject: function(subjectId) {
-            return this.filter({ type: 'lesson' }).filter(l => l.subjectId === subjectId);
-        },
-
-        /**
-         * S4: 按难度筛选 Lesson
-         */
-        getLessonsByDifficulty: function(difficulty) {
-            return this.filter({ type: 'lesson' }).filter(l => l.difficulty === difficulty);
-        },
-
-        /**
-         * S4: 获取统计
-         */
-        getS4Stats: function() {
-            const courses = this.getCourses();
-            const subjects = this.filter({ type: 'subject' });
-            const lessons = this.filter({ type: 'lesson' });
-            
-            return {
-                totalCourses: courses.length,
-                totalSubjects: subjects.length,
-                totalLessons: lessons.length,
-                bySchool: {
-                    science: courses.filter(c => c.school === 'science').length,
-                    business: courses.filter(c => c.school === 'business').length,
-                    art: courses.filter(c => c.school === 'art').length
-                },
-                byDifficulty: {
-                    beginner: lessons.filter(l => l.difficulty === 'beginner').length,
-                    intermediate: lessons.filter(l => l.difficulty === 'intermediate').length,
-                    advanced: lessons.filter(l => l.difficulty === 'advanced').length,
-                    expert: lessons.filter(l => l.difficulty === 'expert').length
-                }
-            };
-        },
-
-        /**
-         * S4: 从 ContentLoader 同步所有内容到 Registry
-         * 这是“一键同步”方法
-         */
-        async syncFromLoader() {
-            const loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
-            if (!loader) {
-                console.warn('[S4ContentRegistry] ContentLoader not found');
+        // 添加 S4 方法
+        existing.loadFromS4 = async function() {
+            const registry = window.LawAIApp?.S4ContentRegistry || window.LawAIApp?.ContentRegistry;
+            if (!registry) {
+                console.warn('[CourseRegistry] ContentRegistry not available');
                 return false;
             }
 
-            try {
-                // 1. 加载 Index
-                const index = await loader.loadCourseIndex();
-                if (!index) {
-                    console.warn('[S4ContentRegistry] No index found');
-                    return false;
-                }
+            // 获取所有 S4 Course
+            const s4Courses = registry.getCourses();
+            if (!s4Courses || s4Courses.length === 0) {
+                console.warn('[CourseRegistry] No S4 courses found');
+                return false;
+            }
 
-                // 2. 遍历所有 School
-                for (const [schoolId, school] of Object.entries(index.schools || {})) {
-                    for (const courseId of school.courses || []) {
-                        // 3. 加载 Course
-                        const course = await loader.loadCourse(courseId);
-                        if (course) {
-                            this.registerCourse(course);
-                            
-                            // 4. 加载 Subjects
-                            for (const subjectId of course.subjects || []) {
-                                const subject = await loader.loadSubject(courseId, subjectId);
-                                if (subject) {
-                                    this.registerSubject(subject);
-                                    
-                                    // 5. 加载 Lessons
-                                    for (const lessonId of subject.lessons || []) {
-                                        const lesson = await loader.loadLesson(courseId, subjectId, lessonId);
-                                        if (lesson) {
-                                            this.registerLesson(lesson);
-                                        }
+            // 注册到 CourseRegistry
+            let count = 0;
+            for (const s4Course of s4Courses) {
+                // 检查是否已存在
+                if (!this._courses.has(s4Course.courseId)) {
+                    // 转换为 CourseRegistry 格式
+                    const courseData = {
+                        id: s4Course.courseId,
+                        programId: `program-${s4Course.school}`, // 临时映射
+                        title: s4Course.title,
+                        description: s4Course.description || '',
+                        modules: [],
+                        _s4: true, // 标记为 S4 来源
+                        _metadata: s4Course.metadata
+                    };
+                    this._courses.set(s4Course.courseId, courseData);
+                    count++;
+                }
+            }
+
+            console.log(`[CourseRegistry] Loaded ${count} courses from S4`);
+            return true;
+        };
+
+        // 自动加载 S4 内容
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            setTimeout(() => {
+                existing.loadFromS4().catch(() => {});
+            }, 500);
+        }
+
+        console.log('[CourseRegistry] ✅ Extended with S4 support');
+        return;
+    }
+
+    // ============================================================
+    // 如果不存在，创建新实例（包含 S4 支持）
+    // ============================================================
+    class CourseRegistry {
+        constructor() {
+            this._courses = new Map();
+            this.initialized = false;
+            this.version = '2.1.0';
+            this._s4Loaded = false;
+
+            // ============================================================
+            // ⚠️ v2.1.0: DEFAULT_COURSES 已清空
+            // ============================================================
+            // 之前这里硬编码了以下 course:
+            //   - course-ai-fundamentals
+            //   - course-prompt-engineering
+            //   - course-ai-agents
+            //   - course-business-strategy
+            //   - course-entrepreneurship
+            //   - course-web-development
+            //   - course-system-design
+            //
+            // 这些 course 在 /content/courses/ 下**根本不存在**，
+            // 导致 UI 遍历 getAllCourses() 时对每个假 course 发 fetch → 404。
+            //
+            // 现在所有 course 全部由 _loadS4Courses() 从
+            // /content/courses/{courseId}/course.json 真实加载。
+            //
+            // 如果你确实需要加 fallback course，请确保磁盘上真的有
+            // /content/courses/{id}/course.json 文件！
+            this.DEFAULT_COURSES = [];
+        }
+
+        initialize() {
+            if (this.initialized) {
+                console.log('[CourseRegistry] Already initialized');
+                return this;
+            }
+
+            console.log('[CourseRegistry] 📖 Initializing...');
+
+            // ============================================================
+            // ⚠️ v2.1.0: DEFAULT_COURSES 为空时跳过注册
+            // ============================================================
+            if (this.DEFAULT_COURSES.length > 0) {
+                this.DEFAULT_COURSES.forEach((course) => {
+                    this.register(course);
+                });
+                console.log('[CourseRegistry] Registered', this.DEFAULT_COURSES.length, 'default courses');
+            } else {
+                console.log('[CourseRegistry] ⏭️ No default courses (all via S4)');
+            }
+
+            this.initialized = true;
+
+            this._emit('COURSE_REGISTRY_READY', {
+                courses: this.getAllCourses(),
+                count: this._courses.size
+            });
+
+            // 尝试异步加载 S4 内容
+            this._loadS4Courses();
+
+            console.log('[CourseRegistry] ✅ Initialized with', this._courses.size, 'courses');
+            return this;
+        }
+
+        async _loadS4Courses() {
+            if (this._s4Loaded) return;
+
+            // 🔥 新方案：直接从 ContentLoader 加载
+            var self = this;
+            var loader = window.LawAIApp?.ContentLoader || window.LawAIApp?.S4ContentLoader;
+
+            if (!loader || typeof loader.loadCourse !== 'function') {
+                console.log('[CourseRegistry] ContentLoader not ready, will retry in 1s...');
+                setTimeout(function() { self._loadS4Courses(); }, 1000);
+                return;
+            }
+
+            try {
+                // 1. 加载课程索引
+                var s4CourseIds = [];
+
+                if (typeof loader.loadCourseIndex === 'function') {
+                    try {
+                        var index = await loader.loadCourseIndex();
+                        if (index && index.schools) {
+                            for (var schoolKey in index.schools) {
+                                if (index.schools.hasOwnProperty(schoolKey)) {
+                                    var school = index.schools[schoolKey];
+                                    if (school.courses && Array.isArray(school.courses)) {
+                                        s4CourseIds = s4CourseIds.concat(school.courses);
                                     }
                                 }
                             }
                         }
+                    } catch (e) {
+                        console.warn('[CourseRegistry] loadCourseIndex failed:', e);
                     }
                 }
 
-                console.log('[S4ContentRegistry] ✅ Sync complete');
-                return true;
-            } catch (e) {
-                console.error('[S4ContentRegistry] Sync failed:', e);
-                return false;
-            }
-        },
-
-        // ============================================================
-        // ═══ Part 6: Catalog/Index 同步方法 ═══
-        // ============================================================
-
-        /**
-         * ═══ Part 6: 从 Catalog 同步 Course 到 Registry ═══
-         */
-        async syncCoursesFromCatalog() {
-            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
-            if (!loader) {
-                console.warn('[S4ContentRegistry] ContentLoader not available');
-                return false;
-            }
-
-            try {
-                var catalog = await loader.loadCourseCatalog();
-                if (!catalog || !catalog.courses) {
-                    console.warn('[S4ContentRegistry] No courses in catalog');
-                    return false;
+                // 2. Fallback: 硬编码已知的 S4 courses
+                // ⚠️ 这里只有真实存在的 course-ai
+                if (s4CourseIds.length === 0) {
+                    s4CourseIds = ['course-ai'];
                 }
 
+                console.log('[CourseRegistry] Loading S4 courses:', s4CourseIds);
+
                 var count = 0;
-                for (var i = 0; i < catalog.courses.length; i++) {
-                    var course = catalog.courses[i];
-                    var entry = {
-                        contentId: 's4_course_' + course.id,
-                        type: 'course',
-                        courseId: course.id,
-                        school: course.schoolId,
+
+                for (var i = 0; i < s4CourseIds.length; i++) {
+                    var courseId = s4CourseIds[i];
+                    if (this._courses.has(courseId)) continue;
+
+                    var course = await loader.loadCourse(courseId);
+                    if (!course) continue;
+
+                    // 3. 注册到 CourseRegistry
+                    this._courses.set(course.id, {
+                        id: course.id,
+                        schoolId: course.schoolId,
+                        programId: 'program-' + (course.schoolId || 'science'),
                         title: course.title,
-                        description: course.description,
-                        version: course.version || '1.0.0',
+                        description: course.description || '',
+                        icon: course.icon,
+                        estimatedHours: course.estimatedHours,
+                        subjects: course.subjects || [],
                         status: course.status || 'published',
-                        subjectCount: course.subjectCount || 0,
-                        lessonCount: course.lessonCount || 0,
-                        metadata: {
-                            estimatedHours: course.estimatedHours,
-                            tags: course.tags,
-                            icon: course.icon
-                        }
-                    };
-                    this.register(entry);
+                        modules: [],
+                        _s4: true,
+                        _metadata: course.metadata || {}
+                    });
+
                     count++;
-                }
+                    console.log('[CourseRegistry] ✅ Loaded:', courseId);
 
-                console.log('[S4ContentRegistry] ✅ Synced ' + count + ' courses from catalog');
-                return true;
-            } catch (e) {
-                console.error('[S4ContentRegistry] Sync failed:', e);
-                return false;
-            }
-        },
-
-        /**
-         * ═══ Part 6: 从 Subject Index 同步 Subject 到 Registry ═══
-         */
-        async syncSubjectsFromIndex() {
-            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
-            if (!loader) {
-                console.warn('[S4ContentRegistry] ContentLoader not available');
-                return false;
-            }
-
-            try {
-                var index = await loader.loadSubjectIndex();
-                if (!index || !index.subjects) {
-                    console.warn('[S4ContentRegistry] No subjects in index');
-                    return false;
-                }
-
-                var count = 0;
-                for (var i = 0; i < index.subjects.length; i++) {
-                    var subject = index.subjects[i];
-                    var entry = {
-                        contentId: 's4_subject_' + subject.id,
-                        type: 'subject',
-                        subjectId: subject.id,
-                        courseId: subject.courseId,
-                        title: subject.title,
-                        description: subject.description,
-                        version: subject.version || '1.0.0',
-                        status: subject.status || 'published',
-                        lessonCount: subject.lessonCount || 0,
-                        metadata: {
-                            order: subject.order,
-                            difficulty: subject.difficulty,
-                            tags: subject.tags,
-                            estimatedMinutes: subject.estimatedMinutes
+                    // 4. 加载该 Course 的所有 Subjects
+                    var subjectIds = course.subjects || [];
+                    for (var j = 0; j < subjectIds.length; j++) {
+                        var subjectId = subjectIds[j];
+                        try {
+                            var subject = await loader.loadSubject(course.id, subjectId);
+                            if (subject) {
+                                var sr = window.LawAIApp?.SubjectRegistry;
+                                if (sr && typeof sr.register === 'function') {
+                                    if (!sr.getSubject(subject.id)) {
+                                        sr.register({
+                                            id: subject.id,
+                                            courseId: subject.courseId,
+                                            title: subject.title,
+                                            description: subject.description,
+                                            lessons: subject.lessons || [],
+                                            estimatedHours: subject.estimatedHours,
+                                            difficulty: subject.difficulty,
+                                            status: subject.status || 'published'
+                                        });
+                                        console.log('[CourseRegistry] ✅ Loaded subject:', subjectId);
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('[CourseRegistry] Subject load failed:', subjectId, e);
                         }
-                    };
-                    this.register(entry);
-                    count++;
+                    }
                 }
 
-                console.log('[S4ContentRegistry] ✅ Synced ' + count + ' subjects from index');
-                return true;
+                this._s4Loaded = true;
+                console.log('[CourseRegistry] ✅ Loaded ' + count + ' S4 courses');
+
+                // 5. 触发更新事件
+                this._emit('COURSE_REGISTRY_UPDATED', {
+                    courses: this.getAllCourses(),
+                    count: this._courses.size
+                });
+
             } catch (e) {
-                console.error('[S4ContentRegistry] Sync failed:', e);
-                return false;
+                console.warn('[CourseRegistry] S4 load error:', e);
+                // 失败后重试一次
+                setTimeout(function() { self._loadS4Courses(); }, 2000);
             }
-        },
-
-        /**
-         * ═══ Part 6: 从 Lesson Index 同步 Lesson 到 Registry ═══
-         */
-        async syncLessonsFromIndex() {
-            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
-            if (!loader) {
-                console.warn('[S4ContentRegistry] ContentLoader not available');
-                return false;
-            }
-
-            try {
-                var index = await loader.loadLessonIndex();
-                if (!index || !index.lessons) {
-                    console.warn('[S4ContentRegistry] No lessons in index');
-                    return false;
-                }
-
-                var count = 0;
-                for (var i = 0; i < index.lessons.length; i++) {
-                    var lesson = index.lessons[i];
-                    var entry = {
-                        contentId: 's4_lesson_' + lesson.id,
-                        type: 'lesson',
-                        lessonId: lesson.id,
-                        subjectId: lesson.subjectId,
-                        title: lesson.title,
-                        difficulty: lesson.difficulty || 'mixed',
-                        estimatedDuration: lesson.estimatedMinutes || 15,
-                        version: lesson.version || '1.0.0',
-                        status: lesson.status || 'published',
-                        hasVideo: lesson.hasVideo || false,
-                        hasPractice: lesson.hasPractice || false,
-                        hasFlashcards: lesson.hasFlashcards || false,
-                        hasNotes: lesson.hasNotes || false,
-                        hasAITools: lesson.hasAITools || false,
-                        hasNews: lesson.hasNews || false,
-                        hasResources: lesson.hasResources || false,
-                        metadata: {
-                            order: lesson.order,
-                            tags: lesson.tags,
-                            contentRef: lesson.contentRef,
-                            courseId: lesson.courseId
-                        }
-                    };
-                    this.register(entry);
-                    count++;
-                }
-
-                console.log('[S4ContentRegistry] ✅ Synced ' + count + ' lessons from index');
-                return true;
-            } catch (e) {
-                console.error('[S4ContentRegistry] Sync failed:', e);
-                return false;
-            }
-        },
-
-        /**
-         * ═══ Part 6: 完整同步所有 Catalog/Index 到 Registry ═══
-         */
-                async syncAllFromCatalog() {
-            console.log('[S4ContentRegistry] 🔄 Syncing all from catalog/index...');
-            var results = {
-                courses: await this.syncCoursesFromCatalog(),
-                subjects: await this.syncSubjectsFromIndex(),
-                lessons: await this.syncLessonsFromIndex()
-            };
-            console.log('[S4ContentRegistry] ✅ Sync complete:', results);
-            return results;
-        },   // ← 这里要加逗号！
-
-        /**
-         * ═══ Part 20: 统一注册所有内容 ═══
-         */
-        registerAll: function(course, subjects, lessons) {
-            var results = {
-                course: null,
-                subjects: [],
-                lessons: []
-            };
-
-            if (course) {
-                results.course = this.registerCourse(course);
-            }
-
-            if (subjects && Array.isArray(subjects)) {
-                for (var i = 0; i < subjects.length; i++) {
-                    var result = this.registerSubject(subjects[i]);
-                    if (result) results.subjects.push(result);
-                }
-            }
-
-            if (lessons && Array.isArray(lessons)) {
-                for (var j = 0; j < lessons.length; j++) {
-                    var result = this.registerLesson(lessons[j]);
-                    if (result) results.lessons.push(result);
-                }
-            }
-
-            return results;
         }
-    };  // ← S4ContentRegistry 结束
+
+        register(courseData) {
+            if (!courseData.id) {
+                console.warn('[CourseRegistry] Course: id is required');
+                return null;
+            }
+
+            if (!courseData.title) {
+                console.warn('[CourseRegistry] Course: title is required');
+                return null;
+            }
+
+            if (!courseData.programId && !courseData.schoolId) {
+                console.warn('[CourseRegistry] Course: programId or schoolId is required');
+                return null;
+            }
+
+            if (this._courses.has(courseData.id)) {
+                // 如果是 S4 更新，允许更新
+                if (courseData._s4) {
+                    const existing = this._courses.get(courseData.id);
+                    this._courses.set(courseData.id, {
+                        ...existing,
+                        ...courseData,
+                        _s4: true
+                    });
+                    return courseData.id;
+                }
+                console.warn('[CourseRegistry] Course already exists:', courseData.id);
+                return courseData.id;
+            }
+
+            const programRegistry = window.LawAIApp?.ProgramRegistry;
+            if (programRegistry) {
+                const program = programRegistry.getProgram?.(courseData.programId);
+                if (program) {
+                    if (!program.courses) program.courses = [];
+                    if (!program.courses.includes(courseData.id)) {
+                        program.courses.push(courseData.id);
+                    }
+                }
+            }
+
+            const course = {
+                ...courseData,
+                status: courseData.status || 'active',
+                modules: courseData.modules || [],  // 🔥 确保 modules 数组存在
+                createdAt: courseData.createdAt || new Date().toISOString(),
+                // 🔥 Part 80: 如果有 S4 数据，保留
+                _s4: courseData._s4 || false,
+                _metadata: courseData._metadata || {}
+            };
+
+            this._courses.set(courseData.id, course);
+
+            this._emit('COURSE_REGISTERED', {
+                courseId: course.id,
+                title: course.title,
+                programId: course.programId,
+                fromS4: !!courseData._s4
+            });
+
+            console.log('[CourseRegistry] ✅ Registered:', course.title);
+            return course.id;
+        }
+
+        getCourse(id) {
+            return this._courses.get(id) || null;
+        }
+
+        /**
+         * ═══ Part 19: 获取 Course 摘要（轻量级） ═══
+         */
+        getCourseSummary(courseId) {
+            var course = this.getCourse(courseId);
+            if (!course) return null;
+
+            return {
+                id: course.id,
+                title: course.title,
+                schoolId: course.schoolId || course._metadata?.school,
+                description: course.description,
+                difficulty: course.difficulty,
+                subjectCount: course.subjects ? course.subjects.length : 0,
+                status: course.status
+            };
+        }
+
+        getAllCourses() {
+            return Array.from(this._courses.values());
+        }
+
+        hasCourse(courseId) {
+            if (!courseId) return false;
+            return this._courses.has(courseId);
+        }
+
+        getCoursesByProgram(programId) {
+            return this.getAllCourses().filter((c) => c.programId === programId);
+        }
+
+        /**
+         * S4: 按 School 获取 Courses
+         * @param {string} schoolId - School ID
+         * @returns {Array} Courses
+         */
+        getCoursesBySchool(schoolId) {
+            if (!schoolId) return [];
+            return this.getAllCourses().filter(function(c) {
+                // 检查 course 的 schoolId 或 _metadata.school
+                if (c.schoolId === schoolId) return true;
+                if (c._metadata && c._metadata.school === schoolId) return true;
+                // 检查是否属于该 school 的某个 subject
+                const subjectRegistry = window.LawAIApp?.SubjectRegistry;
+                if (subjectRegistry && typeof subjectRegistry.getSubjectsByCourse === 'function') {
+                    const subjects = subjectRegistry.getSubjectsByCourse(c.id);
+                    if (subjects && subjects.length > 0) {
+                        // 检查 subject 的 school
+                        for (var i = 0; i < subjects.length; i++) {
+                            if (subjects[i].schoolId === schoolId) return true;
+                        }
+                    }
+                }
+                return false;
+            });
+        }
+
+        getActiveCourses() {
+            return this.getAllCourses().filter((c) => c.status === 'active');
+        }
+
+        getS4Courses() {
+            return this.getAllCourses().filter((c) => c._s4 === true);
+        }
+
+        getLegacyCourses() {
+            return this.getAllCourses().filter((c) => !c._s4);
+        }
+
+        updateCourse(id, updates) {
+            const course = this._courses.get(id);
+            if (!course) {
+                console.warn('[CourseRegistry] Course not found:', id);
+                return null;
+            }
+
+            const updated = {
+                ...course,
+                ...updates,
+                updatedAt: new Date().toISOString()
+            };
+
+            this._courses.set(id, updated);
+            return updated;
+        }
+
+        getStats() {
+            const courses = this.getAllCourses();
+            return {
+                totalCourses: courses.length,
+                activeCourses: this.getActiveCourses().length,
+                s4Courses: this.getS4Courses().length,
+                legacyCourses: this.getLegacyCourses().length
+            };
+        }
+
+        getStatus() {
+            return {
+                initialized: this.initialized,
+                version: this.version,
+                courseCount: this._courses.size,
+                s4Loaded: this._s4Loaded
+            };
+        }
+
+        _emit(eventName, data) {
+            try {
+                const event = new CustomEvent(eventName, { detail: data || {} });
+                document.dispatchEvent(event);
+                window.dispatchEvent(event);
+                if (window.LawAIApp?.EventBus?.emit) {
+                    window.LawAIApp.EventBus.emit(eventName, data);
+                }
+            } catch (err) {
+                // 忽略
+            }
+        }
+    }
 
     // ============================================================
-    // 合并
+    // Export
     // ============================================================
-    const MergedRegistry = {
-        ...OriginalRegistry,
-        ...S4ContentRegistry,
-        _original: OriginalRegistry
-    };
+    if (!window.LawAIApp) {
+        window.LawAIApp = {};
+    }
 
-    // ============================================================
-    // 挂载
-    // ============================================================
-    if (!window.LawAIApp) window.LawAIApp = {};
-    window.LawAIApp.ContentRegistry = MergedRegistry;
-    window.LawAIApp.S4ContentRegistry = S4ContentRegistry;
+    const courseRegistry = new CourseRegistry();
+    window.LawAIApp.CourseRegistry = courseRegistry;
 
-    console.log('[S4ContentRegistry] ✅ Extended with S4 methods');
+    function autoInit() {
+        const programReg = window.LawAIApp?.ProgramRegistry;
+        if (programReg && programReg.initialized) {
+            courseRegistry.initialize();
+        } else {
+            document.addEventListener('PROGRAM_REGISTRY_READY', () => {
+                courseRegistry.initialize();
+            });
+            setTimeout(() => {
+                if (!courseRegistry.initialized) {
+                    courseRegistry.initialize();
+                }
+            }, 1500);
+        }
+    }
+
+    if (document.readyState === 'complete') {
+        setTimeout(autoInit, 300);
+    } else {
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(autoInit, 300);
+        });
+    }
+
+    console.log('[CourseRegistry] Module loaded (S4 Extended v2.1.0)');
 
 })();
