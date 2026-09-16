@@ -1220,7 +1220,7 @@ function __safeCall(pathOrObj) {
                     var lessonCount = subject.lessons ? subject.lessons.length : 0;
                     html += `
                         <div style="background: rgba(255,255,255,0.04); border-radius: 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectSubject', '${subject.id}')"
+                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSubject', '${subject.id}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.08)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.04)'">
                             <h3 style="font-size: 15px; font-weight: 600; margin: 0 0 4px 0;">${subject.title || subject.name}</h3>
@@ -1659,7 +1659,7 @@ function __safeCall(pathOrObj) {
 
                     html += `
                         <div style="background: rgba(255,255,255,0.03); border-radius: 10px; padding: 16px 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectSubject', '${subject.id}')"
+                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSubject', '${subject.id}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.03)'">
                             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
