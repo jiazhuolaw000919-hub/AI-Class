@@ -742,3 +742,155 @@
     background: rgba(0, 0, 0, 0.02);
     border-color: rgba(0, 0, 0, 0.06);
 }
+
+/* ================================================================
+   Part 174 TRACK F: Dashboard 响应式修复
+   ================================================================ */
+
+/* 修复内联 max-width 导致的手机溢出 */
+#dashboard-root {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 16px 20px 100px;
+    overflow-x: hidden;  /* 🆕 防止水平滚动 */
+}
+
+/* 手机端修复 */
+@media (max-width: 600px) {
+    #dashboard-root {
+        padding: 12px 14px 90px;  /* 减小 padding */
+    }
+
+    /* Dashboard 内 inline style 覆盖 */
+    #dashboard-root [style*="clamp(28px"] {
+        font-size: 26px !important;  /* Hero 标题 */
+    }
+
+    #dashboard-root [style*="min-height: 32vh"] {
+        min-height: auto !important;  /* Hero 高度自适应 */
+        padding: 24px 16px 20px !important;
+    }
+
+    /* Hero 光晕适配 */
+    #dashboard-root [style*="width: 420px"] {
+        width: 280px !important;
+        height: 280px !important;
+    }
+
+    /* Continue Learning 卡片 */
+    #dashboard-root [style*="padding: 18px 24px"] {
+        padding: 14px 18px !important;
+    }
+
+    /* Progress 数字适配 */
+    #dashboard-root [style*="font-size: 28px"] {
+        font-size: 22px !important;
+    }
+
+    /* EXPLORE 导航适配 */
+    #dashboard-root [style*="border-radius: 100px"] {
+        border-radius: 16px !important;  /* 手机上不要胶囊形 */
+        padding: 10px 12px !important;
+    }
+
+    /* 卡片 padding 适配 */
+    #dashboard-root [style*="padding: 20px"] {
+        padding: 16px !important;
+    }
+
+    #dashboard-root [style*="padding: 24px 20px"] {
+        padding: 18px 16px !important;
+    }
+
+    /* Grid 2 列 → 1 列 */
+    #dashboard-root [style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Flex wrap 强制 */
+    #dashboard-root [style*="flex-wrap: wrap"] {
+        /* 已有 flex-wrap: wrap, 无需改 */
+    }
+
+    /* 按钮 touch 目标 */
+    #dashboard-root button {
+        min-height: 40px;
+    }
+}
+
+/* 极小屏 */
+@media (max-width: 400px) {
+    #dashboard-root {
+        padding: 10px 12px 90px;
+    }
+
+    /* Hero 标题更小 */
+    #dashboard-root [style*="clamp(28px"] {
+        font-size: 22px !important;
+    }
+
+    /* 隐藏 Hero 光晕（性能） */
+    #dashboard-root [style*="width: 420px"],
+    #dashboard-root [style*="width: 280px"] {
+        display: none !important;
+    }
+}
+
+/* ================================================================
+   Part 174 TRACK F: Nav 底部导航适配
+   ================================================================ */
+
+@media (max-width: 480px) {
+    .bottom-nav a {
+        padding: 2px 8px !important;
+        font-size: 8px !important;
+    }
+
+    .bottom-nav a span:first-child {
+        font-size: 16px !important;
+    }
+}
+
+/* ================================================================
+   Part 174 TRACK F: Touch 优化
+   ================================================================ */
+
+@media (hover: none) {
+    /* 触摸设备：所有可点击元素加 tap 反馈 */
+    button:active,
+    [onclick]:active,
+    a:active {
+        transform: scale(0.97);
+        transition: transform 0.1s;
+    }
+
+    /* 移除 hover 效果（触摸设备无 hover） */
+    #dashboard-root [onmouseover] {
+        /* 保留 hover 但不影响触摸 */
+    }
+}
+
+/* Part 174: EXPLORE 导航手机适配 */
+@media (max-width: 480px) {
+    /* EXPLORE 导航容器 */
+    #dashboard-root section[style*="border-radius: 100px"] {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+    }
+
+    /* 每个按钮占满格子 */
+    #dashboard-root section[style*="border-radius: 100px"] button {
+        width: 100% !important;
+        text-align: center !important;
+        justify-content: center !important;
+    }
+}
+
+/* Part 174: Learning Insights 手机适配 */
+@media (max-width: 400px) {
+    /* Stats 网格 */
+    #dashboard-root [style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+}
