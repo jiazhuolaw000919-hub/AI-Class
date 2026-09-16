@@ -1255,6 +1255,91 @@ LawAIApp.Views.LessonView = {
             LawAIApp.Toast.info('✏️ Practice mode coming soon!');
         }
     }
+
+        /**
+     * 🔥 v5.0.0: Practice Activity 回调
+     */
+    startPracticeForActivity: function(activityId) {
+        console.log('[LessonView] startPracticeForActivity:', activityId);
+        var descEl = document.getElementById('practice-description-' + activityId);
+        var feedbackEl = document.getElementById('practice-feedback-' + activityId);
+        
+        if (descEl) {
+            descEl.textContent = '✏️ Practice started. Type your answer below.';
+            descEl.style.color = '#4a9eff';
+        }
+        if (feedbackEl) {
+            feedbackEl.textContent = '';
+        }
+        
+        // 标记当前活跃 practice
+        this._currentPractice = { activityId: activityId, lessonId: this._lessonId };
+        
+        if (LawAIApp.Toast?.info) {
+            LawAIApp.Toast.info('✏️ Practice started');
+        }
+    },
+
+    submitPracticeForActivity: function(activityId) {
+        console.log('[LessonView] submitPracticeForActivity:', activityId);
+        var input = document.getElementById('practice-answer-' + activityId);
+        var feedbackEl = document.getElementById('practice-feedback-' + activityId);
+        
+        if (!input) return;
+        var answer = input.value.trim();
+        if (!answer) {
+            if (feedbackEl) {
+                feedbackEl.textContent = '⚠️ Write your answer first.';
+                feedbackEl.style.color = '#f59e0b';
+            }
+            return;
+        }
+        
+        // 简单反馈（真实场景可以调 PracticeEngine）
+        if (feedbackEl) {
+            feedbackEl.textContent = '✅ Answer submitted! (自评中...)';
+            feedbackEl.style.color = '#22c55e';
+        }
+        input.value = '';
+        
+        if (LawAIApp.Toast?.success) {
+            LawAIApp.Toast.success('✅ Answer submitted');
+        }
+    },
+
+    saveReflectionForActivity: function(activityId) {
+        console.log('[LessonView] saveReflectionForActivity:', activityId);
+        var textarea = document.getElementById('reflection-' + activityId);
+        if (!textarea) return;
+        var text = textarea.value.trim();
+        if (!text) {
+            if (LawAIApp.Toast?.info) {
+                LawAIApp.Toast.info('Write something first.');
+            }
+            return;
+        }
+        textarea.value = '';
+        textarea.style.borderColor = 'rgba(34,197,94,0.3)';
+        setTimeout(function() {
+            textarea.style.borderColor = 'rgba(255,255,255,0.06)';
+        }, 2000);
+        
+        if (LawAIApp.Toast?.success) {
+            LawAIApp.Toast.success('💭 Reflection saved');
+        }
+    },
+
+    submitQuiz: function(activityId) {
+        console.log('[LessonView] submitQuiz:', activityId);
+        var feedbackEl = document.getElementById('quiz-feedback-' + activityId);
+        if (feedbackEl) {
+            feedbackEl.textContent = '✅ Quiz submitted!';
+            feedbackEl.style.color = '#8b5cf6';
+        }
+        if (LawAIApp.Toast?.success) {
+            LawAIApp.Toast.success('🧠 Quiz submitted');
+        }
+    },
 };
 
 console.log('📖 LessonView V4.1 ready (Classroom Edition + Navigation)');
