@@ -16,24 +16,27 @@ LawAIApp.Views.LessonView = {
     // ============================================================
     // 入口
     // ============================================================
-    render: async function(lessonId, container) {
+    render: async function(lessonId, container, context) {
         this._lessonId = lessonId;
+        this._context = context || {};
         this._container = typeof container === 'string'
             ? document.querySelector(container)
             : container || document.getElementById('app') || document.getElementById('academy-root') || document.getElementById('law-runtime-root');
-
+    
         if (!this._container) {
             console.warn('⚠️ LessonView: Container not found');
             return;
         }
-
+    
         if (LawAIApp.DevTools?.RuntimeProfiler) {
             LawAIApp.DevTools.RuntimeProfiler.recordRender('lesson');
         }
-
+    
+        console.log('[LessonView] render:', lessonId, 'context:', this._context);
+    
         this._showSkeleton();
-
-        var lesson = await this._loadLessonAsync(lessonId);
+    
+        var lesson = await this._loadLessonAsync(lessonId, this._context);
         if (lesson) {
             this._lesson = lesson;
             this._renderContent(lesson);
@@ -45,33 +48,37 @@ LawAIApp.Views.LessonView = {
     // ============================================================
     // 数据加载
     // ============================================================
-    _loadLessonAsync: async function(lessonId) {
-        console.log('[LessonView] 🚀 _loadLessonAsync:', lessonId);
-
-        var loader = window.LawAIApp?.ContentLoader || window.LawAIApp?.S4ContentLoader;
-
+    _loadLessonAsync: async function(lessonId, context) {
+        console.log('[LessonView] 🚀 _loadLessonAsync:', lessonId, 'context:', context);
+    
+        var loader = window.LawAIApp && (window.LawAIApp.ContentLoader || window.LawAIApp.S4ContentLoader);
+    
+        // 🔥 优先用传入的 context
+        var courseId = (context && context.courseId) || null;
+        var subjectId = (context && context.subjectId) || null;
+    
         if (loader && typeof loader.loadLesson === 'function') {
-            var courseId = null;
-            var subjectId = null;
-
-            // 方式 A: CurriculumAuthority
-            var ca = window.LawAIApp?.CurriculumAuthority;
-            if (ca && typeof ca.getLesson === 'function') {
-                try {
-                    var caLesson = ca.getLesson(lessonId);
-                    if (caLesson && caLesson.subjectId) {
-                        var caSubject = ca.getSubject(caLesson.subjectId);
-                        if (caSubject) {
-                            courseId = caSubject.courseId;
-                            subjectId = caSubject.id;
-                        }
-                    }
-                } catch (e) {}
-            }
-
-            // 方式 B: SubjectRegistry
+    
+            // 方式 A: CurriculumAuthority（如果 context 缺值）
             if (!courseId || !subjectId) {
-                var sr = window.LawAIApp?.SubjectRegistry;
+                var ca = window.LawAIApp && window.LawAIApp.CurriculumAuthority;
+                if (ca && typeof ca.getLesson === 'function') {
+                    try {
+                        var caLesson = ca.getLesson(lessonId);
+                        if (caLesson && caLesson.subjectId) {
+                            var caSubject = ca.getSubject(caLesson.subjectId);
+                            if (caSubject) {
+                                courseId = courseId || caSubject.courseId;
+                                subjectId = subjectId || caSubject.id;
+                            }
+                        }
+                    } catch (e) {}
+                }
+            }
+    
+            // 方式 B: SubjectRegistry（如果 context 缺值）
+            if (!courseId || !subjectId) {
+                var sr = window.LawAIApp && window.LawAIApp.SubjectRegistry;
                 if (sr && typeof sr.getAllSubjects === 'function') {
                     var allSubjects = sr.getAllSubjects();
                     for (var i = 0; i < allSubjects.length; i++) {
@@ -81,8 +88,8 @@ LawAIApp.Views.LessonView = {
                             var l = lessons[j];
                             var lid = (typeof l === 'string') ? l : (l.id || l.lessonId);
                             if (lid === lessonId) {
-                                courseId = subj.courseId;
-                                subjectId = subj.id;
+                                courseId = courseId || subj.courseId;
+                                subjectId = subjectId || subj.id;
                                 break;
                             }
                         }
@@ -90,10 +97,11 @@ LawAIApp.Views.LessonView = {
                     }
                 }
             }
-
+    
+            console.log('[LessonView] resolved IDs:', { courseId, subjectId, lessonId });
+    
             if (courseId && subjectId) {
                 try {
-                    console.log('[LessonView] 📥 ContentLoader.loadLesson:', courseId, subjectId, lessonId);
                     var fullLesson = await loader.loadLesson(courseId, subjectId, lessonId);
                     if (fullLesson) {
                         console.log('[LessonView] ✅ 拿到完整 lesson');
@@ -103,12 +111,14 @@ LawAIApp.Views.LessonView = {
                     console.warn('[LessonView] loadLesson 失败:', e);
                 }
             } else {
-                console.warn('[LessonView] ⚠️ 找不到 courseId/subjectId');
+                console.warn('[LessonView] ⚠️ 仍找不到 courseId/subjectId，将走 fallback');
             }
         }
-
+    
+        // ===== 下面是原来的 fallback 逻辑，保持不变 =====
+    
         // Fallback: CA 元数据
-        var ca2 = window.LawAIApp?.CurriculumAuthority;
+        var ca2 = window.LawAIApp && window.LawAIApp.CurriculumAuthority;
         if (ca2 && typeof ca2.getLesson === 'function') {
             try {
                 var caLesson2 = ca2.getLesson(lessonId);
@@ -118,9 +128,9 @@ LawAIApp.Views.LessonView = {
                 }
             } catch (e) {}
         }
-
+    
         // Fallback: SubjectRegistry 元数据
-        var sr2 = window.LawAIApp?.SubjectRegistry;
+        var sr2 = window.LawAIApp && window.LawAIApp.SubjectRegistry;
         if (sr2 && typeof sr2.getAllSubjects === 'function') {
             try {
                 var subjects2 = sr2.getAllSubjects();
@@ -141,21 +151,21 @@ LawAIApp.Views.LessonView = {
                 }
             } catch (e) {}
         }
-
+    
         // Fallback: day-based 兜底
         console.warn('[LessonView] ⚠️ 尝试 Day-based');
         var day = parseInt(String(lessonId).replace('day-', '').replace('day', ''));
         if (isNaN(day)) day = parseInt(lessonId);
         if (isNaN(day) || day < 1) day = 1;
         if (day > 365) day = 365;
-
+    
         try {
             if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getLessonByDay === 'function') {
                 var lesson = LawAIApp.LessonEngine.getLessonByDay(day);
                 if (lesson) return lesson;
             }
         } catch (e) {}
-
+    
         return null;
     },
 
