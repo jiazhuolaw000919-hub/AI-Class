@@ -1,18 +1,154 @@
 // /js/school/SchoolViewModel.js
 // Part 166 — School View Model
-// v1.0.1 — 修复 Subject 数据源不稳定（优先 SubjectRegistry）
+// v1.0.2 — 修复 buildSubjectDetail 中的 lessonId = [object Object]
+//
+// ⚠️ v1.0.2 变更:
+//   1. buildSubjectDetail 不再调用不存在的 SubjectRegistry.getLessonsBySubject
+//      和 CurriculumAuthority.getLessonsBySubject，改为直接从 subject.lessons 读取
+//   2. lesson 数组 normalize：字符串 / 对象两种格式都兼容
+//   3. lessonId 保证是字符串，永不出现 [object Object]
+//   4. course 查找增加 CourseRegistry fallback
+//   5. _getSubjects 保持 v1.0.1 行为（SubjectRegistry 优先）
 
 (function() {
     'use strict';
 
     var SchoolViewModel = {
-        version: '1.0.1',
+        version: '1.0.2',
+
+        // ============================================================
+        // 🔥 通用：把任意 lesson 数据结构 normalize 成标准对象
+        // 兼容：字符串 id / 完整对象 / 缺失字段
+        // ============================================================
+        _normalizeLesson: function(l, idx) {
+            idx = typeof idx === 'number' ? idx : 0;
+
+            // 情况 1: 字符串 → 转成对象
+            if (typeof l === 'string') {
+                return {
+                    id: l,
+                    lessonId: l,
+                    title: l,
+                    name: l,
+                    description: '',
+                    order: idx + 1,
+                    duration: null,
+                    type: 'reading'
+                };
+            }
+
+            // 情况 2: 数字（极端情况）→ 转成字符串 id
+            if (typeof l === 'number') {
+                var sid = 'lesson-' + l;
+                return {
+                    id: sid,
+                    lessonId: sid,
+                    title: 'Lesson ' + l,
+                    name: 'Lesson ' + l,
+                    description: '',
+                    order: idx + 1,
+                    duration: null,
+                    type: 'reading'
+                };
+            }
+
+            // 情况 3: null / undefined → 返回空占位
+            if (!l || typeof l !== 'object') {
+                return {
+                    id: 'lesson-unknown-' + (idx + 1),
+                    lessonId: 'lesson-unknown-' + (idx + 1),
+                    title: 'Untitled Lesson',
+                    name: 'Untitled Lesson',
+                    description: '',
+                    order: idx + 1,
+                    duration: null,
+                    type: 'reading'
+                };
+            }
+
+            // 情况 4: 对象 → 提取字段
+            var lessonId = l.id || l.lessonId || l.slug || l.file || ('lesson-' + (idx + 1));
+
+            return {
+                // 原始对象保留
+                _raw: l,
+                id: lessonId,
+                lessonId: lessonId,
+                title: l.title || l.name || ('Lesson ' + (idx + 1)),
+                name: l.title || l.name || ('Lesson ' + (idx + 1)),
+                description: l.description || '',
+                order: l.order !== undefined ? l.order : (idx + 1),
+                duration: l.duration || l.estimatedMinutes || null,
+                type: l.type || 'reading',
+                subjectId: l.subjectId || null,
+                courseId: l.courseId || null,
+                status: l.status || null
+            };
+        },
+
+        // ============================================================
+        // 🔥 通用：把任意 subject 数据结构 normalize 成标准对象
+        // ============================================================
+        _normalizeSubject: function(s, idx) {
+            idx = typeof idx === 'number' ? idx : 0;
+
+            if (!s) {
+                return null;
+            }
+
+            // 字符串 → 极简对象
+            if (typeof s === 'string') {
+                return {
+                    id: s,
+                    subjectId: s,
+                    title: s,
+                    name: s,
+                    description: '',
+                    lessons: []
+                };
+            }
+
+            if (typeof s !== 'object') {
+                return null;
+            }
+
+            var rawLessons = Array.isArray(s.lessons) ? s.lessons : [];
+            var self = this;
+            var normalizedLessons = rawLessons.map(function(l, i) {
+                return self._normalizeLesson(l, i);
+            });
+
+            var subjectId = s.id || s.subjectId || ('subject-' + (idx + 1));
+
+            return {
+                _raw: s,
+                id: subjectId,
+                subjectId: subjectId,
+                courseId: s.courseId || null,
+                title: s.title || s.name || ('Subject ' + (idx + 1)),
+                name: s.title || s.name || ('Subject ' + (idx + 1)),
+                description: s.description || '',
+                icon: s.icon || '📖',
+                status: s.status || 'published',
+                level: s.level || null,
+                estimatedHours: s.estimatedHours || null,
+                order: s.order !== undefined ? s.order : (idx + 1),
+                // 🔥 lessons 统一为对象数组
+                lessons: normalizedLessons,
+                // 🔥 同时提供一个纯 id 数组，方便下游使用
+                lessonIds: normalizedLessons.map(function(l) { return l.id; }),
+                learningObjectives: s.learningObjectives || s.objectives || []
+            };
+        },
 
         /**
          * 🔥 统一获取 subjects（优先 SubjectRegistry，fallback CurriculumAuthority）
+         * v1.0.2: 增加 normalize
          */
         _getSubjects: function(courseId) {
             if (!courseId) return [];
+
+            var raw = [];
 
             // 1. 优先从 SubjectRegistry 拿
             var sr = window.LawAIApp?.SubjectRegistry;
@@ -20,29 +156,36 @@
                 try {
                     var srSubjects = sr.getSubjectsByCourse(courseId);
                     if (srSubjects && srSubjects.length > 0) {
-                        return srSubjects;
+                        raw = srSubjects;
                     }
                 } catch (e) {}
             }
 
             // 2. Fallback: CurriculumAuthority（兼容旧方法名）
-            var ca = window.LawAIApp?.CurriculumAuthority;
-            if (ca) {
-                var fnNames = ['getSubjectsByCourse', 'getSubjectsForCourse', 'getCourseSubjects'];
-                for (var i = 0; i < fnNames.length; i++) {
-                    var fn = ca[fnNames[i]];
-                    if (typeof fn === 'function') {
-                        try {
-                            var caSubjects = fn.call(ca, courseId);
-                            if (caSubjects && caSubjects.length > 0) {
-                                return caSubjects;
-                            }
-                        } catch (e) {}
+            if (raw.length === 0) {
+                var ca = window.LawAIApp?.CurriculumAuthority;
+                if (ca) {
+                    var fnNames = ['getSubjectsByCourse', 'getSubjectsForCourse', 'getCourseSubjects'];
+                    for (var i = 0; i < fnNames.length; i++) {
+                        var fn = ca[fnNames[i]];
+                        if (typeof fn === 'function') {
+                            try {
+                                var caSubjects = fn.call(ca, courseId);
+                                if (caSubjects && caSubjects.length > 0) {
+                                    raw = caSubjects;
+                                    break;
+                                }
+                            } catch (e) {}
+                        }
                     }
                 }
             }
 
-            return [];
+            // 3. Normalize
+            var self = this;
+            return raw.map(function(s, i) {
+                return self._normalizeSubject(s, i);
+            }).filter(function(s) { return s !== null; });
         },
 
         /**
@@ -224,49 +367,80 @@
         },
 
         /**
-         * 构建 Subject 详情（Part 168）
+         * ═══════════════════════════════════════════════════════════
+         * 🔥🔥🔥 构建 Subject 详情（Part 168）
+         * ═══════════════════════════════════════════════════════════
+         * v1.0.2 关键修复：
+         *   旧代码调用 SubjectRegistry.getLessonsBySubject(subjectId)
+         *   和 CurriculumAuthority.getLessonsBySubject(subjectId)，
+         *   但这两个方法**根本不存在**，导致 lessons = []，
+         *   或者从 fallback 拿到错误的数据结构，最后 lessonId 拼成
+         *   [object Object] 塞进 URL。
+         *
+         *   新代码：直接从 subject.lessons 读取，并 normalize 成
+         *   标准对象数组，lessonId 保证是字符串。
          */
         buildSubjectDetail: function(subjectId) {
-            // 🔥 优先从 SubjectRegistry 找
-            var subject = null;
-            var sr = window.LawAIApp?.SubjectRegistry;
-            if (sr && typeof sr.getSubject === 'function') {
-                subject = sr.getSubject(subjectId);
+            if (!subjectId) {
+                return { subject: null, status: 'NOT_FOUND' };
             }
 
-            // Fallback: CurriculumAuthority
-            if (!subject) {
-                var curriculum = window.LawAIApp?.CurriculumAuthority;
-                if (curriculum && typeof curriculum.getSubject === 'function') {
-                    subject = curriculum.getSubject(subjectId);
+            // ── 1. 找 subject ──
+            var rawSubject = null;
+
+            // 1.1 优先 SubjectRegistry
+            var sr = window.LawAIApp?.SubjectRegistry;
+            if (sr && typeof sr.getSubject === 'function') {
+                try {
+                    rawSubject = sr.getSubject(subjectId);
+                } catch (e) {}
+            }
+
+            // 1.2 Fallback: CurriculumAuthority
+            if (!rawSubject) {
+                var curriculum0 = window.LawAIApp?.CurriculumAuthority;
+                if (curriculum0 && typeof curriculum0.getSubject === 'function') {
+                    try {
+                        rawSubject = curriculum0.getSubject(subjectId);
+                    } catch (e) {}
                 }
             }
 
+            if (!rawSubject) {
+                return { subject: null, status: 'NOT_FOUND' };
+            }
+
+            // ── 2. Normalize subject（含 lessons）──
+            var subject = this._normalizeSubject(rawSubject, 0);
             if (!subject) {
                 return { subject: null, status: 'NOT_FOUND' };
             }
 
-            // Lessons 也从两个源找
-            var lessons = [];
-            if (sr && typeof sr.getLessonsBySubject === 'function') {
-                lessons = sr.getLessonsBySubject(subjectId) || [];
-            }
-            if ((!lessons || lessons.length === 0) && window.LawAIApp?.CurriculumAuthority) {
-                var ca = window.LawAIApp.CurriculumAuthority;
-                if (typeof ca.getLessonsBySubject === 'function') {
-                    lessons = ca.getLessonsBySubject(subjectId) || [];
-                }
-            }
+            var lessons = subject.lessons || [];  // 已 normalize 成对象数组
 
-            // Course context
+            // ── 3. Course context（多源 fallback）──
             var course = null;
             if (subject.courseId) {
-                var curriculum2 = window.LawAIApp?.CurriculumAuthority;
-                if (curriculum2 && typeof curriculum2.getCourse === 'function') {
-                    course = curriculum2.getCourse(subject.courseId);
+                // 3.1 CurriculumAuthority
+                var curriculum1 = window.LawAIApp?.CurriculumAuthority;
+                if (curriculum1 && typeof curriculum1.getCourse === 'function') {
+                    try {
+                        course = curriculum1.getCourse(subject.courseId);
+                    } catch (e) {}
+                }
+
+                // 3.2 CourseRegistry fallback
+                if (!course) {
+                    var cr = window.LawAIApp?.CourseRegistry;
+                    if (cr && typeof cr.getCourse === 'function') {
+                        try {
+                            course = cr.getCourse(subject.courseId);
+                        } catch (e) {}
+                    }
                 }
             }
 
+            // ── 4. 构建返回值 ──
             return {
                 status: 'READY',
 
@@ -293,14 +467,18 @@
                 prerequisites: this._getSubjectPrerequisites(subjectId),
 
                 structure: {
+                    // 🔥 每个 lesson 都是对象，lessonId 保证是字符串
                     lessons: lessons.map(function(l, idx) {
                         return {
-                            lessonId: l.id,
-                            title: l.title || l.name,
+                            lessonId: l.id,                 // ← 一定是字符串
+                            title: l.title || l.name || ('Lesson ' + (idx + 1)),
                             description: l.description || '',
-                            order: idx + 1,
+                            order: l.order !== undefined ? l.order : (idx + 1),
                             duration: l.duration || null,
                             type: l.type || 'reading',
+                            status: l.status || null,
+                            subjectId: subject.id,
+                            courseId: subject.courseId || null,
                             source: 'SubjectRegistry'
                         };
                     }),
@@ -320,10 +498,11 @@
         // ============================================================
 
         _getSubjectObjectives: function(subject) {
-            if (subject.learningObjectives && Array.isArray(subject.learningObjectives)) {
+            var objectives = subject.learningObjectives || subject.objectives;
+            if (objectives && Array.isArray(objectives)) {
                 return {
                     available: true,
-                    objectives: subject.learningObjectives,
+                    objectives: objectives,
                     source: 'SubjectRegistry'
                 };
             }
@@ -382,16 +561,19 @@
                         available: true,
                         percent: p.percent || 0,
                         completed: p.completed || 0,
-                        total: p.total || lessons.length,
+                        total: p.total || (lessons ? lessons.length : 0),
                         source: 'Progress'
                     };
                 }
 
-                var total = lessons.length;
+                var total = lessons ? lessons.length : 0;
                 var completed = 0;
-                for (var i = 0; i < lessons.length; i++) {
-                    if (progressEngine.isLessonCompleted && progressEngine.isLessonCompleted(lessons[i].id)) {
-                        completed++;
+                if (lessons && progressEngine.isLessonCompleted) {
+                    for (var i = 0; i < lessons.length; i++) {
+                        var lid = lessons[i].id || lessons[i].lessonId;
+                        if (progressEngine.isLessonCompleted(lid)) {
+                            completed++;
+                        }
                     }
                 }
                 return {
@@ -968,6 +1150,6 @@
     window.LawAIApp = window.LawAIApp || {};
     window.LawAIApp.SchoolViewModel = SchoolViewModel;
 
-    console.log('[SchoolViewModel] Module loaded (Part 166 v1.0.1 — SubjectRegistry priority)');
+    console.log('[SchoolViewModel] Module loaded (Part 166 v1.0.2 — lessonId normalize fix)');
 
 })();
