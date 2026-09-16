@@ -1790,7 +1790,7 @@ function __safeCall(pathOrObj) {
 
                     html += `
                         <div style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="window.location.href='/pages/lesson.html?lessonId=${lessonId}'"
+                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectLesson', '${lessonId}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.02)'">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -2001,7 +2001,7 @@ function __safeCall(pathOrObj) {
         
                    html += `
                         <div style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 14px 18px; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: all 0.2s;"
-                             onclick="window.location.href='/pages/lesson.html?lessonId=${lesson.lessonId}'"
+                             onclick="__safeCall('LawAIApp.AcademyExperienceManager.selectLesson', '${lesson.lessonId}')"
                              onmouseover="this.style.background='rgba(255,255,255,0.06)'" 
                              onmouseout="this.style.background='rgba(255,255,255,0.02)'">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
