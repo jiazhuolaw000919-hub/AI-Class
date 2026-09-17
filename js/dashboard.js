@@ -4084,11 +4084,13 @@ _renderRecommendationCard: function(rec) {
                       document.getElementById('dashboard-root');
       if (!container) return;
   
-      // 1. 已加载 → 直接 render
-      if (window.LawAIApp && window.LawAIApp.Notes && typeof window.LawAIApp.Notes.render === 'function') {
+      // 1. 都就绪 → 直接 render
+      var Notes = window.LawAIApp && window.LawAIApp.Notes;
+      var Auth = window.LawAIApp && window.LawAIApp.NotesAuthority;
+      if (Notes && typeof Notes.render === 'function' && Auth && Auth.isReady) {
           try {
-              window.LawAIApp.Notes._root = container;
-              window.LawAIApp.Notes.render();
+              Notes._root = container;
+              Notes.render();
               console.log('[Dashboard] ✅ Notes rendered (cached)');
               return;
           } catch (e) {
@@ -4099,40 +4101,100 @@ _renderRecommendationCard: function(rec) {
       // 2. loading
       container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Notes...</div>';
   
-      // 3. 防重复
+      // 3. 防止重复
       if (document.getElementById('notes-loading-flag')) return;
       var flag = document.createElement('div');
       flag.id = 'notes-loading-flag';
       flag.style.display = 'none';
       document.body.appendChild(flag);
   
-      // 4. 加载 notes.js
-      var script = document.createElement('script');
-      script.id = 'notes-script-loader';
-      script.src = '/js/academy/notes.js?v=' + Date.now();
-      script.async = true;
-      script.onload = function() {
-          console.log('[Dashboard] ✅ notes.js loaded');
-          var Notes = window.LawAIApp && window.LawAIApp.Notes;
-          if (Notes && typeof Notes.render === 'function') {
-              try {
-                  Notes._root = container;
-                  Notes.render();
-                  console.log('[Dashboard] ✅ Notes rendered (after load)');
-              } catch (e) {
-                  console.warn('[Dashboard] Notes render error:', e);
-                  container.innerHTML = self._notesFallbackHTML('Render error: ' + e.message);
-              }
-          } else {
-              console.warn('[Dashboard] ⚠️ Notes not found after load');
-              container.innerHTML = self._notesFallbackHTML('Notes module not available.');
+      // 4. 按顺序加载：NotesAuthority → notes.js
+      var scripts = [
+          '/js/notes/NotesAuthority.js',
+          '/js/academy/notes.js'
+      ];
+  
+      function loadNext(index) {
+          if (index >= scripts.length) {
+              finalize();
+              return;
           }
-      };
-      script.onerror = function() {
-          console.warn('[Dashboard] ⚠️ Failed to load notes.js');
-          container.innerHTML = self._notesFallbackHTML('Failed to load notes.js');
-      };
-      document.head.appendChild(script);
+          var script = document.createElement('script');
+          script.id = 'notes-script-' + index;
+          script.src = scripts[index] + '?v=' + Date.now();
+          script.async = true;
+          script.onload = function() {
+              console.log('[Dashboard] ✅ Loaded:', scripts[index]);
+              loadNext(index + 1);
+          };
+          script.onerror = function() {
+              console.warn('[Dashboard] ⚠️ Failed:', scripts[index]);
+              loadNext(index + 1);
+          };
+          document.head.appendChild(script);
+      }
+  
+      function finalize() {
+          var Auth2 = window.LawAIApp && window.LawAIApp.NotesAuthority;
+          var Notes2 = window.LawAIApp && window.LawAIApp.Notes;
+  
+          console.log('[Dashboard] finalize:', {
+              Auth: Auth2 ? 'exists' : 'missing',
+              Notes: Notes2 ? 'exists' : 'missing',
+              isReady: Auth2 && Auth2.isReady
+          });
+  
+          if (!Notes2 || typeof Notes2.render !== 'function') {
+              container.innerHTML = self._notesFallbackHTML('Notes module not loaded.');
+              return;
+          }
+  
+          // Authority 存在但还没 ready → 等 onReady
+          if (Auth2 && !Auth2.isReady && typeof Auth2.onReady === 'function') {
+              console.log('[Dashboard] ⏳ Waiting for NotesAuthority ready...');
+              Auth2.onReady(function() {
+                  try {
+                      Notes2._root = container;
+                      Notes2.render();
+                      console.log('[Dashboard] ✅ Notes rendered (after authority ready)');
+                  } catch (e) {
+                      console.warn('[Dashboard] Notes render error:', e);
+                      container.innerHTML = self._notesFallbackHTML('Render error: ' + e.message);
+                  }
+              });
+              // 兜底：5 秒后强制 render
+              setTimeout(function() {
+                  if (container.innerHTML.indexOf('Loading Notes') !== -1) {
+                      console.warn('[Dashboard] ⚠️ Force render after timeout');
+                      Notes2._root = container;
+                      Notes2.render();
+                  }
+              }, 5000);
+              return;
+          }
+  
+          // Authority 已 ready → 直接 render
+          try {
+              Notes2._root = container;
+              Notes2.render();
+              console.log('[Dashboard] ✅ Notes rendered (after load)');
+          } catch (e) {
+              console.warn('[Dashboard] Notes render error:', e);
+              container.innerHTML = self._notesFallbackHTML('Render error: ' + e.message);
+          }
+      }
+  
+      loadNext(0);
+  },
+  
+  _notesFallbackHTML: function(msg) {
+      return `
+        <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
+          <button onclick="LawAIApp.Dashboard.render()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
+          <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">📓 Notes</h2>
+          <p style="color:#94a3b8;">${msg || 'Notes module not available.'}</p>
+        </div>
+      `;
   },
 
   /**
