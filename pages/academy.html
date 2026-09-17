@@ -254,7 +254,7 @@
                 }
             });
 
-            // Notes 导航
+                        // Notes 导航
             document.addEventListener('NAVIGATE_TO_NOTES', function(e) {
                 console.log('[Academy] 📝 NAVIGATE_TO_NOTES received');
                 var container = document.getElementById('academy-root');
@@ -267,58 +267,17 @@
                     </div>
                 `;
 
-                if (loader.loadNotesAuthority) {
-                    loader.loadNotesAuthority(function(auth) {
-                        console.log('[Academy] ✅ NotesAuthority ready');
-                        if (window.LawAIApp?.Notes?.render) {
-                            window.LawAIApp.Notes._root = container;
-                            window.LawAIApp.Notes.render();
-                            loader.updateNavHighlight('notes');
-                        } else {
-                            var files = [
-                                '/js/academy/knowledgeCapture.js',
-                                '/js/academy/notes.js'
-                            ];
-                            var loaded = 0;
-                            files.forEach(function(file) {
-                                var script = document.createElement('script');
-                                script.src = file + '?v=' + Date.now();
-                                script.onload = function() {
-                                    loaded++;
-                                    if (loaded === files.length && window.LawAIApp?.Notes) {
-                                        window.LawAIApp.Notes._root = container;
-                                        window.LawAIApp.Notes.render();
-                                        loader.updateNavHighlight('notes');
-                                    }
-                                };
-                                script.onerror = function() { loaded++; };
-                                document.head.appendChild(script);
-                            });
-                        }
-                    }, function(error) {
-                        console.warn('[Academy] ⚠️ NotesAuthority load failed:', error);
-                        container.innerHTML = `
-                            <div style="max-width:900px;margin:0 auto;padding:60px;text-align:center;color:#94a3b8;">
-                                <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
-                                <h3 style="color:#e2e8f0;">Notes unavailable</h3>
-                                <p style="margin:8px 0 16px;">Please try again later.</p>
-                                <button onclick="window.location.href='/pages/academy.html'" style="
-                                    padding:8px 20px;
-                                    background:rgba(74,158,255,0.08);
-                                    border:1px solid rgba(74,158,255,0.15);
-                                    border-radius:100px;
-                                    color:#4a9eff;
-                                    cursor:pointer;
-                                    font-family:inherit;
-                                ">← Back to Academy</button>
-                            </div>
-                        `;
-                    });
-                } else {
-                    var files = [
-                        '/js/academy/knowledgeCapture.js',
-                        '/js/academy/notes.js'
-                    ];
+                // 确保 NotesAuthority 就绪
+                var proceed = function() {
+                    // 确保 notes.js 加载
+                    if (window.LawAIApp?.Notes) {
+                        window.LawAIApp.Notes._root = container;
+                        window.LawAIApp.Notes.render();
+                        loader.updateNavHighlight('notes');
+                        return;
+                    }
+                    // 动态加载 notes.js
+                    var files = ['/js/academy/knowledgeEditor.js', '/js/notes.js'];
                     var loaded = 0;
                     files.forEach(function(file) {
                         var script = document.createElement('script');
@@ -331,9 +290,25 @@
                                 loader.updateNavHighlight('notes');
                             }
                         };
-                        script.onerror = function() { loaded++; };
+                        script.onerror = function() {
+                            loaded++;
+                            console.warn('[Academy] Failed to load:', file);
+                        };
                         document.head.appendChild(script);
                     });
+                };
+
+                if (loader.loadNotesAuthority) {
+                    loader.loadNotesAuthority(function() {
+                        console.log('[Academy] ✅ NotesAuthority ready');
+                        proceed();
+                    }, function(error) {
+                        console.warn('[Academy] ⚠️ NotesAuthority load failed:', error);
+                        // 即使 Authority 失败，也尝试渲染（notes.js 会显示 loading 或 error）
+                        proceed();
+                    });
+                } else {
+                    proceed();
                 }
             });
 
