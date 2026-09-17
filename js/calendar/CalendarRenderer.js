@@ -10,6 +10,7 @@ LawAIApp.CalendarRenderer = {
     _viewYear: null,
     _viewMonth: null,
     _selectedDay: null,
+    _showFullCalendar: false,
     _rendered: false,
     _container: null,
     _viewModel: null,
@@ -52,29 +53,81 @@ LawAIApp.CalendarRenderer = {
         // Header
         html += this._renderHeader(viewModel);
 
-        // Month Grid（恢复月历）
-        html += this._renderMonthGrid(viewModel);
+        // 如果展开月历，显示月历
+        if (this._showFullCalendar) {
+            html += this._renderMonthGrid(viewModel);
 
-        // 如果选中了某天，显示当天事件（优先）
-        if (this._selectedDay !== null && typeof this._selectedDay === 'number') {
-            html += this._renderSelectedDayEvents(viewModel);
-        } else {
-            // 否则显示所有事件
-            if (viewModel.currentJourney && viewModel.currentJourney.available) {
-                html += this._renderCurrentJourney(viewModel.currentJourney);
-            }
-            if (viewModel.events && viewModel.events.length > 0) {
-                html += this._renderEvents(viewModel.events);
-            } else {
-                html += this._renderEmptyEventsHint();
+            // 如果展开了且选中了某天，显示当天事件
+            if (this._selectedDay !== null && typeof this._selectedDay === 'number') {
+                html += this._renderSelectedDayEvents(viewModel);
             }
         }
+
+        // Agenda（默认显示，无论是否展开月历）
+        html += this._renderAgenda(viewModel);
 
         // Stale Warning
         if (viewModel.system && viewModel.system.freshness === 'stale') {
             html += this._renderStaleWarning();
         }
 
+        return html;
+    },
+
+    // ============================================================
+    // Part 177: Agenda 视图（默认）
+    // ============================================================
+    _renderAgenda: function(viewModel) {
+        var events = (viewModel && viewModel.events) || [];
+        var now = new Date();
+        var todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+        // 分组：今天 / 明天 / 未来
+        var todayEvents = [];
+        var tomorrowEvents = [];
+        var upcomingEvents = [];
+
+        var tomorrowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        var tomorrowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2, 0, 0, 0);
+
+        events.forEach(function(evt) {
+            if (!evt.start) return;
+            var d = new Date(evt.start);
+            if (d <= todayEnd) todayEvents.push(evt);
+            else if (d >= tomorrowStart && d < tomorrowEnd) tomorrowEvents.push(evt);
+            else if (d > tomorrowEnd) upcomingEvents.push(evt);
+        });
+
+        var html = '<div class="cal-agenda">';
+
+        if (todayEvents.length === 0 && tomorrowEvents.length === 0 && upcomingEvents.length === 0) {
+            html += this._renderEmptyState();
+        } else {
+            if (todayEvents.length > 0) {
+                html += this._renderAgendaGroup('Today', todayEvents);
+            }
+            if (tomorrowEvents.length > 0) {
+                html += this._renderAgendaGroup('Tomorrow', tomorrowEvents);
+            }
+            if (upcomingEvents.length > 0) {
+                html += this._renderAgendaGroup('Upcoming', upcomingEvents.slice(0, 10));
+            }
+        }
+
+        html += '</div>';
+        return html;
+    },
+
+    _renderAgendaGroup: function(label, events) {
+        var html = `
+            <div class="cal-agenda-group">
+                <div class="cal-agenda-label">${label}</div>
+                <div class="cal-agenda-list">
+        `;
+        for (var i = 0; i < events.length; i++) {
+            html += this._renderEventCard(events[i]);
+        }
+        html += `</div></div>`;
         return html;
     },
 
@@ -202,6 +255,8 @@ LawAIApp.CalendarRenderer = {
     },
 
     _renderHeader: function(viewModel) {
+        var toggleLabel = this._showFullCalendar ? '📅 Hide full calendar' : '📅 Show full calendar';
+
         return `
             <div class="cal-header">
                 <div class="cal-header-top">
@@ -210,12 +265,11 @@ LawAIApp.CalendarRenderer = {
                 </div>
                 <div class="cal-header-title">
                     <h2>📅 Calendar</h2>
-                    <span class="cal-date-range">${viewModel.dateRange?.label || ''}</span>
                 </div>
-                <div class="cal-view-switcher">
-                    <button class="cal-view-btn ${viewModel.viewMode === 'day' ? 'active' : ''}" data-view="day">Day</button>
-                    <button class="cal-view-btn ${viewModel.viewMode === 'week' ? 'active' : ''}" data-view="week">Week</button>
-                    <button class="cal-view-btn ${viewModel.viewMode === 'month' ? 'active' : ''}" data-view="month">Month</button>
+                <div class="cal-header-actions">
+                    <button class="cal-toggle-calendar-btn" data-action="toggle-full-calendar">
+                        ${toggleLabel}
+                    </button>
                 </div>
             </div>
         `;
@@ -252,14 +306,23 @@ LawAIApp.CalendarRenderer = {
         if (evt.canOpen) {
             actions.push(`<button class="cal-action-btn cal-open-btn" data-action="open" data-id="${evt.id}" data-ref="${evt.activityRef || ''}">📖 Open</button>`);
         }
-        if (evt.canReschedule) {
-            actions.push(`<button class="cal-action-btn cal-reschedule-btn" data-action="reschedule" data-id="${evt.id}">🔄 Reschedule</button>`);
-        }
-        if (evt.canReschedule) {
-            actions.push(`<button class="cal-action-btn cal-edit-btn" data-action="edit" data-id="${evt.id}">✏️ Edit</button>`);
-        }
         if (evt.canCancel) {
             actions.push(`<button class="cal-action-btn cal-cancel-btn" data-action="cancel" data-id="${evt.id}">✕</button>`);
+        }
+
+        // 时间格式：今天 7:00 PM 或 Tomorrow 9:00 AM 或 Sep 26, 2:00 PM
+        var timeStr = evt.formattedTime || '';
+        if (evt.start) {
+            var d = new Date(evt.start);
+            var now = new Date();
+            var isToday = d.toDateString() === now.toDateString();
+            var tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+            var isTomorrow = d.toDateString() === tomorrow.toDateString();
+
+            var time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            if (isToday) timeStr = time;
+            else if (isTomorrow) timeStr = 'Tomorrow ' + time;
+            else timeStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' · ' + time;
         }
 
         return `
@@ -267,10 +330,9 @@ LawAIApp.CalendarRenderer = {
                 <div class="cal-event-main">
                     <div class="cal-event-title">${evt.title}</div>
                     <div class="cal-event-meta">
-                        <span>${evt.formattedTime}</span>
+                        <span>${timeStr}</span>
                         <span class="cal-event-status" style="color:${evt.statusColor};">${evt.statusLabel}</span>
                     </div>
-                    ${evt.description ? `<div class="cal-event-desc">${evt.description}</div>` : ''}
                 </div>
                 <div class="cal-event-actions">
                     ${actions.join('')}
@@ -379,7 +441,20 @@ LawAIApp.CalendarRenderer = {
                 });
             });
         });
+        // Part 177: toggle full calendar
+        document.querySelectorAll('[data-action="toggle-full-calendar"]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                self._showFullCalendar = !self._showFullCalendar;
+                if (!self._showFullCalendar) {
+                    // 收起时清掉选中
+                    self._selectedDay = null;
+                }
+                self.render(self._viewModel, self._container);
+            });
+        });
     },
+
+    
 
     // ============================================================
     // 月历导航
