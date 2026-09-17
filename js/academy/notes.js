@@ -1,6 +1,6 @@
-// notes.js — S4 升级版 (Part 34+114+115+116)
-// 包含：Notes 渲染、Context 显示、Reflection、Back 按钮
-// 完整功能保留版
+// notes.js — Part 177 产品化版
+// Notes = 学习者拥有的知识/反思/上下文表面
+// 所有 CRUD 走 NotesAuthority
 
 (function() {
     'use strict';
@@ -17,48 +17,101 @@
         link.rel = 'stylesheet';
         link.href = '/css/notes.css';
         document.head.appendChild(link);
-        console.log('[Notes] ✅ CSS loaded');
     }
 
     // ============================================================
     // 2. Notes 模块
     // ============================================================
     var Notes = {
+        version: '2.0.0',
         notes: [],
         _currentFilter: 'ALL',
-        _currentSort: 'recent',
+        _root: null,
+        _ready: false,
 
+        // ============================================================
+        // 生命周期
+        // ============================================================
         init: function() {
             _loadNotesCSS();
-            this.refresh();
-            console.log('[Notes] 📝 Module initialized');
+            var self = this;
+            var auth = window.LawAIApp?.NotesAuthority;
+
+            if (!auth) {
+                console.warn('[Notes] NotesAuthority not available');
+                return this;
+            }
+
+            auth.onReady(function() {
+                self._ready = true;
+                console.log('[Notes] ✅ NotesAuthority ready');
+                // 如果已经渲染过，刷新
+                if (self._root) {
+                    self.render();
+                }
+            });
+
             return this;
         },
 
+        // ============================================================
+        // 数据读取 — 只从 NotesAuthority
+        // ============================================================
         refresh: function() {
-            var capture = window.LawAIApp?.KnowledgeCapture;
-            if (capture && typeof capture.getNotes === 'function') {
-                this.notes = capture.getNotes() || [];
-            } else {
+            var auth = window.LawAIApp?.NotesAuthority;
+            if (!auth || !auth.isReady) {
                 this.notes = [];
+                return this;
             }
+
+            // NotesAuthority 用 noteId / noteType / pinned
+            // notes.js UI 用 id / type / isPinned
+            // 做字段映射
+            this.notes = auth.getAllNotes().map(this._mapNote.bind(this));
             this.notes.sort(function(a, b) {
+                if (a.isPinned && !b.isPinned) return -1;
+                if (!a.isPinned && b.isPinned) return 1;
                 return new Date(b.updatedAt) - new Date(a.updatedAt);
             });
             return this;
         },
 
+        /**
+         * 字段映射：NotesAuthority → UI
+         */
+        _mapNote: function(n) {
+            return {
+                id: n.noteId,
+                title: n.title || 'Untitled Note',
+                content: n.content || '',
+                type: n.noteType || 'KEY_POINT',
+                tags: n.tags || [],
+                isPinned: !!n.pinned,
+                isFavorite: false,
+                archived: !!n.archived,
+                status: n.status || 'ACTIVE',
+                lessonId: n.relatedLessonRef || null,
+                subjectId: n.relatedSubjectRef || null,
+                courseId: n.relatedCourseRef || null,
+                schoolId: n.relatedSchoolRef || null,
+                reflections: n.reflections || [],
+                provenance: n.provenance || null,
+                createdAt: n.createdAt,
+                updatedAt: n.updatedAt,
+                _authorityNote: n
+            };
+        },
+
         // ============================================================
-        // 🔥 智能返回
+        // 导航
         // ============================================================
         goToDashboard: function() {
-            console.log('[Notes] 📊 Going back...');
-            var container = document.getElementById('academy-root') || 
+            var container = document.getElementById('academy-root') ||
                             document.getElementById('app') ||
                             document.getElementById('law-runtime-root');
-            
+
             var isAcademyPage = window.location.pathname.includes('/pages/academy.html');
-            
+
             if (isAcademyPage) {
                 if (container) container.innerHTML = '';
                 window.location.href = '/pages/academy.html';
@@ -73,12 +126,33 @@
             }
         },
 
+        // ============================================================
+        // 主渲染
+        // ============================================================
         render: function() {
-            this.refresh();
-            var container = document.getElementById('academy-root') || 
+            var container = this._root ||
+                            document.getElementById('academy-root') ||
                             document.getElementById('app') ||
                             document.getElementById('law-runtime-root');
-            if (!container) return;
+            if (!container) return this;
+
+            this._root = container;
+
+            // Loading state: Authority 未 ready
+            var auth = window.LawAIApp?.NotesAuthority;
+            if (!auth || !auth.isReady) {
+                container.innerHTML = this._renderLoadingState();
+                var self = this;
+                if (auth && auth.onReady) {
+                    auth.onReady(function() {
+                        self._ready = true;
+                        self.render();
+                    });
+                }
+                return this;
+            }
+
+            this.refresh();
             container.innerHTML = this._renderHTML();
             this._bindEvents();
             this._renderList();
@@ -86,47 +160,74 @@
         },
 
         // ============================================================
-        // 3. 渲染 HTML
+        // State 渲染
+        // ============================================================
+        _renderLoadingState: function() {
+            return `
+                <div class="notes-container">
+                    <div class="notes-loading">
+                        <div class="notes-loading-spinner"></div>
+                        <p>Loading notes...</p>
+                    </div>
+                </div>
+            `;
+        },
+
+        _renderErrorState: function(message) {
+            return `
+                <div class="notes-container">
+                    <div class="notes-empty">
+                        <div class="notes-empty-icon">⚠️</div>
+                        <h3>Couldn't load notes</h3>
+                        <p>${message || 'Please try again.'}</p>
+                        <button class="btn-primary" onclick="LawAIApp.Notes.render()">
+                            Try again
+                        </button>
+                    </div>
+                </div>
+            `;
+        },
+
+        // ============================================================
+        // 渲染 HTML
         // ============================================================
         _renderHTML: function() {
             var stats = this._getStats();
             var pinnedCount = this.notes.filter(function(n) { return n.isPinned; }).length;
 
             return `
-                <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
+                <div class="notes-container">
                     <!-- 返回按钮组 -->
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
                         <button onclick="LawAIApp.Notes.goToDashboard()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:10px 16px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;">← Back to Dashboard</button>
-                        <button onclick="history.back()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:#94a3b8;padding:10px 16px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;">⬅️ 返回上一页</button>
                     </div>
 
                     <!-- Header -->
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
-                        <h1 style="margin:0;font-size:24px;font-weight:700;">📝 Notes</h1>
-                        <button onclick="LawAIApp.Notes.createNew()" style="background:#4a9eff;color:white;border:none;padding:8px 20px;border-radius:100px;cursor:pointer;font-weight:600;font-family:inherit;">➕ New Note</button>
+                    <div class="notes-header">
+                        <h1>📝 Notes</h1>
+                        <div class="notes-header-actions">
+                            <button class="btn-primary" onclick="LawAIApp.Notes.createNew()" style="background:#4a9eff;color:white;border:none;padding:8px 20px;border-radius:100px;cursor:pointer;font-weight:600;font-family:inherit;">➕ New Note</button>
+                        </div>
                     </div>
 
                     <!-- Stats -->
-                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
-                        <span style="font-size:12px;background:rgba(255,255,255,0.04);padding:4px 14px;border-radius:100px;color:#94a3b8;">📚 Total: <span style="color:#e2e8f0;">${stats.total}</span></span>
-                        <span style="font-size:12px;background:rgba(255,255,255,0.04);padding:4px 14px;border-radius:100px;color:#94a3b8;">📌 Pinned: <span style="color:#e2e8f0;">${pinnedCount}</span></span>
-                        ${Object.keys(stats.byType).map(function(type) {
-                            return `<span style="font-size:12px;background:rgba(255,255,255,0.04);padding:4px 14px;border-radius:100px;color:#94a3b8;">${type.replace('_', ' ')}: <span style="color:#e2e8f0;">${stats.byType[type]}</span></span>`;
-                        }).join('')}
+                    <div class="notes-stats">
+                        <div class="notes-stat-item">Total: <span>${stats.total}</span></div>
+                        <div class="notes-stat-item">Pinned: <span>${pinnedCount}</span></div>
                     </div>
 
                     <!-- Search -->
-                    <div style="position:relative;margin-bottom:12px;">
-                        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);">🔍</span>
-                        <input type="text" id="notes-search-input" placeholder="Search notes by title, content, or tags..." style="width:100%;padding:10px 14px 10px 40px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#e2e8f0;font-family:inherit;font-size:14px;box-sizing:border-box;" />
+                    <div class="notes-search-wrapper">
+                        <span class="notes-search-icon">🔍</span>
+                        <input type="text" id="notes-search-input" placeholder="Search notes by title, content, or tags..." />
                     </div>
 
                     <!-- Filters -->
-                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
-                        ${['ALL', 'KEY_POINT', 'DEFINITION', 'EXAMPLE', 'SUMMARY', 'PERSONAL_NOTE', 'MISTAKE', 'INSIGHT'].map(function(type) {
+                    <div class="notes-filters">
+                        ${['ALL', 'KEY_POINT', 'DEFINITION', 'EXAMPLE', 'SUMMARY', 'PERSONAL_NOTE', 'QUESTION', 'MISTAKE', 'INSIGHT', 'BOOKMARK'].map(function(type) {
                             var label = type === 'ALL' ? 'All' : type.replace('_', ' ');
                             var active = type === this._currentFilter;
-                            return `<button class="notes-filter-btn" data-type="${type}" style="padding:4px 14px;background:${active ? 'rgba(74,158,255,0.12)' : 'rgba(255,255,255,0.04)'};border:1px solid ${active ? 'rgba(74,158,255,0.2)' : 'rgba(255,255,255,0.06)'};border-radius:100px;color:${active ? '#4a9eff' : '#94a3b8'};font-size:11px;cursor:pointer;font-family:inherit;">${label}</button>`;
+                            return `<button class="notes-filter-btn ${active ? 'active' : ''}" data-type="${type}">${label}</button>`;
                         }.bind(this)).join('')}
                     </div>
 
@@ -137,7 +238,7 @@
         },
 
         // ============================================================
-        // 4. 渲染列表
+        // 渲染列表
         // ============================================================
         _renderList: function() {
             var container = document.getElementById('notes-list');
@@ -147,11 +248,11 @@
 
             if (sorted.length === 0) {
                 container.innerHTML = `
-                    <div style="text-align:center;padding:40px;color:#64748b;">
-                        <div style="font-size:48px;margin-bottom:12px;">📭</div>
-                        <h3 style="color:#94a3b8;margin:0 0 4px;">No notes yet</h3>
-                        <p style="margin:0 0 12px;">Start saving important ideas while you learn!</p>
-                        <button onclick="LawAIApp.Notes.createNew()" style="padding:8px 20px;background:#4a9eff;border:none;border-radius:100px;color:white;font-size:13px;cursor:pointer;font-family:inherit;">➕ Create your first note</button>
+                    <div class="notes-empty">
+                        <div class="notes-empty-icon">📭</div>
+                        <h3>No notes yet</h3>
+                        <p>Capture an idea, question, or takeaway while you learn.</p>
+                        <button class="btn-primary" onclick="LawAIApp.Notes.createNew()">Create a note</button>
                     </div>
                 `;
                 return;
@@ -162,7 +263,7 @@
         },
 
         // ============================================================
-        // 5. 笔记卡片（含 Context + Reflection）
+        // 笔记卡片
         // ============================================================
         _renderNoteCard: function(note) {
             var typeColors = {
@@ -178,10 +279,9 @@
             };
             var color = typeColors[note.type] || '#4a9eff';
 
-            // 🔥 Part 115: Context 显示
+            // Context
             var contextHTML = '';
             var hasContext = note.lessonId || note.courseId || note.subjectId;
-    
             if (hasContext) {
                 var contextParts = [];
                 if (note.schoolId) contextParts.push('🏫 ' + note.schoolId);
@@ -194,15 +294,13 @@
                         <span style="font-size:11px;color:#64748b;">🔗</span>
                         <span style="font-size:11px;color:#94a3b8;flex:1;">${contextDisplay}</span>
                         ${note.lessonId ? `
-                            <button onclick="LawAIApp.Notes.navigateToLesson('${note.lessonId}')" style="
-                                padding:3px 14px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.12);border-radius:100px;color:#4a9eff;font-size:10px;cursor:pointer;font-family:inherit;white-space:nowrap;
-                            ">📖 Open Lesson →</button>
+                            <button onclick="LawAIApp.Notes.navigateToLesson('${note.lessonId}')" style="padding:3px 14px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.12);border-radius:100px;color:#4a9eff;font-size:10px;cursor:pointer;font-family:inherit;white-space:nowrap;">📖 Open Lesson →</button>
                         ` : ''}
                     </div>
                 `;
             }
 
-            // 🔥 Part 116: 反思显示
+            // Reflection
             var reflectionHTML = '';
             var hasReflection = note.reflections && note.reflections.length > 0;
             if (hasReflection) {
@@ -214,17 +312,14 @@
                             <span style="font-size:9px;color:#64748b;">${new Date(latestReflection.createdAt).toLocaleDateString()}</span>
                         </div>
                         <p style="margin:4px 0 0;font-size:12px;color:#94a3b8;font-style:italic;">${this._truncate(latestReflection.content, 100)}</p>
-                        ${note.reflections.length > 1 ? `<span style="font-size:9px;color:#64748b;">+ ${note.reflections.length - 1} more reflections</span>` : ''}
                     </div>
                 `;
             }
 
-            // 🔥 Part 116: 反思输入区域
+            // Reflection input
             var reflectionInputHTML = `
                 <div id="reflection-area-${note.id}" style="display:none;margin:6px 0 8px;">
-                    <textarea id="reflection-input-${note.id}" placeholder="Reflect on this note... (optional)" style="
-                        width:100%;padding:8px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:6px;color:#e2e8f0;font-family:inherit;font-size:12px;resize:vertical;min-height:50px;box-sizing:border-box;
-                    "></textarea>
+                    <textarea id="reflection-input-${note.id}" placeholder="Reflect on this note... (optional)" style="width:100%;padding:8px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:6px;color:#e2e8f0;font-family:inherit;font-size:12px;resize:vertical;min-height:50px;box-sizing:border-box;"></textarea>
                     <div style="display:flex;gap:6px;margin-top:4px;">
                         <button onclick="LawAIApp.Notes.saveReflection('${note.id}')" style="padding:4px 14px;background:#8b5cf6;border:none;border-radius:6px;color:white;font-size:11px;cursor:pointer;font-family:inherit;">💾 Save</button>
                         <button onclick="LawAIApp.Notes.toggleReflection('${note.id}')" style="padding:4px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:6px;color:#94a3b8;font-size:11px;cursor:pointer;font-family:inherit;">Cancel</button>
@@ -232,68 +327,44 @@
                 </div>
             `;
 
-            // 🔥 Part 117: Provenance 显示
-            var provenanceHTML = '';
-            if (note.provenance) {
-                var provenanceLabels = {
-                    'lesson_context': '📖 From Lesson',
-                    'course_context': '📚 From Course',
-                    'learner_created': '✏️ Created by you'
-                };
-                var label = provenanceLabels[note.provenance.type] || '📝 Note';
-                provenanceHTML = `
-                    <div style="
-                        margin:2px 0 6px;
-                        font-size:10px;
-                        color:#64748b;
-                    ">
-                        ${label} · ${new Date(note.createdAt).toLocaleDateString()}
-                    </div>
-                `;    
-            } else {
-                provenanceHTML = `
-                    <div style="
-                        margin:2px 0 6px;
-                        font-size:10px;
-                        color:#64748b;
-                    ">
-                        ✏️ Created by you · ${new Date(note.createdAt).toLocaleDateString()}
-                    </div>
-                `;
-            }
+            // Provenance
+            var provenanceHTML = `
+                <div style="margin:2px 0 6px;font-size:10px;color:#64748b;">
+                    ✏️ Created by you · ${new Date(note.createdAt).toLocaleDateString()}
+                </div>
+            `;
 
-            // 返回完整卡片
             return `
-                <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px 16px;border:1px solid rgba(255,255,255,0.04);border-left:3px solid ${color};margin-bottom:8px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                        <strong style="font-size:14px;">${note.title || 'Untitled'}</strong>
-                        <span style="font-size:10px;background:${color}22;color:${color};padding:2px 10px;border-radius:100px;">${note.type || 'KEY_POINT'}</span>
+                <div class="note-card ${note.isPinned ? 'pinned' : ''}" style="border-left:3px solid ${color};">
+                    <div class="note-card-header">
+                        <strong class="note-card-title">${note.title || 'Untitled'}</strong>
+                        <span class="note-card-type" style="background:${color}22;color:${color};">${note.type || 'KEY_POINT'}</span>
                     </div>
-                    ${note.content ? `<p style="color:#94a3b8;font-size:13px;margin:0 0 8px;line-height:1.5;">${this._truncate(note.content, 150)}</p>` : ''}
+                    ${note.content ? `<p class="note-card-content">${this._truncate(note.content, 150)}</p>` : ''}
                     ${note.tags && note.tags.length > 0 ? `
-                        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">
-                            ${note.tags.map(function(t) { return `<span style="font-size:10px;color:#64748b;background:rgba(255,255,255,0.03);padding:2px 8px;border-radius:100px;">#${t}</span>`; }).join('')}
+                        <div class="note-card-tags">
+                            ${note.tags.map(function(t) { return `<span class="note-card-tag">#${t}</span>`; }).join('')}
                         </div>
                     ` : ''}
                     ${contextHTML}
                     ${provenanceHTML}
                     ${reflectionHTML}
                     ${reflectionInputHTML}
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;flex-wrap:wrap;gap:4px;">
-                        <span style="font-size:11px;color:#64748b;">🕐 ${new Date(note.updatedAt).toLocaleDateString()}</span>
-                        <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                            <button onclick="LawAIApp.Notes.toggleReflection('${note.id}')" style="padding:2px 10px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.08);border-radius:100px;color:#8b5cf6;font-size:10px;cursor:pointer;font-family:inherit;">💭 Reflect</button>
-                            <button onclick="LawAIApp.Notes.togglePin('${note.id}')" style="padding:2px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;font-size:10px;cursor:pointer;font-family:inherit;">${note.isPinned ? '📌 Unpin' : '📌 Pin'}</button>
-                            <button onclick="LawAIApp.Notes.editNote('${note.id}')" style="padding:2px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:100px;color:#94a3b8;font-size:10px;cursor:pointer;font-family:inherit;">✏️ Edit</button>
-                            <button onclick="LawAIApp.Notes.deleteNote('${note.id}')" style="padding:2px 10px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.08);border-radius:100px;color:#ef4444;font-size:10px;cursor:pointer;font-family:inherit;">🗑️</button>
-                        </div>
+                    <div class="note-card-meta">
+                        <span class="note-card-meta-item">🕐 ${new Date(note.updatedAt).toLocaleDateString()}</span>
+                    </div>
+                    <div class="note-card-actions">
+                        <button class="btn-reflect" onclick="LawAIApp.Notes.toggleReflection('${note.id}')">💭 Reflect</button>
+                        <button class="btn-pin" onclick="LawAIApp.Notes.togglePin('${note.id}')">${note.isPinned ? '📌 Unpin' : '📌 Pin'}</button>
+                        <button class="btn-edit" onclick="LawAIApp.Notes.editNote('${note.id}')">✏️ Edit</button>
+                        <button class="btn-delete" onclick="LawAIApp.Notes.deleteNote('${note.id}')">🗑️</button>
                     </div>
                 </div>
             `;
         },
 
         // ============================================================
-        // 6. 过滤和排序
+        // 过滤和排序
         // ============================================================
         _getFilteredNotes: function() {
             if (this._currentFilter === 'ALL') return this.notes;
@@ -323,7 +394,7 @@
         },
 
         // ============================================================
-        // 7. 事件绑定
+        // 事件绑定
         // ============================================================
         _bindEvents: function() {
             var searchInput = document.getElementById('notes-search-input');
@@ -338,7 +409,9 @@
                                (n.content && n.content.toLowerCase().indexOf(q) !== -1) ||
                                (n.tags && n.tags.some(function(t) { return t.toLowerCase().indexOf(q) !== -1; }));
                     }.bind(this));
-                    container.innerHTML = filtered.length === 0 ? '<div style="text-align:center;padding:40px;color:#64748b;">🔍 No results found</div>' : filtered.map(function(note) { return this._renderNoteCard(note); }.bind(this)).join('');
+                    container.innerHTML = filtered.length === 0
+                        ? '<div class="notes-empty"><div class="notes-empty-icon">🔍</div><h3>No results</h3></div>'
+                        : filtered.map(function(note) { return this._renderNoteCard(note); }.bind(this)).join('');
                 }.bind(this));
             }
             var buttons = document.querySelectorAll('.notes-filter-btn');
@@ -350,73 +423,80 @@
         },
 
         // ============================================================
-        // 8. Actions
+        // Actions — 全部走 NotesAuthority
         // ============================================================
         filterBy: function(type) {
             this._currentFilter = type;
             var buttons = document.querySelectorAll('.notes-filter-btn');
             for (var i = 0; i < buttons.length; i++) {
                 var active = buttons[i].getAttribute('data-type') === type;
-                buttons[i].style.background = active ? 'rgba(74,158,255,0.12)' : 'rgba(255,255,255,0.04)';
-                buttons[i].style.color = active ? '#4a9eff' : '#94a3b8';
-                buttons[i].style.border = active ? '1px solid rgba(74,158,255,0.2)' : '1px solid rgba(255,255,255,0.06)';
+                if (active) buttons[i].classList.add('active');
+                else buttons[i].classList.remove('active');
             }
             this._renderList();
         },
 
         createNew: function(context) {
-            if (context && (context.lessonId || context.courseId)) {
-                this.createNoteWithContext(context);
-                return;
-            }
             var editor = window.LawAIApp?.KnowledgeEditor;
-            if (editor?.render) editor.render({ noteId: 'new' });
-        },
-
-        createNoteWithContext: function(context) {
-            var editor = window.LawAIApp?.KnowledgeEditor;
-            if (editor?.render) {
+            if (editor && editor.render) {
                 editor.render({ noteId: 'new', context: context || {} });
-            } else {
-                this.createNew();
             }
         },
 
         editNote: function(id) {
             var editor = window.LawAIApp?.KnowledgeEditor;
-            if (editor?.render) editor.render({ noteId: id });
+            if (editor && editor.render) {
+                editor.render({ noteId: id });
+            }
         },
 
         deleteNote: function(id) {
-            if (!confirm('Delete this note permanently?')) return;
-            var capture = window.LawAIApp?.KnowledgeCapture;
-            if (capture?.remove) { capture.remove(id); this.refresh(); this._renderList(); }
+            if (!confirm('Delete this note?')) return;
+            var auth = window.LawAIApp?.NotesAuthority;
+            if (!auth || !auth.isReady) return;
+
+            var result = auth.delete(id);
+            if (result.success) {
+                this.refresh();
+                this._renderList();
+                if (window.LawAIApp?.Toast?.success) {
+                    LawAIApp.Toast.success('🗑️ Note deleted');
+                }
+            } else {
+                if (window.LawAIApp?.Toast?.error) {
+                    LawAIApp.Toast.error('Couldn\'t delete note. Please try again.');
+                }
+            }
         },
 
         togglePin: function(id) {
-            var capture = window.LawAIApp?.KnowledgeCapture;
-            if (capture?.togglePin) { capture.togglePin(id); this.refresh(); this._renderList(); }
+            var auth = window.LawAIApp?.NotesAuthority;
+            if (!auth || !auth.isReady) return;
+
+            var note = auth.getNote(id);
+            if (!note) return;
+
+            var result = note.pinned ? auth.unpin(id) : auth.pin(id);
+            if (result.success) {
+                this.refresh();
+                this._renderList();
+            }
         },
 
         // ============================================================
-        // 9. Part 115: 导航到 Lesson
+        // 导航到 Lesson
         // ============================================================
         navigateToLesson: function(lessonId) {
-            console.log('[Notes] 📖 Navigating to lesson:', lessonId);
             try {
                 localStorage.setItem('lawai_notes_return_context', JSON.stringify({
                     from: 'notes', timestamp: Date.now(), lessonId: lessonId
                 }));
             } catch (e) {}
-            var router = window.LawAIApp?.Router;
-            if (router?.navigate) {
-                try { router.navigate('academy', { view: 'lesson', id: lessonId, returnTo: 'notes' }); return; } catch (e) {}
-            }
-            window.location.href = '/pages/academy.html?view=lesson&id=' + lessonId + '&returnTo=notes';
+            window.location.href = '/pages/academy.html?view=lesson&id=' + encodeURIComponent(lessonId) + '&returnTo=notes';
         },
 
         // ============================================================
-        // 10. Part 116: Reflection
+        // Reflection — 走 NotesAuthority
         // ============================================================
         toggleReflection: function(noteId) {
             var area = document.getElementById('reflection-area-' + noteId);
@@ -433,24 +513,34 @@
             var input = document.getElementById('reflection-input-' + noteId);
             if (!input) return;
             var content = input.value.trim();
-            if (!content) { alert('Please write something first.'); return; }
-            var capture = window.LawAIApp?.KnowledgeCapture;
-            if (!capture) return;
-            var result = capture.addReflection ? capture.addReflection(noteId, content) : null;
-            if (result) {
+            if (!content) {
+                if (window.LawAIApp?.Toast?.info) LawAIApp.Toast.info('Please write something first.');
+                return;
+            }
+
+            var auth = window.LawAIApp?.NotesAuthority;
+            if (!auth || !auth.isReady) {
+                if (window.LawAIApp?.Toast?.error) LawAIApp.Toast.error('Notes not ready.');
+                return;
+            }
+
+            var result = auth.addReflection(noteId, content);
+            if (result.success) {
                 input.value = '';
                 var area = document.getElementById('reflection-area-' + noteId);
                 if (area) area.style.display = 'none';
                 this.refresh();
                 this._renderList();
                 if (window.LawAIApp?.Toast?.success) LawAIApp.Toast.success('💭 Reflection saved');
+            } else {
+                if (window.LawAIApp?.Toast?.error) LawAIApp.Toast.error('Couldn\'t save reflection.');
             }
         },
 
         getReflections: function(noteId) {
-            var capture = window.LawAIApp?.KnowledgeCapture;
-            if (!capture) return [];
-            return capture.getReflections ? capture.getReflections(noteId) || [] : [];
+            var auth = window.LawAIApp?.NotesAuthority;
+            if (!auth || !auth.isReady) return [];
+            return auth.getReflections(noteId);
         },
 
         getStats: function() { this.refresh(); return this._getStats(); },
@@ -458,5 +548,15 @@
     };
 
     window.LawAIApp.Notes = Notes;
-    console.log('[Notes] 📝 Module loaded');
+
+    // 自动初始化
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(function() { Notes.init(); }, 100);
+    } else {
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() { Notes.init(); }, 100);
+        });
+    }
+
+    console.log('[Notes] ✅ Module loaded (v2.0.0 — Part 177)');
 })();
