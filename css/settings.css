@@ -1,80 +1,244 @@
-// settings.js
-LawAIApp.Settings = {
-  render() {
-    const darkMode = !document.body.classList.contains('light-mode');
-    const html = `
-      <div class="page">
-        <button class="back-btn" onclick="LawAIApp.Router.navigate('dashboard')" style="background:var(--card); border:none; color:var(--text); padding:0.5rem 1rem; border-radius:8px; cursor:pointer; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.3rem; font-size:0.85rem;">
-          ← Back
-        </button>
-        <h2>⚙️ Settings</h2>
-        <div class="settings-group">
-          <div class="settings-item" id="dark-toggle">
-            <span>Dark Mode</span>
-            <div class="toggle ${darkMode ? 'active' : ''}"></div>
-          </div>
-          <div class="settings-item"><span>About</span><span>v1.0.0</span></div>
-          <div class="settings-item"><span>Version</span><span>Season 1.5 Alpha</span></div>
-          <div class="settings-item" id="reset-progress"><span>Reset Progress</span><span style="color:var(--danger)">⚠️</span></div>
-          <div class="settings-item" id="export-backup"><span>Export Backup</span><span style="color:var(--primary)">💾</span></div>
-          <div class="settings-item"><span>Backup</span><span>Coming Soon</span></div>
-        </div>
-      </div>
-    `;
-    document.getElementById('app').innerHTML = html;
-    document.getElementById('dark-toggle').addEventListener('click', () => {
-      LawAIApp.Theme.toggle();
-      this.render();
-    });
-    document.getElementById('reset-progress').addEventListener('click', () => {
-      if (LawAIApp.FactoryReset) {
-        LawAIApp.FactoryReset.execute();
-      } else {
-        if (confirm('Reset all progress?')) {
-          localStorage.clear();
-          LawAIApp.Storage.set('darkMode', !document.body.classList.contains('light-mode'));
-          location.reload();
-        }
-      }
-    });
-    document.getElementById('export-backup').addEventListener('click', () => {
-      if (LawAIApp.FactoryReset) {
-        LawAIApp.FactoryReset.exportBackup();
-      }
-    });
-  }
-};
+/* ============================================================
+   SETTINGS — Part 177 产品化版
+   ============================================================ */
 
-// Tools page
-LawAIApp.Tools = {
-  render() {
-    const tools = ['ChatGPT','Claude','Gemini','Cursor','Perplexity','NotebookLM','GitHub','Supabase','Lovable','Bolt'];
-    document.getElementById('app').innerHTML = `
-      <div class="page">
-        <button class="back-btn" onclick="LawAIApp.Router.navigate('dashboard')" style="background:var(--card); border:none; color:var(--text); padding:0.5rem 1rem; border-radius:8px; cursor:pointer; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.3rem; font-size:0.85rem;">
-          ← Back
-        </button>
-        <h2>🛠️ AI Tools</h2>
-        <div class="widget-grid">
-          ${tools.map(t => `<div class="widget-card" onclick="alert('Coming Soon')">${t}</div>`).join('')}
-        </div>
-      </div>`;
-  }
-};
+.settings-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 16px 60px;
+    color: #e2e8f0;
+    font-family: 'Inter', -apple-system, sans-serif;
+}
 
-// Prompt page
-LawAIApp.Prompt = {
-  render() {
-    const cats = ['Coding','Writing','Business','Marketing','Fitness','Health','Email'];
-    document.getElementById('app').innerHTML = `
-      <div class="page">
-        <button class="back-btn" onclick="LawAIApp.Router.navigate('dashboard')" style="background:var(--card); border:none; color:var(--text); padding:0.5rem 1rem; border-radius:8px; cursor:pointer; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.3rem; font-size:0.85rem;">
-          ← Back
-        </button>
-        <h2>📋 Prompt Library</h2>
-        <div class="widget-grid">
-          ${cats.map(c => `<div class="widget-card">${c}<br><small>Coming Soon</small></div>`).join('')}
-        </div>
-      </div>`;
-  }
-};
+/* ── Category ── */
+.settings-category {
+    margin-bottom: 24px;
+}
+
+.settings-category-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 0 0 8px 4px;
+}
+
+/* ── Group ── */
+.settings-group {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    overflow: hidden;
+}
+
+/* ── Item ── */
+.settings-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    gap: 12px;
+    transition: background 0.15s;
+}
+
+.settings-item:last-child {
+    border-bottom: none;
+}
+
+.settings-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.settings-item-label {
+    font-size: 14px;
+    color: #e2e8f0;
+}
+
+.settings-item-desc {
+    font-size: 11px;
+    color: #64748b;
+}
+
+.settings-item-value {
+    font-size: 12px;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+/* ── Action Item ── */
+.settings-item-action {
+    cursor: pointer;
+}
+
+.settings-item-action:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* ── Toggle ── */
+.settings-toggle {
+    width: 44px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    position: relative;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.settings-toggle.active {
+    background: rgba(74, 158, 255, 0.6);
+}
+
+.settings-toggle-knob {
+    width: 18px;
+    height: 18px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.settings-toggle.active .settings-toggle-knob {
+    left: 23px;
+}
+
+/* ── Select ── */
+.settings-select {
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    min-width: 130px;
+}
+
+.settings-select:focus {
+    outline: none;
+    border-color: rgba(74, 158, 255, 0.4);
+}
+
+/* ── Time ── */
+.settings-time {
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-family: inherit;
+    font-size: 13px;
+}
+
+/* ── Days ── */
+.settings-item-days {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.settings-days {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.settings-day {
+    padding: 4px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 100px;
+    color: #94a3b8;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.settings-day:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+}
+
+.settings-day.active {
+    background: rgba(74, 158, 255, 0.15);
+    border-color: rgba(74, 158, 255, 0.3);
+    color: #4a9eff;
+}
+
+/* ── Consumers: Body Classes ── */
+body.reduce-motion *,
+body.reduce-motion *::before,
+body.reduce-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+}
+
+body.high-contrast {
+    --text: #ffffff;
+    --text-muted: #cbd5e1;
+}
+
+body.layout-compact .settings-item {
+    padding: 10px 14px;
+}
+
+body.density-compact .settings-item {
+    padding: 10px 14px;
+}
+
+body.density-spacious .settings-item {
+    padding: 18px 22px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .settings-container {
+        padding: 16px 12px 80px;
+    }
+
+    .settings-item {
+        padding: 12px 14px;
+        flex-wrap: wrap;
+    }
+
+    .settings-item-info {
+        flex-basis: 100%;
+        margin-bottom: 8px;
+    }
+
+    .settings-select,
+    .settings-time {
+        width: 100%;
+    }
+
+    .settings-toggle {
+        align-self: flex-end;
+    }
+}
+
+/* ── Accessibility ── */
+.settings-toggle:focus,
+.settings-select:focus,
+.settings-time:focus,
+.settings-day:focus {
+    outline: 2px solid rgba(74, 158, 255, 0.6);
+    outline-offset: 2px;
+}
+
+.settings-item-action:focus {
+    outline: 2px solid rgba(74, 158, 255, 0.6);
+    outline-offset: -2px;
+}
