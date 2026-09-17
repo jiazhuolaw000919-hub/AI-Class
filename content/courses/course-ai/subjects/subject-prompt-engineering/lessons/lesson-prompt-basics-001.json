@@ -1,6 +1,6 @@
 {
   "id": "lesson-prompt-basics-001",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "Prompt Engineering Basics",
   "slug": "prompt-engineering-basics",
   "subjectId": "subject-prompt-engineering",
@@ -10,60 +10,90 @@
   "estimatedMinutes": 25,
   "difficulty": "beginner",
   "status": "published",
-  "description": "Learn what prompts are, why they matter, and how to write clear prompts that get better results from AI systems.",
+  "description": "The same AI model can produce wildly different outputs depending on how you ask. This lesson teaches you the four components of an effective prompt — and why they matter.",
+
   "learningObjectives": [
-    "Define what a prompt is",
-    "Identify the components of a good prompt",
-    "Write a basic prompt for a specific task"
+    "Explain what a prompt is and why it shapes AI output",
+    "Identify the four components of an effective prompt",
+    "Write a basic prompt that includes task, context, and constraints",
+    "Recognize weak vs strong prompts in real examples"
   ],
+
+  "opening": {
+    "hook": "You have probably typed something like 'Tell me about AI' into ChatGPT. You got an answer — but was it useful? Probably not. The problem was not the AI. The problem was the prompt. The same model, given a better prompt, would have given you a much better response.",
+    "relevance": "Prompt engineering is the difference between using AI as a toy and using AI as a tool."
+  },
+
   "sections": [
     {
       "id": "section-01",
       "type": "foundation",
-      "title": "What is a Prompt?",
+      "title": "What Is a Prompt?",
+      "duration": 5,
       "content": [
         {
-          "type": "text",
+          "type": "paragraph",
           "content": "A prompt is the input you give to an AI system to guide its response. It can be a question, an instruction, a description, or a combination of all three."
         },
         {
           "type": "definition",
-          "content": "Prompt: Any text input given to an AI model that shapes the model's output."
+          "term": "Prompt",
+          "definition": "Any text input given to an AI model that shapes the model's output.",
+          "example": "'Explain gravity in one paragraph' is a prompt. 'What is gravity?' is also a prompt — but a weaker one."
         },
         {
-          "type": "text",
-          "content": "The same AI model can produce wildly different outputs depending on how you prompt it. This is why prompt engineering matters."
+          "type": "paragraph",
+          "content": "Here is the key insight: AI models are probabilistic. They do not retrieve a specific answer from a database. They generate responses based on patterns learned from training data. The prompt determines which patterns get activated."
+        },
+        {
+          "type": "important",
+          "title": "Why this matters",
+          "content": "A vague prompt activates many patterns, producing a generic answer. A specific prompt activates the right patterns, producing a useful answer."
         }
       ]
     },
     {
       "id": "section-02",
       "type": "core",
-      "title": "Components of a Good Prompt",
+      "title": "The Four Components of a Good Prompt",
+      "duration": 10,
       "content": [
         {
-          "type": "text",
-          "content": "Effective prompts usually include four key elements: Task, Context, Constraints, and Format."
+          "type": "paragraph",
+          "content": "Effective prompts usually include four key elements. You do not always need all four — but knowing them helps you diagnose why a prompt is not working."
         },
         {
           "type": "definition",
-          "content": "Task: What you want the AI to do (summarize, translate, explain, generate)."
+          "term": "1. Task",
+          "definition": "What you want the AI to do — summarize, translate, explain, generate, classify.",
+          "example": "'Summarize this article' is a task. 'Explain this concept' is a task."
         },
         {
           "type": "definition",
-          "content": "Context: Background information the AI needs (audience, purpose, domain)."
+          "term": "2. Context",
+          "definition": "Background information the AI needs to understand the request.",
+          "example": "'For a beginner audience' or 'In a business context' provides context."
         },
         {
           "type": "definition",
-          "content": "Constraints: Rules or boundaries (length, tone, things to avoid)."
+          "term": "3. Constraints",
+          "definition": "Rules or boundaries on the output — length, tone, things to avoid.",
+          "example": "'In under 100 words' or 'Avoid technical jargon' are constraints."
         },
         {
           "type": "definition",
-          "content": "Format: How you want the output structured (bullet points, JSON, essay, table)."
+          "term": "4. Format",
+          "definition": "How you want the output structured — bullet points, paragraphs, JSON, table.",
+          "example": "'Return as a bulleted list' specifies format."
         },
         {
-          "type": "example",
-          "content": "Weak prompt: 'Tell me about AI.' Strong prompt: 'Explain what AI is in 3 bullet points for a 10-year-old, avoiding technical jargon.'"
+          "type": "comparison",
+          "before": "Weak: 'Tell me about AI.'",
+          "after": "Strong: 'Explain what AI is in 3 bullet points for a 10-year-old, avoiding technical jargon.'"
+        },
+        {
+          "type": "paragraph",
+          "content": "Notice how the strong prompt contains all four components: Task (explain), Context (for a 10-year-old), Constraints (avoid jargon), Format (3 bullet points)."
         }
       ]
     },
@@ -71,28 +101,59 @@
       "id": "section-03",
       "type": "advanced",
       "title": "The Iterative Mindset",
+      "duration": 8,
       "content": [
         {
-          "type": "text",
-          "content": "Prompt engineering is iterative. The first prompt rarely produces the best result. You refine based on what you get back."
+          "type": "paragraph",
+          "content": "Prompt engineering is not a one-shot activity. The first prompt rarely produces the optimal result. Experienced prompt engineers treat each prompt as a hypothesis: 'If I say this, will the model do that?'"
         },
         {
-          "type": "text",
-          "content": "Experienced prompt engineers treat each prompt as a hypothesis: 'If I say this, will the model do that?' Then they observe, adjust, repeat."
+          "type": "workedExample",
+          "title": "Iterative prompt refinement",
+          "steps": [
+            "Prompt 1: 'Explain quantum computing.'",
+            "Response: Too technical, too long.",
+            "Prompt 2: 'Explain quantum computing to a high school student.'",
+            "Response: Better, but still uses unexplained terms.",
+            "Prompt 3: 'Explain quantum computing to a high school student in 3 short paragraphs, avoiding equations, with one real-world example.'",
+            "Response: Clear, focused, useful."
+          ]
         },
         {
-          "type": "text",
-          "content": "This is not a weakness of AI—it's the nature of working with probabilistic systems. The skill is in the refinement."
+          "type": "important",
+          "title": "The skill is in the refinement",
+          "content": "You do not need to write perfect prompts. You need to be able to look at a bad response and diagnose why — then refine."
+        },
+        {
+          "type": "misconception",
+          "myth": "There is one perfect prompt for every task.",
+          "reality": "Prompts depend on the model, the context, and the learner's goal. What works for one model may fail for another."
         }
       ]
     }
   ],
+
+  "keyTakeaways": [
+    "A prompt is the input that shapes AI output.",
+    "Effective prompts have four components: Task, Context, Constraints, Format.",
+    "Vague prompts produce generic answers. Specific prompts produce useful answers.",
+    "Prompt engineering is iterative — refine until you get the output you need."
+  ],
+
+  "reflection": {
+    "prompt": "Think about a prompt you have used recently. Which of the four components was missing?",
+    "hint": "Most people forget Context or Constraints.",
+    "expectedInsight": "Identifying the missing component helps you improve your next prompt immediately."
+  },
+
   "video": {
     "provider": "youtube",
     "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao",
     "title": "Introduction to Prompt Engineering",
-    "durationMinutes": 10
+    "durationMinutes": 10,
+    "notes": "The video provides visual examples of weak vs strong prompts."
   },
+
   "flashcards": [
     {
       "id": "fc-401",
@@ -103,19 +164,27 @@
     },
     {
       "id": "fc-402",
-      "front": "What are the four key components of a good prompt?",
+      "front": "What are the four components of an effective prompt?",
       "back": "Task, Context, Constraints, Format.",
       "difficulty": "core",
       "tags": ["structure"]
     },
     {
       "id": "fc-403",
+      "front": "Why do vague prompts produce generic answers?",
+      "back": "Because they activate many patterns, producing an unfocused response.",
+      "difficulty": "core",
+      "tags": ["why"]
+    },
+    {
+      "id": "fc-404",
       "front": "Why is prompt engineering iterative?",
-      "back": "Because AI models are probabilistic—first prompts rarely produce optimal results.",
+      "back": "Because AI is probabilistic — first prompts rarely produce optimal results.",
       "difficulty": "advanced",
       "tags": ["iteration"]
     }
   ],
+
   "practice": {
     "enabled": true,
     "type": "mixed",
@@ -123,39 +192,69 @@
       {
         "id": "practice-401",
         "type": "multipleChoice",
-        "question": "Which of these is a constraint in prompt engineering?",
+        "question": "In the prompt 'Summarize this article for a busy executive in 5 bullet points', which part is the CONSTRAINT?",
         "options": [
-          "The task you want the AI to do",
-          "The background information you provide",
-          "A rule about length or tone",
-          "The output format"
+          "Summarize this article",
+          "For a busy executive",
+          "In 5 bullet points",
+          "None of the above"
         ],
         "answer": 2,
-        "explanation": "Constraints are rules or boundaries—like length limits, tone, or things to avoid."
+        "explanation": "'In 5 bullet points' is a constraint on the output — it limits the length and format.",
+        "whyItMatters": "Identifying components helps you diagnose why a prompt is not producing useful output."
       },
       {
         "id": "practice-402",
+        "type": "multipleChoice",
+        "question": "Which prompt is strongest?",
+        "options": [
+          "Tell me about climate change",
+          "Explain climate change",
+          "Explain the main causes of climate change in 3 short paragraphs for a high school student, avoiding political opinions",
+          "Climate change information"
+        ],
+        "answer": 2,
+        "explanation": "This prompt includes all four components: Task (explain), Context (for a high school student), Constraints (3 paragraphs, avoid politics), Format (short paragraphs).",
+        "whyItMatters": "This shows how the same underlying question becomes dramatically more useful with structure."
+      },
+      {
+        "id": "practice-403",
         "type": "shortAnswer",
-        "question": "Rewrite this weak prompt to include context and constraints: 'Tell me about climate change.'",
-        "answer": "Example: 'Explain the main causes of climate change in 5 bullet points for a high school student, avoiding political opinions.'",
-        "explanation": "A good rewrite adds context (audience) and constraints (format, tone, exclusions)."
+        "question": "Rewrite this prompt to include at least 3 of the 4 components: 'Tell me about ChatGPT.'",
+        "answer": "Example: 'Explain what ChatGPT is in 3 short bullet points for someone who has never used an AI tool before, avoiding technical jargon.'",
+        "explanation": "A strong rewrite adds Context (never used AI), Constraints (avoid jargon), and Format (3 bullet points).",
+        "acceptedKeywords": ["context", "audience", "format", "constraint", "length", "jargon"],
+        "whyItMatters": "This is the core skill: taking a vague request and adding structure."
+      },
+      {
+        "id": "practice-404",
+        "type": "application",
+        "question": "You ask an AI for a summary of a long report. The response is 800 words — way too long. Which component of your prompt was missing?",
+        "answer": "Constraints. You did not specify a length limit or format. Adding 'in under 100 words' or 'as 5 bullet points' would fix the issue.",
+        "explanation": "When output is too long or too vague, the most common cause is missing constraints.",
+        "whyItMatters": "Diagnosing a bad output is the first step to fixing the prompt."
       }
     ]
   },
+
   "notes": {
-    "summary": "A prompt is input text that shapes AI output. Good prompts include Task, Context, Constraints, and Format.",
+    "summary": "Prompts shape AI output. Effective prompts include Task, Context, Constraints, and Format. Prompt engineering is an iterative skill.",
     "keyPoints": [
-      "Prompt = input text that guides AI",
-      "4 components: Task, Context, Constraints, Format",
-      "Prompt engineering is iterative",
-      "First prompt rarely produces optimal output"
+      "Prompt = input text that guides AI output",
+      "Four components: Task, Context, Constraints, Format",
+      "Vague prompts → generic answers",
+      "Specific prompts → useful answers",
+      "Iteration is part of the process"
     ],
     "importantTerms": [
       { "term": "Prompt", "definition": "Input text given to an AI model." },
       { "term": "Context", "definition": "Background information for the AI." },
-      { "term": "Constraint", "definition": "A rule or boundary on the output." }
-    ]
+      { "term": "Constraint", "definition": "A rule or boundary on the output." },
+      { "term": "Format", "definition": "How output should be structured." }
+    ],
+    "reflection": "Prompt engineering is a learnable skill, not a talent."
   },
+
   "aiTools": [
     {
       "provider": "chatgpt",
@@ -168,6 +267,7 @@
       "recommendedFor": ["detailed prompt analysis", "long-form output"]
     }
   ],
+
   "resources": [
     {
       "id": "resource-401",
@@ -177,19 +277,20 @@
       "provider": "official"
     }
   ],
+
   "news": [],
+
   "relatedLessons": [
     "lesson-prompt-advanced-001"
   ],
-  "keyTakeaways": [
-    "Prompts are the interface between you and AI models.",
-    "Great prompts combine Task, Context, Constraints, and Format.",
-    "Prompt engineering is a skill built through iteration."
-  ],
+
   "metadata": {
     "author": "Law AI Academy",
-    "language": "en"
+    "version": "2.0.0",
+    "language": "en",
+    "lastReviewed": "2026-09-17"
   },
+
   "createdAt": "2026-09-11T00:00:00Z",
-  "updatedAt": "2026-09-11T00:00:00Z"
+  "updatedAt": "2026-09-17T00:00:00Z"
 }
