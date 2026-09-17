@@ -4078,108 +4078,61 @@ _renderRecommendationCard: function(rec) {
   _renderNotesView: function() {
       console.log('[Dashboard] 📝 Rendering Notes...');
   
+      var self = this;
       var container = document.getElementById('app') || 
                       document.getElementById('law-runtime-root') || 
                       document.getElementById('dashboard-root');
       if (!container) return;
   
       // 1. 已加载 → 直接 render
-      if (window.LawAIApp) {
-          var candidates = [
-              window.LawAIApp.Notes,
-              window.LawAIApp.NotesView,
-              window.LawAIApp.KnowledgeCapture
-          ];
-          for (var i = 0; i < candidates.length; i++) {
-              var mod = candidates[i];
-              if (mod && typeof mod.render === 'function') {
-                  try {
-                      mod._root = container;
-                      mod.render(container);
-                      console.log('[Dashboard] ✅ Notes rendered (cached)');
-                      return;
-                  } catch (e) {
-                      console.warn('[Dashboard] Notes render error:', e);
-                  }
-              }
+      if (window.LawAIApp && window.LawAIApp.Notes && typeof window.LawAIApp.Notes.render === 'function') {
+          try {
+              window.LawAIApp.Notes._root = container;
+              window.LawAIApp.Notes.render();
+              console.log('[Dashboard] ✅ Notes rendered (cached)');
+              return;
+          } catch (e) {
+              console.warn('[Dashboard] Notes render error:', e);
           }
       }
   
-      // 2. 显示 loading
+      // 2. loading
       container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Notes...</div>';
   
-      // 3. 防止重复插 script（用一个独立的标记元素，而不是脚本 id）
-      if (document.getElementById('notes-loading-flag')) {
-          console.log('[Dashboard] ⏳ Notes already loading...');
-          return;
-      }
+      // 3. 防重复
+      if (document.getElementById('notes-loading-flag')) return;
       var flag = document.createElement('div');
       flag.id = 'notes-loading-flag';
       flag.style.display = 'none';
       document.body.appendChild(flag);
   
-      // 4. 动态加载 notes.js（+ knowledgeCapture.js）
-      var files = [
-          '/js/academy/knowledgeCapture.js',
-          '/js/academy/notes.js'
-      ];
-      var loaded = 0;
-      var self = this;
-  
-      files.forEach(function(file, idx) {
-          var script = document.createElement('script');
-          script.id = 'notes-script-' + idx;   // 🔥 每个 script 用不同 id
-          script.src = file + '?v=' + Date.now();
-          script.async = true;
-          script.onload = function() {
-              loaded++;
-              console.log('[Dashboard] ✅ Loaded:', file);
-              if (loaded === files.length) {
-                  self._renderNotesFinal(container);
-              }
-          };
-          script.onerror = function() {
-              loaded++;
-              console.warn('[Dashboard] ⚠️ Failed:', file);
-              if (loaded === files.length) {
-                  self._renderNotesFinal(container);
-              }
-          };
-          document.head.appendChild(script);
-      });
-  },
-  
-  // 🔥 辅助函数：Notes 加载完成后统一渲染
-  _renderNotesFinal: function(container) {
-      if (!container) return;
-  
-      var candidates = [
-          window.LawAIApp && window.LawAIApp.Notes,
-          window.LawAIApp && window.LawAIApp.NotesView,
-          window.LawAIApp && window.LawAIApp.KnowledgeCapture
-      ];
-      for (var i = 0; i < candidates.length; i++) {
-          var mod = candidates[i];
-          if (mod && typeof mod.render === 'function') {
+      // 4. 加载 notes.js
+      var script = document.createElement('script');
+      script.id = 'notes-script-loader';
+      script.src = '/js/academy/notes.js?v=' + Date.now();
+      script.async = true;
+      script.onload = function() {
+          console.log('[Dashboard] ✅ notes.js loaded');
+          var Notes = window.LawAIApp && window.LawAIApp.Notes;
+          if (Notes && typeof Notes.render === 'function') {
               try {
-                  mod._root = container;
-                  mod.render(container);
+                  Notes._root = container;
+                  Notes.render();
                   console.log('[Dashboard] ✅ Notes rendered (after load)');
-                  return;
               } catch (e) {
                   console.warn('[Dashboard] Notes render error:', e);
+                  container.innerHTML = self._notesFallbackHTML('Render error: ' + e.message);
               }
+          } else {
+              console.warn('[Dashboard] ⚠️ Notes not found after load');
+              container.innerHTML = self._notesFallbackHTML('Notes module not available.');
           }
-      }
-  
-      // 都不可用 → 显示 fallback
-      container.innerHTML = `
-        <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
-          <button onclick="LawAIApp.Dashboard.render()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
-          <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">📓 Notes</h2>
-          <p style="color:#94a3b8;">Notes module not available.</p>
-        </div>
-      `;
+      };
+      script.onerror = function() {
+          console.warn('[Dashboard] ⚠️ Failed to load notes.js');
+          container.innerHTML = self._notesFallbackHTML('Failed to load notes.js');
+      };
+      document.head.appendChild(script);
   },
 
   /**
