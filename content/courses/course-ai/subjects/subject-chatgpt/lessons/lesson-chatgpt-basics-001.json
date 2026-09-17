@@ -198,3 +198,104 @@
         "options": [
           "It intentionally misleads users",
           "It generates plausible text, not factual text",
+          "It has a bug in the fact-checking module",
+          "It copies from unreliable sources"
+        ],
+        "answer": 1,
+        "explanation": "ChatGPT does not check facts — it predicts text. A false statement can sound just as plausible as a true one.",
+        "whyItMatters": "This is the single most important limitation to understand."
+      },
+      {
+        "id": "practice-602",
+        "type": "multipleChoice",
+        "question": "ChatGPT gives you a legal citation. What should you do?",
+        "options": [
+          "Trust it — ChatGPT is trained on legal documents",
+          "Verify the citation independently before using it",
+          "Ask ChatGPT again and see if it gives the same answer",
+          "Assume it is correct if it sounds reasonable"
+        ],
+        "answer": 1,
+        "explanation": "ChatGPT has hallucinated fake legal citations. Never use a citation without verification.",
+        "whyItMatters": "This is a real-world case where verification prevents serious errors."
+      },
+      {
+        "id": "practice-603",
+        "type": "shortAnswer",
+        "question": "In your own words, why is ChatGPT more like a confident guesser than a database?",
+        "answer": "Because ChatGPT generates text based on patterns, not facts. It produces the most likely response, which may or may not be true.",
+        "explanation": "Understanding the mechanism explains the limitation. It also explains why ChatGPT is useful for drafting but dangerous for factual claims.",
+        "acceptedKeywords": ["patterns", "predict", "generate", "not facts", "plausible"],
+        "whyItMatters": "This mental model guides how you use ChatGPT safely."
+      },
+      {
+        "id": "practice-604",
+        "type": "application",
+        "question": "You asked ChatGPT for a summary of an article, and it wrote a statistic that you cannot find in the article. What most likely happened?",
+        "answer": "ChatGPT hallucinated — it invented a plausible-sounding statistic that was not in the source. Always verify statistics against the original.",
+        "explanation": "Summary tasks are especially prone to hallucination. The model may add plausible details that were not in the source.",
+        "whyItMatters": "Verification is essential when ChatGPT summarizes sources you did not write yourself."
+      }
+    ]
+  },
+
+  "notes": {
+    "summary": "ChatGPT is a conversational AI powered by GPT models. It generates text based on patterns, not facts. This is why it hallucinates.",
+    "keyPoints": [
+      "ChatGPT = conversational AI on GPT models",
+      "Generates text based on patterns — not database lookup",
+      "Excellent at drafting, explaining, brainstorming",
+      "Hallucination is the biggest limitation",
+      "Verification is essential for factual claims"
+    ],
+    "importantTerms": [
+      { "term": "GPT", "definition": "Generative Pre-trained Transformer." },
+      { "term": "Hallucination", "definition": "Confident-sounding but false AI output." },
+      { "term": "Token Prediction", "definition": "How LLMs generate text — by predicting the next word." }
+    ],
+    "reflection": "ChatGPT is a first-draft assistant, not an oracle."
+  },
+
+  "aiTools": [
+    {
+      "provider": "chatgpt",
+      "role": "reasoning",
+      "recommendedFor": ["general assistance", "writing", "coding"]
+    }
+  ],
+
+  "resources": [
+    {
+      "id": "resource-601",
+      "title": "OpenAI Documentation",
+      "type": "official",
+      "url": "https://platform.openai.com/docs",
+      "provider": "OpenAI"
+    }
+  ],
+
+  "news": [
+    {
+      "id": "news-601",
+      "title": "OpenAI Releases New Model Updates",
+      "source": "OpenAI Blog",
+      "date": "2026-08-01",
+      "summary": "OpenAI continues to improve GPT models with better reasoning and multimodal support.",
+      "relatedLesson": "lesson-chatgpt-basics-001"
+    }
+  ],
+
+  "relatedLessons": [
+    "lesson-chatgpt-advanced-001"
+  ],
+
+  "metadata": {
+    "author": "Law AI Academy",
+    "version": "2.0.0",
+    "language": "en",
+    "lastReviewed": "2026-09-17"
+  },
+
+  "createdAt": "2026-09-11T00:00:00Z",
+  "updatedAt": "2026-09-17T00:00:00Z"
+}
