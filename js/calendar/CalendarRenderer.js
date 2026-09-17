@@ -7,6 +7,8 @@ window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.CalendarRenderer = {
 
+    _viewYear: null,
+    _viewMonth: null,
     _rendered: false,
     _container: null,
     _viewModel: null,
@@ -27,6 +29,13 @@ LawAIApp.CalendarRenderer = {
         this._container = container;
         this._viewModel = viewModel;
 
+        // 初始化视图年月（如果尚未设置）
+        if (typeof this._viewYear !== 'number') {
+            var now = new Date();
+            this._viewYear = now.getFullYear();
+            this._viewMonth = now.getMonth();
+        }
+
         var html = this._buildHTML(viewModel);
         container.innerHTML = html;
         this._bindEvents();
@@ -42,11 +51,8 @@ LawAIApp.CalendarRenderer = {
         // Header
         html += this._renderHeader(viewModel);
 
-        // Empty State
-        if (viewModel.isEmpty && (!viewModel.events || viewModel.events.length === 0)) {
-            html += this._renderEmptyState();
-            return html;
-        }
+        // Month Grid（恢复月历）
+        html += this._renderMonthGrid(viewModel);
 
         // Current Journey
         if (viewModel.currentJourney && viewModel.currentJourney.available) {
@@ -56,6 +62,9 @@ LawAIApp.CalendarRenderer = {
         // Events
         if (viewModel.events && viewModel.events.length > 0) {
             html += this._renderEvents(viewModel.events);
+        } else {
+            // 没有事件时，仍然显示 empty 提示
+            html += this._renderEmptyEventsHint();
         }
 
         // Stale Warning
@@ -64,6 +73,81 @@ LawAIApp.CalendarRenderer = {
         }
 
         return html;
+    },
+
+    // ============================================================
+    // Part 177 修复: 恢复月历视图
+    // ============================================================
+    _renderMonthGrid: function(viewModel) {
+        var now = new Date();
+        var year = this._viewYear || now.getFullYear();
+        var month = (typeof this._viewMonth === 'number') ? this._viewMonth : now.getMonth();
+
+        var monthName = new Date(year, month).toLocaleString('default', { month: 'long' });
+        var daysInMonth = new Date(year, month + 1, 0).getDate();
+        var firstDay = new Date(year, month, 1).getDay();
+
+        // 这个月的事件日期集合
+        var eventDays = {};
+        var events = (viewModel && viewModel.events) || [];
+        events.forEach(function(evt) {
+            if (!evt.start) return;
+            var d = new Date(evt.start);
+            if (d.getFullYear() === year && d.getMonth() === month) {
+                eventDays[d.getDate()] = true;
+            }
+        });
+
+        var gridHTML = '';
+        // 前导空格
+        for (var i = 0; i < firstDay; i++) {
+            gridHTML += '<div class="cal-day-cell empty"></div>';
+        }
+        // 日期
+        var today = new Date();
+        for (var d = 1; d <= daysInMonth; d++) {
+            var isToday = d === today.getDate() &&
+                          month === today.getMonth() &&
+                          year === today.getFullYear();
+            var hasEvent = !!eventDays[d];
+            gridHTML += `
+                <div class="cal-day-cell ${isToday ? 'today' : ''} ${hasEvent ? 'has-event' : ''}"
+                     data-day="${d}">
+                    <span class="cal-day-number">${d}</span>
+                    ${hasEvent ? '<span class="cal-day-dot"></span>' : ''}
+                </div>
+            `;
+        }
+
+        return `
+            <div class="cal-month-section">
+                <div class="cal-month-nav">
+                    <button class="cal-month-nav-btn" data-month-nav="-1">←</button>
+                    <span class="cal-month-label">${monthName} ${year}</span>
+                    <button class="cal-month-nav-btn" data-month-nav="1">→</button>
+                </div>
+                <div class="cal-weekday-row">
+                    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                </div>
+                <div class="cal-month-grid">
+                    ${gridHTML}
+                </div>
+                <div class="cal-month-actions">
+                    <button class="cal-today-btn" data-month-today="1">Today</button>
+                </div>
+            </div>
+        `;
+    },
+
+    _renderEmptyEventsHint: function() {
+        return `
+            <div class="cal-events-section">
+                <div class="cal-section-label">📋 SCHEDULED EVENTS</div>
+                <div class="cal-events-empty">
+                    No scheduled events yet. Click "New Event" to add one.
+                </div>
+            </div>
+        `;
     },
 
     _renderHeader: function(viewModel) {
@@ -179,6 +263,29 @@ LawAIApp.CalendarRenderer = {
             });
         });
 
+        // Month nav
+        document.querySelectorAll('[data-month-nav]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var delta = parseInt(this.getAttribute('data-month-nav'), 10);
+                self._changeMonth(delta);
+            });
+        });
+
+        // Month today
+        document.querySelectorAll('[data-month-today]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                self._goToday();
+            });
+        });
+
+        // Day cell 点击
+        document.querySelectorAll('.cal-day-cell[data-day]').forEach(function(cell) {
+            cell.addEventListener('click', function() {
+                var d = parseInt(this.getAttribute('data-day'), 10);
+                self._onDayClick(d);
+            });
+        });
+
         // Action buttons
         document.querySelectorAll('.cal-action-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
@@ -192,6 +299,34 @@ LawAIApp.CalendarRenderer = {
                 else if (action === 'cancel') self.cancelEvent(id);
             });
         });
+    },
+
+    // ============================================================
+    // 月历导航
+    // ============================================================
+    _changeMonth: function(delta) {
+        var now = new Date();
+        var y = this._viewYear || now.getFullYear();
+        var m = (typeof this._viewMonth === 'number') ? this._viewMonth : now.getMonth();
+        m += delta;
+        if (m > 11) { m = 0; y++; }
+        if (m < 0) { m = 11; y--; }
+        this._viewYear = y;
+        this._viewMonth = m;
+        this.render(this._viewModel, this._container);
+    },
+
+    _goToday: function() {
+        var now = new Date();
+        this._viewYear = now.getFullYear();
+        this._viewMonth = now.getMonth();
+        this.render(this._viewModel, this._container);
+    },
+
+    _onDayClick: function(day) {
+        if (window.LawAIApp?.Toast?.info) {
+            LawAIApp.Toast.info('📅 Day ' + day + ' selected');
+        }
     },
 
     // ============================================================
