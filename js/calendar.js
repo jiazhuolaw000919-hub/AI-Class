@@ -105,7 +105,21 @@ LawAIApp.Calendar = {
       return;
     }
 
+    this._root = container;
+    this.init();
+
     console.log('[Calendar] 🔥 Rendering to:', container.id);
+
+    // Part 177: 等 CalendarAuthority ready
+    var auth = window.LawAIApp?.CalendarAuthority;
+    if (auth && !auth.isReady) {
+      container.innerHTML = this._renderLoadingState();
+      var self = this;
+      auth.onReady(function() {
+        self.render();
+      });
+      return;
+    }
 
     var coreResult = null;
     try {
@@ -134,19 +148,66 @@ LawAIApp.Calendar = {
       viewModel = null;
     }
     
-    // 如果 ViewModel 可用，使用它
-    if (viewModel && !viewModel.isEmpty && LawAIApp.CalendarRenderer) {
+    // Part 177: ViewModel 路径优先（即使空也走 Renderer 的 empty state）
+    if (viewModel && LawAIApp.CalendarRenderer) {
       LawAIApp.CalendarRenderer.render(viewModel, container);
       console.log('[Calendar] ✅ Rendered with ViewModel');
       return;
     }
     
     // Fallback: 使用原生日历视图（包含 tabs）
+    // 保留 legacy 路径，作为 Authority/ViewModel 不可用时的降级
     this._renderTabsView(container);
   },
 
+  // Part 177: Loading / Error State
+  _renderLoadingState: function() {
+    return `
+      <div style="text-align:center;padding:60px 20px;color:#94a3b8;">
+        <div style="width:36px;height:36px;border:3px solid rgba(74,158,255,0.12);border-top-color:#4a9eff;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;"></div>
+        <p>Loading calendar...</p>
+      </div>
+    `;
+  },
+
+  _renderErrorState: function(message) {
+    return `
+      <div style="text-align:center;padding:60px 20px;color:#94a3b8;">
+        <div style="font-size:48px;margin-bottom:12px;">⚠️</div>
+        <h3 style="color:#e2e8f0;margin:0 0 8px;">Couldn't load calendar</h3>
+        <p>${message || 'Please try again.'}</p>
+        <button onclick="LawAIApp.Calendar.render()" style="padding:8px 20px;background:#4a9eff;border:none;border-radius:100px;color:white;font-size:13px;cursor:pointer;font-family:inherit;">Retry</button>
+      </div>
+    `;
+  },
+
   _getScheduleState: function() {
-    var events = this._getAllSchedules();
+    // Part 177: 统一从 CalendarAuthority 拿事件
+    var events = [];
+    var auth = LawAIApp.CalendarAuthority;
+    if (auth && auth.isReady) {
+      events = auth.getAllSchedules()
+        .filter(function(s) {
+          return s.status !== 'CANCELLED' && s.status !== 'UNSCHEDULED';
+        })
+        .map(function(s) {
+          return {
+            id: s.scheduleId,
+            title: s.title,
+            type: s.activityRef ? 'learning' : 'personal',
+            start: s.startAt,
+            end: s.endAt,
+            duration: s.duration,
+            status: s.status,
+            activityRef: s.activityRef,
+            description: s.description || null
+          };
+        });
+    } else {
+      // Fallback 兼容旧路径
+      events = this._getAllSchedules();
+    }
+
     return {
       currentTab: this.currentTab,
       currentYear: this.currentYear,
@@ -727,13 +788,16 @@ LawAIApp.Calendar = {
           return;
       }
 
-      // ============================================================
-      // 1. 如果是日程任务，通过 CalendarAuthority 标记
-      // ============================================================
+      // Part 177: 明确区分 —— 这是"学习者报告完成"，不是 Mastery
       if (taskId && taskId.indexOf('sch_') === 0) {
           var authority = LawAIApp.CalendarAuthority;
           if (authority && authority.isReady) {
-              authority.markTimeElapsed(taskId);
+              // 用 markCompleted 而不是 markTimeElapsed
+              if (authority.markCompleted) {
+                  authority.markCompleted(taskId);
+              } else {
+                  authority.markTimeElapsed(taskId);
+              }
           }
       }
 
@@ -953,14 +1017,42 @@ LawAIApp.Calendar = {
         return null;
       }
       
-      // 只更新非时间字段（title / description 等）
+            // Part 177: 只更新非时间字段，走 updateMetadata()
+      if (authority.updateMetadata) {
+        var metaUpdates = {};
+        if (updates.title !== undefined) metaUpdates.title = updates.title;
+        if (updates.description !== undefined) metaUpdates.description = updates.description;
+        if (updates.activityRef !== undefined) metaUpdates.activityRef = updates.activityRef;
+
+        var metaResult = authority.updateMetadata(id, metaUpdates);
+        if (metaResult.success) {
+          this._emitScheduleEvent('SCHEDULE_UPDATED', metaResult.schedule);
+          return metaResult.schedule;
+        }
+        return null;
+      }
+
+      // Part 177: 只更新非时间字段，走 updateMetadata()
+      if (authority.updateMetadata) {
+        var metaUpdates = {};
+        if (updates.title !== undefined) metaUpdates.title = updates.title;
+        if (updates.description !== undefined) metaUpdates.description = updates.description;
+        if (updates.activityRef !== undefined) metaUpdates.activityRef = updates.activityRef;
+
+        var metaResult = authority.updateMetadata(id, metaUpdates);
+        if (metaResult.success) {
+          this._emitScheduleEvent('SCHEDULE_UPDATED', metaResult.schedule);
+          return metaResult.schedule;
+        }
+        return null;
+      }
+
+      // 如果 Authority 还没有 updateMetadata（旧版本），保留原逻辑
       var schedule = authority.getSchedule(id);
       if (schedule) {
-        // 更新 transient 字段
         if (updates.title !== undefined) schedule.title = updates.title;
         if (updates.description !== undefined) schedule.description = updates.description;
         schedule.updatedAt = new Date().toISOString();
-        
         this._emitScheduleEvent('SCHEDULE_UPDATED', schedule);
         return schedule;
       }
