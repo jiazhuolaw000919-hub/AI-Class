@@ -1,38 +1,50 @@
 {
   "id": "lesson-chatgpt-basics-001",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "ChatGPT Fundamentals",
   "slug": "chatgpt-fundamentals",
   "subjectId": "subject-chatgpt",
   "courseId": "course-ai",
   "moduleId": null,
   "order": 1,
-  "estimatedMinutes": 20,
+  "estimatedMinutes": 25,
   "difficulty": "beginner",
   "status": "published",
-  "description": "Understand what ChatGPT is, how it works, and how to use it effectively for real tasks.",
+  "description": "ChatGPT feels magical — but it is not. This lesson explains what ChatGPT actually is, what it is good at, and the most important limitation you need to know.",
+
   "learningObjectives": [
-    "Explain what ChatGPT is and how it works",
-    "Identify the types of tasks ChatGPT excels at",
-    "Recognize the limitations of ChatGPT"
+    "Explain what ChatGPT is and what GPT means",
+    "Identify the types of tasks ChatGPT does well",
+    "Recognize hallucinations and why they happen",
+    "Know when to trust and when to verify ChatGPT's output"
   ],
+
+  "opening": {
+    "hook": "You have probably asked ChatGPT a question and gotten a very convincing answer — that turned out to be wrong. It happens to everyone. But why does it happen? And how can you use ChatGPT without being misled?",
+    "relevance": "Understanding ChatGPT's design helps you use it effectively without being fooled by confident-sounding errors."
+  },
+
   "sections": [
     {
       "id": "section-01",
       "type": "foundation",
-      "title": "What is ChatGPT?",
+      "title": "What Is ChatGPT?",
+      "duration": 6,
       "content": [
         {
-          "type": "text",
-          "content": "ChatGPT is a conversational AI system developed by OpenAI. It is built on top of large language models (GPT-4, GPT-4o) that have been fine-tuned to follow instructions and hold conversations."
+          "type": "paragraph",
+          "content": "ChatGPT is a conversational AI system developed by OpenAI. It is built on top of a family of large language models — GPT-3.5, GPT-4, GPT-4o — that have been fine-tuned to follow instructions and hold conversations."
         },
         {
           "type": "definition",
-          "content": "GPT: Generative Pre-trained Transformer—a type of large language model architecture."
+          "term": "GPT",
+          "definition": "Generative Pre-trained Transformer — a type of large language model architecture.",
+          "example": "GPT-4 is the model behind one version of ChatGPT. GPT-4o is a more recent multimodal model."
         },
         {
-          "type": "text",
-          "content": "Unlike search engines that retrieve existing content, ChatGPT generates new text based on patterns learned from massive datasets."
+          "type": "important",
+          "title": "What ChatGPT does NOT do",
+          "content": "ChatGPT does not search a database for the right answer. It generates text by predicting the most likely sequence of words based on patterns learned during training. This is why it can produce confident-sounding statements that are completely false."
         }
       ]
     },
@@ -40,43 +52,103 @@
       "id": "section-02",
       "type": "core",
       "title": "What ChatGPT Is Good At",
+      "duration": 8,
       "content": [
         {
-          "type": "text",
-          "content": "ChatGPT excels at: drafting text, summarizing documents, explaining concepts, brainstorming ideas, translating languages, writing code, and answering questions."
+          "type": "paragraph",
+          "content": "ChatGPT excels at a specific set of tasks. Recognizing them helps you use it well."
         },
         {
-          "type": "example",
-          "content": "Common uses: 'Summarize this article,' 'Write a professional email,' 'Explain quantum computing to a beginner,' 'Debug this Python code.'"
+          "type": "list",
+          "title": "ChatGPT is good at:",
+          "items": [
+            "Drafting text — emails, essays, summaries",
+            "Explaining concepts — anything from quantum physics to contract law",
+            "Brainstorming — generating ideas for projects, names, strategies",
+            "Translating — converting between languages",
+            "Writing code — generating, debugging, and explaining code",
+            "Answering questions — within the limits of its training data"
+          ]
+        },
+        {
+          "type": "workedExample",
+          "title": "ChatGPT in a real workflow",
+          "steps": [
+            "Task: Write a professional email",
+            "Prompt: 'Write a polite email to a client explaining a 3-day delay. Keep it under 100 words.'",
+            "ChatGPT output: Ready-to-send email",
+            "Human edit: Review for tone, accuracy, context",
+            "Result: Email completed in 30 seconds instead of 10 minutes"
+          ]
         }
       ]
     },
     {
       "id": "section-03",
       "type": "advanced",
-      "title": "What ChatGPT Is NOT Good At",
+      "title": "The Most Important Limitation: Hallucination",
+      "duration": 10,
       "content": [
         {
-          "type": "text",
-          "content": "ChatGPT can hallucinate: it may invent facts, citations, or events that sound plausible but are false. Always verify important claims."
+          "type": "paragraph",
+          "content": "ChatGPT's biggest weakness is hallucination. This is when the model produces information that sounds plausible but is factually wrong — invented facts, made-up citations, fake statistics."
         },
         {
-          "type": "text",
-          "content": "It also has a knowledge cutoff and does not know about events after its training date. For current information, use search-augmented tools or verify externally."
+          "type": "definition",
+          "term": "Hallucination",
+          "definition": "When an AI model generates plausible-sounding but false information.",
+          "example": "ChatGPT might invent a court case that does not exist, or misattribute a quote to the wrong person."
         },
         {
-          "type": "text",
-          "content": "Understanding these limitations is essential. ChatGPT is a powerful assistant, not an oracle."
+          "type": "important",
+          "title": "Why hallucinations happen",
+          "content": "ChatGPT predicts the most likely next word. If a false statement sounds plausible — if it 'feels' like something a lawyer or scientist might say — the model generates it. It has no built-in check against reality."
+        },
+        {
+          "type": "comparison",
+          "before": "What people expect: ChatGPT either knows or doesn't know.",
+          "after": "What actually happens: ChatGPT always generates an answer — correct or not — with equal confidence."
+        },
+        {
+          "type": "practical",
+          "title": "How to protect yourself",
+          "items": [
+            "Always verify important facts, citations, and statistics",
+            "Ask ChatGPT to cite sources — then check the sources",
+            "Treat ChatGPT as a first-draft assistant, not an oracle",
+            "When accuracy matters, use search-augmented tools or verify externally"
+          ]
+        },
+        {
+          "type": "misconception",
+          "myth": "ChatGPT is right most of the time — I can trust it.",
+          "reality": "ChatGPT is useful most of the time. But 'useful' and 'correct' are different. Always verify factual claims."
         }
       ]
     }
   ],
+
+  "keyTakeaways": [
+    "ChatGPT is a conversational AI built on GPT models.",
+    "It generates text — it does not retrieve facts from a database.",
+    "It excels at drafting, explaining, brainstorming, translating, and coding.",
+    "Its biggest weakness is hallucination — confident but false information.",
+    "Always verify important claims."
+  ],
+
+  "reflection": {
+    "prompt": "Think of a situation where you might have trusted ChatGPT too much. What would you do differently now?",
+    "hint": "Consider: facts, citations, legal or medical advice, statistics.",
+    "expectedInsight": "ChatGPT is a tool, not an authority. Verification is part of using it responsibly."
+  },
+
   "video": {
     "provider": "youtube",
     "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao",
     "title": "Getting Started with ChatGPT",
-    "durationMinutes": 8
+    "durationMinutes": 10
   },
+
   "flashcards": [
     {
       "id": "fc-601",
@@ -87,19 +159,34 @@
     },
     {
       "id": "fc-602",
-      "front": "What is ChatGPT best at?",
-      "back": "Text generation, summarization, explanation, brainstorming, translation, coding.",
+      "front": "Does ChatGPT search a database for answers?",
+      "back": "No — it generates text by predicting the most likely sequence of words.",
       "difficulty": "core",
-      "tags": ["capabilities"]
+      "tags": ["mechanism"]
     },
     {
       "id": "fc-603",
       "front": "What is hallucination in AI?",
       "back": "When a model generates plausible-sounding but false information.",
-      "difficulty": "advanced",
+      "difficulty": "core",
       "tags": ["limitations"]
+    },
+    {
+      "id": "fc-604",
+      "front": "What is ChatGPT best at?",
+      "back": "Drafting, explaining, brainstorming, translating, coding, answering questions.",
+      "difficulty": "core",
+      "tags": ["capabilities"]
+    },
+    {
+      "id": "fc-605",
+      "front": "Why does ChatGPT hallucinate?",
+      "back": "Because it predicts plausible text — not factual text. It has no reality check.",
+      "difficulty": "advanced",
+      "tags": ["hallucination"]
     }
   ],
+
   "practice": {
     "enabled": true,
     "type": "mixed",
@@ -107,77 +194,7 @@
       {
         "id": "practice-601",
         "type": "multipleChoice",
-        "question": "Which is a limitation of ChatGPT?",
+        "question": "Why can ChatGPT produce confident-sounding false information?",
         "options": [
-          "It cannot generate text",
-          "It can hallucinate facts",
-          "It cannot answer questions",
-          "It cannot be used for writing"
-        ],
-        "answer": 1,
-        "explanation": "ChatGPT can hallucinate—generating plausible but false information."
-      },
-      {
-        "id": "practice-602",
-        "type": "shortAnswer",
-        "question": "Why is it important to verify ChatGPT's output?",
-        "answer": "Because ChatGPT can hallucinate and has a knowledge cutoff—it may generate plausible but incorrect information.",
-        "explanation": "Verification is essential because ChatGPT is probabilistic, not factual."
-      }
-    ]
-  },
-  "notes": {
-    "summary": "ChatGPT is a conversational AI based on GPT models, excellent for text tasks but prone to hallucination.",
-    "keyPoints": [
-      "ChatGPT = conversational AI on GPT models",
-      "Excels at: writing, summarizing, explaining, coding",
-      "Can hallucinate false information",
-      "Has knowledge cutoff—not real-time",
-      "Verify important claims"
-    ],
-    "importantTerms": [
-      { "term": "GPT", "definition": "Generative Pre-trained Transformer." },
-      { "term": "Hallucination", "definition": "AI-generated false information." }
-    ]
-  },
-  "aiTools": [
-    {
-      "provider": "chatgpt",
-      "role": "reasoning",
-      "recommendedFor": ["general assistance", "writing", "coding"]
-    }
-  ],
-  "resources": [
-    {
-      "id": "resource-601",
-      "title": "OpenAI Documentation",
-      "type": "official",
-      "url": "https://platform.openai.com/docs",
-      "provider": "OpenAI"
-    }
-  ],
-  "news": [
-    {
-      "id": "news-601",
-      "title": "OpenAI Releases New Model Updates",
-      "source": "OpenAI Blog",
-      "date": "2026-08-01",
-      "summary": "OpenAI continues to improve GPT models with better reasoning and multimodal support.",
-      "relatedLesson": "lesson-chatgpt-basics-001"
-    }
-  ],
-  "relatedLessons": [
-    "lesson-chatgpt-advanced-001"
-  ],
-  "keyTakeaways": [
-    "ChatGPT is a conversational AI powered by GPT models.",
-    "It is excellent at text tasks but can hallucinate.",
-    "Always verify important output."
-  ],
-  "metadata": {
-    "author": "Law AI Academy",
-    "language": "en"
-  },
-  "createdAt": "2026-09-11T00:00:00Z",
-  "updatedAt": "2026-09-11T00:00:00Z"
-}
+          "It intentionally misleads users",
+          "It generates plausible text, not factual text",
