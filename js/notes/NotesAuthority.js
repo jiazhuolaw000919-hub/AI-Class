@@ -564,6 +564,79 @@
             } catch (e) {}
         },
 
+        // ============================================================
+        // Part 177: Reflection 支持
+        // ============================================================
+
+        /**
+         * ADD_REFLECTION — 添加反思到笔记
+         */
+        addReflection: function(noteId, content) {
+            if (!_initialized) {
+                return { success: false, error: 'NotesAuthority not ready', code: 'NOT_READY' };
+            }
+            if (!content || content.trim() === '') {
+                return { success: false, error: 'content required', code: 'INVALID_INPUT' };
+            }
+
+            var note = this._findNote(noteId);
+            if (!note) {
+                return { success: false, error: 'Note not found', code: 'NOT_FOUND' };
+            }
+
+            if (!note.reflections) note.reflections = [];
+
+            note.reflections.push({
+                content: content.trim(),
+                createdAt: new Date().toISOString()
+            });
+
+            // 只保留最近 10 条
+            if (note.reflections.length > 10) {
+                note.reflections = note.reflections.slice(-10);
+            }
+
+            note.lastReflectionAt = new Date().toISOString();
+            note.updatedAt = new Date().toISOString();
+            note.version = (note.version || 1) + 1;
+
+            this._saveToStorage();
+
+            this._emit('NOTE_REFLECTION_ADDED', {
+                noteId: note.noteId,
+                reflectionCount: note.reflections.length
+            });
+
+            return { success: true, note: note };
+        },
+
+        /**
+         * GET_REFLECTIONS — 获取笔记的所有反思
+         */
+        getReflections: function(noteId) {
+            var note = this._findNote(noteId);
+            if (!note) return [];
+            return note.reflections || [];
+        },
+
+        /**
+         * GET_BY_LESSON — 按 Lesson 获取笔记
+         */
+        getNotesByLesson: function(lessonRef) {
+            return this.getAllNotes().filter(function(n) {
+                return n.relatedLessonRef === lessonRef;
+            });
+        },
+
+        /**
+         * GET_BY_COURSE — 按 Course 获取笔记
+         */
+        getNotesByCourse: function(courseRef) {
+            return this.getAllNotes().filter(function(n) {
+                return n.relatedCourseRef === courseRef;
+            });
+        },
+
         _debug: function() {
             return {
                 initialized: _initialized,
