@@ -1,327 +1,214 @@
-// knowledgeEditor.js — S4 升级版 (Part 34)
-// Part 113: 容器适配 + 返回逻辑修复
+// knowledgeEditor.js — Part 177 产品化版
+// 所有 CRUD 走 NotesAuthority
 
 window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.KnowledgeEditor = {
-    /**
-     * 获取容器 (与 Notes 保持一致)
-     */
+    version: '2.0.0',
+
     _getContainer: function() {
-        return document.getElementById('academy-root') || 
+        return document.getElementById('academy-root') ||
                document.getElementById('app') ||
                document.getElementById('law-runtime-root');
     },
 
-    /**
-     * 返回 Notes (不依赖 Router)
-     */
     goBack: function() {
-        console.log('[KnowledgeEditor] 📝 Back to Notes');
-        var router = window.LawAIApp?.Router;
-        if (router && typeof router.navigate === 'function') {
-            router.navigate('notes');
+        if (window.LawAIApp?.Notes?.render) {
+            window.LawAIApp.Notes.render();
         } else {
-            // fallback: 重新渲染 Notes
-            if (window.LawAIApp?.Notes) {
-                window.LawAIApp.Notes.render();
-            } else {
-                window.history.back();
-            }
+            window.history.back();
         }
     },
 
-    /**
-     * 渲染编辑器
-     */
     render: function(params) {
+        params = params || {};
         var noteId = params.noteId;
         var isNew = noteId === 'new';
-        var note = isNew ? null : LawAIApp.KnowledgeCapture.getById(noteId);
-        
-        // 🔥 Part 114: 获取 Context (从 params 或从 note)
+        var auth = window.LawAIApp?.NotesAuthority;
+
+        if (!auth || !auth.isReady) {
+            var container = this._getContainer();
+            if (container) {
+                container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">Loading editor...</div>';
+            }
+            if (auth && auth.onReady) {
+                var self = this;
+                auth.onReady(function() { self.render(params); });
+            }
+            return;
+        }
+
+        var note = isNew ? null : auth.getNote(noteId);
+
         var context = params.context || {};
         if (note) {
-            context.lessonId = note.lessonId || context.lessonId;
-            context.subjectId = note.subjectId || context.subjectId;
-            context.courseId = note.courseId || context.courseId;
-            context.schoolId = note.schoolId || context.schoolId;
+            context.lessonId = note.relatedLessonRef || context.lessonId;
+            context.subjectId = note.relatedSubjectRef || context.subjectId;
+            context.courseId = note.relatedCourseRef || context.courseId;
+            context.schoolId = note.relatedSchoolRef || context.schoolId;
         }
-        
-        var title = note ? note.title : '';
-        var content = note ? note.content : '';
+
+        var title = note ? (note.title || '') : '';
+        var content = note ? (note.content || '') : '';
         var tags = note && note.tags ? note.tags.join(', ') : '';
-        var type = note ? note.type : 'KEY_POINT';
+        var type = note ? (note.noteType || 'KEY_POINT') : 'KEY_POINT';
 
         var typeOptions = [
             'KEY_POINT', 'DEFINITION', 'EXAMPLE', 'SUMMARY',
             'PERSONAL_NOTE', 'QUESTION', 'MISTAKE', 'INSIGHT', 'BOOKMARK'
         ];
 
-        // 🔥 Part 114: 构建 Context 显示 HTML
+        // Context display
         var contextDisplayHTML = '';
         var hasContext = context.lessonId || context.courseId || context.subjectId;
-
         if (hasContext) {
             var parts = [];
             if (context.schoolId) parts.push('🏫 ' + context.schoolId);
             if (context.courseId) parts.push('📚 ' + context.courseId);
             if (context.subjectId) parts.push('📖 ' + context.subjectId);
             if (context.lessonId) parts.push('📝 ' + context.lessonId);
-
-            var contextDisplay = parts.join(' → ');
-
             contextDisplayHTML = `
-                <div style="
-                    padding:8px 12px;
-                    background:rgba(74,158,255,0.04);
-                    border-radius:6px;
-                    border-left:2px solid #4a9eff;
-                    margin-bottom:12px;
-                    display:flex;
-                    justify-content:space-between;
-                    align-items:center;
-                    flex-wrap:wrap;
-                    gap:8px;
-                ">
-                    <span style="font-size:12px;color:#94a3b8;">
-                        🔗 ${contextDisplay}
-                    </span>
-                    ${!isNew && note && note.lessonId ? `
-                        <button onclick="LawAIApp.Notes.navigateToLesson('${note.lessonId}')" style="
-                            padding:2px 12px;
-                            background:rgba(74,158,255,0.08);
-                            border:1px solid rgba(74,158,255,0.12);
-                            border-radius:100px;
-                            color:#4a9eff;
-                            font-size:10px;
-                            cursor:pointer;
-                            font-family:inherit;
-                        ">Open Lesson →</button>
-                    ` : ''}
+                <div style="padding:8px 12px;background:rgba(74,158,255,0.04);border-radius:6px;border-left:2px solid #4a9eff;margin-bottom:12px;">
+                    <span style="font-size:12px;color:#94a3b8;">🔗 ${parts.join(' → ')}</span>
                 </div>
             `;
         }
 
         var html = `
             <div class="page" style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
-
-                <!-- 返回按钮 -->
-                <button onclick="LawAIApp.KnowledgeEditor.goBack()" style="
-                    background:rgba(74,158,255,0.08);
-                    border:1px solid rgba(74,158,255,0.15);
-                    color:#4a9eff;
-                    padding:10px 16px;
-                    border-radius:10px;
-                    cursor:pointer;
-                    font-family:inherit;
-                    font-size:14px;
-                    margin-bottom:16px;
-                    transition:all 0.2s;
-                " onmouseover="this.style.background='rgba(74,158,255,0.15)'" onmouseout="this.style.background='rgba(74,158,255,0.08)'">
-                    ← Back to Notes
-                </button>
+                <button onclick="LawAIApp.KnowledgeEditor.goBack()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:10px 16px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;margin-bottom:16px;">← Back to Notes</button>
 
                 <h2 style="margin:0 0 16px;font-size:24px;font-weight:700;">${isNew ? '📝 New Note' : '✏️ Edit Note'}</h2>
 
-                <!-- 🔥 Part 114: Context 显示 -->
                 ${contextDisplayHTML}
 
-                <!-- Type -->
                 <div style="margin-bottom:12px;">
                     <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:4px;">Type</label>
-                    <select id="note-type" style="
-                        width:100%;
-                        padding:10px 14px;
-                        background:rgba(255,255,255,0.04);
-                        border:1px solid rgba(255,255,255,0.06);
-                        border-radius:8px;
-                        color:#e2e8f0;
-                        font-family:inherit;
-                        font-size:14px;
-                    ">
+                    <select id="note-type" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;font-family:inherit;font-size:14px;">
                         ${typeOptions.map(function(t) {
                             return `<option value="${t}" ${t === type ? 'selected' : ''}>${t.replace('_', ' ')}</option>`;
                         }).join('')}
                     </select>
                 </div>
 
-                <!-- Title -->
                 <div style="margin-bottom:12px;">
                     <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:4px;">Title</label>
-                    <input id="note-title" placeholder="Note title..." value="${title.replace(/"/g, '&quot;')}" style="
-                        width:100%;
-                        padding:10px 14px;
-                        background:rgba(255,255,255,0.04);
-                        border:1px solid rgba(255,255,255,0.06);
-                        border-radius:8px;
-                        color:#e2e8f0;
-                        font-family:inherit;
-                        font-size:14px;
-                        box-sizing:border-box;
-                    ">
+                    <input id="note-title" placeholder="Note title..." value="${title.replace(/"/g, '&quot;')}" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;font-family:inherit;font-size:14px;box-sizing:border-box;">
                 </div>
 
-                <!-- Content -->
                 <div style="margin-bottom:12px;">
                     <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:4px;">Content</label>
-                    <textarea id="note-content" placeholder="Start writing..." style="
-                        width:100%;
-                        min-height:200px;
-                        padding:12px 14px;
-                        background:rgba(255,255,255,0.04);
-                        border:1px solid rgba(255,255,255,0.06);
-                        border-radius:8px;
-                        color:#e2e8f0;
-                        font-family:inherit;
-                        font-size:14px;
-                        resize:vertical;
-                        box-sizing:border-box;
-                    ">${content}</textarea>
+                    <textarea id="note-content" placeholder="Start writing..." style="width:100%;min-height:200px;padding:12px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;font-family:inherit;font-size:14px;resize:vertical;box-sizing:border-box;">${content}</textarea>
                 </div>
 
-                <!-- Tags -->
                 <div style="margin-bottom:16px;">
                     <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:4px;">Tags (comma separated)</label>
-                    <input id="note-tags" placeholder="e.g. ai, prompt, fundamentals" value="${tags}" style="
-                        width:100%;
-                        padding:10px 14px;
-                        background:rgba(255,255,255,0.04);
-                        border:1px solid rgba(255,255,255,0.06);
-                        border-radius:8px;
-                        color:#e2e8f0;
-                        font-family:inherit;
-                        font-size:14px;
-                        box-sizing:border-box;
-                    ">
+                    <input id="note-tags" placeholder="e.g. ai, prompt, fundamentals" value="${tags}" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;font-family:inherit;font-size:14px;box-sizing:border-box;">
                 </div>
 
-                <!-- Actions -->
+                <div id="save-status" style="margin-bottom:12px;font-size:13px;color:#94a3b8;min-height:20px;"></div>
+
                 <div style="display:flex;gap:8px;margin-bottom:16px;">
-                    <button id="save-note-btn" style="
-                        flex:1;
-                        padding:12px;
-                        background:#4a9eff;
-                        border:none;
-                        border-radius:8px;
-                        color:white;
-                        font-size:14px;
-                        font-weight:600;
-                        cursor:pointer;
-                        font-family:inherit;
-                        transition:all 0.2s;
-                    " onmouseover="this.style.background='#3b82f6'" onmouseout="this.style.background='#4a9eff'">
-                        💾 Save Note
-                    </button>
-                    ${!isNew ? `
-                        <button id="delete-note-btn" style="
-                            padding:12px 20px;
-                            background:rgba(239,68,68,0.1);
-                            border:1px solid rgba(239,68,68,0.2);
-                            border-radius:8px;
-                            color:#ef4444;
-                            font-size:14px;
-                            cursor:pointer;
-                            font-family:inherit;
-                            transition:all 0.2s;
-                        " onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">
-                            🗑️ Delete
-                        </button>
-                    ` : ''}
+                    <button id="save-note-btn" style="flex:1;padding:12px;background:#4a9eff;border:none;border-radius:8px;color:white;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">💾 Save Note</button>
+                    ${!isNew ? `<button id="delete-note-btn" style="padding:12px 20px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:8px;color:#ef4444;font-size:14px;cursor:pointer;font-family:inherit;">🗑️ Delete</button>` : ''}
                 </div>
 
-                <!-- Metadata (existing notes only) -->
                 ${!isNew ? `
-                    <div style="
-                        background:rgba(255,255,255,0.02);
-                        border-radius:8px;
-                        padding:14px 16px;
-                        border:1px solid rgba(255,255,255,0.04);
-                    ">
+                    <div style="background:rgba(255,255,255,0.02);border-radius:8px;padding:14px 16px;border:1px solid rgba(255,255,255,0.04);">
                         <h3 style="margin:0 0 8px;font-size:13px;color:#94a3b8;">🔗 Source</h3>
                         <div style="font-size:13px;color:#64748b;">
-                            ${note ? (note.lessonId ? `📖 Lesson: ${note.lessonId}` : 'No linked lesson') : ''}
+                            ${note && note.relatedLessonRef ? `📖 Lesson: ${note.relatedLessonRef}` : 'No linked lesson'}
                         </div>
                         ${note && note.createdAt ? `<div style="font-size:11px;color:#475569;margin-top:4px;">Created: ${new Date(note.createdAt).toLocaleString()}</div>` : ''}
                         ${note && note.updatedAt ? `<div style="font-size:11px;color:#475569;">Updated: ${new Date(note.updatedAt).toLocaleString()}</div>` : ''}
-                        <div style="font-size:10px;color:#475569;margin-top:6px;border-top:1px solid rgba(255,255,255,0.03);padding-top:6px;">
-                            🔒 Note Authority · Learner-created knowledge
-                        <div style="font-size:11px;color:#64748b;margin-top:4px;">
-                        ${note && note.provenance ? `📌 Source: ${note.provenance.type || 'Unknown'}` : '📌 Source: Learner-created'}
-                        ${note && note.provenance && note.provenance.sourceId ? ` · ID: ${note.provenance.sourceId}` : ''}
-                        </div>
                     </div>
                 ` : ''}
             </div>
         `;
 
-        // 🔥 使用多容器适配
         var container = this._getContainer();
-        if (!container) {
-            console.warn('[KnowledgeEditor] No container found');
-            return;
-        }
+        if (!container) return;
         container.innerHTML = html;
-
-        // ============================================================
-        // 事件绑定
-        // ============================================================
 
         // Save
         var saveBtn = document.getElementById('save-note-btn');
         if (saveBtn) {
             saveBtn.addEventListener('click', function() {
-                var title = document.getElementById('note-title').value.trim();
-                var content = document.getElementById('note-content').value.trim();
+                var t = document.getElementById('note-title').value.trim();
+                var c = document.getElementById('note-content').value.trim();
                 var tagsInput = document.getElementById('note-tags').value.trim();
-                var type = document.getElementById('note-type').value;
-                var tags = tagsInput ? tagsInput.split(',').map(function(t) { return t.trim(); }).filter(function(t) { return t; }) : [];
+                var tp = document.getElementById('note-type').value;
+                var tg = tagsInput ? tagsInput.split(',').map(function(x) { return x.trim(); }).filter(function(x) { return x; }) : [];
 
-                if (!title && !content) {
-                    alert('Please add a title or content.');
+                if (!t && !c) {
+                    LawAIApp.KnowledgeEditor._setStatus('Please add a title or content.', 'error');
                     return;
                 }
 
+                LawAIApp.KnowledgeEditor._setStatus('Saving...', 'info');
+
+                var result;
                 if (isNew) {
-                    LawAIApp.KnowledgeCapture.create({
-                        title: title || 'Untitled',
-                        content: content || '',
-                        tags: tags,
-                        type: type
+                    result = auth.create({
+                        title: t || 'Untitled',
+                        content: c || '',
+                        tags: tg,
+                        noteType: tp,
+                        relatedLessonRef: context.lessonId || null,
+                        relatedSubjectRef: context.subjectId || null,
+                        relatedCourseRef: context.courseId || null,
+                        relatedSchoolRef: context.schoolId || null,
+                        source: 'knowledge-editor'
                     });
                 } else {
-                    LawAIApp.KnowledgeCapture.update(noteId, {
-                        title: title || 'Untitled',
-                        content: content || '',
-                        tags: tags,
-                        type: type
+                    result = auth.update(noteId, {
+                        title: t || 'Untitled',
+                        content: c || '',
+                        tags: tg,
+                        noteType: tp,
+                        relatedLessonRef: context.lessonId || null,
+                        relatedSubjectRef: context.subjectId || null,
+                        relatedCourseRef: context.courseId || null,
+                        relatedSchoolRef: context.schoolId || null
                     });
-                    
-                    // 🔥 Part 114: 保存时保留 Context
-                    if (context.lessonId) noteData.lessonId = context.lessonId;
-                    if (context.subjectId) noteData.subjectId = context.subjectId;
-                    if (context.courseId) noteData.courseId = context.courseId;
-                    if (context.schoolId) noteData.schoolId = context.schoolId;
                 }
 
-                // 返回 Notes
-                LawAIApp.KnowledgeEditor.goBack();
+                if (result.success) {
+                    LawAIApp.KnowledgeEditor._setStatus('Saved', 'success');
+                    if (window.LawAIApp?.Toast?.success) LawAIApp.Toast.success('✅ Note saved');
+                    setTimeout(function() {
+                        LawAIApp.KnowledgeEditor.goBack();
+                    }, 300);
+                } else {
+                    LawAIApp.KnowledgeEditor._setStatus('Couldn\'t save. Your changes are still here. Try again.', 'error');
+                    if (window.LawAIApp?.Toast?.error) LawAIApp.Toast.error('Couldn\'t save note.');
+                }
             });
         }
 
-        // Delete (existing notes only)
+        // Delete
         var deleteBtn = document.getElementById('delete-note-btn');
         if (deleteBtn) {
             deleteBtn.addEventListener('click', function() {
-                if (confirm('Delete this note permanently?')) {
-                    LawAIApp.KnowledgeCapture.remove(noteId);
+                if (!confirm('Delete this note?')) return;
+                var r = auth.delete(noteId);
+                if (r.success) {
+                    if (window.LawAIApp?.Toast?.success) LawAIApp.Toast.success('🗑️ Note deleted');
                     LawAIApp.KnowledgeEditor.goBack();
+                } else {
+                    LawAIApp.KnowledgeEditor._setStatus('Couldn\'t delete. Try again.', 'error');
                 }
             });
         }
+    },
 
-        console.log('[KnowledgeEditor] ✅ Rendered');
+    _setStatus: function(text, kind) {
+        var el = document.getElementById('save-status');
+        if (!el) return;
+        var colors = { info: '#94a3b8', success: '#10b981', error: '#ef4444' };
+        el.style.color = colors[kind] || '#94a3b8';
+        el.textContent = text;
     }
 };
 
-console.log('✏️ KnowledgeEditor module loaded (Part 113)');
+console.log('[KnowledgeEditor] ✅ Module loaded (v2.0.0 — Part 177)');
