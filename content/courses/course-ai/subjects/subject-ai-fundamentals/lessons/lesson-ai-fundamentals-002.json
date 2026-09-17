@@ -153,12 +153,15 @@
   },
 
   "video": {
-    "provider": "youtube",
-    "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao",
-    "title": "History of AI: From Turing to Transformers",
-    "durationMinutes": 12,
-    "notes": "The video expands on the sections above with visual explanations of each era."
-  },
+  "provider": "youtube",
+  "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao",
+  "title": "A Brief History of Artificial Intelligence — CrashCourse",
+  "durationMinutes": 11,
+  "channel": "CrashCourse",
+  "notes": "Historical overview covering the birth of AI, AI Winters, and the deep learning revolution.",
+  "isOfficial": false,
+  "relevance": "Matches this lesson's focus on AI history and key milestones."
+},
 
   "flashcards": [
     {
