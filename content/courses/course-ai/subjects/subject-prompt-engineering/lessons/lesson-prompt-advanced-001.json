@@ -159,10 +159,14 @@
   },
 
   "video": {
-    "provider": "youtube",
-    "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao",
-    "title": "Advanced Prompting Techniques",
-    "durationMinutes": 15
+  "provider": "youtube",
+  "url": "https://www.youtube.com/watch?v=bk-7W4hY8Y4",
+  "title": "Advanced Prompting Techniques — DeepLearning.AI",
+  "durationMinutes": 14,
+  "channel": "DeepLearning.AI",
+  "notes": "Advanced techniques including few-shot, chain-of-thought, and structured outputs.",
+  "isOfficial": true,
+  "relevance": "Directly matches the three techniques covered in this lesson."
   },
 
   "flashcards": [
