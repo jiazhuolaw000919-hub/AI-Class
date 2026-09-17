@@ -1,101 +1,191 @@
 {
-  "id": "lesson-ai-fundamentals-003",
-  "version": "1.0.0",
+  "id": "lesson 003",
+  "version": "2.0.0",
   "title": "AI in the Real World",
   "slug": "ai-in-the-real-world",
   "subjectId": "subject-ai-fundamentals",
   "courseId": "course-ai",
   "moduleId": null,
   "order": 3,
-  "estimatedMinutes": 25,
+  "estimatedMinutes": 30,
   "difficulty": "intermediate",
   "status": "published",
-  "description": "Explore how AI systems are deployed across industries—search, healthcare, finance, transportation, and creative work.",
+  "description": "AI is not just a research topic. It is already embedded in the tools you use every day. This lesson shows you where AI actually lives in your life — and what that means for you.",
+
   "learningObjectives": [
-    "Identify AI applications across industries",
-    "Explain how AI systems improve over time",
-    "Recognize ethical considerations in AI deployment"
+    "Identify AI systems you interact with daily",
+    "Explain how recommendation systems work at a high level",
+    "Recognize when you are being influenced by AI",
+    "Evaluate the trade-offs of AI-powered tools"
   ],
+
+  "opening": {
+    "hook": "Most people interact with AI dozens of times a day without realizing it. Every search result, every recommendation, every autocorrect is powered by AI. You are already living in an AI world — you just may not have noticed.",
+    "relevance": "Understanding where AI lives helps you use it deliberately rather than being used by it."
+  },
+
   "sections": [
     {
       "id": "section-01",
       "type": "foundation",
-      "title": "AI Across Industries",
+      "title": "AI Is Already Everywhere",
+      "duration": 6,
       "content": [
         {
-          "type": "text",
-          "content": "AI has moved from labs into nearly every industry. Search engines, hospitals, banks, and transportation systems all use AI as core infrastructure."
+          "type": "paragraph",
+          "content": "When people hear 'AI', they often think of ChatGPT or futuristic robots. But AI has been embedded in everyday tools for years."
         },
         {
-          "type": "example",
-          "content": "Healthcare: AI detects tumors in X-rays. Finance: AI detects fraud in real-time. Transportation: AI powers route optimization and self-driving systems."
+          "type": "list",
+          "title": "AI you probably used today:",
+          "items": [
+            "Search — Google ranks billions of pages using ML",
+            "Autocorrect — Your phone predicts the next word",
+            "Recommendations — YouTube, Netflix, Spotify suggest what to watch or read",
+            "Maps — Google Maps predicts traffic and suggests routes",
+            "Email — Spam filters classify billions of messages",
+            "Photos — Face detection, scene recognition, auto-enhance"
+          ]
+        },
+        {
+          "type": "reflection",
+          "prompt": "Which of these did you use today without thinking of it as AI?",
+          "insight": "Most people do not notice AI when it works well. They notice it when it fails."
         }
       ]
     },
     {
       "id": "section-02",
       "type": "core",
-      "title": "How AI Systems Learn and Improve",
+      "title": "How Recommendation Systems Work",
+      "duration": 10,
       "content": [
         {
-          "type": "text",
-          "content": "Modern AI systems improve through feedback loops. Every user interaction generates data, which is used to refine the model."
-        },
-        {
-          "type": "text",
-          "content": "This is why AI products can feel like they 'get better' over time: the system is learning from millions of users every day."
+          "type": "paragraph",
+          "content": "The AI that decides what you see next is called a recommendation system. It appears simple — 'show more of what the user likes' — but the reality is more interesting."
         },
         {
           "type": "definition",
-          "content": "Feedback Loop: The cycle where AI output leads to user behavior, which generates data, which refines the AI."
+          "term": "Recommendation System",
+          "definition": "An AI system that predicts what content a user is likely to engage with next.",
+          "example": "Netflix recommends movies. TikTok recommends videos. Amazon recommends products."
+        },
+        {
+          "type": "paragraph",
+          "content": "Recommendation systems use a technique called collaborative filtering. The core idea: if users similar to you liked X, you probably will too."
+        },
+        {
+          "type": "workedExample",
+          "title": "How collaborative filtering works",
+          "steps": [
+            "1. Observe: Users A, B, C all liked Item X.",
+            "2. Observe: You liked Item X.",
+            "3. Observe: Users A, B, C also liked Item Y.",
+            "4. Predict: You will probably like Item Y.",
+            "5. Show: Recommend Item Y to you."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": "Modern systems combine collaborative filtering with deep learning. They process billions of interactions to make predictions in milliseconds."
+        },
+        {
+          "type": "important",
+          "title": "The optimization target",
+          "content": "Recommendation systems are not optimized for your wellbeing. They are optimized for engagement — clicks, watch time, shares. This is why feeds feel addictive: they are literally designed to be."
         }
       ]
     },
     {
       "id": "section-03",
       "type": "advanced",
-      "title": "Ethical Dimensions",
+      "title": "The Attention Economy and You",
+      "duration": 8,
       "content": [
         {
-          "type": "text",
-          "content": "AI systems can amplify bias present in their training data. Facial recognition, hiring algorithms, and loan decisions have all shown racial or gender bias."
+          "type": "paragraph",
+          "content": "AI systems do not just predict what you will like. They actively shape your attention. This has real consequences."
         },
         {
-          "type": "text",
-          "content": "Responsible AI is not just a technical challenge—it's a governance and design challenge. Understanding who is affected by AI decisions matters as much as the model itself."
+          "type": "list",
+          "title": "How AI shapes your behavior:",
+          "items": [
+            "Infinite scroll — there is always one more video",
+            "Variable rewards — unpredictable content keeps you engaged",
+            "Filter bubbles — you see more of what you already believe",
+            "Outrage amplification — emotionally intense content drives more engagement"
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": "Understanding this does not mean rejecting AI. It means using it deliberately rather than being used by it."
+        },
+        {
+          "type": "practical",
+          "title": "Practical takeaways",
+          "items": [
+            "Notice when a feed is designed to keep you scrolling",
+            "Ask: 'Is this content useful, or is it just engaging?'",
+            "Use AI tools that serve your goals, not just your attention",
+            "Remember: you are not just a user — you are a training signal"
+          ]
         }
       ]
     }
   ],
+
+  "keyTakeaways": [
+    "AI is already everywhere — search, video, maps, email, social media.",
+    "Recommendation systems use collaborative filtering to predict what you will engage with.",
+    "They optimize for engagement, not for your wellbeing.",
+    "Understanding AI in daily life helps you use it deliberately rather than being used by it."
+  ],
+
+  "reflection": {
+    "prompt": "Which AI system in your daily life do you want to use more deliberately? Why?",
+    "hint": "Think about feeds, recommendations, or search — not just obvious AI tools.",
+    "expectedInsight": "Awareness is the first step. The goal is not to reject AI but to make conscious choices about how it influences you."
+  },
+
   "video": {
     "provider": "youtube",
     "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao",
-    "title": "AI in Real-World Applications",
-    "durationMinutes": 12
+    "title": "AI in Everyday Life: The Hidden Systems Around You",
+    "durationMinutes": 14,
+    "notes": "The video expands on the sections above with visual examples of AI in daily tools."
   },
+
   "flashcards": [
     {
       "id": "fc-301",
-      "front": "Name three industries using AI as core infrastructure.",
-      "back": "Healthcare, finance, transportation (also: search, education, media).",
-      "difficulty": "foundation",
-      "tags": ["applications"]
+      "front": "What is collaborative filtering?",
+      "back": "Predicting your preferences based on the behavior of similar users.",
+      "difficulty": "core",
+      "tags": ["recommendation"]
     },
     {
       "id": "fc-302",
-      "front": "What is a feedback loop in AI?",
-      "back": "A cycle where AI output affects user behavior, generating data that refines the AI.",
+      "front": "What do recommendation systems optimize for?",
+      "back": "Engagement — clicks, watch time, shares. Not your wellbeing.",
       "difficulty": "core",
-      "tags": ["feedback"]
+      "tags": ["optimization", "attention"]
     },
     {
       "id": "fc-303",
-      "front": "Why can AI systems amplify bias?",
-      "back": "Because training data may contain bias, and AI learns from that data.",
+      "front": "Name 3 daily apps that use AI.",
+      "back": "Examples: Google Search, YouTube, Gmail, Spotify, Netflix, Maps, autocorrect.",
+      "difficulty": "foundation",
+      "tags": ["examples"]
+    },
+    {
+      "id": "fc-304",
+      "front": "What is a filter bubble?",
+      "back": "When AI shows you more of what you already believe, reinforcing existing views.",
       "difficulty": "advanced",
-      "tags": ["ethics"]
+      "tags": ["attention", "bias"]
     }
   ],
+
   "practice": {
     "enabled": true,
     "type": "mixed",
@@ -103,43 +193,72 @@
       {
         "id": "practice-301",
         "type": "multipleChoice",
-        "question": "Why do AI products tend to improve over time?",
+        "question": "A recommendation system shows you a video you did not search for. What is most likely true about why you are seeing it?",
         "options": [
-          "Because developers update them daily",
-          "Because they learn from user data through feedback loops",
-          "Because they have built-in intelligence",
-          "Because the internet gets faster"
+          "The system randomly selected it",
+          "Users similar to you liked similar content",
+          "You searched for it earlier",
+          "It is sponsored content"
         ],
         "answer": 1,
-        "explanation": "AI systems improve by learning from data generated by user interactions."
+        "explanation": "Recommendation systems use collaborative filtering — if users similar to you liked something, you are likely to see it too.",
+        "whyItMatters": "Understanding this helps you see the mechanism behind what you see online."
       },
       {
         "id": "practice-302",
+        "type": "multipleChoice",
+        "question": "Why do social media feeds feel addictive?",
+        "options": [
+          "They use high-quality graphics",
+          "They use AI systems optimized for engagement",
+          "They have good user interfaces",
+          "They contain the most useful information"
+        ],
+        "answer": 1,
+        "explanation": "Feeds are designed by AI systems that optimize for engagement — clicks, watch time, and shares. This is why they feel endless and hard to stop.",
+        "whyItMatters": "Recognizing this design pattern lets you choose when to disengage."
+      },
+      {
+        "id": "practice-303",
         "type": "shortAnswer",
-        "question": "Why is ethical AI important?",
-        "answer": "Because AI systems can amplify bias, affect lives through decisions, and require governance—not just technical solutions.",
-        "explanation": "AI affects real people. Responsible design and governance are essential."
+        "question": "In your own words, why is it useful to know that you are a 'training signal' for AI systems?",
+        "answer": "Because your behavior — what you click, skip, and share — is used to refine the AI model and shape what you are shown next.",
+        "explanation": "Your behavior is not just observed — it is used to optimize the system. Knowing this helps you think more deliberately about the actions you take online.",
+        "acceptedKeywords": ["data", "behavior", "training", "signal", "optimize", "influence"],
+        "whyItMatters": "This is the key insight for becoming a deliberate user rather than a passive participant."
+      },
+      {
+        "id": "practice-304",
+        "type": "application",
+        "question": "You notice you have been scrolling social media for 45 minutes when you only intended to spend 5. What is the most accurate explanation?",
+        "answer": "The feed is designed by AI systems optimized for engagement, using features like infinite scroll, variable rewards, and personalized content to keep you interacting.",
+        "explanation": "This is not a personal weakness — it is a designed outcome. Recognizing the design pattern helps you respond deliberately rather than feeling guilty.",
+        "whyItMatters": "This is the application of AI literacy to your actual behavior."
       }
     ]
   },
+
   "notes": {
-    "summary": "AI is deployed across industries and improves through feedback loops, raising significant ethical considerations.",
+    "summary": "AI is embedded in everyday tools — search, feeds, maps, email. Recommendation systems use collaborative filtering and optimize for engagement, not wellbeing.",
     "keyPoints": [
-      "AI is core infrastructure in healthcare, finance, transport, search",
-      "AI improves via feedback loops from user data",
-      "AI can amplify bias present in training data",
-      "Responsible AI requires design + governance"
+      "AI lives in search, feeds, maps, email, social media",
+      "Recommendation systems use collaborative filtering",
+      "They optimize for engagement (clicks, watch time)",
+      "Understanding this helps you use AI deliberately"
     ],
     "importantTerms": [
-      { "term": "Feedback Loop", "definition": "AI output → user behavior → data → refined AI." },
-      { "term": "Algorithmic Bias", "definition": "Systematic unfairness in AI outputs." }
-    ]
+      { "term": "Collaborative Filtering", "definition": "Predicting preferences based on similar users." },
+      { "term": "Recommendation System", "definition": "AI that suggests content based on learned patterns." },
+      { "term": "Filter Bubble", "definition": "AI reinforcing existing beliefs by showing similar content." }
+    ],
+    "reflection": "Being aware of AI in your life is the first step to using it on your terms."
   },
+
   "aiTools": [
     {
       "provider": "chatgpt",
       "role": "reasoning",
-      "recommendedFor": ["discussing AI applications", "debating ethics"]
+      "recommendedFor": ["analyzing AI's role in daily life", "discussing trade-offs"]
     },
     {
       "provider": "claude",
@@ -147,6 +266,7 @@
       "recommendedFor": ["essay-style analysis", "ethical discussion"]
     }
   ],
+
   "resources": [
     {
       "id": "resource-301",
@@ -156,20 +276,21 @@
       "provider": "official"
     }
   ],
+
   "news": [],
+
   "relatedLessons": [
     "lesson-ai-fundamentals-001",
     "lesson-ai-fundamentals-002"
   ],
-  "keyTakeaways": [
-    "AI is embedded in nearly every industry.",
-    "AI systems improve through feedback loops from user data.",
-    "Ethical AI is a design and governance responsibility."
-  ],
+
   "metadata": {
     "author": "Law AI Academy",
-    "language": "en"
+    "version": "2.0.0",
+    "language": "en",
+    "lastReviewed": "2026-09-11"
   },
+
   "createdAt": "2026-09-11T00:00:00Z",
   "updatedAt": "2026-09-11T00:00:00Z"
 }
