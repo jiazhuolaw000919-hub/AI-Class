@@ -9,6 +9,7 @@ LawAIApp.CalendarRenderer = {
 
     _viewYear: null,
     _viewMonth: null,
+    _selectedDay: null,
     _rendered: false,
     _container: null,
     _viewModel: null,
@@ -54,17 +55,19 @@ LawAIApp.CalendarRenderer = {
         // Month Grid（恢复月历）
         html += this._renderMonthGrid(viewModel);
 
-        // Current Journey
-        if (viewModel.currentJourney && viewModel.currentJourney.available) {
-            html += this._renderCurrentJourney(viewModel.currentJourney);
-        }
-
-        // Events
-        if (viewModel.events && viewModel.events.length > 0) {
-            html += this._renderEvents(viewModel.events);
+        // 如果选中了某天，显示当天事件（优先）
+        if (this._selectedDay !== null && typeof this._selectedDay === 'number') {
+            html += this._renderSelectedDayEvents(viewModel);
         } else {
-            // 没有事件时，仍然显示 empty 提示
-            html += this._renderEmptyEventsHint();
+            // 否则显示所有事件
+            if (viewModel.currentJourney && viewModel.currentJourney.available) {
+                html += this._renderCurrentJourney(viewModel.currentJourney);
+            }
+            if (viewModel.events && viewModel.events.length > 0) {
+                html += this._renderEvents(viewModel.events);
+            } else {
+                html += this._renderEmptyEventsHint();
+            }
         }
 
         // Stale Warning
@@ -72,6 +75,51 @@ LawAIApp.CalendarRenderer = {
             html += this._renderStaleWarning();
         }
 
+        return html;
+    },
+
+    // ============================================================
+    // Part 177: 选中日期的事件
+    // ============================================================
+    _renderSelectedDayEvents: function(viewModel) {
+        var selectedDate = new Date(this._viewYear, this._viewMonth, this._selectedDay);
+        var events = (viewModel && viewModel.events) || [];
+        var dayEvents = events.filter(function(e) {
+            if (!e.start) return false;
+            var d = new Date(e.start);
+            return d.getFullYear() === selectedDate.getFullYear() &&
+                   d.getMonth() === selectedDate.getMonth() &&
+                   d.getDate() === selectedDate.getDate();
+        });
+
+        var dateLabel = selectedDate.toLocaleDateString('en-US', {
+            weekday: 'long', month: 'long', day: 'numeric'
+        });
+
+        var html = `
+            <div class="cal-selected-day-section">
+                <div class="cal-selected-day-header">
+                    <div class="cal-section-label">📅 ${dateLabel}</div>
+                    <button class="cal-clear-selection" data-action="clear-selection">Show all events</button>
+                </div>
+        `;
+
+        if (dayEvents.length === 0) {
+            html += `
+                <div class="cal-events-empty">
+                    No events on this day.
+                    <button class="cal-new-event-inline" data-action="new-event-inline">+ Add event</button>
+                </div>
+            `;
+        } else {
+            html += `<div class="cal-events-list">`;
+            for (var i = 0; i < dayEvents.length; i++) {
+                html += this._renderEventCard(dayEvents[i]);
+            }
+            html += `</div>`;
+        }
+
+        html += `</div>`;
         return html;
     },
 
@@ -110,8 +158,11 @@ LawAIApp.CalendarRenderer = {
                           month === today.getMonth() &&
                           year === today.getFullYear();
             var hasEvent = !!eventDays[d];
+            var isSelected = (this._selectedDay === d) &&
+                             (this._viewMonth === month) &&
+                             (this._viewYear === year);
             gridHTML += `
-                <div class="cal-day-cell ${isToday ? 'today' : ''} ${hasEvent ? 'has-event' : ''}"
+                <div class="cal-day-cell ${isToday ? 'today' : ''} ${hasEvent ? 'has-event' : ''} ${isSelected ? 'selected' : ''}"
                      data-day="${d}">
                     <span class="cal-day-number">${d}</span>
                     ${hasEvent ? '<span class="cal-day-dot"></span>' : ''}
@@ -299,6 +350,35 @@ LawAIApp.CalendarRenderer = {
                 else if (action === 'cancel') self.cancelEvent(id);
             });
         });
+
+        // Part 177: clear selection
+        document.querySelectorAll('[data-action="clear-selection"]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                self._selectedDay = null;
+                self.render(self._viewModel, self._container);
+            });
+        });
+
+        // Part 177: new event inline（当天新建）
+        document.querySelectorAll('[data-action="new-event-inline"]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var dateStr = '';
+                if (self._selectedDay !== null) {
+                    var d = new Date(self._viewYear, self._viewMonth, self._selectedDay);
+                    dateStr = d.toISOString().split('T')[0];
+                } else {
+                    dateStr = new Date().toISOString().split('T')[0];
+                }
+                self._openEventModal({
+                    mode: 'create',
+                    title: '',
+                    date: dateStr,
+                    startTime: '09:00',
+                    endTime: '10:00',
+                    description: ''
+                });
+            });
+        });
     },
 
     // ============================================================
@@ -313,6 +393,7 @@ LawAIApp.CalendarRenderer = {
         if (m < 0) { m = 11; y--; }
         this._viewYear = y;
         this._viewMonth = m;
+        this._selectedDay = null;   // 切换月份时清掉选中
         this.render(this._viewModel, this._container);
     },
 
@@ -320,12 +401,38 @@ LawAIApp.CalendarRenderer = {
         var now = new Date();
         this._viewYear = now.getFullYear();
         this._viewMonth = now.getMonth();
+        this._selectedDay = now.getDate();   // 今天默认选中
         this.render(this._viewModel, this._container);
     },
 
     _onDayClick: function(day) {
+        // Part 177: 真正选中日期
+        this._selectedDay = day;
+
+        // 如果选中的是其他月份的日期，切到当前显示月
+        var now = new Date();
+        if (typeof this._viewYear !== 'number') this._viewYear = now.getFullYear();
+        if (typeof this._viewMonth !== 'number') this._viewMonth = now.getMonth();
+
+        // 找到当天的事件
+        var selectedDate = new Date(this._viewYear, this._viewMonth, day);
+        var events = (this._viewModel && this._viewModel.events) || [];
+        var dayEvents = events.filter(function(e) {
+            if (!e.start) return false;
+            var d = new Date(e.start);
+            return d.getFullYear() === selectedDate.getFullYear() &&
+                   d.getMonth() === selectedDate.getMonth() &&
+                   d.getDate() === selectedDate.getDate();
+        });
+
+        // 重渲染（高亮选中 + 显示当天事件）
+        this.render(this._viewModel, this._container);
+
+        // Toast 反馈
         if (window.LawAIApp?.Toast?.info) {
-            LawAIApp.Toast.info('📅 Day ' + day + ' selected');
+            var msg = '📅 ' + selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            msg += dayEvents.length > 0 ? ' · ' + dayEvents.length + ' event(s)' : ' · No events';
+            LawAIApp.Toast.info(msg);
         }
     },
 
