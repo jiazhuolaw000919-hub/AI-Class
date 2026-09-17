@@ -489,6 +489,96 @@
             }
         },
 
+                // ============================================================
+        // Part 177: 元数据更新（title / description / activityRef）
+        // 与 reschedule 分离，因为改标题 ≠ 改时间
+        // ============================================================
+        updateMetadata: function(scheduleId, updates) {
+            if (!_initialized) {
+                return { success: false, error: 'CalendarAuthority not ready', code: 'NOT_READY' };
+            }
+
+            var schedule = this._findSchedule(scheduleId);
+            if (!schedule) {
+                return { success: false, error: 'Schedule not found', code: 'NOT_FOUND' };
+            }
+
+            if (updates.title !== undefined) schedule.title = updates.title;
+            if (updates.description !== undefined) schedule.description = updates.description;
+            if (updates.activityRef !== undefined) schedule.activityRef = updates.activityRef;
+
+            schedule.updatedAt = new Date().toISOString();
+            schedule.version = (schedule.version || 1) + 1;
+
+            this._saveToStorage();
+
+            this._emit('CALENDAR_SCHEDULE_UPDATED', {
+                scheduleId: scheduleId,
+                title: schedule.title
+            });
+
+            return { success: true, schedule: schedule };
+        },
+
+        // ============================================================
+        // Part 177: 开始学习（≠ 完成）
+        // ============================================================
+        markStarted: function(scheduleId) {
+            if (!_initialized) {
+                return { success: false, error: 'CalendarAuthority not ready', code: 'NOT_READY' };
+            }
+
+            var schedule = this._findSchedule(scheduleId);
+            if (!schedule) {
+                return { success: false, error: 'Schedule not found', code: 'NOT_FOUND' };
+            }
+
+            schedule.status = 'STARTED';
+            schedule.startedAt = new Date().toISOString();
+            schedule.updatedAt = new Date().toISOString();
+            schedule.version = (schedule.version || 1) + 1;
+
+            this._saveToStorage();
+
+            this._emit('CALENDAR_ACTIVITY_STARTED', {
+                scheduleId: scheduleId,
+                activityRef: schedule.activityRef
+            });
+
+            return { success: true, schedule: schedule };
+        },
+
+        // ============================================================
+        // Part 177: 标记学习完成（学习者主动）
+        // ⚠️ 注意：这不是 Mastery，只是学习者说"我学完了"
+        // ============================================================
+        markCompleted: function(scheduleId) {
+            if (!_initialized) {
+                return { success: false, error: 'CalendarAuthority not ready', code: 'NOT_READY' };
+            }
+
+            var schedule = this._findSchedule(scheduleId);
+            if (!schedule) {
+                return { success: false, error: 'Schedule not found', code: 'NOT_FOUND' };
+            }
+
+            schedule.status = 'COMPLETED';
+            schedule.completedAt = new Date().toISOString();
+            schedule.updatedAt = new Date().toISOString();
+            schedule.version = (schedule.version || 1) + 1;
+
+            this._saveToStorage();
+
+            this._emit('CALENDAR_ACTIVITY_COMPLETED', {
+                scheduleId: scheduleId,
+                activityRef: schedule.activityRef,
+                // ⚠️ 明确标记：这是 Calendar 的完成，不是 Mastery
+                note: 'Calendar completion is learner-reported, not mastery evidence'
+            });
+
+            return { success: true, schedule: schedule };
+        },
+
         // ---- 调试 ----
         _debug: function() {
             return {
