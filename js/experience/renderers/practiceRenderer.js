@@ -36,6 +36,8 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
         var _completedAt = null;
         var _attemptHistory = [];  // 存储所有 attempt
         var _isDuplicateSubmit = false;
+        var _confidenceSubmitted = false;  // 🆕 Part 175
+        var _confidenceValue = null;
 
         // 解析 Practice 数据
         var _question = activity.metadata?.question || 'Practice question';
@@ -403,12 +405,12 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                     var checkedAttr = isSelected ? 'checked' : '';
 
                     html += `
-                        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:6px;border-radius:8px;border:1px solid ${borderColor};background:${bgColor};cursor:${_evaluated ? 'default' : 'pointer'};transition:all 0.2s;">
+                        <label style="...">
                             <input type="radio" name="practice-option" value="${i}" ${checkedAttr} ${disabledAttr}
-                                   style="accent-color:#4a9eff;width:16px;height:16px;cursor:${_evaluated ? 'default' : 'pointer'};">
-                            <span style="font-size:13px;color:${textColor};line-height:1.4;">${option}</span>
-                            ${_evaluated && showCorrect ? '<span style="margin-left:auto;font-size:14px;">✅</span>' : ''}
-                            ${_evaluated && isWrong ? '<span style="margin-left:auto;font-size:14px;">❌</span>' : ''}
+                                   aria-label="Option ${i + 1}: ${option}"
+                                   style="...">
+                            <span style="...">${option}</span>
+                            ...
                         </label>
                     `;
                 }
@@ -437,49 +439,57 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                 var feedbackColor = isCorrect ? '#22c55e' : '#ef4444';
                 var icon = isCorrect ? '✅' : '❌';
                 html += `
-                    <div style="margin-top:12px;padding:12px 16px;border-radius:8px;background:${isCorrect ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)'};border:1px solid ${isCorrect ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)'};">
+                    <div role="alert" aria-live="polite" style="margin-top:12px;padding:12px 16px;border-radius:8px;background:${isCorrect ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)'};border:1px solid ${isCorrect ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)'};">
                         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-                            <span style="font-size:16px;">${icon}</span>
+                            <span style="font-size:16px;" aria-hidden="true">${icon}</span>
                             <span style="font-weight:500;color:${feedbackColor};">${isCorrect ? 'Correct' : 'Not quite'}</span>
                         </div>
                         <p style="margin:0;font-size:13px;color:#c8d0d8;line-height:1.5;">${_result.feedback || ''}</p>
                         ${_result.explanation ? `<p style="margin:6px 0 0;font-size:12px;color:#94a3b8;line-height:1.5;">${_result.explanation}</p>` : ''}
                     </div>
                 `;
+            }
 
-                // 🔥 Part 173: Retry / Reflection 选项
+            // 🔥 Part 175: Confidence 收集（提交后）
+            // 只在已评价但未提交 confidence 时显示
+            if (_evaluated && _result && !_confidenceSubmitted) {
                 html += `
-                    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-                `;
-
-                if (!isCorrect) {
-                    html += `
-                        <button id="practice-retry-btn" style="padding:6px 16px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.12);border-radius:8px;color:#4a9eff;font-size:12px;cursor:pointer;font-family:inherit;transition:all 0.2s;"
-                                onmouseover="this.style.background='rgba(74,158,255,0.15)'"
-                                onmouseout="this.style.background='rgba(74,158,255,0.08)'">
-                            🔄 Try again
-                        </button>
-                    `;
-                }
-
-                html += `
-                        <button onclick="LawAIApp.Experience.Renderers.PracticeRenderer._promptReflection('${_activity.id}')" 
-                                style="padding:6px 16px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.12);border-radius:8px;color:#c4b5fd;font-size:12px;cursor:pointer;font-family:inherit;transition:all 0.2s;"
-                                onmouseover="this.style.background='rgba(139,92,246,0.15)'"
-                                onmouseout="this.style.background='rgba(139,92,246,0.06)'">
-                            💭 ${isCorrect ? 'What did you learn?' : 'Reflect on this'}
-                        </button>
+                    <div role="region" aria-label="Confidence question" style="
+                        margin-top: 12px;
+                        padding: 12px 16px;
+                        background: rgba(139,92,246,0.04);
+                        border-radius: 8px;
+                        border: 1px solid rgba(139,92,246,0.08);
+                    ">
+                        <div style="font-size: 11px; color: #8b5cf6; font-weight: 500; margin-bottom: 8px; letter-spacing: 0.5px;">
+                            🤔 HOW CONFIDENT?
+                        </div>
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <button onclick="this.closest('.practice-activity').querySelector('[data-confidence]').click()" 
+                                    style="display: none;" data-confidence></button>
+                            <button onclick="LawAIApp.Experience.Renderers.PracticeRenderer._recordConfidence('${_activity.id}', 'low')" 
+                                    style="padding: 6px 14px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 100px; color: #94a3b8; font-size: 12px; cursor: pointer; font-family: inherit;">
+                                🌱 Not yet
+                            </button>
+                            <button onclick="LawAIApp.Experience.Renderers.PracticeRenderer._recordConfidence('${_activity.id}', 'medium')" 
+                                    style="padding: 6px 14px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 100px; color: #94a3b8; font-size: 12px; cursor: pointer; font-family: inherit;">
+                                🔄 Somewhat
+                            </button>
+                            <button onclick="LawAIApp.Experience.Renderers.PracticeRenderer._recordConfidence('${_activity.id}', 'high')" 
+                                    style="padding: 6px 14px; background: rgba(139,92,246,0.06); border: 1px solid rgba(139,92,246,0.12); border-radius: 100px; color: #c4b5fd; font-size: 12px; cursor: pointer; font-family: inherit;">
+                                💪 Confident
+                            </button>
+                            <button onclick="LawAIApp.Experience.Renderers.PracticeRenderer._recordConfidence('${_activity.id}', 'very')" 
+                                    style="padding: 6px 14px; background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.12); border-radius: 100px; color: #6ee7b7; font-size: 12px; cursor: pointer; font-family: inherit;">
+                                🎯 Very
+                            </button>
+                            <button onclick="LawAIApp.Experience.Renderers.PracticeRenderer._skipConfidence('${_activity.id}')" 
+                                    style="padding: 6px 10px; background: transparent; border: none; color: #64748b; font-size: 11px; cursor: pointer; font-family: inherit; text-decoration: underline;">
+                                Skip
+                            </button>
+                        </div>
                     </div>
                 `;
-
-                // 如果已完成，显示完成状态
-                if (_submitted && _result.correct) {
-                    html += `
-                        <div style="margin-top:12px;padding:10px 16px;border-radius:8px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.12);text-align:center;">
-                            <span style="font-size:13px;color:#22c55e;">🎉 Practice completed!</span>
-                        </div>
-                    `;
-                }
             }
 
             html += `</div>`;  // 关闭 .practice-activity
@@ -865,6 +875,73 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
         if (result.success && window.LawAIApp?.Toast?.success) {
             LawAIApp.Toast.success('💭 Reflection saved to Notes');
         }
+    }
+
+    // ============================================================
+    // 🔥 Part 175: Confidence Method
+    // ============================================================
+    
+    _recordConfidence: function(activityId, level) {
+        console.log('[PracticeRenderer] Confidence recorded:', level);
+        
+        // 通过 EventBus 发送（不直接写其他权威）
+        try {
+            var eventBus = window.LawAIApp?.EventBus || window.EventBus;
+            var payload = {
+                activityId: activityId,
+                confidence: level,  // 'low' | 'medium' | 'high' | 'very'
+                source: 'practice-activity',
+                timestamp: new Date().toISOString()
+            };
+            
+            if (eventBus && typeof eventBus.emit === 'function') {
+                eventBus.emit('PRACTICE_CONFIDENCE_RECORDED', payload);
+            } else {
+                var event = new CustomEvent('PRACTICE_CONFIDENCE_RECORDED', { detail: payload });
+                document.dispatchEvent(event);
+                window.dispatchEvent(event);
+            }
+        } catch (e) {}
+        
+        // Toast
+        if (window.LawAIApp?.Toast?.success) {
+            var messages = {
+                'low': '📊 Noted — you can review this later',
+                'medium': '📊 Recorded',
+                'high': '📊 Great confidence',
+                'very': '📊 Excellent'
+            };
+            LawAIApp.Toast.success(messages[level] || '✅ Confidence recorded');
+        }
+        
+        // 强制重新渲染（隐藏 confidence prompt）
+        var activityEl = document.querySelector('.practice-activity');
+        if (activityEl && activityEl.closest('[data-practice-container]')) {
+            var container = activityEl.closest('[data-practice-container]');
+            var instance = container._practiceInstance;
+            if (instance && typeof instance.update === 'function') {
+                // 简单方式：直接移除 confidence 区域
+                var confidenceEl = activityEl.querySelector('[data-confidence-prompt]');
+                if (confidenceEl) confidenceEl.remove();
+            }
+        }
+        
+        // 备用方案：隐藏 DOM
+        var promptEl = document.querySelector('[aria-label="Confidence question"]');
+        if (promptEl) promptEl.style.display = 'none';
+    },
+    
+    _skipConfidence: function(activityId) {
+        console.log('[PracticeRenderer] Confidence skipped');
+        
+        // Toast
+        if (window.LawAIApp?.Toast?.info) {
+            LawAIApp.Toast.info('Skipped — you can add later');
+        }
+        
+        // 隐藏
+        var promptEl = document.querySelector('[aria-label="Confidence question"]');
+        if (promptEl) promptEl.style.display = 'none';
     }
 };
 
