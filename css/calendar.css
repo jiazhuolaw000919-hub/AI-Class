@@ -632,3 +632,54 @@
 .cal-new-event-inline:hover {
     background: rgba(74, 158, 255, 0.15);
 }
+
+/* ── Header Actions (Part 177) ── */
+.cal-header-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.cal-toggle-calendar-btn {
+    padding: 8px 18px;
+    background: rgba(74, 158, 255, 0.08);
+    border: 1px solid rgba(74, 158, 255, 0.15);
+    border-radius: 100px;
+    color: #4a9eff;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.cal-toggle-calendar-btn:hover {
+    background: rgba(74, 158, 255, 0.15);
+    border-color: rgba(74, 158, 255, 0.3);
+}
+
+/* ── Agenda (Part 177) ── */
+.cal-agenda {
+    margin-top: 16px;
+}
+
+.cal-agenda-group {
+    margin-bottom: 24px;
+}
+
+.cal-agenda-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    padding-left: 2px;
+}
+
+.cal-agenda-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
