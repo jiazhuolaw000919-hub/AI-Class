@@ -521,7 +521,40 @@ LawAIApp.CalendarRenderer = {
         var wrapper = document.createElement('div');
         wrapper.innerHTML = modalHtml;
         var modalEl = wrapper.firstElementChild;
-        document.body.appendChild(modalEl);
+        // Part 177 修复：挂到 academy-root
+        // 因为 academy.html 里有 body > *:not(#academy-root) { display: none } 规则
+        var modalContainer = document.getElementById('academy-root') ||
+                             document.getElementById('app') ||
+                             document.body;
+        modalContainer.appendChild(modalEl);
+
+        // Part 177 保险：如果 CSS 未加载，注入 inline 样式
+        if (!document.getElementById('cal-modal-inline-style')) {
+            var styleEl = document.createElement('style');
+            styleEl.id = 'cal-modal-inline-style';
+            styleEl.textContent = `
+                .cal-modal-backdrop {
+                    position: fixed !important;
+                    top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+                    background: rgba(0,0,0,0.6) !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    z-index: 99999 !important;
+                    padding: 20px !important;
+                }
+                .cal-modal {
+                    background: #1a2639 !important;
+                    border-radius: 16px !important;
+                    padding: 24px !important;
+                    max-width: 420px !important;
+                    width: 100% !important;
+                    border: 1px solid rgba(255,255,255,0.06) !important;
+                    color: #e2e8f0 !important;
+                }
+            `;
+            document.head.appendChild(styleEl);
+        }
 
         console.log('[CalendarRenderer] Modal opened, mode:', opts.mode);
 
