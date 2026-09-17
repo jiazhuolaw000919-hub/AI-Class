@@ -151,24 +151,74 @@ LawAIApp.CalendarViewModel = {
      * 日程事件来自 Calendar 自身，不是 Core
      * 只做格式化
      */
-    _buildEvents: function(data) {
+        _buildEvents: function(data) {
         var events = data.schedule?.events || [];
+        var self = this;
         return events.map(function(event) {
+            var start = event.start || null;
+            var end = event.end || null;
+            var isPast = end ? new Date(end) < new Date() : false;
+            var status = event.status || 'SCHEDULED';
+
+            // Part 177 §49: overdue 不等于 FAILED
+            var isOverdue = isPast &&
+                            status !== 'COMPLETED' &&
+                            status !== 'CANCELLED' &&
+                            status !== 'UNSCHEDULED';
+
             return {
                 id: event.id || 'evt_' + Date.now(),
                 title: event.title || 'Learning Session',
                 type: event.type || 'learning',
-                start: event.start || null,
-                end: event.end || null,
+                start: start,
+                end: end,
                 duration: event.duration || 30,
-                status: event.status || 'scheduled', // scheduled | completed | cancelled | missed
+                status: status,
+                statusLabel: self._getStatusLabel(status, isOverdue),
+                statusColor: self._getStatusColor(status, isOverdue),
                 itemId: event.itemId || null,
-                formattedTime: this._formatTime(event.start, event.end),
-                formattedDuration: this._formatDuration(event.duration || 30),
-                isPast: event.end ? new Date(event.end) < new Date() : false,
-                isToday: event.start ? this._isToday(new Date(event.start)) : false
+                activityRef: event.activityRef || null,
+                description: event.description || null,
+                formattedTime: self._formatTime(start, end),
+                formattedDuration: self._formatDuration(event.duration || 30),
+                isPast: isPast,
+                isOverdue: isOverdue,
+                isToday: start ? self._isToday(new Date(start)) : false,
+                canReschedule: status !== 'CANCELLED' && status !== 'UNSCHEDULED',
+                canCancel: status !== 'CANCELLED' && status !== 'UNSCHEDULED',
+                canOpen: !!event.activityRef
             };
-        }.bind(this));
+        });
+    },
+
+    _getStatusLabel: function(status, isOverdue) {
+        if (isOverdue && status === 'SCHEDULED') return 'Past scheduled time';
+        var map = {
+            'SCHEDULED':   'Scheduled',
+            'RESCHEDULED': 'Rescheduled',
+            'STARTED':     'Started',
+            'TIME_ELAPSED':'Past scheduled time',
+            'MISSED':      'Past scheduled time',
+            'COMPLETED':   'Completed',
+            'CANCELLED':   'Cancelled',
+            'UNSCHEDULED': 'Not scheduled'
+        };
+        return map[status] || status;
+    },
+
+    _getStatusColor: function(status, isOverdue) {
+        if (isOverdue) return '#f59e0b';
+        var map = {
+            'SCHEDULED':   '#4a9eff',
+            'RESCHEDULED': '#8b5cf6',
+            'STARTED':     '#14b8a6',
+            'TIME_ELAPSED':'#f59e0b',
+            'MISSED':      '#f59e0b',
+            'COMPLETED':   '#10b981',
+            'CANCELLED':   '#64748b',
+            'UNSCHEDULED': '#64748b'
+        };
+        return map[status] || '#4a9eff';
     },
 
     _formatTime: function(start, end) {
