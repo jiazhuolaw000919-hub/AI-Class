@@ -447,3 +447,131 @@
     outline: 2px solid rgba(74, 158, 255, 0.6);
     outline-offset: 2px;
 }
+
+/* ── Month Grid (Part 177 恢复) ── */
+.cal-month-section {
+    margin-bottom: 20px;
+}
+
+.cal-month-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.cal-month-nav-btn {
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    color: #94a3b8;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.cal-month-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+}
+
+.cal-month-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.cal-weekday-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    text-align: center;
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 6px;
+}
+
+.cal-month-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.cal-day-cell {
+    position: relative;
+    padding: 10px 4px;
+    text-align: center;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    color: #e2e8f0;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-height: 44px;
+}
+
+.cal-day-cell.empty {
+    background: transparent;
+    border: none;
+    cursor: default;
+}
+
+.cal-day-cell:hover:not(.empty) {
+    background: rgba(74, 158, 255, 0.08);
+    border-color: rgba(74, 158, 255, 0.15);
+}
+
+.cal-day-cell.today {
+    background: rgba(74, 158, 255, 0.12);
+    border-color: rgba(74, 158, 255, 0.3);
+    color: #4a9eff;
+    font-weight: 600;
+}
+
+.cal-day-cell.has-event {
+    font-weight: 500;
+}
+
+.cal-day-dot {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #4a9eff;
+}
+
+.cal-day-cell.today .cal-day-dot {
+    background: #4a9eff;
+}
+
+.cal-month-actions {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+}
+
+.cal-today-btn {
+    padding: 6px 16px;
+    background: rgba(74, 158, 255, 0.08);
+    border: 1px solid rgba(74, 158, 255, 0.15);
+    border-radius: 100px;
+    color: #4a9eff;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.cal-events-empty {
+    padding: 20px;
+    text-align: center;
+    color: #64748b;
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 10px;
+    border: 1px dashed rgba(255, 255, 255, 0.06);
+}
