@@ -64,11 +64,15 @@
     }
   ],
   "video": {
-    "provider": "youtube",
-    "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao",
-    "title": "What is AI?",
-    "durationMinutes": 8
-  },
+  "provider": "youtube",
+  "url": "https://www.youtube.com/watch?v=ad79nYk2keg",
+  "title": "What is Artificial Intelligence? — Simplilearn",
+  "durationMinutes": 5,
+  "channel": "Simplilearn",
+  "notes": "A concise introduction to AI concepts. Covers definition, types, and applications.",
+  "isOfficial": false,
+  "relevance": "Provides beginner-friendly overview of AI basics."
+},
   "flashcards": [
     {
       "id": "fc-001",
