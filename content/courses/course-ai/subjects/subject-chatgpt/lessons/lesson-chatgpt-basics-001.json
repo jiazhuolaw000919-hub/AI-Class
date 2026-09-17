@@ -144,9 +144,13 @@
 
   "video": {
     "provider": "youtube",
-    "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao",
-    "title": "Getting Started with ChatGPT",
-    "durationMinutes": 10
+    "url": "https://www.youtube.com/watch?v=JTxsNm9IdYU",
+    "title": "What is ChatGPT? — IBM Technology",
+    "durationMinutes": 8,
+    "channel": "IBM Technology",
+    "notes": "Clear introduction to ChatGPT, GPT models, and how they generate responses.",
+    "isOfficial": false,
+    "relevance": "Matches lesson on ChatGPT fundamentals and hallucination."
   },
 
   "flashcards": [
