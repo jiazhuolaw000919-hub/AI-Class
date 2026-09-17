@@ -859,6 +859,19 @@
           return;
         }
         var file = files[index++];
+
+        // Part 177: 如果加载 .js，同时加载同名 .css（如果存在）
+        // 这样避免全局加载 calendar.css / notes.css / settings.css
+        if (file.indexOf('/js/calendar/') === 0 || file.indexOf('/js/calendar.js') === 0) {
+          _ensureCSS('/css/calendar.css');
+        }
+        if (file.indexOf('/js/notes/') === 0 || file.indexOf('/js/notes.js') === 0) {
+          _ensureCSS('/css/notes.css');
+        }
+        if (file.indexOf('/js/settings/') === 0 || file.indexOf('/js/settings.js') === 0) {
+          _ensureCSS('/css/settings.css');
+        }
+
         var script = document.createElement('script');
         script.src = file + '?v=' + Date.now();
         script.async = false;
@@ -871,7 +884,7 @@
       }
 
       loadNext();
-    }
+    },
 
     async _doStart() {
       this.startTime = Date.now();
@@ -1139,5 +1152,19 @@
   scheduleFn(function() { autoStartAcademy(); });
   document.addEventListener('RUNTIME_READY', function() { autoStartAcademy(); });
   window.addEventListener('RUNTIME_READY', function() { autoStartAcademy(); });
+
+    // Part 177: 按需加载 CSS
+    function _ensureCSS(href) {
+      // 检查是否已加载
+      var existing = document.querySelector('link[href="' + href + '"]');
+      if (existing) return;
+
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = href;
+      link.setAttribute('data-lazy-loaded', 'true');
+      document.head.appendChild(link);
+      console.log('[AcademyLoader] 🎨 Loaded CSS:', href);
+    }
 
 })();
