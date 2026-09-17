@@ -469,10 +469,13 @@ LawAIApp.CalendarRenderer = {
 
     _openEventModal: function(opts) {
         var self = this;
+
+        // 移除旧 modal
         var oldModal = document.getElementById('cal-event-modal');
         if (oldModal) oldModal.remove();
 
         var isCreate = opts.mode === 'create';
+
         var modalHtml = `
             <div id="cal-event-modal" class="cal-modal-backdrop">
                 <div class="cal-modal">
@@ -514,14 +517,39 @@ LawAIApp.CalendarRenderer = {
             </div>
         `;
 
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        // 关键：用 document.body.appendChild 保证挂载
+        var wrapper = document.createElement('div');
+        wrapper.innerHTML = modalHtml;
+        var modalEl = wrapper.firstElementChild;
+        document.body.appendChild(modalEl);
 
-        document.getElementById('cal-modal-cancel').addEventListener('click', function() {
-            self._closeModal();
-        });
+        console.log('[CalendarRenderer] Modal opened, mode:', opts.mode);
 
-        document.getElementById('cal-modal-save').addEventListener('click', function() {
-            self._handleSave(opts, isCreate);
+        // 绑定按钮
+        var cancelBtn = document.getElementById('cal-modal-cancel');
+        var saveBtn = document.getElementById('cal-modal-save');
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                self._closeModal();
+            });
+        } else {
+            console.warn('[CalendarRenderer] cancel button not found');
+        }
+
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                self._handleSave(opts, isCreate);
+            });
+        } else {
+            console.warn('[CalendarRenderer] save button not found');
+        }
+
+        // 点 backdrop 关闭
+        modalEl.addEventListener('click', function(e) {
+            if (e.target === modalEl) self._closeModal();
         });
 
         // ESC 关闭
@@ -533,6 +561,7 @@ LawAIApp.CalendarRenderer = {
         };
         document.addEventListener('keydown', escHandler);
 
+        // Focus
         setTimeout(function() {
             var t = document.getElementById('cal-modal-title');
             if (t) t.focus();
@@ -553,17 +582,39 @@ LawAIApp.CalendarRenderer = {
     },
 
     _handleSave: function(opts, isCreate) {
+        console.log('[CalendarRenderer] _handleSave called', { opts: opts, isCreate: isCreate });
+
         var auth = window.LawAIApp?.CalendarAuthority;
-        if (!auth || !auth.isReady) {
-            this._setModalStatus('Calendar not ready.', 'error');
+        if (!auth) {
+            this._setModalStatus('CalendarAuthority not loaded.', 'error');
+            console.error('[CalendarRenderer] CalendarAuthority missing');
+            return;
+        }
+        if (!auth.isReady) {
+            this._setModalStatus('Calendar still loading. Please wait...', 'error');
+            console.warn('[CalendarRenderer] CalendarAuthority not ready');
+            // 尝试等 ready
+            var self = this;
+            auth.onReady(function() {
+                console.log('[CalendarRenderer] Authority became ready, retrying save');
+                self._handleSave(opts, isCreate);
+            });
             return;
         }
 
-        var title = (document.getElementById('cal-modal-title').value || '').trim();
-        var date = document.getElementById('cal-modal-date').value;
-        var start = document.getElementById('cal-modal-start').value;
-        var end = document.getElementById('cal-modal-end').value;
-        var desc = (document.getElementById('cal-modal-desc').value || '').trim();
+        var titleEl = document.getElementById('cal-modal-title');
+        var dateEl = document.getElementById('cal-modal-date');
+        var startEl = document.getElementById('cal-modal-start');
+        var endEl = document.getElementById('cal-modal-end');
+        var descEl = document.getElementById('cal-modal-desc');
+
+        var title = (titleEl?.value || '').trim();
+        var date = dateEl?.value || '';
+        var start = startEl?.value || '';
+        var end = endEl?.value || '';
+        var desc = (descEl?.value || '').trim();
+
+        console.log('[CalendarRenderer] Form values:', { title, date, start, end });
 
         if (!title) { this._setModalStatus('Title is required.', 'error'); return; }
         if (!date) { this._setModalStatus('Date is required.', 'error'); return; }
@@ -572,6 +623,8 @@ LawAIApp.CalendarRenderer = {
         var startAt = date + 'T' + start + ':00';
         var endAt = date + 'T' + end + ':00';
         var duration = this._calcDuration(start, end);
+
+        console.log('[CalendarRenderer] Computed:', { startAt, endAt, duration });
 
         if (duration <= 0) {
             this._setModalStatus('End time must be after start time.', 'error');
@@ -590,9 +643,8 @@ LawAIApp.CalendarRenderer = {
                 source: 'calendar-ui'
             });
         } else {
-            // edit: 先 reschedule，再 updateMetadata
             result = auth.reschedule(opts.scheduleId, startAt, duration);
-            if (result.success) {
+            if (result.success && auth.updateMetadata) {
                 auth.updateMetadata(opts.scheduleId, {
                     title: title,
                     description: desc
@@ -600,7 +652,9 @@ LawAIApp.CalendarRenderer = {
             }
         }
 
-        if (result.success) {
+        console.log('[CalendarRenderer] Save result:', result);
+
+        if (result && result.success) {
             this._setModalStatus('Saved', 'success');
             var eventAdapter = LawAIApp.CalendarEventAdapter;
             if (eventAdapter) {
@@ -624,7 +678,9 @@ LawAIApp.CalendarRenderer = {
                 self.switchView(self._viewModel?.viewMode || 'week');
             }, 300);
         } else {
-            this._setModalStatus('Couldn\'t save. Your changes are still here.', 'error');
+            var errMsg = (result && result.error) ? result.error : 'Unknown error';
+            this._setModalStatus('Couldn\'t save: ' + errMsg, 'error');
+            console.error('[CalendarRenderer] Save failed:', result);
         }
     },
 
