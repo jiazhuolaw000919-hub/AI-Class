@@ -4083,7 +4083,7 @@ _renderRecommendationCard: function(rec) {
                       document.getElementById('dashboard-root');
       if (!container) return;
   
-      // 1. 已加载 → 直接 render（依次尝试 3 个入口）
+      // 1. 已加载 → 直接 render
       if (window.LawAIApp) {
           var candidates = [
               window.LawAIApp.Notes,
@@ -4108,10 +4108,15 @@ _renderRecommendationCard: function(rec) {
       // 2. 显示 loading
       container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Notes...</div>';
   
-      // 3. 防止重复插 script
-      if (document.getElementById('notes-script-loader')) {
+      // 3. 防止重复插 script（用一个独立的标记元素，而不是脚本 id）
+      if (document.getElementById('notes-loading-flag')) {
+          console.log('[Dashboard] ⏳ Notes already loading...');
           return;
       }
+      var flag = document.createElement('div');
+      flag.id = 'notes-loading-flag';
+      flag.style.display = 'none';
+      document.body.appendChild(flag);
   
       // 4. 动态加载 notes.js（+ knowledgeCapture.js）
       var files = [
@@ -4121,9 +4126,9 @@ _renderRecommendationCard: function(rec) {
       var loaded = 0;
       var self = this;
   
-      files.forEach(function(file) {
+      files.forEach(function(file, idx) {
           var script = document.createElement('script');
-          script.id = 'notes-script-loader';   // 用同一个 id 标记"已开始加载"
+          script.id = 'notes-script-' + idx;   // 🔥 每个 script 用不同 id
           script.src = file + '?v=' + Date.now();
           script.async = true;
           script.onload = function() {
