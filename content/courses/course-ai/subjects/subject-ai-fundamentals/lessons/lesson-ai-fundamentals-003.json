@@ -148,12 +148,15 @@
   },
 
   "video": {
-    "provider": "youtube",
-    "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao",
-    "title": "AI in Everyday Life: The Hidden Systems Around You",
-    "durationMinutes": 14,
-    "notes": "The video expands on the sections above with visual examples of AI in daily tools."
-  },
+  "provider": "youtube",
+  "url": "https://www.youtube.com/watch?v=kw7nQsMwnwI",
+  "title": "How AI is Changing Our World — TED",
+  "durationMinutes": 12,
+  "channel": "TED",
+  "notes": "Explores how AI is embedded in everyday systems and what it means for society.",
+  "isOfficial": false,
+  "relevance": "Complements this lesson's focus on AI in daily life."
+},
 
   "flashcards": [
     {
