@@ -1,142 +1,283 @@
 {
   "id": "lesson-ai-fundamentals-001",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "title": "What is Artificial Intelligence?",
   "slug": "what-is-artificial-intelligence",
   "subjectId": "subject-ai-fundamentals",
   "courseId": "course-ai",
   "moduleId": null,
   "order": 1,
-  "estimatedMinutes": 20,
+  "estimatedMinutes": 25,
   "difficulty": "foundation",
   "status": "published",
-  "description": "This lesson introduces the fundamental concept of Artificial Intelligence—what it is, what it isn't, and where it's used today.",
+  "description": "Artificial Intelligence is one of the most misunderstood terms in technology. This lesson gives you a clear, beginner-friendly understanding of what AI actually is — and what it isn't.",
+
   "learningObjectives": [
-    "Define artificial intelligence",
-    "Distinguish between AI, ML, and DL",
-    "Identify real-world AI applications"
+    "Define artificial intelligence in plain language",
+    "Distinguish between AI, Machine Learning, and Deep Learning",
+    "Identify AI systems in tools you already use",
+    "Recognize common misconceptions about AI"
   ],
+
+  "opening": {
+    "hook": "You have probably heard that AI is going to change everything — or that it is overhyped. But what actually IS it? If you cannot give a clear answer to that question, you are not alone. Even experts disagree on the edges. But there is a core idea that is surprisingly simple once you see it.",
+    "relevance": "Understanding what AI actually is helps you evaluate every AI claim you encounter — from news headlines to product pitches."
+  },
+
   "sections": [
     {
       "id": "section-01",
       "type": "foundation",
-      "title": "What is AI?",
+      "title": "What Is AI?",
+      "duration": 6,
       "content": [
         {
-          "type": "text",
-          "content": "Artificial Intelligence (AI) is the simulation of human intelligence in machines. It encompasses everything from rule-based systems to self-learning neural networks."
+          "type": "paragraph",
+          "content": "Artificial Intelligence (AI) is the simulation of human intelligence in machines. That is the official definition. But it does not explain much, does it?"
+        },
+        {
+          "type": "paragraph",
+          "content": "Here is a better way to think about it: AI is any system that performs tasks that would normally require human intelligence — recognizing images, understanding language, making decisions, learning from experience."
         },
         {
           "type": "definition",
-          "content": "Machine Learning: A subset of AI where systems learn from data without explicit programming."
+          "term": "Artificial Intelligence",
+          "definition": "The simulation of human intelligence in machines — systems that perform tasks requiring human-like reasoning, learning, or perception.",
+          "example": "When you ask ChatGPT a question and it responds thoughtfully, that is AI at work."
         },
         {
-          "type": "definition",
-          "content": "Deep Learning: A subset of ML using neural networks with many layers."
+          "type": "important",
+          "title": "The key distinction",
+          "content": "Traditional software follows rules written by humans. AI learns patterns from data. This is the fundamental difference that makes AI both powerful and unpredictable."
         }
       ]
     },
     {
       "id": "section-02",
       "type": "core",
-      "title": "How AI Works",
+      "title": "The AI Family: AI, ML, and DL",
+      "duration": 10,
       "content": [
         {
-          "type": "text",
-          "content": "Modern AI is powered by transformer architectures and trained on massive datasets. The key insight is that intelligence emerges from scale and pattern recognition."
+          "type": "paragraph",
+          "content": "AI is not one thing. It is a family of related approaches. Understanding the relationship between them is crucial."
         },
         {
-          "type": "example",
-          "content": "ChatGPT, self-driving cars, and recommendation systems are all real-world AI applications."
+          "type": "definition",
+          "term": "AI (Artificial Intelligence)",
+          "definition": "The broad field of creating machines that perform intelligent tasks.",
+          "example": "This includes everything from rule-based systems to modern neural networks."
+        },
+        {
+          "type": "definition",
+          "term": "ML (Machine Learning)",
+          "definition": "A subset of AI where systems learn patterns from data rather than following hand-coded rules.",
+          "example": "A spam filter that learns from examples of spam and non-spam emails."
+        },
+        {
+          "type": "definition",
+          "term": "DL (Deep Learning)",
+          "definition": "A subset of ML that uses neural networks with many layers to learn complex patterns.",
+          "example": "The technology behind image recognition, voice assistants, and large language models."
+        },
+        {
+          "type": "comparison",
+          "before": "Traditional AI (1950s-2000s): Hand-coded rules. 'If X then Y.'",
+          "after": "Modern AI (2012+): Learned patterns. 'Give me data, I'll figure out the rules.'"
+        },
+        {
+          "type": "workedExample",
+          "title": "How to identify the layers",
+          "steps": [
+            "1. Is it a machine performing intelligent tasks? → It is AI.",
+            "2. Does it learn from data instead of following fixed rules? → It is ML.",
+            "3. Does it use neural networks with many layers? → It is DL."
+          ]
+        },
+        {
+          "type": "important",
+          "title": "The hierarchy",
+          "content": "AI ⊃ ML ⊃ DL. All DL is ML. All ML is AI. But not all AI is ML, and not all ML is DL."
         }
       ]
     },
     {
       "id": "section-03",
       "type": "advanced",
-      "title": "Advanced Insights",
+      "title": "What AI Is NOT",
+      "duration": 8,
       "content": [
         {
-          "type": "text",
-          "content": "The relationship between AI, ML, and DL is hierarchical: AI ⊃ ML ⊃ DL. Understanding this hierarchy is crucial for navigating the AI landscape."
+          "type": "paragraph",
+          "content": "The biggest source of confusion about AI is not what it is — it is what people think it is."
+        },
+        {
+          "type": "misconception",
+          "myth": "AI is a conscious, thinking being.",
+          "reality": "AI has no consciousness, no self-awareness, no intentions. It processes patterns and generates outputs. It does not 'want' anything."
+        },
+        {
+          "type": "misconception",
+          "myth": "AI knows everything.",
+          "reality": "AI only knows what is in its training data — and even then, it can make mistakes. It has no real-time awareness unless specifically connected to tools."
+        },
+        {
+          "type": "misconception",
+          "myth": "AI is always right.",
+          "reality": "AI is probabilistic. It generates likely outputs, not guaranteed correct ones. Hallucination is a fundamental characteristic, not a bug."
+        },
+        {
+          "type": "misconception",
+          "myth": "AI will replace human thinking.",
+          "reality": "AI is a tool. It amplifies human capability. It does not replace judgement, creativity, or responsibility."
+        },
+        {
+          "type": "practical",
+          "title": "The mental model to carry forward",
+          "items": [
+            "AI is powerful but not magical",
+            "AI is useful but not infallible",
+            "AI is a tool — the human remains the decision-maker",
+            "AI improves with data and scale, not with 'understanding'",
+            "AI's output should always be verified when accuracy matters"
+          ]
         }
       ]
     }
   ],
+
+  "keyTakeaways": [
+    "AI is the simulation of human intelligence in machines — systems that perform tasks requiring human-like reasoning.",
+    "AI, ML, and DL form a hierarchy: AI ⊃ ML ⊃ DL.",
+    "AI learns patterns from data — it is not following hand-coded rules.",
+    "AI is not conscious, not omniscient, and not infallible.",
+    "AI is a tool — the human remains the decision-maker."
+  ],
+
+  "reflection": {
+    "prompt": "Before this lesson, what did you think AI was? Has that changed?",
+    "hint": "Most people overestimate AI's intelligence or underestimate its limitations.",
+    "expectedInsight": "A clear mental model of AI helps you use it more effectively and avoid being misled by either hype or fear."
+  },
+
   "video": {
-  "provider": "youtube",
-  "url": "https://www.youtube.com/watch?v=ad79nYk2keg",
-  "title": "What is Artificial Intelligence? — Simplilearn",
-  "durationMinutes": 5,
-  "channel": "Simplilearn",
-  "notes": "A concise introduction to AI concepts. Covers definition, types, and applications.",
-  "isOfficial": false,
-  "relevance": "Provides beginner-friendly overview of AI basics."
-},
+    "provider": "youtube",
+    "url": "https://www.youtube.com/watch?v=ad79nYk2keg",
+    "title": "What is Artificial Intelligence? — Simplilearn",
+    "durationMinutes": 5,
+    "channel": "Simplilearn",
+    "notes": "A concise introduction to AI concepts, covering definition, types, and applications.",
+    "isOfficial": false,
+    "relevance": "Provides a beginner-friendly overview of AI basics."
+  },
+
   "flashcards": [
     {
-      "id": "fc-001",
+      "id": "fc-101",
       "front": "What is Artificial Intelligence?",
-      "back": "AI is the simulation of human intelligence in machines.",
+      "back": "The simulation of human intelligence in machines — systems that perform tasks requiring human-like reasoning, learning, or perception.",
       "difficulty": "foundation",
       "tags": ["definition"]
     },
     {
-      "id": "fc-002",
+      "id": "fc-102",
       "front": "What is the relationship between AI, ML, and DL?",
-      "back": "ML is a subset of AI. DL is a subset of ML.",
+      "back": "AI ⊃ ML ⊃ DL. All DL is ML. All ML is AI. But not all AI is ML.",
       "difficulty": "core",
       "tags": ["hierarchy"]
+    },
+    {
+      "id": "fc-103",
+      "front": "What is the key difference between traditional software and AI?",
+      "back": "Traditional software follows rules written by humans. AI learns patterns from data.",
+      "difficulty": "core",
+      "tags": ["distinction"]
+    },
+    {
+      "id": "fc-104",
+      "front": "Is AI conscious?",
+      "back": "No. AI has no consciousness, no self-awareness, no intentions. It processes patterns and generates outputs.",
+      "difficulty": "advanced",
+      "tags": ["misconception"]
+    },
+    {
+      "id": "fc-105",
+      "front": "What is Machine Learning?",
+      "back": "A subset of AI where systems learn patterns from data instead of following hand-coded rules.",
+      "difficulty": "core",
+      "tags": ["ml"]
     }
   ],
+
   "practice": {
     "enabled": true,
     "type": "mixed",
     "items": [
       {
-        "id": "practice-001",
+        "id": "practice-101",
         "type": "multipleChoice",
-        "question": "What is the correct relationship between AI, Machine Learning, and Deep Learning?",
+        "question": "Which statement best describes Artificial Intelligence?",
         "options": [
-          "AI ⊃ ML ⊃ DL",
+          "A system that thinks like a human",
+          "A system that performs tasks requiring human-like intelligence",
+          "A system with consciousness",
+          "A system that knows everything"
+        ],
+        "answer": 1,
+        "explanation": "AI performs tasks that would normally require human intelligence — but it does not 'think' like a human or have consciousness.",
+        "whyItMatters": "This distinction prevents you from overestimating what AI can do."
+      },
+      {
+        "id": "practice-102",
+        "type": "multipleChoice",
+        "question": "Which of these is the correct hierarchy?",
+        "options": [
           "DL ⊃ ML ⊃ AI",
           "ML ⊃ AI ⊃ DL",
-          "AI = ML = DL"
+          "AI ⊃ ML ⊃ DL",
+          "AI ⊃ DL ⊃ ML"
         ],
-        "answer": 0,
-        "explanation": "AI is the broadest category. ML is a subset of AI. DL is a subset of ML."
+        "answer": 2,
+        "explanation": "AI is the broad field. ML is a subset of AI. DL is a subset of ML. So: AI ⊃ ML ⊃ DL.",
+        "whyItMatters": "This hierarchy helps you understand where any AI system fits."
       },
       {
-        "id": "practice-002",
+        "id": "practice-103",
         "type": "shortAnswer",
-        "question": "Explain the difference between AI, Machine Learning, and Deep Learning in your own words.",
-        "answer": "AI is the broad field of creating intelligent machines. ML is a subset where machines learn from data. DL is a subset of ML using multi-layer neural networks.",
-        "explanation": "Think of AI as the universe, ML as a galaxy within it, and DL as a solar system within that galaxy."
+        "question": "In your own words, what is the difference between traditional software and AI?",
+        "answer": "Traditional software follows rules written by humans. AI learns patterns from data. This is what makes AI both powerful and unpredictable.",
+        "explanation": "The key insight is that AI learns from data — it does not follow hand-coded rules.",
+        "acceptedKeywords": ["rules", "learn", "data", "patterns", "hand-coded"],
+        "whyItMatters": "Understanding this distinction is the foundation for all AI literacy."
+      },
+      {
+        "id": "practice-104",
+        "type": "application",
+        "question": "A friend says: 'AI is going to replace all human thinking.' Based on this lesson, how would you respond?",
+        "answer": "AI is a tool that amplifies human capability — it does not replace judgment, creativity, or responsibility. The human remains the decision-maker.",
+        "explanation": "AI can assist with thinking, but it cannot own it. Consciousness, judgment, and accountability remain human.",
+        "whyItMatters": "This is the learner-agency principle applied to AI itself."
       }
     ]
   },
+
   "notes": {
-    "summary": "AI is the simulation of human intelligence in machines. ML and DL are subsets of AI.",
+    "summary": "AI simulates human intelligence in machines. It has three layers (AI ⊃ ML ⊃ DL). It learns patterns from data, has no consciousness, and is a tool — not a replacement for human judgement.",
     "keyPoints": [
       "AI = simulation of human intelligence in machines",
-      "ML: Systems that learn from data without explicit programming.",
-      "DL: ML using neural networks with many layers."
+      "AI ⊃ ML ⊃ DL",
+      "Traditional software: rules. AI: learned patterns",
+      "AI is not conscious, not omniscient, not infallible",
+      "AI is a tool — human remains decision-maker"
     ],
     "importantTerms": [
-      {
-        "term": "Artificial Intelligence",
-        "definition": "The simulation of human intelligence in machines."
-      },
-      {
-        "term": "Machine Learning",
-        "definition": "A subset of AI where systems learn from data."
-      },
-      {
-        "term": "Deep Learning",
-        "definition": "A subset of ML using multi-layer neural networks."
-      }
-    ]
+      { "term": "Artificial Intelligence", "definition": "The simulation of human intelligence in machines." },
+      { "term": "Machine Learning", "definition": "A subset of AI where systems learn from data." },
+      { "term": "Deep Learning", "definition": "A subset of ML using multi-layer neural networks." }
+    ],
+    "reflection": "Understanding what AI is not is as important as understanding what it is."
   },
+
   "aiTools": [
     {
       "provider": "chatgpt",
@@ -149,29 +290,31 @@
       "recommendedFor": ["detailed explanations", "long-form content"]
     }
   ],
+
   "resources": [
     {
-      "id": "resource-001",
+      "id": "resource-101",
       "title": "Introduction to AI",
       "type": "article",
       "url": "https://example.com/ai-intro",
       "provider": "official"
     }
   ],
+
   "news": [],
+
   "relatedLessons": [
     "lesson-ai-fundamentals-002",
     "lesson-ai-fundamentals-003"
   ],
-  "keyTakeaways": [
-    "AI simulates human intelligence in machines.",
-    "ML learns from data; DL is ML with deep neural networks.",
-    "AI powers real-world applications like chatbots and recommendation systems."
-  ],
+
   "metadata": {
     "author": "Law AI Academy",
-    "language": "en"
+    "version": "2.0.0",
+    "language": "en",
+    "lastReviewed": "2026-09-17"
   },
-  "createdAt": "2026-09-11T00:00:00Z",
-  "updatedAt": "2026-09-11T00:00:00Z"
+
+  "createdAt": "2026-08-20T00:00:00Z",
+  "updatedAt": "2026-09-17T00:00:00Z"
 }
