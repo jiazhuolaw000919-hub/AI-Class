@@ -176,9 +176,13 @@
 
   "video": {
     "provider": "youtube",
-    "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao",
-    "title": "Advanced ChatGPT Workflows",
-    "durationMinutes": 15
+    "url": "https://www.youtube.com/watch?v=4p2v2_mZ7xQ",
+    "title": "ChatGPT Advanced Tutorial — Fireship",
+    "durationMinutes": 10,
+    "channel": "Fireship",
+    "notes": "Fast-paced overview of Custom GPTs, Code Interpreter, and API basics.",
+    "isOfficial": false,
+    "relevance": "Covers the three advanced capabilities in this lesson."
   },
 
   "flashcards": [
