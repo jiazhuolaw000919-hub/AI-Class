@@ -490,6 +490,129 @@
             } catch (e) {}
         },
 
+                // ============================================================
+        // Part 177: Consumer 辅助方法
+        // ============================================================
+
+        /**
+         * 获取当前应暴露给 UI 的偏好列表
+         * 只返回有真实 consumer 的偏好
+         */
+        getUiExposedPreferences: function() {
+            return {
+                appearance: ['theme', 'layout', 'density'],
+                learning: ['preferredSessionDuration', 'recommendationsEnabled', 'explanationDetail'],
+                calendar: ['preferredStudyTime', 'preferredStudyDays', 'defaultReminderMinutes'],
+                accessibility: ['reducedMotion', 'highContrast', 'fontSize']
+            };
+        },
+
+        /**
+         * 获取每个偏好的元数据（用于 UI 渲染）
+         */
+        getPreferenceMetadata: function() {
+            return {
+                theme: {
+                    label: 'Theme',
+                    type: 'select',
+                    options: [
+                        { value: 'system', label: 'System' },
+                        { value: 'light', label: 'Light' },
+                        { value: 'dark', label: 'Dark' }
+                    ],
+                    description: 'Choose your preferred color theme'
+                },
+                layout: {
+                    label: 'Layout',
+                    type: 'select',
+                    options: [
+                        { value: 'comfortable', label: 'Comfortable' },
+                        { value: 'compact', label: 'Compact' }
+                    ],
+                    description: 'Adjust spacing and layout density'
+                },
+                density: {
+                    label: 'Density',
+                    type: 'select',
+                    options: [
+                        { value: 'compact', label: 'Compact' },
+                        { value: 'normal', label: 'Normal' },
+                        { value: 'spacious', label: 'Spacious' }
+                    ],
+                    description: 'Adjust information density'
+                },
+                preferredSessionDuration: {
+                    label: 'Session Duration',
+                    type: 'select',
+                    options: [
+                        { value: 15, label: '15 min' },
+                        { value: 30, label: '30 min' },
+                        { value: 45, label: '45 min' },
+                        { value: 60, label: '60 min' },
+                        { value: 90, label: '90 min' }
+                    ],
+                    description: 'Your preferred learning session length'
+                },
+                recommendationsEnabled: {
+                    label: 'Show Recommendations',
+                    type: 'toggle',
+                    description: 'Allow the system to suggest what to learn next'
+                },
+                explanationDetail: {
+                    label: 'Explanation Detail',
+                    type: 'select',
+                    options: [
+                        { value: 'brief', label: 'Brief' },
+                        { value: 'moderate', label: 'Moderate' },
+                        { value: 'detailed', label: 'Detailed' }
+                    ],
+                    description: 'How much detail in recommendation explanations'
+                },
+                preferredStudyTime: {
+                    label: 'Preferred Study Time',
+                    type: 'time',
+                    description: 'When you usually study'
+                },
+                preferredStudyDays: {
+                    label: 'Preferred Study Days',
+                    type: 'days',
+                    description: 'Which days you usually study'
+                },
+                defaultReminderMinutes: {
+                    label: 'Default Reminder',
+                    type: 'select',
+                    options: [
+                        { value: 0, label: 'At start time' },
+                        { value: 5, label: '5 min before' },
+                        { value: 15, label: '15 min before' },
+                        { value: 30, label: '30 min before' },
+                        { value: 60, label: '1 hour before' }
+                    ],
+                    description: 'When to remind you before scheduled sessions'
+                },
+                reducedMotion: {
+                    label: 'Reduced Motion',
+                    type: 'toggle',
+                    description: 'Minimize animations throughout the app'
+                },
+                highContrast: {
+                    label: 'High Contrast',
+                    type: 'toggle',
+                    description: 'Increase contrast for better readability'
+                },
+                fontSize: {
+                    label: 'Font Size',
+                    type: 'select',
+                    options: [
+                        { value: 'small', label: 'Small' },
+                        { value: 'medium', label: 'Medium' },
+                        { value: 'large', label: 'Large' }
+                    ],
+                    description: 'Adjust base font size'
+                }
+            };
+        },
+
         _debug: function() {
             return {
                 initialized: _initialized,
