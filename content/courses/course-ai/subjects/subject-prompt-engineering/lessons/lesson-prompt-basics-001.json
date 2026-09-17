@@ -147,11 +147,14 @@
   },
 
   "video": {
-    "provider": "youtube",
-    "url": "https://www.youtube.com/watch?v=2ePf9rue1Ao",
-    "title": "Introduction to Prompt Engineering",
-    "durationMinutes": 10,
-    "notes": "The video provides visual examples of weak vs strong prompts."
+  "provider": "youtube",
+  "url": "https://www.youtube.com/watch?v=_ZvnD73m40o",
+  "title": "Prompt Engineering Overview — OpenAI",
+  "durationMinutes": 8,
+  "channel": "OpenAI",
+  "notes": "OpenAI's overview of prompt engineering strategies and best practices.",
+  "isOfficial": true,
+  "relevance": "Authoritative source on prompt engineering fundamentals."
   },
 
   "flashcards": [
