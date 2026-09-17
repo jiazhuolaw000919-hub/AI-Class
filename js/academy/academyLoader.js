@@ -5,6 +5,20 @@
 (function() {
   'use strict';
 
+  // Part 177: 按需加载 CSS
+  function _ensureCSS(href) {
+    // 检查是否已加载
+    var existing = document.querySelector('link[href="' + href + '"]');
+    if (existing) return;
+
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    link.setAttribute('data-lazy-loaded', 'true');
+    document.head.appendChild(link);
+    console.log('[AcademyLoader] 🎨 Loaded CSS:', href);
+  }
+
   if (window.LawAIApp && window.LawAIApp.AcademyLoader) {
     console.warn('[AcademyLoader] Already exists, skipping...');
     return;
@@ -884,7 +898,7 @@
       }
 
       loadNext();
-    },
+    }
 
     async _doStart() {
       this.startTime = Date.now();
@@ -1152,19 +1166,5 @@
   scheduleFn(function() { autoStartAcademy(); });
   document.addEventListener('RUNTIME_READY', function() { autoStartAcademy(); });
   window.addEventListener('RUNTIME_READY', function() { autoStartAcademy(); });
-
-    // Part 177: 按需加载 CSS
-    function _ensureCSS(href) {
-      // 检查是否已加载
-      var existing = document.querySelector('link[href="' + href + '"]');
-      if (existing) return;
-
-      var link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = href;
-      link.setAttribute('data-lazy-loaded', 'true');
-      document.head.appendChild(link);
-      console.log('[AcademyLoader] 🎨 Loaded CSS:', href);
-    }
 
 })();
