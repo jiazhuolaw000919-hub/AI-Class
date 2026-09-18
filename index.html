@@ -1,68 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<script>
-// 🔥 诊断脚本：记录页面从头到尾发生的关键事件
-(function() {
-    var t0 = performance.timing.navigationStart || Date.now();
-    window.__DIAG__ = [];
-    
-    function log(event, extra) {
-        var t = (performance.now ? performance.now() : Date.now() - t0).toFixed(0);
-        var line = t + 'ms | ' + event + (extra ? ' | ' + JSON.stringify(extra) : '');
-        window.__DIAG__.push(line);
-        console.log('%c⏱️ ' + line, 'color:#f59e0b;font-weight:bold');
-    }
-    
-    log('DIAG_START');
-    
-    // DOM 就绪
-    document.addEventListener('DOMContentLoaded', function() {
-        log('DOM_CONTENT_LOADED');
-    });
-    
-    // window load
-    window.addEventListener('load', function() {
-        log('WINDOW_LOAD');
-    });
-    
-    // 关键事件
-    ['SYSTEM_READY', 'COMPOSER_MOUNTED', 'DASHBOARD_RENDERED', 'COMPOSER_HIDE_LOADER'].forEach(function(name) {
-        document.addEventListener(name, function() {
-            log(name);
-        });
-    });
-    
-    // 观察 #law-runtime-root 的 DOM 变化
-    document.addEventListener('DOMContentLoaded', function() {
-        var root = document.getElementById('law-runtime-root');
-        if (!root) {
-            log('NO_ROOT');
-            return;
-        }
-        
-        var mutationCount = 0;
-        new MutationObserver(function(mutations) {
-            mutationCount++;
-            var detail = mutations.map(function(m) {
-                return m.type + ':' + (m.target.id || m.target.tagName);
-            }).join(',');
-            log('MUTATION#' + mutationCount, { target: detail, count: mutations.length });
-        }).observe(root, { childList: true, subtree: true, attributes: true });
-        
-        log('OBSERVER_ATTACHED');
-    });
-    
-    // 5 秒后输出完整时间线
-    setTimeout(function() {
-        console.log('%c════════════════════════════', 'color:red;font-weight:bold');
-        console.log('%c📋 完整时间线：', 'color:red;font-weight:bold;font-size:14px');
-        window.__DIAG__.forEach(function(line) {
-            console.log('  ' + line);
-        });
-        console.log('%c════════════════════════════', 'color:red;font-weight:bold');
-    }, 5000);
-})();
-</script>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -135,6 +72,69 @@
       50% { opacity: 1; }
     }
   </style>
+    <script>
+    // 🔥 诊断脚本：记录页面从头到尾发生的关键事件
+    (function() {
+        var t0 = performance.timing.navigationStart || Date.now();
+        window.__DIAG__ = [];
+        
+        function log(event, extra) {
+            var t = (performance.now ? performance.now() : Date.now() - t0).toFixed(0);
+            var line = t + 'ms | ' + event + (extra ? ' | ' + JSON.stringify(extra) : '');
+            window.__DIAG__.push(line);
+            console.log('%c⏱️ ' + line, 'color:#f59e0b;font-weight:bold');
+        }
+        
+        log('DIAG_START');
+        
+        // DOM 就绪
+        document.addEventListener('DOMContentLoaded', function() {
+            log('DOM_CONTENT_LOADED');
+        });
+        
+        // window load
+        window.addEventListener('load', function() {
+            log('WINDOW_LOAD');
+        });
+        
+        // 关键事件
+        ['SYSTEM_READY', 'COMPOSER_MOUNTED', 'DASHBOARD_RENDERED', 'COMPOSER_HIDE_LOADER'].forEach(function(name) {
+            document.addEventListener(name, function() {
+                log(name);
+            });
+        });
+        
+        // 观察 #law-runtime-root 的 DOM 变化
+        document.addEventListener('DOMContentLoaded', function() {
+            var root = document.getElementById('law-runtime-root');
+            if (!root) {
+                log('NO_ROOT');
+                return;
+            }
+            
+            var mutationCount = 0;
+            new MutationObserver(function(mutations) {
+                mutationCount++;
+                var detail = mutations.map(function(m) {
+                    return m.type + ':' + (m.target.id || m.target.tagName);
+                }).join(',');
+                log('MUTATION#' + mutationCount, { target: detail, count: mutations.length });
+            }).observe(root, { childList: true, subtree: true, attributes: true });
+            
+            log('OBSERVER_ATTACHED');
+        });
+        
+        // 5 秒后输出完整时间线
+        setTimeout(function() {
+            console.log('%c════════════════════════════', 'color:red;font-weight:bold');
+            console.log('%c📋 完整时间线：', 'color:red;font-weight:bold;font-size:14px');
+            window.__DIAG__.forEach(function(line) {
+                console.log('  ' + line);
+            });
+            console.log('%c════════════════════════════', 'color:red;font-weight:bold');
+        }, 5000);
+    })();
+    </script>
 </head>
 <body>
 
