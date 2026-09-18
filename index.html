@@ -276,15 +276,11 @@
           var placeholder = document.getElementById('loading-placeholder');
           if (!placeholder) return;
       
-          // 🔥 双 rAF：确保 dashboard 已经 paint 到屏幕
+          // 🔥 双 rAF 保证 dashboard 已 paint，然后瞬间隐藏
           requestAnimationFrame(function() {
               requestAnimationFrame(function() {
-                  placeholder.style.transition = 'opacity 0.15s ease';
-                  placeholder.classList.add('hidden');
-      
-                  setTimeout(function() {
-                      placeholder.style.display = 'none';
-                  }, 200);
+                  placeholder.style.display = 'none';
+                  console.log('✅ Loading placeholder removed (display: none)');
               });
           });
       }
