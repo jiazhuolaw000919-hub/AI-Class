@@ -77,9 +77,8 @@ window.App = {
         this._registerLessonRoute();
 
         if (this._state.initialized) {
-            console.log("🔄 App already initialized, refreshing...");
-            this.refresh(payload);
-            return;
+            console.log("🔄 App already initialized, skipping re-init");
+            return;   // 🔥 不做任何事，直接返回
         }
 
         this._state.initialized = true;
