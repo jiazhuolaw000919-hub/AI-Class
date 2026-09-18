@@ -3388,6 +3388,9 @@ _renderRecommendationCard: function(rec) {
 
  _renderSettingsView: function() {
       console.log('[Dashboard] ⚙️ Rendering Settings...');
+
+      // 🔥 记录来源
+      sessionStorage.setItem('settings_source', 'dashboard');
   
       var self = this;
       var container = document.getElementById('app') || 
