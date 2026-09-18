@@ -347,12 +347,13 @@ LawAIApp.Views.LessonView = {
 
             <!-- 返回栏 -->
             <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 16px;border-bottom:1px solid rgba(255,255,255,0.04);margin-bottom:20px;flex-wrap:wrap;gap:8px;">
-                <button id="lesson-back-btn" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.04);border-radius:8px;color:#94a3b8;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;">← Back</button>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <button id="lesson-back-btn" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.04);border-radius:8px;color:#94a3b8;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;">← Back</button>
+                    <button onclick="window.location.href='/'" style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.12);border-radius:8px;color:#10b981;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;">🏠 Home</button>
+                </div>
                 <div style="display:flex;align-items:center;gap:10px;font-size:11px;color:#64748b;flex-wrap:wrap;">
                     <span>${completedCount}/${totalCount}</span>
-                    <span style="opacity:0.3;">·</span>
-                    <span>${Math.round((completedCount / totalCount) * 100)}%</span>
-                    ${completed ? '<span style="color:#22c55e;font-size:10px;">✅ Done</span>' : ''}
+                    ...
                 </div>
             </div>
 
