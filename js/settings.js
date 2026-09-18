@@ -27,25 +27,42 @@ LawAIApp.Settings = {
     },
 
     // ============================================================
-    // 返回 Dashboard
+    // 🏠 Home — 强制回 dashboard（无论从哪进来）
     // ============================================================
     goToDashboard: function() {
-        var container = this._getContainer();
-        var isAcademyPage = window.location.pathname.includes('/pages/academy.html');
-        var isDashboardPage = window.location.pathname === '/' || window.location.pathname === '/index.html';
-
-        if (isAcademyPage) {
-            if (container) container.innerHTML = '';
-            window.location.href = '/pages/academy.html';
-        } else if (isDashboardPage) {
-            if (container) container.innerHTML = '';
-            if (window.LawAIApp?.Dashboard) {
-                window.LawAIApp.Dashboard._rendered = false;
-                window.LawAIApp.Dashboard.render();
-            }
-        } else {
-            history.back();
+        console.log('[Settings] 🏠 Home → dashboard');
+        
+        // 如果不在首页 → 直接跳首页
+        if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
+            window.location.href = '/';
+            return;
         }
+        
+        // 已经在首页 → 直接重渲染 dashboard
+        var container = this._getContainer();
+        if (container) container.innerHTML = '';
+        if (window.LawAIApp?.Dashboard) {
+            // 🔥 绕过 5 秒防抖
+            window.LawAIApp.Dashboard._lastRenderAt = 0;
+            window.LawAIApp.Dashboard._rendered = false;
+            window.LawAIApp.Dashboard.render();
+        }
+    },
+
+    // ============================================================
+    // ← Back — 返回上一页
+    // ============================================================
+    goBack: function() {
+        console.log('[Settings] ← Back');
+        
+        // 优先用 history.back()
+        if (window.history.length > 1) {
+            window.history.back();
+            return;
+        }
+        
+        // 没有历史 → fallback 回首页
+        window.location.href = '/';
     },
 
     // ============================================================
