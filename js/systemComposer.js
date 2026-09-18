@@ -146,19 +146,11 @@ LawAIApp.SystemComposer = {
     // 7. Hide Loader (🔥 修复：正确的函数名)
     // ============================================================
     _hideLoader: function() {
-        var loader = document.getElementById('loading-placeholder');
-        if (loader) {
-            loader.style.display = 'none';
-            console.log('🔒 Loader hidden');
-        }
-        
-        // 也尝试隐藏其他可能的 loading 元素
-        var loadingEls = document.querySelectorAll('[id*="loading"], [class*="loading"], [id*="skeleton"], [class*="skeleton"]');
-        loadingEls.forEach(function(el) {
-            if (el.id !== 'systemComposerRoot') {
-                el.style.display = 'none';
-            }
-        });
+        // 🔥 统一交给 index.html 的 hideLoadingPlaceholder 处理
+        try {
+            document.dispatchEvent(new CustomEvent('COMPOSER_HIDE_LOADER'));
+            console.log('📡 COMPOSER_HIDE_LOADER dispatched');
+        } catch (e) {}
     },
 
     // ============================================================
