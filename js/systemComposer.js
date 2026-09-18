@@ -274,6 +274,13 @@ LawAIApp.SystemComposer = {
     _renderMainUI: function() {
         if (!this.root) return;
         if (document.getElementById("systemComposerRoot")) return;
+
+        // 🔥 关键：如果 Dashboard 已经被别的引擎（App）渲染过了，跳过
+        if (document.getElementById('dashboard-root')) {
+            console.log("⏭️ Dashboard already rendered by another engine, skipping");
+            this._hideLoader();
+            return;
+        }
     
         console.log("⚡ Rendering Dashboard...");
 
@@ -286,7 +293,7 @@ LawAIApp.SystemComposer = {
             window.LawAIApp.Dashboard.render();
         
             this._hideLoader();
-            console.log("✅ Dashboard rendered");
+            console.log("✅ Dashboard rendered by SystemComposer");
             return;
         }
 
