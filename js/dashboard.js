@@ -3492,16 +3492,17 @@ _renderRecommendationCard: function(rec) {
               return;
           }
   
-          // Authority 已 ready → 直接 render
-          try {
-              Settings2._root = container;
-              Settings2.render();
-              console.log('[Dashboard] ✅ Settings rendered (after load)');
-          } catch (e) {
-              console.warn('[Dashboard] Settings render error:', e);
-              container.innerHTML = self._settingsFallbackHTML('Render error: ' + e.message);
-          }
-      }
+        // Authority 已 ready → 等一会儿再 render（让 SettingsAuthority 的异步渲染先发生）
+        setTimeout(function() {
+            try {
+                Settings2._root = container;
+                Settings2.render();
+                console.log('[Dashboard] ✅ Settings rendered (after load, delayed 300ms)');
+            } catch (e) {
+                console.warn('[Dashboard] Settings render error:', e);
+                container.innerHTML = self._settingsFallbackHTML('Render error: ' + e.message);
+            }
+        }, 300);
   
       loadNext(0);
   },
