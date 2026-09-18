@@ -276,13 +276,16 @@
           var placeholder = document.getElementById('loading-placeholder');
           if (!placeholder) return;
       
-          // 🔥 用 requestAnimationFrame 保证下一帧才淡出（避免同一帧内闪）
+          // 🔥 双 rAF：确保 dashboard 已经 paint 到屏幕
           requestAnimationFrame(function() {
-              placeholder.classList.add('hidden');
-              // 🔥 200ms 后（淡出完成）彻底移除
-              setTimeout(function() {
-                  placeholder.style.display = 'none';
-              }, 250);
+              requestAnimationFrame(function() {
+                  placeholder.style.transition = 'opacity 0.15s ease';
+                  placeholder.classList.add('hidden');
+      
+                  setTimeout(function() {
+                      placeholder.style.display = 'none';
+                  }, 200);
+              });
           });
       }
       
