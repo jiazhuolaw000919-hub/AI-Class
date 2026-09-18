@@ -19,64 +19,57 @@
   <link rel="stylesheet" href="css/notes.css">
 
   <style>
-    /* 基础重置 + 加载占位 */
+    /* ============================================================ */
+    /* 基础重置                                                      */
+    /* ============================================================ */
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
+
+    html, body {
       margin: 0;
+      padding: 0;
       background: #0b1220;
       color: #e2e8f0;
       font-family: 'Inter', -apple-system, sans-serif;
       min-height: 100vh;
     }
-    #law-runtime-root { min-height: 100vh; background: #0b1220; }
 
-    /* 加载占位 */
-    #loading-placeholder {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+    #law-runtime-root {
       min-height: 100vh;
       background: #0b1220;
-      color: #94a3b8;
-      font-family: 'Inter', -apple-system, sans-serif;
-      text-align: center;
-      padding: 20px;
+    }
+
+    /* ============================================================ */
+    /* Loading Placeholder — 简单、静态、无过渡                       */
+    /* ============================================================ */
+    #loading-placeholder {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #0b1220;
+      color: #94a3b8;
+      font-family: 'Inter', -apple-system, sans-serif;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
       z-index: 9999;
       pointer-events: none;
+      /* 🔥 完全不用 transition */
       transition: none;
     }
-    #loading-placeholder.hidden {
-      opacity: 0;
-      pointer-events: none;
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes pulse {
       0%, 100% { opacity: 0.6; }
       50% { opacity: 1; }
-    }
-
-    /* 强制固定 loading-placeholder，确保不占布局空间 */
-    #loading-placeholder {
-        display: flex !important;
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
-        z-index: 9999 !important;
-        pointer-events: none !important;
-    }
-    /* 隐藏时用 visibility 而不是 display，避免布局变化 */
-    #loading-placeholder.hidden {
-        opacity: 0 !important;
     }
   </style>
 </head>
@@ -256,72 +249,69 @@
   <script>
   (function() {
       'use strict';
-  
+
       console.log('🚀 Law AI Academy — Season 4');
       console.log('📋 Architecture: Learner Agency + Bounded Autonomy');
       console.log('🛠️ DevPanel: Ctrl+Shift+L');
       console.log('📊 Dashboard: S4 Integrated');
-  
-      // Fallback：8 秒后强制显示
-      var fallbackTimer = setTimeout(function() {
-          var root = document.getElementById('law-runtime-root');
+
+      var _loadingRemoved = false;
+
+      // 🔥 从 DOM 里彻底移除遮罩
+      function removeLoadingPlaceholder(reason) {
+          if (_loadingRemoved) return;
+          _loadingRemoved = true;
+
           var placeholder = document.getElementById('loading-placeholder');
-  
-          if (root && root.innerHTML.trim() === '') {
-              console.warn('⚠️ SYSTEM_READY timeout — forcing Dashboard render');
-              if (window.LawAIApp && window.LawAIApp.Dashboard && typeof window.LawAIApp.Dashboard.render === 'function') {
-                  window.LawAIApp.Dashboard.render();
-              }
-              if (placeholder) {
-                  placeholder.classList.add('hidden');
-              }
+          if (!placeholder) {
+              console.log('ℹ️ Loading placeholder already gone (' + reason + ')');
+              return;
           }
-      }, 8000);
-  
-      // 🔥 统一的撤遮罩函数
-      var _loadingHidden = false;
-      function hideLoadingPlaceholder(reason) {
-          if (_loadingHidden) return;
-          _loadingHidden = true;
-          clearTimeout(fallbackTimer);
-          console.log('✅ Hiding loading (' + reason + ')');
-  
-          var placeholder = document.getElementById('loading-placeholder');
-          if (!placeholder) return;
-  
+
           // 双 rAF：确保 dashboard 已经 paint 到屏幕
           requestAnimationFrame(function() {
               requestAnimationFrame(function() {
-                  placeholder.style.transition = 'opacity 0.15s ease';
-                  placeholder.classList.add('hidden');
-                  setTimeout(function() {
-                      placeholder.style.display = 'none';
-                  }, 200);
+                  // 🔥 直接 remove()，没有 transition、没有 visibility、没有 display 切换
+                  placeholder.remove();
+                  console.log('✅ Loading placeholder removed from DOM (' + reason + ')');
               });
           });
       }
-  
+
+      // 🔥 8 秒兜底：如果 dashboard 一直没渲染，也移除遮罩
+      var fallbackTimer = setTimeout(function() {
+          var root = document.getElementById('law-runtime-root');
+          if (root && root.innerHTML.trim() === '') {
+              console.warn('⚠️ Fallback: forcing Dashboard render');
+              if (window.LawAIApp && window.LawAIApp.Dashboard && typeof window.LawAIApp.Dashboard.render === 'function') {
+                  try { window.LawAIApp.Dashboard.render(); } catch (e) { console.warn(e); }
+              }
+          }
+          removeLoadingPlaceholder('FALLBACK_8S');
+      }, 8000);
+
+      // 🔥 监听所有"该撤遮罩了"的信号
       document.addEventListener('SYSTEM_READY', function() {
           console.log('✅ SYSTEM_READY received');
-          hideLoadingPlaceholder('SYSTEM_READY');
+          removeLoadingPlaceholder('SYSTEM_READY');
       });
-  
+
       document.addEventListener('COMPOSER_MOUNTED', function() {
           console.log('✅ COMPOSER_MOUNTED received');
-          hideLoadingPlaceholder('COMPOSER_MOUNTED');
+          removeLoadingPlaceholder('COMPOSER_MOUNTED');
       });
-  
+
       document.addEventListener('DASHBOARD_RENDERED', function() {
           console.log('✅ DASHBOARD_RENDERED received');
-          hideLoadingPlaceholder('DASHBOARD_RENDERED');
+          removeLoadingPlaceholder('DASHBOARD_RENDERED');
       });
-  
-      // COMPOSER_HIDE_LOADER：SystemComposer 请求撤遮罩
+
       document.addEventListener('COMPOSER_HIDE_LOADER', function() {
           console.log('✅ COMPOSER_HIDE_LOADER received');
-          hideLoadingPlaceholder('COMPOSER_HIDE_LOADER');
+          removeLoadingPlaceholder('COMPOSER_HIDE_LOADER');
       });
-  
+
+      // 如果 DOM 已完全加载，手动触发
       if (document.readyState === 'complete') {
           setTimeout(function() {
               if (window.LawAIApp && window.LawAIApp.Bootstrap && typeof window.LawAIApp.Bootstrap.isBooted === 'function') {
