@@ -54,7 +54,6 @@
     #loading-placeholder.hidden {
       opacity: 0;
       pointer-events: none;
-      visibility: hidden;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes pulse {
@@ -78,8 +77,6 @@
     /* 隐藏时用 visibility 而不是 display，避免布局变化 */
     #loading-placeholder.hidden {
         opacity: 0 !important;
-        visibility: hidden !important;
-        /* 不用 display: none，避免布局抖动 */
     }
   </style>
 </head>
@@ -298,7 +295,7 @@
                   placeholder.style.transition = 'opacity 0.15s ease';
                   placeholder.classList.add('hidden');
                   setTimeout(function() {
-                      placeholder.style.display = 'hidden';
+                      placeholder.style.display = 'none';
                   }, 200);
               });
           });
