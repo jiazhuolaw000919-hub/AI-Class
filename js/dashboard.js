@@ -187,9 +187,17 @@ LawAIApp.Dashboard = {
 
     const app = document.getElementById('app') || document.getElementById('law-runtime-root');
     if (app) {
-      app.innerHTML = html;
-      this._rendered = true;
-      this._initAnimations();
+        app.innerHTML = html;
+        this._rendered = true;
+        this._initAnimations();
+    
+        // 🔥 通知"dashboard 渲染完"
+        try {
+            document.dispatchEvent(new CustomEvent('DASHBOARD_RENDERED', {
+                detail: { timestamp: Date.now() }
+            }));
+            console.log('[Dashboard] 📣 DASHBOARD_RENDERED dispatched');
+        } catch (e) {}
     }
   },
 
