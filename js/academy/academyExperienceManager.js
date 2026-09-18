@@ -365,12 +365,6 @@
 
         selectLesson: function(lessonId) {
             console.log('[AcademyExperienceManager] 📍 selectLesson:', lessonId);
-            
-            // 🔥 记录来源（当前 URL）
-            try {
-                sessionStorage.setItem('lawai_lesson_return', window.location.href);
-                console.log('[AcademyExperienceManager] 📌 Saved return URL:', window.location.href);
-            } catch (e) {}
         
             if (!lessonId || typeof lessonId !== 'string') {
                 console.warn('[AcademyExperienceManager] selectLesson: invalid lessonId:', lessonId);
