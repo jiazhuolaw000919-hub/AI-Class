@@ -454,13 +454,8 @@ LawAIApp.Views.LessonView = {
         var backBtn = document.getElementById('lesson-back-btn');
         if (backBtn) {
             backBtn.addEventListener('click', function() {
-                // 🔥 直接回上一页，不走 Router（Router 会跳 dashboard）
-                if (window.history.length > 1) {
-                    window.history.back();
-                } else {
-                    // 没有历史记录，兜底去 academy
-                    window.location.href = '/pages/academy.html';
-                }
+                if (LawAIApp.Router?.goBack) LawAIApp.Router.goBack();
+                else history.back();
             });
         }
 
