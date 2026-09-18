@@ -299,6 +299,11 @@
       document.addEventListener('DASHBOARD_RENDERED', function() {
           console.log('✅ DASHBOARD_RENDERED received');
           hideLoadingPlaceholder('DASHBOARD_RENDERED');
+
+      // 🔥 SystemComposer 也请求撤遮罩
+      document.addEventListener('COMPOSER_HIDE_LOADER', function() {
+          console.log('✅ COMPOSER_HIDE_LOADER received');
+          hideLoadingPlaceholder('COMPOSER_HIDE_LOADER');
       });
 
       // 如果 DOM 已完全加载，手动触发
