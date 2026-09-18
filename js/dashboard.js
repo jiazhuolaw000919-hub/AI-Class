@@ -3389,16 +3389,22 @@ _renderRecommendationCard: function(rec) {
  _renderSettingsView: function() {
       console.log('[Dashboard] ⚙️ Rendering Settings...');
   
+      var self = this;
       var container = document.getElementById('app') || 
                       document.getElementById('law-runtime-root') || 
                       document.getElementById('dashboard-root');
-      if (!container) return;
+      if (!container) {
+          console.warn('[Dashboard] No container for Settings');
+          return;
+      }
   
-      // 1. 已加载 → 直接 render
-      if (window.LawAIApp && window.LawAIApp.Settings && typeof window.LawAIApp.Settings.render === 'function') {
+      // 1. 都就绪 → 直接 render
+      var Settings = window.LawAIApp && window.LawAIApp.Settings;
+      var Auth = window.LawAIApp && window.LawAIApp.SettingsAuthority;
+      if (Settings && typeof Settings.render === 'function' && Auth && Auth.isReady) {
           try {
-              window.LawAIApp.Settings._root = container;
-              window.LawAIApp.Settings.render();
+              Settings._root = container;
+              Settings.render();
               console.log('[Dashboard] ✅ Settings rendered (cached)');
               return;
           } catch (e) {
@@ -3409,42 +3415,106 @@ _renderRecommendationCard: function(rec) {
       // 2. 显示 loading
       container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Settings...</div>';
   
-      // 3. 防止重复插 script
-      if (document.getElementById('settings-script-loader')) {
+      // 3. 防重复
+      if (document.getElementById('settings-loading-flag')) {
+          console.log('[Dashboard] ⏳ Settings already loading...');
           return;
       }
+      var flag = document.createElement('div');
+      flag.id = 'settings-loading-flag';
+      flag.style.display = 'none';
+      document.body.appendChild(flag);
   
-      // 4. 动态加载 settings.js
-      var script = document.createElement('script');
-      script.id = 'settings-script-loader';
-      script.src = '/js/settings.js?v=' + Date.now();
-      script.async = true;
-      script.onload = function() {
-          console.log('[Dashboard] ✅ settings.js loaded');
-          if (window.LawAIApp && window.LawAIApp.Settings && typeof window.LawAIApp.Settings.render === 'function') {
-              window.LawAIApp.Settings._root = container;
-              window.LawAIApp.Settings.render();
-          } else {
-              container.innerHTML = `
-                <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
-                  <button onclick="LawAIApp.Dashboard.render()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
-                  <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">⚙️ Settings</h2>
-                  <p style="color:#94a3b8;">Settings module not available.</p>
-                </div>
-              `;
+      // 4. 按顺序加载：SettingsAuthority → settings.js
+      var scripts = [
+          '/js/settings/SettingsAuthority.js',
+          '/js/settings.js'
+      ];
+  
+      function loadNext(index) {
+          if (index >= scripts.length) {
+              finalize();
+              return;
           }
-      };
-      script.onerror = function() {
-          console.warn('[Dashboard] ⚠️ Failed to load settings.js');
-          container.innerHTML = `
-            <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
-              <button onclick="LawAIApp.Dashboard.render()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
-              <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">⚙️ Settings</h2>
-              <p style="color:#94a3b8;">Settings module not available.</p>
-            </div>
-          `;
-      };
-      document.head.appendChild(script);
+          var script = document.createElement('script');
+          script.id = 'settings-script-' + index;
+          script.src = scripts[index] + '?v=' + Date.now();
+          script.async = true;
+          script.onload = function() {
+              console.log('[Dashboard] ✅ Loaded:', scripts[index]);
+              loadNext(index + 1);
+          };
+          script.onerror = function() {
+              console.warn('[Dashboard] ⚠️ Failed:', scripts[index]);
+              loadNext(index + 1);
+          };
+          document.head.appendChild(script);
+      }
+  
+      function finalize() {
+          var Auth2 = window.LawAIApp && window.LawAIApp.SettingsAuthority;
+          var Settings2 = window.LawAIApp && window.LawAIApp.Settings;
+  
+          console.log('[Dashboard] finalize:', {
+              Auth: Auth2 ? 'exists' : 'missing',
+              Settings: Settings2 ? 'exists' : 'missing',
+              isReady: Auth2 ? Auth2.isReady : false
+          });
+  
+          if (!Settings2 || typeof Settings2.render !== 'function') {
+              container.innerHTML = self._settingsFallbackHTML('Settings module not loaded.');
+              return;
+          }
+  
+          // Authority 存在但还没 ready → 等 onReady
+          if (Auth2 && !Auth2.isReady && typeof Auth2.onReady === 'function') {
+              console.log('[Dashboard] ⏳ Waiting for SettingsAuthority ready...');
+              Auth2.onReady(function() {
+                  try {
+                      Settings2._root = container;
+                      Settings2.render();
+                      console.log('[Dashboard] ✅ Settings rendered (after authority ready)');
+                  } catch (e) {
+                      console.warn('[Dashboard] Settings render error:', e);
+                      container.innerHTML = self._settingsFallbackHTML('Render error: ' + e.message);
+                  }
+              });
+              // 兜底：5 秒后强制 render
+              setTimeout(function() {
+                  if (container.innerHTML.indexOf('Loading Settings') !== -1) {
+                      console.warn('[Dashboard] ⚠️ Force render after timeout');
+                      try {
+                          Settings2._root = container;
+                          Settings2.render();
+                      } catch (e) {}
+                  }
+              }, 5000);
+              return;
+          }
+  
+          // Authority 已 ready → 直接 render
+          try {
+              Settings2._root = container;
+              Settings2.render();
+              console.log('[Dashboard] ✅ Settings rendered (after load)');
+          } catch (e) {
+              console.warn('[Dashboard] Settings render error:', e);
+              container.innerHTML = self._settingsFallbackHTML('Render error: ' + e.message);
+          }
+      }
+  
+      loadNext(0);
+  },
+  
+  // 🔥 Settings fallback 辅助函数
+  _settingsFallbackHTML: function(msg) {
+      return `
+        <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
+          <button onclick="LawAIApp.Dashboard.render()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
+          <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">⚙️ Settings</h2>
+          <p style="color:#94a3b8;">${msg || 'Settings module not available.'}</p>
+        </div>
+      `;
   },
 
   // ============================================================
