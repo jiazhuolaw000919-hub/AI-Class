@@ -29,7 +29,7 @@ LawAIApp.Router = {
     // INIT — 立即初始化，不阻塞
     // ============================================================
 
-    init: function() {
+     init: function() {
         if (this._initialized) return;
         this._initialized = true;
 
@@ -53,9 +53,17 @@ LawAIApp.Router = {
             this.loadPage(initialPage);
             this.updateNav(initialPage);
         } else {
-            this._navigationHistory.push('dashboard');
-            this.loadPage('dashboard');
-            this.updateNav('dashboard');
+            // 🔥 关键改动：dashboard 如果已经渲染过，就不再渲染
+            var alreadyRendered = document.getElementById('dashboard-root');
+            if (alreadyRendered) {
+                console.log('⏭️ Router: Dashboard already rendered, skipping re-render');
+                this.currentPage = 'dashboard';
+                this._navigationHistory.push('dashboard');
+            } else {
+                this._navigationHistory.push('dashboard');
+                this.loadPage('dashboard');
+                this.updateNav('dashboard');
+            }
         }
 
         // 2. 延迟绑定事件监听（不阻塞首屏）
@@ -687,8 +695,16 @@ LawAIApp.Router = {
         }
 
         // Dashboard
+        // Dashboard
         if (page === 'dashboard') {
             if (LawAIApp.Dashboard?.render) {
+                // 🔥 如果 dashboard 已经渲染过（App 或别的引擎已经画了），且当前就在 dashboard，跳过
+                var existingDash = document.getElementById('dashboard-root');
+                if (existingDash && this.currentPage === 'dashboard') {
+                    console.log('⏭️ Router.loadPage: Dashboard already rendered, skipping');
+                    return;
+                }
+
                 if (app) app.innerHTML = '';
                 LawAIApp.Dashboard.render(this.currentParams);
                 this.currentPage = 'dashboard';
