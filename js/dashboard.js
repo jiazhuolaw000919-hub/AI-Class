@@ -3505,7 +3505,7 @@ _renderRecommendationCard: function(rec) {
         }, 300);
   
       loadNext(0);
-  },
+  }
   
   // 🔥 Settings fallback 辅助函数
   _settingsFallbackHTML: function(msg) {
