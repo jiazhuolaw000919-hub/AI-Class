@@ -29,6 +29,15 @@ LawAIApp.Dashboard = {
   },
 
     render: function() {
+
+      // 🔥 防止 200ms 内重复渲染
+    var now = Date.now();
+    if (this._lastRenderAt && (now - this._lastRenderAt) < 200) {
+        console.log('[Dashboard] ⏭️ Skipping duplicate render (within 200ms)');
+        return;
+    }
+    
+    this._lastRenderAt = now;
     const contract = window.LawAIApp?.ExperienceContract;
     const orchestrator = window.LawAIApp?.JourneyOrchestrator;
     const lc = window.LawAIApp?.LearningContext;
