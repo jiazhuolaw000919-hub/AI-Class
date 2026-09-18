@@ -454,20 +454,18 @@ LawAIApp.Views.LessonView = {
         var backBtn = document.getElementById('lesson-back-btn');
         if (backBtn) {
             backBtn.addEventListener('click', function() {
-                // 🔥 优先用记录的来源
-                var returnUrl = null;
-                try {
-                    returnUrl = sessionStorage.getItem('lawai_lesson_return');
-                } catch (e) {}
-                
-                if (returnUrl) {
-                    try { sessionStorage.removeItem('lawai_lesson_return'); } catch (e) {}
-                    window.location.href = returnUrl;
-                } else if (window.history.length > 1) {
-                    window.history.back();
-                } else {
-                    window.location.href = '/pages/academy.html';
+                var mgr = window.LawAIApp && window.LawAIApp.AcademyExperienceManager;
+        
+                // 🔥 优先回 subject（上一级）
+                if (mgr && mgr._state && mgr._state.currentSubjectId) {
+                    console.log('[LessonView] 🔙 Back to subject:', mgr._state.currentSubjectId);
+                    mgr.navigateToSubject(mgr._state.currentSubjectId);
+                    return;
                 }
+        
+                // 兜底：如果 state 被清了，回 academy 首页
+                console.warn('[LessonView] ⚠️ No subjectId in state, fallback to academy');
+                window.location.href = '/pages/academy.html';
             });
         }
 
