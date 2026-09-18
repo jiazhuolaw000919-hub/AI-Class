@@ -55,14 +55,32 @@ LawAIApp.Settings = {
     goBack: function() {
         console.log('[Settings] ← Back');
         
-        // 优先用 history.back()
-        if (window.history.length > 1) {
-            window.history.back();
+        var source = sessionStorage.getItem('settings_source');
+        sessionStorage.removeItem('settings_source');
+        
+        if (source === 'academy') {
+            window.location.href = '/pages/academy.html';
             return;
         }
         
-        // 没有历史 → fallback 回首页
-        window.location.href = '/';
+        if (source === 'dashboard') {
+            // 已经在 dashboard 页 → 重渲染 dashboard
+            var container = this._getContainer();
+            if (container) container.innerHTML = '';
+            if (window.LawAIApp?.Dashboard) {
+                window.LawAIApp.Dashboard._lastRenderAt = 0;
+                window.LawAIApp.Dashboard._rendered = false;
+                window.LawAIApp.Dashboard.render();
+            }
+            return;
+        }
+        
+        // 兜底：history.back()
+        if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            window.location.href = '/';
+        }
     },
 
     // ============================================================
