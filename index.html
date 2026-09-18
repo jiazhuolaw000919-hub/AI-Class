@@ -61,6 +61,26 @@
       0%, 100% { opacity: 0.6; }
       50% { opacity: 1; }
     }
+
+    /* 强制固定 loading-placeholder，确保不占布局空间 */
+    #loading-placeholder {
+        display: flex !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 9999 !important;
+        pointer-events: none !important;
+    }
+    /* 隐藏时用 visibility 而不是 display，避免布局变化 */
+    #loading-placeholder.hidden {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        /* 不用 display: none，避免布局抖动 */
+    }
   </style>
 </head>
 <body>
