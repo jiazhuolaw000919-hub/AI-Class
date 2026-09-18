@@ -3424,6 +3424,15 @@ _renderRecommendationCard: function(rec) {
       flag.id = 'settings-loading-flag';
       flag.style.display = 'none';
       document.body.appendChild(flag);
+
+    // 🔥 加载 settings.css（先检查是否已加载）
+    if (!document.querySelector('link[href="/css/settings.css"]')) {
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = '/css/settings.css';
+        document.head.appendChild(link);
+        console.log('[Dashboard] 🎨 Loaded CSS: /css/settings.css');
+    }
   
       // 4. 按顺序加载：SettingsAuthority → settings.js
       var scripts = [
