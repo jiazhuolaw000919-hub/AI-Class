@@ -32,8 +32,8 @@ LawAIApp.Dashboard = {
 
       // 🔥 防止 200ms 内重复渲染
     var now = Date.now();
-    if (this._lastRenderAt && (now - this._lastRenderAt) < 200) {
-        console.log('[Dashboard] ⏭️ Skipping duplicate render (within 200ms)');
+    if (this._lastRenderAt && (now - this._lastRenderAt) < 5000) {
+        console.log('[Dashboard] ⏭️ Skipping duplicate render (within 5000ms)');
         return;
     }
     
