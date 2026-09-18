@@ -3492,20 +3492,24 @@ _renderRecommendationCard: function(rec) {
               return;
           }
   
-        // Authority 已 ready → 等一会儿再 render（让 SettingsAuthority 的异步渲染先发生）
+        // （让 SettingsAuthority 的异步渲染先发生，然后我们覆盖它）
         setTimeout(function() {
+            // 🔥 先清空容器，保证 SettingsAuthority 的"完整版"被清掉
+            container.innerHTML = '';
+            
             try {
                 Settings2._root = container;
                 Settings2.render();
-                console.log('[Dashboard] ✅ Settings rendered (after load, delayed 300ms)');
+                console.log('[Dashboard] ✅ Settings rendered (simple version)');
             } catch (e) {
                 console.warn('[Dashboard] Settings render error:', e);
                 container.innerHTML = self._settingsFallbackHTML('Render error: ' + e.message);
             }
-        }, 300);
+        }, 500);
+    }
   
       loadNext(0);
-  }
+  },
   
   // 🔥 Settings fallback 辅助函数
   _settingsFallbackHTML: function(msg) {
