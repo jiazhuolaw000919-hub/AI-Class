@@ -454,15 +454,20 @@ LawAIApp.Views.LessonView = {
         var backBtn = document.getElementById('lesson-back-btn');
         if (backBtn) {
             backBtn.addEventListener('click', function() {
-                if (LawAIApp.Router?.goBack) LawAIApp.Router.goBack();
-                else history.back();
-            });
-        }
-
-        var completeBtn = document.getElementById('lesson-complete-btn');
-        if (completeBtn) {
-            completeBtn.addEventListener('click', function() {
-                self.completeLesson(lesson.lessonId);
+                // 🔥 优先用记录的来源
+                var returnUrl = null;
+                try {
+                    returnUrl = sessionStorage.getItem('lawai_lesson_return');
+                } catch (e) {}
+                
+                if (returnUrl) {
+                    try { sessionStorage.removeItem('lawai_lesson_return'); } catch (e) {}
+                    window.location.href = returnUrl;
+                } else if (window.history.length > 1) {
+                    window.history.back();
+                } else {
+                    window.location.href = '/pages/academy.html';
+                }
             });
         }
 
