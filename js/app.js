@@ -186,11 +186,8 @@ window.App = {
 
         if (window.LawAIApp && window.LawAIApp.Dashboard && typeof window.LawAIApp.Dashboard.render === 'function') {
             console.log("📊 Rendering S4 Dashboard...");
-            root.innerHTML = '';
-            var container = document.createElement('div');
-            container.id = 'systemComposerRoot';
-            root.appendChild(container);
-            
+            // 🔥 Dashboard.render 自己会处理容器，不要在这里创建 systemComposerRoot
+            // （创建了也会被 Dashboard.render 的 innerHTML = html 覆盖掉，反而造成重复渲染）
             try {
                 window.LawAIApp.Dashboard.render();
                 this._state.mounted = true;
