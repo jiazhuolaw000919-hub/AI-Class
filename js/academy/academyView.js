@@ -1045,12 +1045,15 @@ function __safeCall(pathOrObj) {
         
             var html = '';
         
-            // 返回栏
             html += `
                 <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.goHome')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to Academy
+                    </button>
+                    <button onclick="window.location.href='/'" 
+                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.15); font-family: inherit;">
+                        🏠 Home
                     </button>
                     <span style="color: #64748b; font-size: 13px; margin-left: auto;">🏛️ Academy</span>
                 </div>
@@ -1290,14 +1293,15 @@ function __safeCall(pathOrObj) {
         
             var html = '';
         
-            // ============================================================
-            // 1. 返回栏
-            // ============================================================
-            html += `
+           html += `
                 <div class="academy-back-bar" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSchool', '${course.schoolId || ''}')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> Back to School
+                    </button>
+                    <button onclick="window.location.href='/'" 
+                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.15); font-family: inherit;">
+                        🏠 Home
                     </button>
                     <span style="color: #64748b; font-size: 13px; margin-left: auto;">📖 Course</span>
                 </div>
@@ -1866,15 +1870,18 @@ function __safeCall(pathOrObj) {
         
             var html = '';
         
-            // ===== 返回栏 =====
             var backTarget = courseContext ? courseContext.courseId : '';
-            var backLabel = courseContext ? ('Back to ' + (courseContext.title || 'Course')) : 'Back to Course';
-        
+            var backLabel = courseContext ? ('Back to ' + courseContext.title) : 'Back to Course';
+            
             html += `
-                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+                <div class="academy-back-bar" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToCourse', '${backTarget}')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> ${backLabel}
+                    </button>
+                    <button onclick="window.location.href='/'" 
+                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.15); font-family: inherit;">
+                        🏠 Home
                     </button>
                     <span style="color: #64748b; font-size: 13px; margin-left: auto;">📖 Subject</span>
                 </div>
@@ -2177,21 +2184,22 @@ function __safeCall(pathOrObj) {
             // ═══════════════════════════════════════════════════════════════
             var html = '';
         
-            // ─────────────────────────────────────────────────────────────
-            // 返回栏 — Back to Subject
-            // ─────────────────────────────────────────────────────────────
             var backTarget = lesson.moduleId || (lessonContext && lessonContext.subject ? lessonContext.subject.subjectId : '');
             var backLabel = 'Back to Subject';
-        
+            
             if (lessonContext && lessonContext.subject) {
                 backLabel = 'Back to ' + lessonContext.subject.title;
             }
-        
+            
             html += `
                 <div class="academy-back-bar" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; margin: 0 0 16px 0; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
                     <button onclick="__safeCall('LawAIApp.AcademyExperienceManager.navigateToSubject', '${backTarget}')" 
                             style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(74,158,255,0.1); color: #4a9eff; border: 1px solid rgba(74,158,255,0.15); font-family: inherit;">
                         <span style="font-size:16px;">←</span> ${backLabel}
+                    </button>
+                    <button onclick="window.location.href='/'" 
+                            style="display: flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.15); font-family: inherit;">
+                        🏠 Home
                     </button>
                     ${lessonContext && lessonContext.course ? `
                         <span style="color: #475569; font-size: 14px;">|</span>
