@@ -237,88 +237,87 @@
   <!-- 启动脚本                                                     -->
   <!-- ============================================================ -->
   <script>
-    (function() {
+  (function() {
       'use strict';
-
+  
       console.log('🚀 Law AI Academy — Season 4');
       console.log('📋 Architecture: Learner Agency + Bounded Autonomy');
       console.log('🛠️ DevPanel: Ctrl+Shift+L');
       console.log('📊 Dashboard: S4 Integrated');
-
-      // 如果 8 秒后还没有内容，强制显示 Dashboard
+  
+      // Fallback：8 秒后强制显示
       var fallbackTimer = setTimeout(function() {
-        var root = document.getElementById('law-runtime-root');
-        var placeholder = document.getElementById('loading-placeholder');
-
-        if (root && root.innerHTML.trim() === '') {
-          console.warn('⚠️ SYSTEM_READY timeout — forcing Dashboard render');
-
-          if (window.LawAIApp?.Dashboard?.render) {
-            window.LawAIApp.Dashboard.render();
-          } else if (window.LawAIApp?.AcademyExperienceManager?.render) {
-            window.LawAIApp.AcademyExperienceManager.render();
+          var root = document.getElementById('law-runtime-root');
+          var placeholder = document.getElementById('loading-placeholder');
+  
+          if (root && root.innerHTML.trim() === '') {
+              console.warn('⚠️ SYSTEM_READY timeout — forcing Dashboard render');
+              if (window.LawAIApp && window.LawAIApp.Dashboard && typeof window.LawAIApp.Dashboard.render === 'function') {
+                  window.LawAIApp.Dashboard.render();
+              }
+              if (placeholder) {
+                  placeholder.classList.add('hidden');
+              }
           }
-
-          if (placeholder) {
-            placeholder.classList.add('hidden');
-          }
-        }
       }, 8000);
-
-      // 🔥 统一的撤遮罩函数（只撤一次）
+  
+      // 🔥 统一的撤遮罩函数
       var _loadingHidden = false;
       function hideLoadingPlaceholder(reason) {
           if (_loadingHidden) return;
           _loadingHidden = true;
           clearTimeout(fallbackTimer);
           console.log('✅ Hiding loading (' + reason + ')');
-      
+  
           var placeholder = document.getElementById('loading-placeholder');
           if (!placeholder) return;
-      
-          // 🔥 双 rAF 保证 dashboard 已 paint，然后瞬间隐藏
+  
+          // 双 rAF：确保 dashboard 已经 paint 到屏幕
           requestAnimationFrame(function() {
               requestAnimationFrame(function() {
-                  placeholder.style.display = 'none';
-                  console.log('✅ Loading placeholder removed (display: none)');
+                  placeholder.style.transition = 'opacity 0.15s ease';
+                  placeholder.classList.add('hidden');
+                  setTimeout(function() {
+                      placeholder.style.display = 'none';
+                  }, 200);
               });
           });
       }
-      
+  
       document.addEventListener('SYSTEM_READY', function() {
           console.log('✅ SYSTEM_READY received');
           hideLoadingPlaceholder('SYSTEM_READY');
       });
-      
+  
       document.addEventListener('COMPOSER_MOUNTED', function() {
           console.log('✅ COMPOSER_MOUNTED received');
           hideLoadingPlaceholder('COMPOSER_MOUNTED');
       });
-      
-      // 🔥 新增：dashboard 渲染完也撤
+  
       document.addEventListener('DASHBOARD_RENDERED', function() {
           console.log('✅ DASHBOARD_RENDERED received');
           hideLoadingPlaceholder('DASHBOARD_RENDERED');
-
-      // 🔥 SystemComposer 也请求撤遮罩
+      });
+  
+      // COMPOSER_HIDE_LOADER：SystemComposer 请求撤遮罩
       document.addEventListener('COMPOSER_HIDE_LOADER', function() {
           console.log('✅ COMPOSER_HIDE_LOADER received');
           hideLoadingPlaceholder('COMPOSER_HIDE_LOADER');
       });
-
-      // 如果 DOM 已完全加载，手动触发
+  
       if (document.readyState === 'complete') {
-        setTimeout(function() {
-          if (window.LawAIApp?.Bootstrap?.isBooted && !window.LawAIApp.Bootstrap.isBooted()) {
-            console.log('🔥 Manual boot trigger');
-            if (window.LawAIApp?.BootManager?.start) {
-              window.LawAIApp.BootManager.start();
-            }
-          }
-        }, 500);
+          setTimeout(function() {
+              if (window.LawAIApp && window.LawAIApp.Bootstrap && typeof window.LawAIApp.Bootstrap.isBooted === 'function') {
+                  if (!window.LawAIApp.Bootstrap.isBooted()) {
+                      console.log('🔥 Manual boot trigger');
+                      if (window.LawAIApp.BootManager && typeof window.LawAIApp.BootManager.start === 'function') {
+                          window.LawAIApp.BootManager.start();
+                      }
+                  }
+              }
+          }, 500);
       }
-
-    })();
+  })();
   </script>
 
   <noscript>
