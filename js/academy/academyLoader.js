@@ -810,6 +810,9 @@
         return;
       }
 
+      // 🔥 记录来源（settings.js 的 goBack 会用）
+      sessionStorage.setItem('settings_source', 'academy');
+
       container.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;">⏳ Loading Settings...</div>';
 
       var self = this;
