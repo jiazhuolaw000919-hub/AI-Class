@@ -129,7 +129,10 @@ LawAIApp.Settings = {
 
         var html = `
             <div class="settings-container">
-                <button onclick="LawAIApp.Settings.goToDashboard()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:10px 16px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;margin-bottom:16px;">← Back to Dashboard</button>
+                <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+                    <button onclick="LawAIApp.Settings.goBack()" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#94a3b8;padding:10px 16px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;">← Back</button>
+                    <button onclick="LawAIApp.Settings.goToDashboard()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:10px 16px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;">🏠 Home</button>
+                </div>
 
                 <h2 style="margin:0 0 20px;font-size:24px;font-weight:700;">⚙️ Settings</h2>
 
