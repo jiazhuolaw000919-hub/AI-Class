@@ -49,11 +49,12 @@
       bottom: 0;
       z-index: 9999;
       pointer-events: none;
-      transition: opacity 0.8s ease;
+      transition: opacity 0.2s ease;
     }
     #loading-placeholder.hidden {
       opacity: 0;
       pointer-events: none;
+      visibility: hidden;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes pulse {
@@ -264,30 +265,41 @@
         }
       }, 8000);
 
-      // SYSTEM_READY 触发时清除 fallback
+      // 🔥 统一的撤遮罩函数（只撤一次）
+      var _loadingHidden = false;
+      function hideLoadingPlaceholder(reason) {
+          if (_loadingHidden) return;
+          _loadingHidden = true;
+          clearTimeout(fallbackTimer);
+          console.log('✅ Hiding loading (' + reason + ')');
+      
+          var placeholder = document.getElementById('loading-placeholder');
+          if (!placeholder) return;
+      
+          // 🔥 用 requestAnimationFrame 保证下一帧才淡出（避免同一帧内闪）
+          requestAnimationFrame(function() {
+              placeholder.classList.add('hidden');
+              // 🔥 200ms 后（淡出完成）彻底移除
+              setTimeout(function() {
+                  placeholder.style.display = 'none';
+              }, 250);
+          });
+      }
+      
       document.addEventListener('SYSTEM_READY', function() {
-        clearTimeout(fallbackTimer);
-        console.log('✅ SYSTEM_READY received');
-
-        var placeholder = document.getElementById('loading-placeholder');
-        if (placeholder) {
-          setTimeout(function() {
-            placeholder.classList.add('hidden');
-          }, 400);
-        }
+          console.log('✅ SYSTEM_READY received');
+          hideLoadingPlaceholder('SYSTEM_READY');
       });
-
-      // COMPOSER_MOUNTED 也是就绪信号
+      
       document.addEventListener('COMPOSER_MOUNTED', function() {
-        clearTimeout(fallbackTimer);
-        console.log('✅ COMPOSER_MOUNTED received');
-
-        var placeholder = document.getElementById('loading-placeholder');
-        if (placeholder) {
-          setTimeout(function() {
-            placeholder.classList.add('hidden');
-          }, 400);
-        }
+          console.log('✅ COMPOSER_MOUNTED received');
+          hideLoadingPlaceholder('COMPOSER_MOUNTED');
+      });
+      
+      // 🔥 新增：dashboard 渲染完也撤
+      document.addEventListener('DASHBOARD_RENDERED', function() {
+          console.log('✅ DASHBOARD_RENDERED received');
+          hideLoadingPlaceholder('DASHBOARD_RENDERED');
       });
 
       // 如果 DOM 已完全加载，手动触发
