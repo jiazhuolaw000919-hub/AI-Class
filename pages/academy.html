@@ -373,6 +373,14 @@
                     return;
                 }
 
+                if (view === 'notes') {
+                    var notesEvent = new CustomEvent('NAVIGATE_TO_NOTES', {
+                        detail: { source: 'url' }
+                    });
+                    document.dispatchEvent(notesEvent);
+                    return;
+                }
+
                 // ============================================================
                 // 3. Lesson → 用 LessonView 在页面内渲染（不跳转）
                 // ============================================================
