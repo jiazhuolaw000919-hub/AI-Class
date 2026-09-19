@@ -905,3 +905,53 @@
   font-size: 9px !important;
   padding: 12px !important;
 }
+
+/* ================================================================
+   PART 178 — Dashboard Accessibility
+   ================================================================ */
+
+/* ── Screen reader only ── */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ── Focus visibility ── */
+#dashboard-root a:focus-visible,
+#dashboard-root button:focus-visible,
+#dashboard-root [role="button"]:focus-visible,
+#dashboard-root [tabindex]:focus-visible {
+    outline: 2px solid #4a9eff;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+    #dashboard-root *,
+    #dashboard-root *::before,
+    #dashboard-root *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ── High contrast fallback ── */
+@media (prefers-contrast: more) {
+    #dashboard-root {
+        color: #ffffff;
+    }
+    #dashboard-root a:focus-visible,
+    #dashboard-root button:focus-visible {
+        outline-width: 3px;
+    }
+}
