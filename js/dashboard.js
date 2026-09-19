@@ -229,16 +229,16 @@ LawAIApp.Dashboard = {
   },
 
   // ============================================================
-  // 🔥 强制重新渲染（绕过防抖）
+  // 🔥 强制重新渲染（绕过 5 秒防抖）
   // ============================================================
   forceRender: function() {
     console.log('[Dashboard] 🔥 Force render (bypassing debounce)');
-    this._lastRenderAt = 0;
+    this._lastRenderAt = 0;   // 🔥 关键：重置防抖时间戳
     this._rendered = false;
     this.render();
   },
 
-  // 兼容旧代码
+  // 兼容旧调用
   _forceRender: function() {
     return this.forceRender();
   },
@@ -3891,7 +3891,7 @@ _renderRecommendationCard: function(rec) {
   _notesFallbackHTML: function(msg) {
       return `
         <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
-          <button type="button" onclick="LawAIApp.Dashboard._lastRenderAt = 0; LawAIApp.Dashboard.render();" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
+          <button type="button" onclick="LawAIApp.Dashboard._lastRenderAt = 0; LawAIApp.Dashboard.forceRender();" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
           <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">📓 Notes</h2>
           <p style="color:#94a3b8;">${msg || 'Notes module not available.'}</p>
         </div>
