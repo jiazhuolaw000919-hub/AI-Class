@@ -875,12 +875,11 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
         if (result.success && window.LawAIApp?.Toast?.success) {
             LawAIApp.Toast.success('💭 Reflection saved to Notes');
         }
-    }
+    },
 
     // ============================================================
     // 🔥 Part 175: Confidence Method
     // ============================================================
-    
     _recordConfidence: function(activityId, level) {
         console.log('[PracticeRenderer] Confidence recorded:', level);
         
