@@ -744,103 +744,101 @@
 }
 
 /* ================================================================
-   Part 174 TRACK F: Dashboard 响应式修复
+   PART 178 — Dashboard Responsive (Consolidated)
    ================================================================ */
 
-/* 修复内联 max-width 导致的手机溢出 */
+/* ── Base container ── */
 #dashboard-root {
     max-width: 960px;
     margin: 0 auto;
     padding: 16px 20px 100px;
-    overflow-x: hidden;  /* 🆕 防止水平滚动 */
+    overflow-x: hidden;
 }
 
-/* 手机端修复 */
+/* ── Touch feedback (hover: none) ── */
+@media (hover: none) {
+    button:active,
+    [onclick]:active,
+    a:active {
+        transform: scale(0.97);
+        transition: transform 0.1s;
+    }
+}
+
+/* ── Small phone (< 600px) ── */
 @media (max-width: 600px) {
     #dashboard-root {
-        padding: 12px 14px 90px;  /* 减小 padding */
+        padding: 12px 14px 90px;
     }
 
-    /* Dashboard 内 inline style 覆盖 */
-    #dashboard-root [style*="clamp(28px"] {
-        font-size: 26px !important;  /* Hero 标题 */
-    }
-
-    #dashboard-root [style*="min-height: 32vh"] {
-        min-height: auto !important;  /* Hero 高度自适应 */
-        padding: 24px 16px 20px !important;
-    }
-
-    /* Hero 光晕适配 */
-    #dashboard-root [style*="width: 420px"] {
+   /* Hero 光晕缩小 */
+    #dashboard-root .dashboard-hero-glow {
         width: 280px !important;
         height: 280px !important;
     }
 
-    /* Continue Learning 卡片 */
-    #dashboard-root [style*="padding: 18px 24px"] {
-        padding: 14px 18px !important;
+    /* Hero 光晕更小 */
+    #dashboard-root #dashboard-hero {
+        min-height: auto !important;
+        padding: 28px 18px 24px !important;
     }
 
-    /* Progress 数字适配 */
-    #dashboard-root [style*="font-size: 28px"] {
-        font-size: 22px !important;
+    /* 所有卡片减少 padding */
+    #dashboard-root section {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
     }
 
-    /* EXPLORE 导航适配 */
-    #dashboard-root [style*="border-radius: 100px"] {
-        border-radius: 16px !important;  /* 手机上不要胶囊形 */
+    /* EXPLORE 导航：胶囊 → 网格 */
+    #dashboard-root section[id="dashboard-nav"] {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+        border-radius: 16px !important;
+        padding: 10px !important;
+    }
+
+    #dashboard-root section[id="dashboard-nav"] button {
+        width: 100% !important;
+        text-align: center !important;
+        justify-content: center !important;
+        border-radius: 10px !important;
+        background: rgba(255, 255, 255, 0.03) !important;
         padding: 10px 12px !important;
-    }
-
-    /* 卡片 padding 适配 */
-    #dashboard-root [style*="padding: 20px"] {
-        padding: 16px !important;
-    }
-
-    #dashboard-root [style*="padding: 24px 20px"] {
-        padding: 18px 16px !important;
-    }
-
-    /* Grid 2 列 → 1 列 */
-    #dashboard-root [style*="grid-template-columns: 1fr 1fr"] {
-        grid-template-columns: 1fr !important;
-    }
-
-    /* Flex wrap 强制 */
-    #dashboard-root [style*="flex-wrap: wrap"] {
-        /* 已有 flex-wrap: wrap, 无需改 */
     }
 
     /* 按钮 touch 目标 */
     #dashboard-root button {
         min-height: 40px;
     }
+
+    /* Stats 单列（如果将来有） */
+    #dashboard-root [data-stats-grid] {
+        grid-template-columns: 1fr !important;
+    }
 }
 
-/* 极小屏 */
-@media (max-width: 400px) {
+/* ── Very small phone (< 480px) ── */
+@media (max-width: 480px) {
     #dashboard-root {
-        padding: 10px 12px 90px;
+        padding: 10px 12px 88px;
     }
 
-    /* Hero 标题更小 */
-    #dashboard-root [style*="clamp(28px"] {
-        font-size: 22px !important;
-    }
-
-    /* 隐藏 Hero 光晕（性能） */
-    #dashboard-root [style*="width: 420px"],
-    #dashboard-root [style*="width: 280px"] {
+   /* Hero 光晕隐藏（性能） */
+    #dashboard-root .dashboard-hero-glow {
         display: none !important;
     }
-}
 
-/* ================================================================
-   Part 174 TRACK F: Nav 底部导航适配
-   ================================================================ */
+    /* HERO 内 CTA 全宽 */
+    #dashboard-root #dashboard-hero a[href*="lesson"],
+    #dashboard-root #dashboard-hero a[href*="academy"] {
+        width: 100%;
+        max-width: 320px;
+        text-align: center;
+        box-sizing: border-box;
+    }
 
-@media (max-width: 480px) {
+    /* Bottom nav */
     .bottom-nav a {
         padding: 2px 8px !important;
         font-size: 8px !important;
@@ -851,46 +849,59 @@
     }
 }
 
-/* ================================================================
-   Part 174 TRACK F: Touch 优化
-   ================================================================ */
-
-@media (hover: none) {
-    /* 触摸设备：所有可点击元素加 tap 反馈 */
-    button:active,
-    [onclick]:active,
-    a:active {
-        transform: scale(0.97);
-        transition: transform 0.1s;
+/* ── Ultra small (< 360px) ── */
+@media (max-width: 360px) {
+    #dashboard-root {
+        padding: 8px 10px 84px;
     }
 
-    /* 移除 hover 效果（触摸设备无 hover） */
-    #dashboard-root [onmouseover] {
-        /* 保留 hover 但不影响触摸 */
-    }
-}
-
-/* Part 174: EXPLORE 导航手机适配 */
-@media (max-width: 480px) {
-    /* EXPLORE 导航容器 */
-    #dashboard-root section[style*="border-radius: 100px"] {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
-        gap: 8px !important;
+    /* Bottom nav 更紧 */
+    .bottom-nav a {
+        padding: 2px 4px !important;
+        font-size: 7px !important;
     }
 
-    /* 每个按钮占满格子 */
-    #dashboard-root section[style*="border-radius: 100px"] button {
-        width: 100% !important;
-        text-align: center !important;
-        justify-content: center !important;
+    .bottom-nav a span:first-child {
+        font-size: 14px !important;
+    }
+
+    /* 按钮 min-height 降低 */
+    #dashboard-root button {
+        min-height: 36px;
     }
 }
 
-/* Part 174: Learning Insights 手机适配 */
-@media (max-width: 400px) {
-    /* Stats 网格 */
-    #dashboard-root [style*="grid-template-columns: 1fr 1fr"] {
-        grid-template-columns: 1fr !important;
+/* ── Tablet (601px ~ 900px) ── */
+@media (min-width: 601px) and (max-width: 900px) {
+    #dashboard-root {
+        padding: 16px 24px 100px;
     }
+
+    /* HERO 可以保持居中，但更宽松 */
+    #dashboard-root #dashboard-hero {
+        padding: 44px 28px 36px;
+    }
+}
+
+/* ── Desktop (> 900px) ── */
+@media (min-width: 901px) {
+    #dashboard-root {
+        padding: 20px 24px 100px;
+    }
+}
+
+/* Insight / Notes Preview / Footer 统一 padding */
+#dashboard-root [data-section="insight"],
+#dashboard-root [data-section="notes-preview"] {
+  padding: 12px 16px !important;
+}
+
+#dashboard-root [data-section="recommendations"] {
+  padding: 14px 16px !important;
+}
+
+/* Footer 在手机上字体缩小 */
+#dashboard-root [data-section="footer"] {
+  font-size: 9px !important;
+  padding: 12px !important;
 }
