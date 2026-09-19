@@ -1064,7 +1064,7 @@ LawAIApp.Dashboard = {
         margin-top: 6px;
       ">
         <span style="font-size: 11px; color: #94a3b8;">🤔 How confident about ${targetName}?</span>
-        <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'not_yet')" style="
+        <button type="button" onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'not_yet')" style="
           padding: 1px 10px;
           background: transparent;
           border: 1px solid rgba(255,255,255,0.06);
@@ -1074,7 +1074,7 @@ LawAIApp.Dashboard = {
           cursor: pointer;
           font-family: inherit;
         ">Not yet</button>
-        <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'somewhat')" style="
+        <button type="button" onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'somewhat')" style="
           padding: 1px 10px;
           background: transparent;
           border: 1px solid rgba(255,255,255,0.06);
@@ -1084,7 +1084,7 @@ LawAIApp.Dashboard = {
           cursor: pointer;
           font-family: inherit;
         ">Somewhat</button>
-        <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'confident')" style="
+        <button type="button" onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'confident')" style="
           padding: 1px 10px;
           background: rgba(74,158,255,0.06);
           border: 1px solid rgba(74,158,255,0.08);
@@ -1094,7 +1094,7 @@ LawAIApp.Dashboard = {
           cursor: pointer;
           font-family: inherit;
         ">Confident</button>
-        <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'very')" style="
+        <button type="button" onclick="LawAIApp.Dashboard._recordLearnerJudgement('confidence', 'very')" style="
           padding: 1px 10px;
           background: rgba(16,185,129,0.06);
           border: 1px solid rgba(16,185,129,0.08);
@@ -1104,7 +1104,7 @@ LawAIApp.Dashboard = {
           cursor: pointer;
           font-family: inherit;
         ">Very</button>
-        <button onclick="LawAIApp.Dashboard._recordLearnerJudgement('dismiss', 'judgement')" style="
+        <button type="button" onclick="LawAIApp.Dashboard._recordLearnerJudgement('dismiss', 'judgement')" style="
           padding: 1px 8px;
           background: transparent;
           border: none;
@@ -2008,7 +2008,7 @@ LawAIApp.Dashboard = {
       if (dialogueState === 'open') {
         dialogueOptions = `
           <div style="display:flex; gap:8px; flex-wrap: wrap; margin-top: 6px;">
-            <button onclick="LawAIApp.Dashboard._handleDialogueResponse('${insightId}', 'yes')" style="
+            <button type="button" onclick="LawAIApp.Dashboard._handleDialogueResponse('${insightId}', 'yes')" style="
               padding: 4px 16px;
               background: rgba(74,158,255,0.08);
               border: 1px solid rgba(74,158,255,0.12);
@@ -2021,7 +2021,7 @@ LawAIApp.Dashboard = {
             " onmouseover="this.style.background='rgba(74,158,255,0.15)'" onmouseout="this.style.background='rgba(74,158,255,0.08)'">
               ✅ Yes
             </button>
-            <button onclick="LawAIApp.Dashboard._handleDialogueResponse('${insightId}', 'somewhat')" style="
+            <button type="button" onclick="LawAIApp.Dashboard._handleDialogueResponse('${insightId}', 'somewhat')" style="
               padding: 4px 16px;
               background: rgba(255,255,255,0.02);
               border: 1px solid rgba(255,255,255,0.04);
@@ -2034,7 +2034,7 @@ LawAIApp.Dashboard = {
             " onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
               🔄 Somewhat
             </button>
-            <button onclick="LawAIApp.Dashboard._handleDialogueResponse('${insightId}', 'not_really')" style="
+            <button type="button" onclick="LawAIApp.Dashboard._handleDialogueResponse('${insightId}', 'not_really')" style="
               padding: 4px 16px;
               background: rgba(255,255,255,0.02);
               border: 1px solid rgba(255,255,255,0.04);
@@ -2047,7 +2047,7 @@ LawAIApp.Dashboard = {
             " onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
               ❌ Not really
             </button>
-            <button onclick="LawAIApp.Dashboard._handleDialogueResponse('${insightId}', 'not_sure')" style="
+            <button type="button" onclick="LawAIApp.Dashboard._handleDialogueResponse('${insightId}', 'not_sure')" style="
               padding: 4px 16px;
               background: rgba(255,255,255,0.02);
               border: 1px solid rgba(255,255,255,0.04);
@@ -2059,7 +2059,7 @@ LawAIApp.Dashboard = {
             ">
               🤔 Not sure
             </button>
-            <button onclick="LawAIApp.Dashboard._handleDialogueSkip('${insightId}')" style="
+            <button type="button" onclick="LawAIApp.Dashboard._handleDialogueSkip('${insightId}')" style="
               padding: 4px 12px;
               background: transparent;
               border: none;
@@ -2099,7 +2099,10 @@ LawAIApp.Dashboard = {
       if (!dialogueExpanded) {
         // 显示一个很小的入口
         dialogueTrigger = `
-          <button onclick="LawAIApp.Dashboard._expandDialogue()" style="
+          <button type="button"
+                  aria-label="Share feedback on this insight"
+                  aria-expanded="false"
+                  onclick="LawAIApp.Dashboard._expandDialogue()" style="
             background: transparent;
             border: none;
             color: #475569;
@@ -2110,12 +2113,12 @@ LawAIApp.Dashboard = {
             text-decoration: underline;
             text-decoration-color: rgba(255,255,255,0.1);
           ">
-            💬
+            <span aria-hidden="true">💬</span>
           </button>
         `;
       } else if (dialogueState === 'idle' || dialogueState === 'dismissed') {
         dialogueTrigger = `
-          <button onclick="LawAIApp.Dashboard._toggleDialogue('${insightId}')" style="
+          <button type="button" onclick="LawAIApp.Dashboard._toggleDialogue('${insightId}')" style="
             background: rgba(74,158,255,0.06);
             border: 1px solid rgba(74,158,255,0.08);
             border-radius: 100px;
@@ -2137,7 +2140,7 @@ LawAIApp.Dashboard = {
           ${['Not yet', 'Somewhat', 'Confident', 'Very'].map(function(label, idx) {
             var val = (idx + 1) * 25;
             return `
-              <button onclick="LawAIApp.Dashboard._handleSelfAssessment('${insightId}', ${val})" style="
+              <button type="button" onclick="LawAIApp.Dashboard._handleSelfAssessment('${insightId}', ${val})" style="
                 padding: 2px 12px;
                 background: rgba(255,255,255,0.02);
                 border: 1px solid rgba(255,255,255,0.04);
@@ -2188,7 +2191,7 @@ LawAIApp.Dashboard = {
     const authorityHTML = '';
 
     return `
-    <div id="dashboard-root" style="
+    <main id="dashboard-root" role="main" aria-label="Dashboard" style="
       max-width: 960px;
       margin: 0 auto;
       padding: 16px 20px 100px;
@@ -2196,8 +2199,8 @@ LawAIApp.Dashboard = {
       font-family: 'Inter', -apple-system, sans-serif;
     ">
 
-     <!-- 🔥 Part 174: 简化 EXPLORE 导航 — 只保留核心 -->
-    <section style="
+    <!-- 🔥 Part 174 + 178: EXPLORE 导航 -->
+    <section id="dashboard-nav" role="navigation" aria-label="Quick navigation" style="
       margin-bottom: 24px;
       padding: 12px 18px;
       background: rgba(255,255,255,0.02);
@@ -2249,7 +2252,7 @@ LawAIApp.Dashboard = {
     </section>
 
     <!-- 🔥 HERO + CONTINUE LEARNING (Part 178: 合并) -->
-      <section id="dashboard-hero" style="
+      <section id="dashboard-hero" data-hero="true" role="region" aria-label="Continue Learning" style="
         min-height: 28vh;
         display: flex;
         flex-direction: column;
@@ -2262,7 +2265,7 @@ LawAIApp.Dashboard = {
         isolation: isolate;
         animation: heroFadeIn 0.6s ease;
       ">
-        <div style="
+        <div class="dashboard-hero-glow" style="
           position: absolute;
           top: 50%;
           left: 50%;
@@ -2282,7 +2285,7 @@ LawAIApp.Dashboard = {
             color: #64748b;
             letter-spacing: 0.4px;
             font-weight: 400;
-          ">${greeting}, ${userName}</p>
+          " aria-label="${greeting}, ${userName}">${greeting}, ${userName}</p>
 
           <h1 style="
             margin: 0 0 8px;
@@ -2306,7 +2309,7 @@ LawAIApp.Dashboard = {
               text-align: left;
             ">
               <div style="font-size: 10px; font-weight: 500; color: #4a9eff; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 4px;">
-                ${completedCount >= 365 ? '🎉 All Complete' : 'Continue Learning'}
+                ${completedCount >= 365 ? '<span aria-hidden="true">🎉 </span>All Complete' : 'Continue Learning'}
               </div>
               <div style="font-size: 16px; font-weight: 600; color: #e2e8f0; line-height: 1.3;">
                 ${nextTitle}
@@ -2350,7 +2353,7 @@ LawAIApp.Dashboard = {
       </section>
 
       <!-- 📊 PROGRESS (Part 178: 多维度) -->
-      <section style="
+      <section role="region" aria-label="Progress" style="
         background: ${CARD_BG};
         border-radius: ${CARD_RADIUS};
         padding: 14px ${CARD_PADDING};
@@ -2362,7 +2365,12 @@ LawAIApp.Dashboard = {
           <span style="font-size:12px;color:#94a3b8;">Current Course</span>
           <span style="font-size:12px;color:#64748b;">${courseProgressPercent}%</span>
         </div>
-        <div style="
+        <div role="progressbar"
+             aria-valuenow="${courseProgressPercent}"
+             aria-valuemin="0"
+             aria-valuemax="100"
+             aria-label="Current course progress"
+             style="
           height: 4px;
           background: rgba(255,255,255,0.04);
           border-radius: 100px;
@@ -2392,7 +2400,7 @@ LawAIApp.Dashboard = {
       </section>
 
       <!-- 📖 RECOMMENDATIONS (Part 82: Adaptive) -->
-      <section id="dashboard-recommendations" style="
+      <section id="dashboard-recommendations" data-section="recommendations" role="region" aria-label="Recommended for you" style="
         background: ${CARD_BG};
         border-radius: ${CARD_RADIUS};
         padding: ${CARD_PADDING};
@@ -2401,9 +2409,9 @@ LawAIApp.Dashboard = {
         min-height: 60px;
         transition: opacity 0.4s ease;
       ">
-        <p style="margin:0 0 12px;font-size:12px;color:#94a3b8;font-weight:500;">
+        <h2 style="margin:0 0 12px;font-size:12px;color:#94a3b8;font-weight:500;">
           🌟 Recommended for you
-        </p>
+        </h2>
         <div style="display:flex;flex-direction:column;gap:8px;">
           ${this._renderAdaptiveRecommendations()}
         </div>
@@ -2411,13 +2419,14 @@ LawAIApp.Dashboard = {
 
       <!-- 📈 LEARNING INSIGHTS (Part 178: 精简) -->
       ${insightHTML ? `
-        <section style="
+        <section data-section="insight" role="region" aria-label="Learning insight" style="
           background: ${CARD_BG};
           border-radius: ${CARD_RADIUS};
           padding: 8px ${CARD_PADDING} 4px;
           border: ${CARD_BORDER};
           margin-bottom: 16px;
         ">
+          <h2 class="sr-only">Learning insight</h2>
           ${insightHTML}
         </section>
       ` : ''}
@@ -2432,7 +2441,7 @@ LawAIApp.Dashboard = {
       ${authorityHTML}
 
       <!-- FOOTER -->
-      <footer style="
+      <footer data-section="footer" style="
         text-align:center;
         padding:16px;
         color:#64748b;
@@ -2443,7 +2452,7 @@ LawAIApp.Dashboard = {
         Law AI Academy · Season 4
       </footer>
 
-    </div>
+    </main>
 
     <style>
       @keyframes heroFadeIn {
@@ -2793,7 +2802,7 @@ LawAIApp.Dashboard = {
       : (recent.title || 'Untitled note');
 
     return `
-      <section style="
+      <section data-section="notes-preview" role="region" aria-label="Recent note" style="
         background: rgba(255,255,255,0.02);
         border-radius: 16px;
         padding: 14px 18px;
@@ -2801,10 +2810,10 @@ LawAIApp.Dashboard = {
         margin-bottom: 16px;
       ">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-          <span style="font-size: 14px;">📓</span>
-          <span style="font-size: 11px; color: #64748b; font-weight: 500; letter-spacing: 0.6px;">
+          <span style="font-size: 14px;" aria-hidden="true">📓</span>
+          <h2 style="font-size: 11px; color: #64748b; font-weight: 500; letter-spacing: 0.6px; margin: 0;">
             YOUR RECENT NOTE
-          </span>
+          </h2>
         </div>
         <div style="
           font-size: 13px;
@@ -2818,7 +2827,7 @@ LawAIApp.Dashboard = {
           ${preview}
         </div>
         <div style="margin-top: 10px;">
-          <button onclick="window.location.href='/pages/academy.html?view=notes'" style="
+          <button type="button" onclick="window.location.href='/pages/academy.html?view=notes'" style="
             padding: 4px 14px;
             background: rgba(74,158,255,0.06);
             border: 1px solid rgba(74,158,255,0.08);
@@ -2887,7 +2896,7 @@ LawAIApp.Dashboard = {
           gap: 8px;
           flex-wrap: wrap;
         ">
-          <button onclick="LawAIApp.Dashboard._renderNotesView()" style="
+          <button type="button" onclick="LawAIApp.Dashboard._renderNotesView()" style="
             padding: 4px 14px;
             background: rgba(74,158,255,0.06);
             border: 1px solid rgba(74,158,255,0.08);
@@ -2925,24 +2934,30 @@ LawAIApp.Dashboard = {
     if (!expanded) {
       // 折叠态：只显示一行
       return `
-        <div style="
+        <button type="button"
+                aria-label="Show Learning Loop details"
+                aria-expanded="false"
+                onclick="LawAIApp.Dashboard._toggleLearningLoop()" style="
           display: flex;
           align-items: center;
           justify-content: space-between;
+          width: 100%;
           padding: 8px 14px;
           background: rgba(255,255,255,0.02);
           border-radius: 10px;
           border: 1px solid rgba(255,255,255,0.03);
           margin-bottom: 12px;
           cursor: pointer;
-        " onclick="LawAIApp.Dashboard._toggleLearningLoop()">
+          font-family: inherit;
+          color: inherit;
+        ">
           <span style="font-size: 12px; color: #64748b;">
-            🔄 Learning Loop
+            <span aria-hidden="true">🔄</span> Learning Loop
           </span>
           <span style="font-size: 10px; color: #475569;">
-            Show details ▾
+            Show details <span aria-hidden="true">▾</span>
           </span>
-        </div>
+        </button>
       `;
     }
 
@@ -2960,7 +2975,10 @@ LawAIApp.Dashboard = {
           position: relative;
           z-index: 2;
         ">
-          <button onclick="LawAIApp.Dashboard._toggleLearningLoop()" style="
+          <button type="button"
+                  aria-label="Hide Learning Loop details"
+                  aria-expanded="true"
+                  onclick="LawAIApp.Dashboard._toggleLearningLoop()" style="
             padding: 2px 10px;
             background: rgba(255,255,255,0.04);
             border: 1px solid rgba(255,255,255,0.06);
@@ -2969,7 +2987,7 @@ LawAIApp.Dashboard = {
             font-size: 10px;
             cursor: pointer;
             font-family: inherit;
-          ">Hide ▴</button>
+          ">Hide <span aria-hidden="true">▴</span></button>
         </div>
         ${html}
       </div>
@@ -3074,7 +3092,7 @@ LawAIApp.Dashboard = {
         var actionId = choice.id;
 
         html += `
-          <button onclick="LawAIApp.Dashboard._handleLoopChoice('${actionId}', 'SELECT')"
+          <button type="button" onclick="LawAIApp.Dashboard._handleLoopChoice('${actionId}', 'SELECT')"
                   style="
                     padding: 5px 16px;
                     background: ${bgColor};
@@ -3166,7 +3184,7 @@ LawAIApp.Dashboard = {
           gap: 8px;
           flex-wrap: wrap;
         ">
-          <button onclick="LawAIApp.Dashboard.render()" style="
+          <button type="button" onclick="LawAIApp.Dashboard.render()" style="
             padding: 4px 14px;
             background: rgba(255,255,255,0.03);
             border: 1px solid rgba(255,255,255,0.04);
@@ -3176,7 +3194,7 @@ LawAIApp.Dashboard = {
             cursor: pointer;
             font-family: inherit;
           ">🔄 Refresh</button>
-          <button onclick="window.location.href='/pages/academy.html'" style="
+          <button type="button" onclick="window.location.href='/pages/academy.html'" style="
             padding: 4px 14px;
             background: rgba(74,158,255,0.06);
             border: 1px solid rgba(74,158,255,0.08);
@@ -3186,7 +3204,7 @@ LawAIApp.Dashboard = {
             cursor: pointer;
             font-family: inherit;
           ">📚 Go to Academy</button>
-          <button onclick="LawAIApp.Dashboard._handleLoopClosure()" style="
+          <button type="button" onclick="LawAIApp.Dashboard._handleLoopClosure()" style="
             padding: 4px 14px;
             background: rgba(255,255,255,0.02);
             border: 1px solid rgba(255,255,255,0.04);
@@ -3247,7 +3265,7 @@ LawAIApp.Dashboard = {
         <span style="font-size: 12px; color: #e2e8f0; font-weight: 500;">${contextDisplay}</span>
         <span style="font-size: 10px; color: #64748b; margin-left: auto;">${levelLabel}</span>
         ${priority.primaryAction ? `
-          <button onclick="LawAIApp.Dashboard._handlePriorityAction('${priority.primaryAction.action}', '${priority.primaryAction.target || ''}')" style="
+          <button type="button" onclick="LawAIApp.Dashboard._handlePriorityAction('${priority.primaryAction.action}', '${priority.primaryAction.target || ''}')" style="
             padding: 2px 14px;
             background: ${levelColor}22;
             border: 1px solid ${levelColor}44;
@@ -3310,7 +3328,9 @@ _renderRecommendationCard: function(rec) {
           <div style="font-size:11px;color:#94a3b8;">${rec.description || ''}</div>
           ${rec.reason ? `<div style="font-size:10px;color:#4a9eff;opacity:0.7;margin-top:2px;">💡 ${rec.reason}</div>` : ''}
         </div>
-        <button onclick="LawAIApp.Dashboard._handleAdaptiveChoice('${rec.id || ''}', 'recommendation', '${rec.targetId || ''}')" style="padding:4px 16px;background:#4a9eff;border:none;border-radius:100px;color:white;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;">Go →</button>
+        <button type="button"
+                aria-label="Go to ${(rec.title || 'recommendation').replace(/"/g, '&quot;')}"
+                onclick="LawAIApp.Dashboard._handleAdaptiveChoice('${rec.id || ''}', 'recommendation', '${rec.targetId || ''}')" style="padding:4px 16px;background:#4a9eff;border:none;border-radius:100px;color:white;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;">Go <span aria-hidden="true">→</span></button>
       </div>
     `;
 },
@@ -3413,7 +3433,7 @@ _renderRecommendationCard: function(rec) {
   
       container.innerHTML = `
         <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
-          <button onclick="LawAIApp.Dashboard.render()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
+          <button type="button" onclick="LawAIApp.Dashboard.render()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
           <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">📅 Calendar</h2>
           <p style="color:#94a3b8;margin:0 0 20px;">${monthName} ${year}</p>
           <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:12px;color:#64748b;margin-bottom:8px;">
@@ -3565,7 +3585,7 @@ _renderRecommendationCard: function(rec) {
   _settingsFallbackHTML: function(msg) {
       return `
         <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
-          <button onclick="LawAIApp.Dashboard.render()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
+          <button type="button" onclick="LawAIApp.Dashboard.render()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
           <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">⚙️ Settings</h2>
           <p style="color:#94a3b8;">${msg || 'Settings module not available.'}</p>
         </div>
@@ -3592,7 +3612,7 @@ _renderRecommendationCard: function(rec) {
   
               <!-- 返回按钮 -->
               <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
-                  <button onclick="LawAIApp.Dashboard.render()" style="
+                  <button type="button" onclick="LawAIApp.Dashboard.render()" style="
                       background:rgba(74,158,255,0.08);
                       border:1px solid rgba(74,158,255,0.15);
                       color:#4a9eff;
@@ -3632,7 +3652,7 @@ _renderRecommendationCard: function(rec) {
               <!-- 节点列表 -->
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
                   <h3 style="margin:0;font-size:16px;font-weight:600;">📌 Nodes</h3>
-                  <button onclick="LawAIApp.Dashboard._refreshKnowledgeGraph()" style="
+                  <button type="button" onclick="LawAIApp.Dashboard._refreshKnowledgeGraph()" style="
                       padding:4px 14px;
                       background:rgba(255,255,255,0.04);
                       border:1px solid rgba(255,255,255,0.06);
@@ -3671,7 +3691,7 @@ _renderRecommendationCard: function(rec) {
   
               <!-- 操作按钮 -->
               <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
-                  <button onclick="LawAIApp.Dashboard._exportGraph()" style="
+                  <button type="button" onclick="LawAIApp.Dashboard._exportGraph()" style="
                       padding:8px 20px;
                       background:rgba(74,158,255,0.08);
                       border:1px solid rgba(74,158,255,0.12);
@@ -3681,7 +3701,7 @@ _renderRecommendationCard: function(rec) {
                       cursor:pointer;
                       font-family:inherit;
                   ">📤 Export Graph</button>
-                  <button onclick="LawAIApp.Dashboard._rebuildGraph()" style="
+                  <button type="button" onclick="LawAIApp.Dashboard._rebuildGraph()" style="
                       padding:8px 20px;
                       background:rgba(245,158,11,0.08);
                       border:1px solid rgba(245,158,11,0.12);
@@ -3691,7 +3711,7 @@ _renderRecommendationCard: function(rec) {
                       cursor:pointer;
                       font-family:inherit;
                   ">🔄 Rebuild Graph</button>
-                  <button onclick="LawAIApp.Dashboard._importGraph()" style="
+                  <button type="button" onclick="LawAIApp.Dashboard._importGraph()" style="
                       padding:8px 20px;
                       background:rgba(139,92,246,0.08);
                       border:1px solid rgba(139,92,246,0.12);
@@ -3752,7 +3772,7 @@ _renderRecommendationCard: function(rec) {
                           font-family:inherit;
                           font-size:12px;
                       ">
-                      <button onclick="LawAIApp.Dashboard._testGraphQuery()" style="
+                      <button type="button" onclick="LawAIApp.Dashboard._testGraphQuery()" style="
                           padding:8px 16px;
                           background:rgba(74,158,255,0.08);
                           border:1px solid rgba(74,158,255,0.12);
@@ -4336,7 +4356,7 @@ _renderRecommendationCard: function(rec) {
   _notesFallbackHTML: function(msg) {
       return `
         <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',sans-serif;">
-          <button onclick="LawAIApp.Dashboard.render()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
+          <button type="button" onclick="LawAIApp.Dashboard.render()" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
           <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">📓 Notes</h2>
           <p style="color:#94a3b8;">${msg || 'Notes module not available.'}</p>
         </div>
