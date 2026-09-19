@@ -119,7 +119,7 @@
                 if (container) container.innerHTML = '';
                 if (window.LawAIApp?.Dashboard) {
                     window.LawAIApp.Dashboard._rendered = false;
-                    window.LawAIApp.Dashboard.render();
+                    window.LawAIApp.Dashboard.forceRender();
                 } else {
                     window.location.href = '/';
                 }
