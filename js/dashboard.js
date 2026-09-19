@@ -1955,24 +1955,24 @@ LawAIApp.Dashboard = {
   // ============================================================
   // Part 72: HTML 构建
   // ============================================================
-
-  const {
-      progress,
-      streakData,
-      levelInfo,
-      achievements,
-      todayLesson,
-      favorites,
-      completionRate,
-      currentStage,
-      lastCompletedDate,
-      dailyBriefingHTML,
-      allLessons,
-      noteCount,
-      heroData,
-      learnerState,
-      courseProgressPercent
-    } = data;
+  _buildHTML: function(data) {
+    const {
+        progress,
+        streakData,
+        levelInfo,
+        achievements,
+        todayLesson,
+        favorites,
+        completionRate,
+        currentStage,
+        lastCompletedDate,
+        dailyBriefingHTML,
+        allLessons,
+        noteCount,
+        heroData,
+        learnerState,
+        courseProgressPercent
+      } = data;
 
     const greeting = this._getGreeting();
     const userName = this._getUserName();
