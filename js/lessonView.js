@@ -526,19 +526,12 @@ LawAIApp.Views.LessonView = {
             return;
         }
 
-        // 2. 等待 ExperienceRuntime 就绪
-        var runtime = window.LawAIApp?.Experience?.Runtime;
-        var contract = window.LawAIApp?.ExperienceContract;
-        var registry = window.LawAIApp?.Experience?.ActivityRegistry;
+        // 2. 只检查 practiceRenderer（Runtime 可以是可选）
         var practiceRenderer = window.LawAIApp?.Experience?.Renderers?.PracticeRenderer;
 
-        if (!runtime || !contract || !registry || !practiceRenderer) {
-            console.warn('[LessonView] Experience Runtime not ready for practice');
-            container.innerHTML = `
-                <p style="margin:0;font-size:12px;color:#f59e0b;">
-                    Practice system is loading. Please refresh.
-                </p>
-            `;
+        if (!practiceRenderer || typeof practiceRenderer.create !== 'function') {
+            console.warn('[LessonView] PracticeRenderer not available');
+            container.innerHTML = `...`;
             return;
         }
 
@@ -573,8 +566,10 @@ LawAIApp.Views.LessonView = {
         // 4. 直接调用 PracticeRenderer.create + mount
         try {
             var instance = practiceRenderer.create(activity, container);
+            if (instance && typeof instance.mount === 'function') {
             instance.mount();
             console.log('[LessonView] ✅ PracticeRenderer mounted:', activity.id);
+            } else {
 
             // 5. 暴露给 LessonView 方便调试
             this._currentPractice = instance;
