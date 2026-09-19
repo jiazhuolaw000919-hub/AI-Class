@@ -1885,11 +1885,11 @@ LawAIApp.Dashboard = {
         if (btn.url) {
           onClick = "window.location.href='" + btn.url + "'";
         } else if (btn.action === 'calendar') {
-          onClick = "window.location.href='/pages/academy.html?view=calendar'";
+          onClick = "LawAIApp.Dashboard._renderCalendarView()";
         } else if (btn.action === 'settings') {
-          onClick = "window.location.href='/pages/academy.html?view=settings'";
+          onClick = "LawAIApp.Dashboard._renderSettingsView()";
         } else if (btn.action === 'notes') {
-          onClick = "window.location.href='/pages/academy.html?view=notes'";
+          onClick = "LawAIApp.Dashboard._renderNotesView()";
         } else {
           onClick = "if(window.LawAIApp&&window.LawAIApp.Toast){window.LawAIApp.Toast.info('" + btn.label + " coming soon')}";
         }
