@@ -177,6 +177,19 @@ LawAIApp.Dashboard = {
       this._lastViewModel = viewModel;
     }
 
+    // Part 178: 计算当前课程进度
+    var courseProgressPercent = 0;
+    if (viewModel && viewModel.progress && viewModel.progress.overall !== undefined) {
+      courseProgressPercent = Math.round(viewModel.progress.overall);
+    } else if (adapter && typeof adapter.getLearningState === 'function') {
+      try {
+        var ls = adapter.getLearningState();
+        if (ls && ls.progress) {
+          courseProgressPercent = Math.round(ls.progress.course || 0);
+        }
+      } catch (e) {}
+    }
+
     const html = this._buildHTML({
       progress,
       streakData,
@@ -191,7 +204,8 @@ LawAIApp.Dashboard = {
       allLessons,
       noteCount,
       heroData,
-      learnerState
+      learnerState,
+      courseProgressPercent
     });
 
     const app = document.getElementById('app') || document.getElementById('law-runtime-root');
@@ -1447,6 +1461,23 @@ LawAIApp.Dashboard = {
   },
 
   // ============================================================
+  // Part 178: Dialogue 折叠控制
+  // ============================================================
+  _expandDialogue: function() {
+    try {
+      localStorage.setItem('dashboard_dialogue_expanded', 'true');
+    } catch (e) {}
+    this.render();
+  },
+
+  _collapseDialogue: function() {
+    try {
+      localStorage.setItem('dashboard_dialogue_expanded', 'false');
+    } catch (e) {}
+    this.render();
+  },
+
+  // ============================================================
   // Part 72: 学习者回应 (Dialogue Response)
   // ============================================================
 
@@ -1940,7 +1971,8 @@ LawAIApp.Dashboard = {
       allLessons,
       noteCount,
       heroData,
-      learnerState
+      learnerState,
+      courseProgressPercent
     } = data;
 
     const greeting = this._getGreeting();
@@ -2064,9 +2096,32 @@ LawAIApp.Dashboard = {
         dialogueStatus = '';
       }
 
-      // ── Part 72: 对话触发器 ──
+      // ── Part 178: Dialogue 折叠 —— 默认不显示 ──
       var dialogueTrigger = '';
-      if (dialogueState === 'idle' || dialogueState === 'dismissed') {
+      // 折叠：只有当用户显式展开时才显示
+      var dialogueExpanded = false;
+      try {
+        dialogueExpanded = localStorage.getItem('dashboard_dialogue_expanded') === 'true';
+      } catch (e) {}
+
+      if (!dialogueExpanded) {
+        // 显示一个很小的入口
+        dialogueTrigger = `
+          <button onclick="LawAIApp.Dashboard._expandDialogue()" style="
+            background: transparent;
+            border: none;
+            color: #475569;
+            font-size: 10px;
+            cursor: pointer;
+            padding: 2px 0;
+            font-family: inherit;
+            text-decoration: underline;
+            text-decoration-color: rgba(255,255,255,0.1);
+          ">
+            💬
+          </button>
+        `;
+      } else if (dialogueState === 'idle' || dialogueState === 'dismissed') {
         dialogueTrigger = `
           <button onclick="LawAIApp.Dashboard._toggleDialogue('${insightId}')" style="
             background: rgba(74,158,255,0.06);
@@ -2077,8 +2132,7 @@ LawAIApp.Dashboard = {
             cursor: pointer;
             padding: 4px 14px;
             font-family: inherit;
-            transition: all 0.2s;
-          " onmouseover="this.style.background='rgba(74,158,255,0.12)'" onmouseout="this.style.background='rgba(74,158,255,0.06)'">
+          ">
             💬 Does this feel accurate?
           </button>
         `;
@@ -2111,56 +2165,6 @@ LawAIApp.Dashboard = {
 
       // ── 反思区域 ──
       var reflectionHTML = '';
-      if (isReflecting) {
-        reflectionHTML = `
-          <div style="
-            margin-top: 10px;
-            padding: 12px 14px;
-            background: rgba(255,255,255,0.02);
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.04);
-          ">
-            <p style="font-size: 12px; color: #94a3b8; margin: 0 0 8px 0;">
-              💭 What do you think about this?
-            </p>
-            <textarea id="reflection-text-${insightId}" style="
-              width: 100%;
-              background: rgba(255,255,255,0.03);
-              border: 1px solid rgba(255,255,255,0.06);
-              border-radius: 8px;
-              color: #e2e8f0;
-              padding: 8px 12px;
-              font-family: inherit;
-              font-size: 13px;
-              resize: vertical;
-              min-height: 50px;
-              margin-bottom: 8px;
-            " placeholder="What's on your mind?"></textarea>
-            <div style="display:flex; gap: 8px; flex-wrap: wrap;">
-              <button onclick="LawAIApp.Dashboard._handleReflectionResponse('${insightId}', document.getElementById('reflection-text-${insightId}').value)" style="
-                padding: 5px 16px;
-                background: #4a9eff;
-                border: none;
-                border-radius: 100px;
-                color: white;
-                font-size: 12px;
-                cursor: pointer;
-                font-family: inherit;
-              ">💾 Save to Notes</button>
-              <button onclick="LawAIApp.Dashboard._toggleReflection('${insightId}')" style="
-                padding: 5px 16px;
-                background: transparent;
-                border: 1px solid rgba(255,255,255,0.06);
-                border-radius: 100px;
-                color: #64748b;
-                font-size: 12px;
-                cursor: pointer;
-                font-family: inherit;
-              ">Cancel</button>
-            </div>
-          </div>
-        `;
-      }
 
       // 🔥 Part 174: 简化 Insight Card — 折叠次要交互
       insightHTML = `
@@ -2254,11 +2258,11 @@ LawAIApp.Dashboard = {
         if (btn.url) {
           onClick = "window.location.href='" + btn.url + "'";
         } else if (btn.action === 'calendar') {
-          onClick = "LawAIApp.Dashboard._renderCalendarView()";
+          onClick = "window.location.href='/pages/academy.html?view=calendar'";
         } else if (btn.action === 'settings') {
-          onClick = "LawAIApp.Dashboard._renderSettingsView()";
+          onClick = "window.location.href='/pages/academy.html?view=settings'";
         } else if (btn.action === 'notes') {
-          onClick = "LawAIApp.Dashboard._renderNotesView()";
+          onClick = "window.location.href='/pages/academy.html?view=notes'";
         } else {
           onClick = "if(window.LawAIApp&&window.LawAIApp.Toast){window.LawAIApp.Toast.info('" + btn.label + " coming soon')}";
         }
@@ -2444,7 +2448,7 @@ LawAIApp.Dashboard = {
       </div>
       `}
 
-      <!-- 📊 PROGRESS -->
+      <!-- 📊 PROGRESS (Part 178: 多维度) -->
       <section style="
         background: ${CARD_BG};
         border-radius: ${CARD_RADIUS};
@@ -2452,31 +2456,41 @@ LawAIApp.Dashboard = {
         border: ${CARD_BORDER};
         margin-bottom: 16px;
       ">
+        <!-- A: 当前课程进度（主） -->
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
-          <span style="font-size:12px;color:#94a3b8;">Your Academy Journey</span>
-          <span style="font-size:12px;color:#64748b;">${completedCount}/${totalCount} lessons</span>
+          <span style="font-size:12px;color:#94a3b8;">Current Course</span>
+          <span style="font-size:12px;color:#64748b;">${courseProgressPercent}%</span>
         </div>
         <div style="
           height: 4px;
           background: rgba(255,255,255,0.04);
           border-radius: 100px;
           overflow: hidden;
+          margin-bottom: 10px;
         ">
           <div style="
-            width: ${percent}%;
+            width: ${courseProgressPercent}%;
             height: 100%;
             background: linear-gradient(90deg, #4a9eff, #7c3aed);
             border-radius: 100px;
             transition: width 0.8s ease;
           "></div>
         </div>
-        <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:#475569;">
-          <span>${currentStage}</span>
+
+        <!-- B: N of M lessons -->
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;font-size:11px;">
+          <span style="color:#64748b;">Lessons completed</span>
+          <span style="color:#94a3b8;">${completedCount} of ${totalCount}</span>
+        </div>
+
+        <!-- C: 全局 365 进度（secondary） -->
+        <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:10px;color:#475569;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.03);">
+          <span>Academy Journey</span>
           <span>${percent}%</span>
         </div>
       </section>
 
-            <!-- 📖 RECOMMENDATIONS (Part 82: Adaptive) -->
+      <!-- 📖 RECOMMENDATIONS (Part 82: Adaptive) -->
       <section id="dashboard-recommendations" style="
         background: ${CARD_BG};
         border-radius: ${CARD_RADIUS};
@@ -2530,11 +2544,11 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
-      <!-- 🔄 LEARNING LOOP (Part 74: Choice → Outcome) -->
-      ${this._renderLearningLoop()}
+      <!-- 🔄 LEARNING LOOP (Part 74 + Part 178: 折叠) -->
+      ${this._renderLearningLoopCollapsed()}
 
-      <!-- 📚 LEARNING CONTINUITY (Part 73) -->
-      ${this._buildContinuityHTML()}
+      <!-- 📚 LEARNING CONTINUITY (Part 73 + Part 178: 移除 Reflection) -->
+      ${this._buildContinuityHTMLNoReflection()}
 
       <!-- 🔒 Authority Status -->
       ${authorityHTML}
@@ -2875,6 +2889,43 @@ LawAIApp.Dashboard = {
       return parts.join(' · ') || 'Your learning journey continues.';
   },
 
+  // ============================================================
+  // Part 178: Continuity 不含 Reflection
+  // Reflection 只在 Notes surface
+  // ============================================================
+  _buildContinuityHTMLNoReflection: function() {
+    var context = this._getContinuityContext();
+
+    // 只显示 "最近学习"
+    if (!context.hasRecentLearning) {
+      return '';
+    }
+
+    var learning = context.recentLearning;
+    if (!learning) return '';
+
+    return `
+      <section style="
+        background: rgba(255,255,255,0.02);
+        border-radius: 16px;
+        padding: 14px 18px;
+        border: 1px solid rgba(255,255,255,0.04);
+        margin-bottom: 16px;
+      ">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 16px;">📍</span>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 11px; color: #64748b; margin-bottom: 2px;">RECENTLY</div>
+            <div style="font-size: 14px; font-weight: 500; color: #e2e8f0;">
+              ${learning.courseTitle || 'Your learning'}
+            </div>
+            ${learning.lessonTitle ? `<div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">${learning.lessonTitle}</div>` : ''}
+          </div>
+        </div>
+      </section>
+    `;
+  },
+
   /**
    * 构建连续性卡片 HTML
    */
@@ -2944,6 +2995,86 @@ LawAIApp.Dashboard = {
     `;
     
     return html;
+  },
+
+  // ============================================================
+  // Part 178: Learning Loop 折叠版
+  // 默认不显示，用户可展开
+  // ============================================================
+  _renderLearningLoopCollapsed: function() {
+    var loopData = this._getLearningLoopData();
+
+    // 如果完全没有活跃 Loop，不显示
+    if (!loopData.hasActiveLoop) {
+      return '';
+    }
+
+    // 检查用户是否展开
+    var expanded = false;
+    try {
+      expanded = localStorage.getItem('dashboard_loop_expanded') === 'true';
+    } catch (e) {}
+
+    if (!expanded) {
+      // 折叠态：只显示一行
+      return `
+        <div style="
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 8px 14px;
+          background: rgba(255,255,255,0.02);
+          border-radius: 10px;
+          border: 1px solid rgba(255,255,255,0.03);
+          margin-bottom: 12px;
+          cursor: pointer;
+        " onclick="LawAIApp.Dashboard._toggleLearningLoop()">
+          <span style="font-size: 12px; color: #64748b;">
+            🔄 Learning Loop
+          </span>
+          <span style="font-size: 10px; color: #475569;">
+            Show details ▾
+          </span>
+        </div>
+      `;
+    }
+
+    // 展开态：显示原 Learning Loop
+    var html = this._renderLearningLoop();
+
+    // 加一个折叠按钮
+    return `
+      <div style="position: relative;">
+        <div style="
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          margin-bottom: -6px;
+          position: relative;
+          z-index: 2;
+        ">
+          <button onclick="LawAIApp.Dashboard._toggleLearningLoop()" style="
+            padding: 2px 10px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 100px;
+            color: #64748b;
+            font-size: 10px;
+            cursor: pointer;
+            font-family: inherit;
+          ">Hide ▴</button>
+        </div>
+        ${html}
+      </div>
+    `;
+  },
+
+  _toggleLearningLoop: function() {
+    try {
+      var current = localStorage.getItem('dashboard_loop_expanded') === 'true';
+      localStorage.setItem('dashboard_loop_expanded', String(!current));
+    } catch (e) {}
+    this.render();
   },
   
   // ============================================================
