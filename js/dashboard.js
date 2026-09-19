@@ -199,8 +199,10 @@ LawAIApp.Dashboard = {
       favorites,
       completionRate,
       currentStage,
+      lastCompletedDate,
       dailyBriefingHTML,
       allLessons,
+      noteCount,
       heroData,
       learnerState,
       courseProgressPercent
@@ -1954,8 +1956,7 @@ LawAIApp.Dashboard = {
   // Part 72: HTML 构建
   // ============================================================
 
-  _buildHTML: function(data) {
-    const {
+  const {
       progress,
       streakData,
       levelInfo,
@@ -1964,8 +1965,10 @@ LawAIApp.Dashboard = {
       favorites,
       completionRate,
       currentStage,
+      lastCompletedDate,
       dailyBriefingHTML,
       allLessons,
+      noteCount,
       heroData,
       learnerState,
       courseProgressPercent
