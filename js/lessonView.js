@@ -389,19 +389,15 @@ LawAIApp.Views.LessonView = {
             <!-- Flashcards -->
             ${flashcardsHtml}
 
-            <!-- Practice -->
+            <!-- Practice (Part 179: 接入 Experience Runtime) -->
             <div id="lesson-practice-block" style="background:rgba(34,197,94,0.04);border-radius:12px;padding:12px 16px;margin-bottom:16px;border:1px solid rgba(34,197,94,0.06);">
                 <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
                     <span style="font-size:14px;">✏️</span>
                     <span style="font-size:11px;color:#22c55e;">Practice</span>
                 </div>
-                <p id="practice-desc" style="margin:0 0 6px;font-size:12px;color:#94a3b8;">Test your understanding.</p>
-                <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                    <button id="practice-start-btn" style="padding:4px 14px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.1);border-radius:6px;color:#22c55e;font-size:11px;cursor:pointer;font-family:inherit;">Start</button>
-                    <button id="practice-submit-btn" style="padding:4px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:6px;color:#64748b;font-size:11px;cursor:pointer;font-family:inherit;">Submit</button>
+                <div id="lesson-practice-container">
+                    <p style="margin:0 0 6px;font-size:12px;color:#94a3b8;">Loading practice...</p>
                 </div>
-                <input type="text" id="practice-answer-input" style="width:100%;margin-top:4px;padding:6px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;color:#e2e8f0;font-size:12px;font-family:inherit;box-sizing:border-box;" placeholder="Type your answer...">
-                <div id="practice-feedback" style="margin-top:4px;font-size:11px;color:#94a3b8;"></div>
             </div>
 
             <!-- Reflection -->
@@ -470,19 +466,7 @@ LawAIApp.Views.LessonView = {
             });
         }
 
-        var practiceStartBtn = document.getElementById('practice-start-btn');
-        if (practiceStartBtn) {
-            practiceStartBtn.addEventListener('click', function() {
-                self.startPractice();
-            });
-        }
-
-        var practiceSubmitBtn = document.getElementById('practice-submit-btn');
-        if (practiceSubmitBtn) {
-            practiceSubmitBtn.addEventListener('click', function() {
-                self.submitPractice();
-            });
-        }
+        // Part 179: 移除简化版 practice 绑定，改由 ExperienceRuntime 接管
 
         var reflectionSaveBtn = document.getElementById('reflection-save-btn');
         if (reflectionSaveBtn) {
@@ -512,10 +496,95 @@ LawAIApp.Views.LessonView = {
             });
         }
 
+        // ═══════════════════════════════════════════════════════════
+        // Part 179: 启动 Experience Runtime 渲染 practice
+        // ═══════════════════════════════════════════════════════════
+        self._startPracticeViaRuntime(lesson);
+
         // Experience Runtime
         var oldRuntime = window.LawAIApp?.Experience?.Runtime;
         if (oldRuntime && typeof oldRuntime.cleanup === 'function') {
             oldRuntime.cleanup();
+        }
+    },
+
+    // ============================================================
+    // Part 179: 通过 Experience Runtime 渲染 Practice
+    // 复用 Part 129/130/131/132/173 的 PracticeRenderer
+    // ============================================================
+    _startPracticeViaRuntime: function(lesson) {
+        var container = document.getElementById('lesson-practice-container');
+        if (!container) return;
+
+        // 1. 检查 practice 是否存在
+        if (!lesson || !lesson.practice || !lesson.practice.enabled) {
+            container.innerHTML = `
+                <p style="margin:0;font-size:12px;color:#64748b;">
+                    Practice is not available for this lesson.
+                </p>
+            `;
+            return;
+        }
+
+        // 2. 等待 ExperienceRuntime 就绪
+        var runtime = window.LawAIApp?.Experience?.Runtime;
+        var contract = window.LawAIApp?.ExperienceContract;
+        var registry = window.LawAIApp?.Experience?.ActivityRegistry;
+        var practiceRenderer = window.LawAIApp?.Experience?.Renderers?.PracticeRenderer;
+
+        if (!runtime || !contract || !registry || !practiceRenderer) {
+            console.warn('[LessonView] Experience Runtime not ready for practice');
+            container.innerHTML = `
+                <p style="margin:0;font-size:12px;color:#f59e0b;">
+                    Practice system is loading. Please refresh.
+                </p>
+            `;
+            return;
+        }
+
+        // 3. 构建 practice activity
+        var practiceItems = lesson.practice.items || [];
+        if (practiceItems.length === 0) {
+            container.innerHTML = `
+                <p style="margin:0;font-size:12px;color:#64748b;">
+                    No practice questions available.
+                </p>
+            `;
+            return;
+        }
+
+        var question = practiceItems[0];  // 暂时只取第一题
+
+        var activity = {
+            id: 'practice_' + lesson.lessonId + '_' + (question.id || 'q1'),
+            type: 'PRACTICE',
+            content: question.question || question.prompt || '',
+            metadata: {
+                lessonId: lesson.lessonId,
+                questionId: question.id || (lesson.lessonId + ':q1'),
+                question: question.question || question.prompt || 'Practice question',
+                options: question.options || [],
+                correctAnswer: question.answer !== undefined ? question.answer : question.correctAnswer,
+                explanation: question.explanation || '',
+                hint: question.hint || null
+            }
+        };
+
+        // 4. 直接调用 PracticeRenderer.create + mount
+        try {
+            var instance = practiceRenderer.create(activity, container);
+            instance.mount();
+            console.log('[LessonView] ✅ PracticeRenderer mounted:', activity.id);
+
+            // 5. 暴露给 LessonView 方便调试
+            this._currentPractice = instance;
+        } catch (e) {
+            console.error('[LessonView] PracticeRenderer error:', e);
+            container.innerHTML = `
+                <p style="margin:0;font-size:12px;color:#ef4444;">
+                    Practice failed to load: ${e.message}
+                </p>
+            `;
         }
     },
 
@@ -594,43 +663,16 @@ LawAIApp.Views.LessonView = {
         }
     },
 
+    // ============================================================
+    // Part 179: 兼容旧的 startPractice / submitPractice
+    // 保留作为 fallback，不再主动调用
+    // ============================================================
     startPractice: function() {
-        console.log('[LessonView] startPractice');
-        var descEl = document.getElementById('practice-desc');
-        var feedbackEl = document.getElementById('practice-feedback');
-        if (descEl) {
-            descEl.textContent = '✏️ Practice started. Type your answer below.';
-            descEl.style.color = '#4a9eff';
-        }
-        if (feedbackEl) {
-            feedbackEl.textContent = '';
-        }
-        if (LawAIApp.Toast?.info) {
-            LawAIApp.Toast.info('✏️ Practice started');
-        }
+        console.warn('[LessonView] startPractice deprecated (Part 179). Practice is now managed by ExperienceRuntime.');
     },
 
     submitPractice: function() {
-        console.log('[LessonView] submitPractice');
-        var input = document.getElementById('practice-answer-input');
-        var feedbackEl = document.getElementById('practice-feedback');
-        if (!input) return;
-        var answer = input.value.trim();
-        if (!answer) {
-            if (feedbackEl) {
-                feedbackEl.textContent = '⚠️ Write your answer first.';
-                feedbackEl.style.color = '#f59e0b';
-            }
-            return;
-        }
-        if (feedbackEl) {
-            feedbackEl.textContent = '✅ Answer submitted!';
-            feedbackEl.style.color = '#22c55e';
-        }
-        input.value = '';
-        if (LawAIApp.Toast?.success) {
-            LawAIApp.Toast.success('✅ Answer submitted');
-        }
+        console.warn('[LessonView] submitPractice deprecated (Part 179). Practice is now managed by ExperienceRuntime.');
     },
 
     saveReflection: function() {
