@@ -531,7 +531,11 @@ LawAIApp.Views.LessonView = {
 
         if (!practiceRenderer || typeof practiceRenderer.create !== 'function') {
             console.warn('[LessonView] PracticeRenderer not available');
-            container.innerHTML = `...`;
+            container.innerHTML = `
+                <p style="margin:0;font-size:12px;color:#f59e0b;">
+                    Practice system is loading. Please refresh.
+                </p>
+            `;
             return;
         }
 
@@ -567,12 +571,18 @@ LawAIApp.Views.LessonView = {
         try {
             var instance = practiceRenderer.create(activity, container);
             if (instance && typeof instance.mount === 'function') {
-            instance.mount();
-            console.log('[LessonView] ✅ PracticeRenderer mounted:', activity.id);
+                instance.mount();
+                console.log('[LessonView] ✅ PracticeRenderer mounted:', activity.id);
+                // 5. 暴露给 LessonView 方便调试
+                this._currentPractice = instance;
             } else {
-
-            // 5. 暴露给 LessonView 方便调试
-            this._currentPractice = instance;
+                console.warn('[LessonView] PracticeRenderer instance has no mount()');
+                container.innerHTML = `
+                    <p style="margin:0;font-size:12px;color:#f59e0b;">
+                        Practice renderer returned invalid instance.
+                    </p>
+                `;
+            }
         } catch (e) {
             console.error('[LessonView] PracticeRenderer error:', e);
             container.innerHTML = `
