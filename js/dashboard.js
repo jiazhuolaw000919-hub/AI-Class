@@ -199,10 +199,8 @@ LawAIApp.Dashboard = {
       favorites,
       completionRate,
       currentStage,
-      lastCompletedDate,
       dailyBriefingHTML,
       allLessons,
-      noteCount,
       heroData,
       learnerState,
       courseProgressPercent
@@ -1966,10 +1964,8 @@ LawAIApp.Dashboard = {
       favorites,
       completionRate,
       currentStage,
-      lastCompletedDate,
       dailyBriefingHTML,
       allLessons,
-      noteCount,
       heroData,
       learnerState,
       courseProgressPercent
@@ -2006,10 +2002,6 @@ LawAIApp.Dashboard = {
     if (insight && insightId) {
       var dialogueState = this._getDialogueState(insightId);
       var isReflecting = this._reflectionStates && this._reflectionStates[insightId];
-
-      var confidenceLabel = insight.confidence === 'high' ? '💪 Strong evidence' :
-                           insight.confidence === 'medium' ? '📊 Moderate evidence' :
-                           '🔍 Emerging pattern';
 
       // ── Part 72: Dialogue 响应选项 ──
       var dialogueOptions = '';
@@ -2166,35 +2158,23 @@ LawAIApp.Dashboard = {
       // ── 反思区域 ──
       var reflectionHTML = '';
 
-      // 🔥 Part 174: 简化 Insight Card — 折叠次要交互
+            // 🔥 Part 178: Insight 只显示 learner-facing 一句话
       insightHTML = `
         <div style="
-          background: rgba(74,158,255,0.04);
-          border-radius: 12px;
-          padding: 16px 18px;
-          margin-bottom: 16px;
-          border-left: 3px solid #4a9eff;
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          padding: 12px 4px;
         ">
-          <!-- Fact + Interpretation (合并显示) -->
-          <div style="display: flex; align-items: flex-start; gap: 10px;">
-            <span style="font-size: 18px; line-height: 1.4;">💡</span>
-            <div style="flex: 1; min-width: 0;">
-              <div style="font-size: 14px; color: #e2e8f0; line-height: 1.5; margin-bottom: 4px;">${insight.fact}</div>
-              <div style="font-size: 13px; color: #94a3b8; line-height: 1.5;">${insight.interpretation}</div>
-              <div style="font-size: 10px; color: #64748b; margin-top: 6px;">${confidenceLabel}</div>
+          <span style="font-size: 16px; line-height: 1.5; opacity: 0.7;">💡</span>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 13px; color: #94a3b8; line-height: 1.55;">
+              ${insight.message}
             </div>
-          </div>
-          
-          <!-- Dialogue Trigger (只在 idle/dismissed 时显示) -->
-          ${dialogueState === 'idle' || dialogueState === 'dismissed' ? `
-            <div style="margin-top: 12px;">
+            <div style="margin-top: 6px;">
               ${dialogueTrigger}
             </div>
-          ` : ''}
-          
-          <!-- Dialogue Options (open 状态) -->
-          ${dialogueState === 'open' ? dialogueOptions : ''}
-          ${dialogueStatus}
+          </div>
         </div>
       `;
     }
@@ -2268,9 +2248,9 @@ LawAIApp.Dashboard = {
       }).join('')}
     </section>
 
-      <!-- 🔥 HERO -->
+    <!-- 🔥 HERO + CONTINUE LEARNING (Part 178: 合并) -->
       <section id="dashboard-hero" style="
-        min-height: 32vh;
+        min-height: 28vh;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -2295,37 +2275,51 @@ LawAIApp.Dashboard = {
           z-index: 0;
         "></div>
 
-        <div style="position:relative;z-index:1;">
+        <div style="position:relative;z-index:1;max-width:520px;">
           <p style="
             margin: 0 0 4px;
             font-size: 14px;
             color: #64748b;
             letter-spacing: 0.4px;
             font-weight: 400;
-          ">${greeting}</p>
+          ">${greeting}, ${userName}</p>
 
           <h1 style="
             margin: 0 0 8px;
-            font-size: clamp(28px, 5vw, 42px);
+            font-size: clamp(24px, 4.5vw, 36px);
             font-weight: 700;
             letter-spacing: -0.6px;
-            line-height: 1.1;
+            line-height: 1.15;
             background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-          ">${userName}</h1>
+          ">${heroData.message || 'Ready to learn?'}</h1>
 
-          <p style="
-            margin: 0 0 16px;
-            font-size: 15px;
-            color: #94a3b8;
-            max-width: 440px;
-            line-height: 1.5;
-          ">${heroMessage}</p>
+          ${completedCount > 0 ? `
+            <div style="
+              margin: 16px 0 4px;
+              padding: 12px 18px;
+              background: rgba(255,255,255,0.03);
+              border-radius: 12px;
+              border: 1px solid rgba(255,255,255,0.05);
+              text-align: left;
+            ">
+              <div style="font-size: 10px; font-weight: 500; color: #4a9eff; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 4px;">
+                ${completedCount >= 365 ? '🎉 All Complete' : 'Continue Learning'}
+              </div>
+              <div style="font-size: 16px; font-weight: 600; color: #e2e8f0; line-height: 1.3;">
+                ${nextTitle}
+              </div>
+              <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">
+                ${nextSummary}
+              </div>
+            </div>
+          ` : ''}
 
-          <a href="${ctaLink}" style="
+          <a href="${completedCount > 0 ? '/pages/lesson.html?day=' + (completedCount + 1) : '/pages/academy.html'}" style="
             display: inline-block;
+            margin-top: 16px;
             padding: 12px 36px;
             background: linear-gradient(135deg, #4a9eff, #6366f1);
             border-radius: 100px;
@@ -2336,7 +2330,7 @@ LawAIApp.Dashboard = {
             transition: all 0.3s ease;
             box-shadow: 0 4px 24px rgba(74,158,255,0.15);
           " onmouseover="this.style.transform='scale(1.04)';this.style.boxShadow='0 8px 40px rgba(74,158,255,0.2)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 24px rgba(74,158,255,0.15)'">
-            ${ctaText} →
+            ${completedCount > 0 ? (completedCount >= 365 ? '🎉 Review' : 'Continue Learning') : 'Explore Academy'} →
           </a>
 
           <div style="
@@ -2354,81 +2348,6 @@ LawAIApp.Dashboard = {
           </div>
         </div>
       </section>
-
-      <!-- 🔥 CONTINUE LEARNING -->
-      ${completedCount === 0 ? `
-      <div style="
-        background: ${CARD_BG};
-        border-radius: ${CARD_RADIUS};
-        padding: 24px 20px;
-        border: ${CARD_BORDER};
-        text-align: center;
-        margin-bottom: 20px;
-      ">
-        <div style="font-size: 36px; margin-bottom: 8px;">🚀</div>
-        <h3 style="font-size: 17px; font-weight: 600; margin: 0 0 4px;">Start Your Learning Journey</h3>
-        <p style="color: #94a3b8; font-size: 13px; margin: 0 0 12px;">Explore the Academy to begin building your AI knowledge.</p>
-        <button onclick="window.location.href='/pages/academy.html'" style="
-          padding: 10px 28px;
-          background: #4a9eff;
-          border: none;
-          border-radius: 100px;
-          color: white;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          font-family: inherit;
-        ">Explore Academy →</button>
-      </div>
-      ` : `
-      <div style="
-        background: linear-gradient(135deg, #1e3555, #162040);
-        border-radius: ${CARD_RADIUS};
-        padding: 18px 24px;
-        border: 1px solid rgba(74,158,255,0.12);
-        box-shadow: 0 4px 24px rgba(0,0,0,0.25);
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        flex-wrap: wrap;
-      ">
-        <div style="flex:1;min-width:120px;">
-          <p style="
-            margin: 0 0 2px;
-            font-size: 10px;
-            font-weight: 500;
-            color: #4a9eff;
-            letter-spacing: 0.8px;
-            text-transform: uppercase;
-          ">${completedCount >= 365 ? '🎉 All Complete' : 'Continue Learning'}</p>
-          <h2 style="
-            margin: 0 0 2px;
-            font-size: 18px;
-            font-weight: 600;
-            line-height: 1.3;
-          ">${nextTitle}</h2>
-          <p style="
-            margin: 0;
-            font-size: 13px;
-            color: #94a3b8;
-          ">${nextSummary}</p>
-        </div>
-        <div style="
-          padding: 8px 24px;
-          background: #4a9eff;
-          border-radius: 100px;
-          font-size: 14px;
-          font-weight: 600;
-          white-space: nowrap;
-          box-shadow: 0 2px 12px rgba(74,158,255,0.3);
-        ">
-          <a href="/pages/lesson.html?day=${completedCount + 1}" style="color:white;text-decoration:none;">
-            ${completedCount >= 365 ? '🎉 Review' : 'Continue →'}
-          </a>
-        </div>
-      </div>
-      `}
 
       <!-- 📊 PROGRESS (Part 178: 多维度) -->
       <section style="
@@ -2490,47 +2409,24 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
-      <!-- 📈 LEARNING INSIGHTS (Part 72 + 76 + 77) -->
-      <section style="
-        background: ${CARD_BG};
-        border-radius: ${CARD_RADIUS};
-        padding: ${CARD_PADDING};
-        border: ${CARD_BORDER};
-        margin-bottom: 16px;
-      ">
-        <p style="margin:0 0 10px;font-size:11px;color:#64748b;font-weight:500;letter-spacing:0.6px;">
-          📈 LEARNING INSIGHTS
-        </p>
-        
-        <!-- Part 72: Dialogue Insight -->
-        ${insightHTML}
-        
-        <!-- Stats -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;">
-          <div>
-            <span style="font-size:10px;color:#64748b;">Current Stage</span>
-            <p style="margin:2px 0 0;font-size:14px;font-weight:500;">${currentStage}</p>
-          </div>
-          <div>
-            <span style="font-size:10px;color:#64748b;">Last Active</span>
-            <p style="margin:2px 0 0;font-size:14px;font-weight:500;">${lastCompletedDate}</p>
-          </div>
-          <div>
-            <span style="font-size:10px;color:#64748b;">Longest Streak</span>
-            <p style="margin:2px 0 0;font-size:14px;font-weight:500;">${streakData.longestStreak || 0} days</p>
-          </div>
-          <div>
-            <span style="font-size:10px;color:#64748b;">📓 Notes</span>
-            <p style="margin:2px 0 0;font-size:14px;font-weight:500;">${noteCountDisplay} saved</p>
-          </div>
-        </div>
-      </section>
+      <!-- 📈 LEARNING INSIGHTS (Part 178: 精简) -->
+      ${insightHTML ? `
+        <section style="
+          background: ${CARD_BG};
+          border-radius: ${CARD_RADIUS};
+          padding: 8px ${CARD_PADDING} 4px;
+          border: ${CARD_BORDER};
+          margin-bottom: 16px;
+        ">
+          ${insightHTML}
+        </section>
+      ` : ''}
 
       <!-- 🔄 LEARNING LOOP (Part 74 + Part 178: 折叠) -->
       ${this._renderLearningLoopCollapsed()}
 
-      <!-- 📚 LEARNING CONTINUITY (Part 73 + Part 178: 移除 Reflection) -->
-      ${this._buildContinuityHTMLNoReflection()}
+      <!-- 📓 NOTES PREVIEW (Part 178: 替代 Continuity) -->
+      ${this._buildNotesPreview()}
 
       <!-- 🔒 Authority Status -->
       ${authorityHTML}
@@ -2872,19 +2768,29 @@ LawAIApp.Dashboard = {
   },
 
   // ============================================================
-  // Part 178: Continuity 不含 Reflection
-  // Reflection 只在 Notes surface
+  // Part 178: Notes Preview（替代 Continuity）
+  // Bible §23: 轻量，不变成 Notes
   // ============================================================
-  _buildContinuityHTMLNoReflection: function() {
-    var context = this._getContinuityContext();
-
-    // 只显示 "最近学习"
-    if (!context.hasRecentLearning) {
+  _buildNotesPreview: function() {
+    var auth = window.LawAIApp?.NotesAuthority;
+    if (!auth || !auth.isReady) {
       return '';
     }
 
-    var learning = context.recentLearning;
-    if (!learning) return '';
+    var notes = auth.getAllNotes();
+    if (!notes || notes.length === 0) {
+      return '';
+    }
+
+    // 按 updatedAt 排序，取最近一条
+    notes.sort(function(a, b) {
+      return new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt);
+    });
+
+    var recent = notes[0];
+    var preview = recent.content
+      ? recent.content.substring(0, 100) + (recent.content.length > 100 ? '…' : '')
+      : (recent.title || 'Untitled note');
 
     return `
       <section style="
@@ -2894,15 +2800,34 @@ LawAIApp.Dashboard = {
         border: 1px solid rgba(255,255,255,0.04);
         margin-bottom: 16px;
       ">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 16px;">📍</span>
-          <div style="flex: 1; min-width: 0;">
-            <div style="font-size: 11px; color: #64748b; margin-bottom: 2px;">RECENTLY</div>
-            <div style="font-size: 14px; font-weight: 500; color: #e2e8f0;">
-              ${learning.courseTitle || 'Your learning'}
-            </div>
-            ${learning.lessonTitle ? `<div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">${learning.lessonTitle}</div>` : ''}
-          </div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+          <span style="font-size: 14px;">📓</span>
+          <span style="font-size: 11px; color: #64748b; font-weight: 500; letter-spacing: 0.6px;">
+            YOUR RECENT NOTE
+          </span>
+        </div>
+        <div style="
+          font-size: 13px;
+          color: #e2e8f0;
+          line-height: 1.5;
+          padding: 8px 12px;
+          background: rgba(74,158,255,0.03);
+          border-left: 2px solid #4a9eff;
+          border-radius: 6px;
+        ">
+          ${preview}
+        </div>
+        <div style="margin-top: 10px;">
+          <button onclick="window.location.href='/pages/academy.html?view=notes'" style="
+            padding: 4px 14px;
+            background: rgba(74,158,255,0.06);
+            border: 1px solid rgba(74,158,255,0.08);
+            border-radius: 100px;
+            color: #4a9eff;
+            font-size: 11px;
+            cursor: pointer;
+            font-family: inherit;
+          ">View Notes →</button>
         </div>
       </section>
     `;
