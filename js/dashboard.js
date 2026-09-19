@@ -2204,26 +2204,8 @@ LawAIApp.Dashboard = {
     const CARD_BORDER = '1px solid rgba(255,255,255,0.04)';
     const CARD_PADDING = '20px';
 
-    const isDebugMode = false;
-    const authorityHTML = isDebugMode ? `
-      <section style="
-        background: rgba(255,255,255,0.015);
-        border-radius: 8px;
-        padding: 8px 12px;
-        border: 1px solid rgba(255,255,255,0.02);
-        margin-bottom: 12px;
-        font-size: 9px;
-        color: #475569;
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-      ">
-        <span>📋 Authority: Course + Module + Lesson</span>
-        <span>⚡ State: ${this._getAuthorityStatus()}</span>
-        <span>📊 Source: ${this._getStateSource()}</span>
-        <span>📓 Notes: ${this._getNoteCount()} saved</span>
-      </section>
-    ` : '';
+    // Part 178: Authority Status 已移除（Bible §67）
+    const authorityHTML = '';
 
     return `
     <div id="dashboard-root" style="
