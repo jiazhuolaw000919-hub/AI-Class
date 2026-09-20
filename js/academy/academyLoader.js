@@ -50,7 +50,10 @@
         curriculumAuthority: false,
         videoActivity: false,
         practiceFitnessCheck: false,
-        activityFitnessCheck: false
+        activityFitnessCheck: false,
+        experienceLayer: false,
+        authorityLayer: false,
+        academyExperienceManager: false
       };
       this._lazyLoading = {
         calendar: false,
@@ -61,7 +64,10 @@
         curriculumAuthority: false,
         videoActivity: false,
         practiceFitnessCheck: false,
-        activityFitnessCheck: false
+        activityFitnessCheck: false,
+        experienceLayer: false,
+        authorityLayer: false,
+        academyExperienceManager: false
       };
 
       // 🔥 v2.2.0: 补全 moduleChecks，特别是嵌套路径的
@@ -628,6 +634,107 @@
         } else {
           console.warn('[AcademyLoader] ⚠️ ActivityFitnessCheck load failed');
           if (onFail) onFail('ActivityFitnessCheck load failed');
+        }
+      }.bind(this));
+    }
+
+    // ============================================================
+    // 🔥 Season 5 Part 4: Experience 层懒加载
+    // ============================================================
+    loadExperienceLayer(onReady, onFail) {
+      var moduleName = 'experienceLayer';
+      if (this._lazyLoaded[moduleName]) {
+        if (onReady) onReady(true);
+        return;
+      }
+      if (this._lazyLoading[moduleName]) {
+        return;
+      }
+      this._lazyLoading[moduleName] = true;
+
+      var files = [
+        '/js/experience/experienceContract.js',
+        '/js/experience/activityRegistry.js',
+        '/js/experience/experienceRuntime.js',
+        '/js/experience/practiceEvidenceContract.js',
+        '/js/experience/videoEvidenceContract.js',
+        '/js/experience/renderers/readingRenderer.js',
+        '/js/experience/renderers/practiceRenderer.js',
+        '/js/experience/renderers/videoRenderer.js'
+      ];
+
+      this._loadScriptsSequentially(files, function(success) {
+        this._lazyLoading[moduleName] = false;
+        if (success) {
+          this._lazyLoaded[moduleName] = true;
+          console.log('[AcademyLoader] ✅ Experience Layer loaded');
+          if (onReady) onReady(true);
+        } else {
+          console.warn('[AcademyLoader] ⚠️ Experience Layer load failed');
+          if (onFail) onFail('Experience Layer load failed');
+        }
+      }.bind(this));
+    }
+
+    // ============================================================
+    // 🔥 Season 5 Part 5: Authority 层懒加载
+    // ============================================================
+    loadAuthorityLayer(onReady, onFail) {
+      var moduleName = 'authorityLayer';
+      if (this._lazyLoaded[moduleName]) {
+        if (onReady) onReady(true);
+        return;
+      }
+      if (this._lazyLoading[moduleName]) {
+        return;
+      }
+      this._lazyLoading[moduleName] = true;
+
+      var files = [
+        '/js/notes/NotesAuthority.js',
+        '/js/calendar/CalendarAuthority.js',
+        '/js/settings/SettingsAuthority.js',
+        '/js/curriculum/CurriculumAuthority.js'
+      ];
+
+      this._loadScriptsSequentially(files, function(success) {
+        this._lazyLoading[moduleName] = false;
+        if (success) {
+          this._lazyLoaded[moduleName] = true;
+          console.log('[AcademyLoader] ✅ Authority Layer loaded');
+          if (onReady) onReady(true);
+        } else {
+          console.warn('[AcademyLoader] ⚠️ Authority Layer load failed');
+          if (onFail) onFail('Authority Layer load failed');
+        }
+      }.bind(this));
+    }
+
+    // ============================================================
+    // 🔥 Season 5 Part 9: Academy Experience Manager 懒加载
+    // ============================================================
+    loadAcademyExperienceManager(onReady, onFail) {
+      var moduleName = 'academyExperienceManager';
+      if (this._lazyLoaded[moduleName] || (window.LawAIApp && window.LawAIApp.AcademyExperienceManager)) {
+        if (onReady) onReady(window.LawAIApp.AcademyExperienceManager);
+        return;
+      }
+      if (this._lazyLoading[moduleName]) {
+        return;
+      }
+      this._lazyLoading[moduleName] = true;
+
+      var files = ['/js/academy/academyExperienceManager.js'];
+
+      this._loadScriptsSequentially(files, function(success) {
+        this._lazyLoading[moduleName] = false;
+        if (success && window.LawAIApp && window.LawAIApp.AcademyExperienceManager) {
+          this._lazyLoaded[moduleName] = true;
+          console.log('[AcademyLoader] ✅ AcademyExperienceManager loaded');
+          if (onReady) onReady(window.LawAIApp.AcademyExperienceManager);
+        } else {
+          console.warn('[AcademyLoader] ⚠️ AcademyExperienceManager load failed');
+          if (onFail) onFail('AcademyExperienceManager load failed');
         }
       }.bind(this));
     }
