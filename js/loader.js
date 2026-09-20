@@ -198,38 +198,25 @@ var STAGES = {
         "calendar/CalendarEventAdapter.js",
         "calendar/CalendarRenderer.js",
         "calendar.js",
+        "themeEngine.js",
         "academy/knowledgeCapture.js",
         "academy/notes.js",
-        "academy/secondBrain.js"
-    ],
-    s5: [
-        // ─── Authority 层 ───
+        "academy/secondBrain.js",
         "notes/NotesAuthority.js",
         "calendar/CalendarAuthority.js",
         "settings/SettingsAuthority.js",
         "curriculum/CurriculumAuthority.js",
-
-        // ─── Experience Contract ───
+        "school/SchoolViewModel.js",
         "experience/experienceContract.js",
         "experience/practiceEvidenceContract.js",
         "experience/videoEvidenceContract.js",
-
-        // ─── Registry & Runtime ───
         "experience/activityRegistry.js",
         "experience/experienceRuntime.js",
-
-        // ─── Renderers ───
         "experience/renderers/readingRenderer.js",
         "experience/renderers/practiceRenderer.js",
         "experience/renderers/videoRenderer.js",
-
-        // ─── Fitness Check ───
         "experience/practiceFitnessCheck.js",
         "experience/activityFitnessCheck.js",
-
-        // ─── Academy Experience Manager ───
-        "academy/practiceProgress.js",
-        "academy/academyExperienceManager.js"
     ],
     ux: [
         "experienceComposer.js",
@@ -486,9 +473,16 @@ async function boot() {
 
     await loadStage('runtime', STAGES.runtime, 0);
     await loadStage('critical', STAGES.critical, 0);
-    await loadStage('s5', STAGES.s5, 0);
 
     console.log('[Loader] ✅ Runtime Ready');
+
+    // 🔥 通知 Dashboard：S5 已就绪
+    try {
+        window.dispatchEvent(new CustomEvent('S5_READY', {
+            detail: { timestamp: Date.now() }
+        }));
+        console.log('[Loader] 📣 S5_READY dispatched');
+    } catch (e) {}
 
     var status = {
         loaded: Object.keys(_loadedModules),
