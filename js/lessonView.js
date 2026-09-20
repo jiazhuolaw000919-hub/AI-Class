@@ -501,11 +501,66 @@ LawAIApp.Views.LessonView = {
         // ═══════════════════════════════════════════════════════════
         self._startPracticeViaRuntime(lesson);
 
+        // 🔥 Season 5 Part 5: 监听本课 Practice 完成
+        self._attachPracticeListener(lesson);
+
         // Experience Runtime
         var oldRuntime = window.LawAIApp?.Experience?.Runtime;
         if (oldRuntime && typeof oldRuntime.cleanup === 'function') {
             oldRuntime.cleanup();
         }
+    },
+
+    // ============================================================
+    // 🔥 Season 5 Part 5: 监听本课 Practice 完成 → 通知 Progress
+    // ============================================================
+    _attachPracticeListener: function(lesson) {
+        var self = this;
+        var lessonId = lesson && lesson.lessonId;
+        if (!lessonId) return;
+
+        // 避免重复绑定
+        if (this._practiceListener) {
+            document.removeEventListener('PracticeCompleted', this._practiceListener);
+        }
+
+        this._practiceListener = function(e) {
+            var payload = (e && e.detail) || {};
+            // 只处理本课的
+            if (payload.lessonId !== lessonId) return;
+
+            console.log('[LessonView] 🎯 PracticeCompleted for', lessonId, payload);
+
+            // 🔥 通知 ProgressEngine（如果它支持）
+            try {
+                var prog = window.LawAIApp && window.LawAIApp.ProgressEngine;
+                if (prog && typeof prog.recordPracticeCompleted === 'function') {
+                    prog.recordPracticeCompleted(lessonId, {
+                        correct: payload.correct,
+                        total: payload.total,
+                        accuracy: payload.accuracy,
+                        source: payload.source || 'practice-set'
+                    });
+                } else if (prog && typeof prog.recordActivity === 'function') {
+                    prog.recordActivity(lessonId, {
+                        type: 'practice',
+                        correct: payload.correct,
+                        total: payload.total
+                    });
+                }
+            } catch (err) {
+                console.warn('[LessonView] ProgressEngine recordPractice failed:', err);
+            }
+
+            // 提示学习者
+            if (window.LawAIApp?.Toast?.success && payload.total) {
+                LawAIApp.Toast.success(
+                    '✏️ Practice: ' + payload.correct + ' / ' + payload.total
+                );
+            }
+        };
+
+        document.addEventListener('PracticeCompleted', this._practiceListener);
     },
 
     // ============================================================
@@ -719,13 +774,46 @@ LawAIApp.Views.LessonView = {
             }
             return;
         }
+
+        // 🔥 Season 5 Part 5: 真实保存到 NotesAuthority
+        var notesAuth = window.LawAIApp && window.LawAIApp.NotesAuthority;
+        var lesson = this._lesson || {};
+        var saved = false;
+
+        if (notesAuth && typeof notesAuth.create === 'function') {
+            try {
+                var result = notesAuth.create({
+                    title: 'Reflection: ' + (lesson.title || this._lessonId || 'Lesson'),
+                    content: text,
+                    noteType: 'REFLECTION',
+                    source: 'lesson-reflection',
+                    createdBy: 'learner',
+                    tags: ['reflection', 'lesson'],
+                    relatedLessonRef: this._lessonId,
+                    relatedCourseRef: lesson.courseId || null,
+                    relatedSubjectRef: lesson.subjectId || null
+                });
+                saved = !!(result && result.success !== false);
+            } catch (e) {
+                console.warn('[LessonView] NotesAuthority.create failed:', e);
+            }
+        } else {
+            console.warn('[LessonView] NotesAuthority not available');
+        }
+
+        // 兜底：如果 NotesAuthority 不可用，仍然给出视觉反馈
         textarea.value = '';
         textarea.style.borderColor = 'rgba(34,197,94,0.3)';
         setTimeout(function() {
             textarea.style.borderColor = 'rgba(255,255,255,0.06)';
         }, 2000);
-        if (LawAIApp.Toast?.success) {
-            LawAIApp.Toast.success('💭 Reflection saved');
+
+        if (LawAIApp.Toast) {
+            if (saved) {
+                LawAIApp.Toast.success?.('💭 Reflection saved to Notes');
+            } else {
+                LawAIApp.Toast.info?.('Reflection recorded locally');
+            }
         }
     },
 
