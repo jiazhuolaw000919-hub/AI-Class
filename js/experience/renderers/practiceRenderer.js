@@ -1133,6 +1133,9 @@ function _createSetRenderer(activity, container) {
             +     '<button id="practice-set-retake-btn" style="flex:1;padding:10px 16px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.12);border-radius:8px;color:#4a9eff;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;">'
             +       '↻ Retake All'
             +     '</button>'
+            +     '<button id="practice-set-back-btn" style="flex:1;padding:10px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#94a3b8;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;">'
+            +       '← Back to Lesson'
+            +     '</button>'
             +   '</div>'
             + '</div>';
     }
@@ -1311,6 +1314,17 @@ function _createSetRenderer(activity, container) {
                     };
                 }
                 _render();
+                
+        var backBtn = _container.querySelector('#practice-set-back-btn');
+        if (backBtn) {
+            backBtn.addEventListener('click', function() {
+                // 尝试滚到 lesson 顶部
+                var lessonRoot = document.querySelector('.lesson-classroom');
+                if (lessonRoot && lessonRoot.scrollIntoView) {
+                    lessonRoot.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
             });
         }
     }
