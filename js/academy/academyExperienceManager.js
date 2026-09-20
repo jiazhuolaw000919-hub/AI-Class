@@ -1143,6 +1143,114 @@
             return notes;
         },
 
+        // ============================================================
+        // 🔥 Season 5 Part 9: Practice 真实进度
+        // Bible Part 54: Dashboard 只显示，不拥有数据
+        // ============================================================
+        _getPracticeExperience: function() {
+            var result = {
+                hasData: false,
+                totalAttempts: 0,
+                totalCorrect: 0,
+                accuracy: 0,
+                completedLessons: 0,
+                totalLessons: 0,
+                recentLessonId: null,
+                recentLessonTitle: null,
+                recentLessonAccuracy: 0
+            };
+
+            try {
+                var pp = window.LawAIApp && window.LawAIApp.PracticeProgress;
+                if (pp && typeof pp.getStats === 'function') {
+                    var stats = pp.getStats();
+                    if (stats && stats.totalAttempts > 0) {
+                        result.hasData = true;
+                        result.totalAttempts = stats.totalAttempts;
+                        result.totalCorrect = stats.totalCorrect;
+                        result.accuracy = stats.overallAccuracy || 0;
+                        result.completedLessons = stats.completedLessons || 0;
+                        result.totalLessons = stats.totalLessons || 0;
+                    }
+                }
+
+                // 最近一次 practice 的 lesson
+                var all = pp && typeof pp.getAllProgress === 'function' ? pp.getAllProgress() : {};
+                var mostRecent = null;
+                for (var lessonId in all) {
+                    if (!all.hasOwnProperty(lessonId)) continue;
+                    var p = all[lessonId];
+                    if (p.lastAttempt) {
+                        if (!mostRecent || new Date(p.lastAttempt) > new Date(mostRecent.lastAttempt)) {
+                            mostRecent = p;
+                            mostRecent._lessonId = lessonId;
+                        }
+                    }
+                }
+                if (mostRecent) {
+                    result.recentLessonId = mostRecent._lessonId;
+                    result.recentLessonAccuracy = mostRecent.attempted > 0
+                        ? Math.round((mostRecent.correct / mostRecent.attempted) * 100)
+                        : 0;
+                }
+            } catch (e) {
+                console.warn('[AcademyExperienceManager] _getPracticeExperience failed:', e);
+            }
+
+            return result;
+        },
+
+        // ============================================================
+        // 🔥 Season 5 Part 9: Flashcard 统计（来自 Phase 7）
+        // ============================================================
+        _getFlashcardExperience: function() {
+            var result = {
+                hasData: false,
+                totalReviews: 0,
+                knownCount: 0,
+                reviewCount: 0,
+                knownPercent: 0,
+                recentLessonId: null
+            };
+
+            try {
+                if (typeof this.getFlashcardStats === 'function') {
+                    var stats = this.getFlashcardStats();
+                    if (stats && stats.total > 0) {
+                        result.hasData = true;
+                        result.totalReviews = stats.total;
+                    }
+                }
+
+                // 全部笔记里的 FLASHCARD_REVIEW
+                var notes = this.getNotes({});
+                var reviews = notes.filter(function(n) {
+                    return n.type === 'FLASHCARD_REVIEW';
+                });
+
+                if (reviews.length > 0) {
+                    result.hasData = true;
+                    for (var i = 0; i < reviews.length; i++) {
+                        var r = reviews[i];
+                        var res = r.metadata && r.metadata.result;
+                        if (res === 'known') result.knownCount++;
+                        else if (res === 'review') result.reviewCount++;
+                    }
+                    result.knownPercent = reviews.length > 0
+                        ? Math.round((result.knownCount / reviews.length) * 100)
+                        : 0;
+
+                    // 最近的 lesson
+                    var latest = reviews[reviews.length - 1];
+                    result.recentLessonId = latest.lessonId || null;
+                }
+            } catch (e) {
+                console.warn('[AcademyExperienceManager] _getFlashcardExperience failed:', e);
+            }
+
+            return result;
+        },
+
         /**
          * 获取成就体验
          * @param {number} limit - 成就数量限制
@@ -1581,6 +1689,9 @@
 
             // 获取 Notes
             var notes = this._getNotesExperience ? this._getNotesExperience(3) : [];
+            // 🔥 Season 5 Part 9
+            var practice = this._getPracticeExperience ? this._getPracticeExperience() : null;
+            var flashcards = this._getFlashcardExperience ? this._getFlashcardExperience() : null;
 
             var viewModel = {
                 // 身份
@@ -2381,6 +2492,109 @@
 
             html += `</div>`;
             container.innerHTML = html;
+        },
+
+        // ============================================================
+        // 🔥 Season 5 Part 9: 学习脉搏 — inline 展示
+        // Bible Part 74: 优先 inline / contextual
+        // Bible Part 90: 不加新巨型卡片
+        // ============================================================
+        _renderLearningPulseInline: function() {
+            var practice = this._getPracticeExperience ? this._getPracticeExperience() : null;
+            var flashcards = this._getFlashcardExperience ? this._getFlashcardExperience() : null;
+
+            var hasPractice = practice && practice.hasData;
+            var hasFlashcards = flashcards && flashcards.hasData;
+
+            // 没有任何数据 → 不显示（Bible Part 65: empty state 要 intentional）
+            if (!hasPractice && !hasFlashcards) {
+                return '';
+            }
+
+            var items = [];
+
+            if (hasPractice) {
+                items.push(
+                    '<div style="flex:1;min-width:120px;">'
+                    +   '<div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Practice</div>'
+                    +   '<div style="font-size:18px;font-weight:600;color:#e2e8f0;margin-top:2px;">'
+                    +     practice.accuracy + '%'
+                    +   '</div>'
+                    +   '<div style="font-size:11px;color:#94a3b8;margin-top:2px;">'
+                    +     practice.completedLessons + ' lesson(s) · ' + practice.totalAttempts + ' attempt(s)'
+                    +   '</div>'
+                    + '</div>'
+                );
+            }
+
+            if (hasFlashcards) {
+                items.push(
+                    '<div style="flex:1;min-width:120px;">'
+                    +   '<div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Flashcards</div>'
+                    +   '<div style="font-size:18px;font-weight:600;color:#e2e8f0;margin-top:2px;">'
+                    +     flashcards.knownCount + ' / ' + flashcards.totalReviews
+                    +   '</div>'
+                    +   '<div style="font-size:11px;color:#94a3b8;margin-top:2px;">'
+                    +     flashcards.knownPercent + '% known'
+                    +   '</div>'
+                    + '</div>'
+                );
+            }
+
+            return ''
+                + '<div style="background:rgba(74,158,255,0.03);border:1px solid rgba(74,158,255,0.08);'
+                +             'border-radius:12px;padding:14px 20px;margin-bottom:16px;'
+                +             'display:flex;gap:24px;flex-wrap:wrap;align-items:center;">'
+                +   '<div style="font-size:12px;color:#4a9eff;font-weight:500;">'
+                +     '📊 Your learning pulse'
+                +   '</div>'
+                +   items.join('')
+                + '</div>';
+        },
+
+        // ============================================================
+        // 🔥 Season 5 Part 9: 最近反思 — inline
+        // Bible Part 13: Reflection 是 learning evidence，不是 mastery
+        // ============================================================
+        _renderRecentReflectionInline: function() {
+            try {
+                var notes = this.getNotes({}).filter(function(n) {
+                    return n.type === 'PERSONAL_NOTE' || n.type === 'REFLECTION';
+                });
+
+                if (!notes || notes.length === 0) return '';
+
+                // 最近一条
+                var latest = notes[notes.length - 1];
+                var content = (latest.content || '').slice(0, 120);
+                if (latest.content && latest.content.length > 120) content += '…';
+
+                var lessonTitle = 'a recent lesson';
+                if (latest.lessonId) {
+                    var lessonView = window.LawAIApp && window.LawAIApp.LessonView;
+                    if (lessonView && lessonView._lesson && lessonView._lesson.lessonId === latest.lessonId) {
+                        lessonTitle = lessonView._lesson.title || latest.lessonId;
+                    } else {
+                        lessonTitle = latest.lessonId;
+                    }
+                }
+
+                return ''
+                    + '<div style="background:rgba(139,92,246,0.03);border:1px solid rgba(139,92,246,0.08);'
+                    +             'border-radius:12px;padding:14px 20px;margin-bottom:16px;">'
+                    +   '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+                    +     '<span style="font-size:11px;color:#8b5cf6;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;">'
+                    +       '💭 Recent reflection'
+                    +     '</span>'
+                    +     '<span style="font-size:11px;color:#64748b;">' + lessonTitle + '</span>'
+                    +   '</div>'
+                    +   '<div style="font-size:13px;color:#c8d0d8;line-height:1.6;font-style:italic;">'
+                    +     '“' + content + '”'
+                    +   '</div>'
+                    + '</div>';
+            } catch (e) {
+                return '';
+            }
         },
 
         _renderContinueLearningFallback: function(continueData) {
