@@ -2459,6 +2459,10 @@
                 html += this._renderContinueLearningFallback(continueData);
             }
 
+            // 🔥 Season 5 Part 9: Learning Pulse + Recent Reflection
+            html += this._renderLearningPulseInline();
+            html += this._renderRecentReflectionInline();
+
             if (schools && schools.length > 0) {
                 html += `<h2 style="font-size: 18px; font-weight: 600; margin: 24px 0 16px 0;">🎓 Schools</h2>`;
                 html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">`;
