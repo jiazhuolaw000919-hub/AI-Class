@@ -3323,6 +3323,66 @@
         },
 
         // ============================================================
+        // 🔥 Season 5 Part 7: Flashcard review 查询
+        // ============================================================
+        /**
+         * 获取某课的所有 flashcard review 记录
+         * @param {string} lessonId
+         * @returns {Object} { known: [], review: [], total: 0 }
+         */
+        getFlashcardReviews: function(lessonId) {
+            var notes = this.getNotes({ lessonId: lessonId });
+            var reviews = notes.filter(function(n) {
+                return n.type === 'FLASHCARD_REVIEW';
+            });
+
+            var known = [];
+            var review = [];
+            for (var i = 0; i < reviews.length; i++) {
+                var r = reviews[i];
+                var cardId = r.metadata && r.metadata.cardId;
+                var result = r.metadata && r.metadata.result;
+                if (result === 'known') known.push(cardId);
+                else if (result === 'review') review.push(cardId);
+            }
+
+            return {
+                known: known,
+                review: review,
+                total: known.length + review.length,
+                knownCount: known.length,
+                reviewCount: review.length
+            };
+        },
+
+        /**
+         * 获取 flashcard 学习统计
+         */
+        getFlashcardStats: function() {
+            var notes = this.getNotes({});
+            var reviews = notes.filter(function(n) {
+                return n.type === 'FLASHCARD_REVIEW';
+            });
+
+            var byLesson = {};
+            for (var i = 0; i < reviews.length; i++) {
+                var r = reviews[i];
+                var lid = r.lessonId || 'unknown';
+                if (!byLesson[lid]) {
+                    byLesson[lid] = { known: 0, review: 0 };
+                }
+                var result = r.metadata && r.metadata.result;
+                if (result === 'known') byLesson[lid].known++;
+                else if (result === 'review') byLesson[lid].review++;
+            }
+
+            return {
+                total: reviews.length,
+                byLesson: byLesson
+            };
+        },
+
+        // ============================================================
         // 7. PRIVATE — Events
         // ============================================================
 
