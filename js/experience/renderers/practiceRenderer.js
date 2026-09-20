@@ -1082,19 +1082,10 @@ function _createSetRenderer(activity, container) {
             + '<div id="practice-set-current" data-practice-container></div>';
 
         // ─── 答题后：Retry / Next ───
+        // 注意：初次渲染时 state.status 通常是 'unanswered'，
+        // 所以这个 actionHtml 默认是空的。
+        // 答完后由 _appendActionButtons() 动态追加。
         var actionHtml = '';
-        if (state.status === 'evaluated') {
-            var isLast = (_currentIndex === total - 1);
-            actionHtml = ''
-                + '<div style="display:flex;gap:8px;margin-top:12px;">'
-                +   '<button id="practice-set-retry-btn" style="flex:1;padding:8px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#94a3b8;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;">'
-                +     '↻ Retry'
-                +   '</button>'
-                +   '<button id="practice-set-next-btn" style="flex:2;padding:8px 16px;background:#4a9eff;border:none;border-radius:8px;color:white;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;">'
-                +     (isLast ? 'See Results →' : 'Next →')
-                +   '</button>'
-                + '</div>';
-        }
 
         return ''
             + '<div class="practice-activity practice-set" style="font-family:\'Inter\',sans-serif;color:#e2e8f0;">'
@@ -1228,23 +1219,67 @@ function _createSetRenderer(activity, container) {
         // 持久化
         _persistAttempt(q.questionId, !!result.correct);
 
-        // 重新渲染整个 set（显示 Retry / Next）
-        _render();
+        // 🔥 不重绘整个 set —— 只追加 action 区域
+        // 这样 _childRenderer 的 DOM 引用不会被销毁
+        _appendActionButtons();
     }
 
-    // ---------- 事件绑定 ----------
-    function _bindEvents() {
+    // 🔥 新增：只更新 Retry / Next 区域
+    function _appendActionButtons() {
+        var setEl = _container.querySelector('.practice-set');
+        if (!setEl) return;
+
+        // 移除旧 action（如果有）
+        var old = setEl.querySelector('#practice-set-actions');
+        if (old) old.remove();
+
+        var isLast = (_currentIndex === _questions.length - 1);
+
+        var actionHtml = ''
+            + '<div id="practice-set-actions" style="display:flex;gap:8px;margin-top:12px;">'
+            +   '<button id="practice-set-retry-btn" style="flex:1;padding:8px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#94a3b8;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;">'
+            +     '↻ Retry'
+            +   '</button>'
+            +   '<button id="practice-set-next-btn" style="flex:2;padding:8px 16px;background:#4a9eff;border:none;border-radius:8px;color:white;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;">'
+            +     (isLast ? 'See Results →' : 'Next →')
+            +   '</button>'
+            + '</div>';
+
+        setEl.insertAdjacentHTML('beforeend', actionHtml);
+        _bindActionButtons();
+    }
+
+    // 🔥 新增：只绑 action 按钮
+    function _bindActionButtons() {
         var retryBtn = _container.querySelector('#practice-set-retry-btn');
         if (retryBtn) {
             retryBtn.addEventListener('click', function() {
                 var state = _perQuestion[_currentIndex];
                 state.status = 'unanswered';
                 state.lastResult = null;
-                // 保留 firstTryCorrect 不变
                 _render();
             });
         }
 
+        var nextBtn = _container.querySelector('#practice-set-next-btn');
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function() {
+                var isLast = (_currentIndex === _questions.length - 1);
+                if (isLast) {
+                    _isComplete = true;
+                    _persistComplete();
+                    _emitSetCompleted();
+                    _render();
+                } else {
+                    _currentIndex++;
+                    _render();
+                }
+            });
+        }
+    }
+
+    // ---------- 事件绑定 ----------
+    function _bindEvents() {
         var nextBtn = _container.querySelector('#practice-set-next-btn');
         if (nextBtn) {
             nextBtn.addEventListener('click', function() {
