@@ -1098,7 +1098,34 @@ LawAIApp.Dashboard = {
           result.accuracy = stats.overallAccuracy || 0;
           result.completedLessons = stats.completedLessons || 0;
           result.totalLessons = stats.totalLessons || 0;
+          return result;
         }
+      }
+
+      // 🔥 Fallback: 直接读 StorageEngine
+      var storage = window.LawAIApp && window.LawAIApp.StorageEngine;
+      if (!storage || typeof storage.get !== 'function') return result;
+
+      var store = storage.get('practice_progress', {});
+      if (!store || typeof store !== 'object') return result;
+
+      var totalLessons = 0, totalAttempts = 0, totalCorrect = 0, completedLessons = 0;
+      for (var lessonId in store) {
+        if (!store.hasOwnProperty(lessonId)) continue;
+        var p = store[lessonId];
+        if (!p) continue;
+        totalLessons++;
+        totalAttempts += p.attempted || 0;
+        totalCorrect += p.correct || 0;
+        if (p.completed) completedLessons++;
+      }
+      if (totalAttempts > 0) {
+        result.hasData = true;
+        result.totalAttempts = totalAttempts;
+        result.totalCorrect = totalCorrect;
+        result.accuracy = Math.round((totalCorrect / totalAttempts) * 100);
+        result.completedLessons = completedLessons;
+        result.totalLessons = totalLessons;
       }
     } catch (e) {
       console.warn('[Dashboard] _getPracticeStats failed:', e);
@@ -1120,33 +1147,26 @@ LawAIApp.Dashboard = {
     };
 
     try {
-      var aem = window.LawAIApp && window.LawAIApp.AcademyExperienceManager;
-      if (aem && typeof aem.getFlashcardStats === 'function') {
-        var stats = aem.getFlashcardStats();
-        if (stats && stats.total > 0) {
-          result.hasData = true;
-          result.totalReviews = stats.total;
-        }
-      }
+      var storage = window.LawAIApp && window.LawAIApp.StorageEngine;
+      if (!storage || typeof storage.get !== 'function') return result;
 
-      // 更精确的 known/review 计数
-      if (aem && typeof aem.getNotes === 'function') {
-        var notes = aem.getNotes({});
-        var reviews = notes.filter(function(n) {
-          return n.type === 'FLASHCARD_REVIEW';
-        });
-        if (reviews.length > 0) {
-          result.hasData = true;
-          result.totalReviews = reviews.length;
-          for (var i = 0; i < reviews.length; i++) {
-            var r = reviews[i].metadata && reviews[i].metadata.result;
-            if (r === 'known') result.knownCount++;
-            else if (r === 'review') result.reviewCount++;
-          }
-          result.knownPercent = reviews.length > 0
-            ? Math.round((result.knownCount / reviews.length) * 100)
-            : 0;
+      // 优先从 user_notes 找 FLASHCARD_REVIEW
+      var allNotes = storage.get('user_notes', []);
+      if (!Array.isArray(allNotes)) allNotes = [];
+
+      var reviews = allNotes.filter(function(n) {
+        return n && n.type === 'FLASHCARD_REVIEW';
+      });
+
+      if (reviews.length > 0) {
+        result.hasData = true;
+        result.totalReviews = reviews.length;
+        for (var i = 0; i < reviews.length; i++) {
+          var r = reviews[i].metadata && reviews[i].metadata.result;
+          if (r === 'known') result.knownCount++;
+          else if (r === 'review') result.reviewCount++;
         }
+        result.knownPercent = Math.round((result.knownCount / reviews.length) * 100);
       }
     } catch (e) {
       console.warn('[Dashboard] _getFlashcardStats failed:', e);
@@ -1965,6 +1985,7 @@ LawAIApp.Dashboard = {
     ">
       ${[
         { icon: '📚', label: 'Academy', url: '/pages/academy.html' },
+        { icon: '🃏', label: 'Flashcards', action: 'flashcards' },
         { icon: '📅', label: 'Calendar', action: 'calendar' },
         { icon: '📓', label: 'Notes', action: 'notes' },
         { icon: '⚙️', label: 'Settings', action: 'settings' }
@@ -1972,6 +1993,8 @@ LawAIApp.Dashboard = {
         var onClick;
         if (btn.url) {
           onClick = "window.location.href='" + btn.url + "'";
+        } else if (btn.action === 'flashcards') {
+          onClick = "LawAIApp.Dashboard._renderFlashcardView()";
         } else if (btn.action === 'calendar') {
           onClick = "LawAIApp.Dashboard._renderCalendarView()";
         } else if (btn.action === 'settings') {
@@ -2086,6 +2109,12 @@ LawAIApp.Dashboard = {
             ${completedCount > 0 ? (completedCount >= 365 ? '🎉 Review' : 'Continue Learning') : 'Explore Academy'} →
           </a>
 
+          ${todayLesson ? `
+            <div style="margin-top:12px;font-size:12px;color:#64748b;">
+              🎯 Today: <span style="color:#4a9eff;">${todayLesson.title || todayLesson.name || 'Next lesson'}</span>
+            </div>
+          ` : ''}
+
           <div style="
             display: flex;
             gap: 16px;
@@ -2149,8 +2178,36 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
+      <!-- 🏆 ACHIEVEMENTS (Season 5 Part 51) -->
+      ${achievements && achievements.length > 0 ? `
+        <section data-section="achievements" role="region" aria-label="Achievements" style="
+          background: rgba(245,158,11,0.03);
+          border: 1px solid rgba(245,158,11,0.08);
+          border-radius: 16px;
+          padding: 10px 18px;
+          margin-bottom: 16px;
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+          align-items: center;
+        ">
+          <span style="font-size:11px;color:#f59e0b;font-weight:500;letter-spacing:0.5px;">🏆 ACHIEVEMENTS</span>
+          ${achievements.slice(0, 5).map(function(a) {
+            var title = (a.title || a.name || 'Achievement').replace(/"/g, '&quot;');
+            return '<span title="' + title + '" style="font-size:16px;cursor:help;" aria-label="' + title + '">' + (a.icon || '🏆') + '</span>';
+          }).join('')}
+          ${achievements.length > 5 ? '<span style="font-size:11px;color:#64748b;">+' + (achievements.length - 5) + ' more</span>' : ''}
+        </section>
+      ` : ''}
+
       <!-- 📊 LEARNING PULSE (Season 5 Part 9) -->
       ${this._renderLearningPulse()}
+
+      <!-- 🔥 NEW: Recent Activity / Continuity -->
+      ${this._renderContinuity()}
+
+      <!-- 🔥 NEW: Upcoming Schedule -->
+      ${this._renderUpcoming()}
 
       <!-- 📖 RECOMMENDATIONS (Part 82: Adaptive) -->
       <section id="dashboard-recommendations" data-section="recommendations" role="region" aria-label="Recommended for you" style="
@@ -2538,9 +2595,7 @@ LawAIApp.Dashboard = {
     var practice = this._getPracticeStats();
     var flashcards = this._getFlashcardStats();
 
-    if (!practice.hasData && !flashcards.hasData) {
-      return '';  // 没数据 → 不显示
-    }
+    if (!practice.hasData && !flashcards.hasData) return '';
 
     var items = [];
 
@@ -2562,6 +2617,19 @@ LawAIApp.Dashboard = {
           <div style="font-size:10px;color:#94a3b8;margin-top:2px;">${flashcards.knownPercent}% known</div>
         </div>
       `);
+
+      // 🔥 如果有需要复习的
+      if (flashcards.reviewCount > 0) {
+        items.push(`
+          <div style="flex:1;min-width:110px;">
+            <div style="font-size:10px;color:#f59e0b;text-transform:uppercase;letter-spacing:0.5px;">📅 Need Review</div>
+            <div style="font-size:18px;font-weight:600;color:#f59e0b;margin-top:2px;">${flashcards.reviewCount}</div>
+            <div style="font-size:10px;color:#94a3b8;margin-top:2px;">
+              <button onclick="LawAIApp.Dashboard._renderFlashcardView()" style="background:none;border:none;color:#f59e0b;font-size:10px;cursor:pointer;padding:0;font-family:inherit;text-decoration:underline;">review now →</button>
+            </div>
+          </div>
+        `);
+      }
     }
 
     return `
@@ -2582,6 +2650,50 @@ LawAIApp.Dashboard = {
         ${items.join('')}
       </section>
     `;
+  },
+
+  // ============================================================
+  // 🔥 Continuity: 最近学习 + 反思
+  // ============================================================
+  _renderContinuity: function() {
+    var ctx = this._getContinuityContext();
+    if (!ctx.hasRecentLearning && !ctx.hasReflection) return '';
+
+    var html = '<section data-section="continuity" style="background:rgba(139,92,246,0.03);border:1px solid rgba(139,92,246,0.08);border-radius:16px;padding:14px 20px;margin-bottom:16px;">';
+    html += '<div style="font-size:11px;color:#8b5cf6;font-weight:500;letter-spacing:0.5px;margin-bottom:8px;">🧭 YOUR JOURNEY</div>';
+
+    if (ctx.hasRecentLearning) {
+      var l = ctx.recentLearning;
+      html += '<div style="font-size:13px;color:#e2e8f0;margin-bottom:6px;">📖 ' + (l.lessonTitle || l.courseTitle) + '</div>';
+    }
+
+    if (ctx.hasReflection) {
+      var r = ctx.recentReflections[0];
+      var preview = (r.content || '').substring(0, 100);
+      html += '<div style="font-size:12px;color:#94a3b8;font-style:italic;padding:8px 12px;background:rgba(255,255,255,0.02);border-left:2px solid #8b5cf6;border-radius:6px;">“' + preview + '”</div>';
+    }
+
+    html += '</section>';
+    return html;
+  },
+
+  // ============================================================
+  // 🔥 Upcoming: 即将到来的学习
+  // ============================================================
+  _renderUpcoming: function() {
+    var upcoming = this._getUpcomingSchedule();
+    if (!upcoming || upcoming.length === 0) return '';
+
+    var html = '<section data-section="upcoming" style="background:rgba(74,158,255,0.03);border:1px solid rgba(74,158,255,0.08);border-radius:16px;padding:14px 20px;margin-bottom:16px;">';
+    html += '<div style="font-size:11px;color:#4a9eff;font-weight:500;letter-spacing:0.5px;margin-bottom:8px;">📅 UPCOMING</div>';
+
+    for (var i = 0; i < Math.min(upcoming.length, 3); i++) {
+      var u = upcoming[i];
+      html += '<div style="font-size:13px;color:#e2e8f0;padding:4px 0;">• ' + (u.title || u.name || 'Scheduled') + '</div>';
+    }
+
+    html += '</section>';
+    return html;
   },
 
   // ============================================================
@@ -4081,6 +4193,75 @@ _renderRecommendationCard: function(rec) {
       window.location.href = '/pages/academy.html';
     }
   },
+  
+  // ============================================================
+  // 🔥 Season 5 Part 20: Flashcard Review Page
+  // ============================================================
+  _renderFlashcardView: function() {
+    var container = document.getElementById('app') || document.getElementById('law-runtime-root');
+    if (!container) return;
+
+    var storage = window.LawAIApp?.StorageEngine;
+    var allNotes = storage ? storage.get('user_notes', []) : [];
+    var reviews = allNotes.filter(function(n) { return n.type === 'FLASHCARD_REVIEW'; });
+    var known = reviews.filter(function(r) { return r.metadata && r.metadata.result === 'known'; });
+    var needReview = reviews.filter(function(r) { return r.metadata && r.metadata.result === 'review'; });
+
+    // 按 lessonId 分组
+    var byLesson = {};
+    for (var i = 0; i < reviews.length; i++) {
+      var r = reviews[i];
+      var lid = r.lessonId || 'unknown';
+      if (!byLesson[lid]) byLesson[lid] = { known: 0, review: 0 };
+      if (r.metadata && r.metadata.result === 'known') byLesson[lid].known++;
+      else if (r.metadata && r.metadata.result === 'review') byLesson[lid].review++;
+    }
+
+    var lessonRows = '';
+    for (var lid in byLesson) {
+      if (!byLesson.hasOwnProperty(lid)) continue;
+      var stat = byLesson[lid];
+      lessonRows += ''
+        + '<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px 16px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.04);display:flex;justify-content:space-between;align-items:center;">'
+        +   '<div>'
+        +     '<div style="font-size:13px;color:#e2e8f0;">' + lid + '</div>'
+        +     '<div style="font-size:11px;color:#64748b;margin-top:2px;">✓ ' + stat.known + ' · ↻ ' + stat.review + '</div>'
+        +   '</div>'
+        +   '<button onclick="LawAIApp.AcademyExperienceManager.selectLesson(\'' + lid + '\')" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.12);border-radius:100px;padding:4px 14px;color:#4a9eff;font-size:11px;cursor:pointer;font-family:inherit;">Review →</button>'
+        + '</div>';
+    }
+
+    container.innerHTML = ''
+      + '<div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:\'Inter\',sans-serif;">'
+      +   '<button onclick="LawAIApp.Dashboard._lastRenderAt = 0; LawAIApp.Dashboard.forceRender();" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back</button>'
+      +   '<h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">🃏 Flashcards</h2>'
+      +   '<p style="color:#94a3b8;margin:0 0 20px;">Your flashcard review history</p>'
+
+      +   '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;">'
+      +     '<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">'
+      +       '<div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Total</div>'
+      +       '<div style="font-size:28px;font-weight:700;color:#e2e8f0;margin-top:4px;">' + reviews.length + '</div>'
+      +     '</div>'
+      +     '<div style="background:rgba(34,197,94,0.06);border-radius:12px;padding:16px;border:1px solid rgba(34,197,94,0.1);">'
+      +       '<div style="font-size:11px;color:#22c55e;text-transform:uppercase;letter-spacing:0.5px;">✓ Known</div>'
+      +       '<div style="font-size:28px;font-weight:700;color:#22c55e;margin-top:4px;">' + known.length + '</div>'
+      +     '</div>'
+      +     '<div style="background:rgba(245,158,11,0.06);border-radius:12px;padding:16px;border:1px solid rgba(245,158,11,0.1);">'
+      +       '<div style="font-size:11px;color:#f59e0b;text-transform:uppercase;letter-spacing:0.5px;">↻ Review</div>'
+      +       '<div style="font-size:28px;font-weight:700;color:#f59e0b;margin-top:4px;">' + needReview.length + '</div>'
+      +     '</div>'
+      +   '</div>'
+
+      + (reviews.length === 0
+          ? '<div style="text-align:center;padding:60px 20px;color:#64748b;">'
+            + '<div style="font-size:48px;margin-bottom:16px;">🃏</div>'
+            + '<p style="margin:0;">No flashcards reviewed yet.</p>'
+            + '<p style="margin:4px 0 0;font-size:13px;">Open a lesson and review its flashcards to start.</p>'
+            + '</div>'
+          : '<h3 style="margin:0 0 12px;font-size:14px;color:#94a3b8;">By Lesson</h3>' + lessonRows)
+      + '</div>';
+  },
+
 
   refresh: function() {
     if (!this._rendered) {
