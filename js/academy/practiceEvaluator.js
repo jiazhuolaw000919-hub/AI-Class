@@ -1,4 +1,11 @@
 // practiceEvaluator.js
+// ============================================================
+// ⚠️ DEPRECATED — Season 5 Part 4
+// ============================================================
+// 此文件使用 Math.random() 判断对错，绝不可用于生产环境。
+// 唯一权威：js/experience/renderers/practiceRenderer.js 的 _evaluate()
+// 保留仅为兼容，若 2 周内无调用，可安全删除。
+// ============================================================
 LawAIApp.PracticeEvaluator = {
   // 模拟评估用户答案（未来可扩展真实评分）
   evaluate(practice, userAnswer) {
@@ -12,5 +19,8 @@ LawAIApp.PracticeEvaluator = {
       relatedLessons: practice.relatedLessons || []
     };
     return feedback;
+  }
+  if (window.LawAIApp?.Debug?.warnDeprecated !== false) {
+    console.warn('[DEPRECATED] PracticeEvaluator 已被 PracticeRenderer._evaluate 取代。请勿调用。');
   }
 };
