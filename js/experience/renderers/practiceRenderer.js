@@ -331,7 +331,15 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
             }
 
             // ─── 5. 更新 attempt ───
-            var feedback = isCorrect ? '✅ Correct! Well done.' : '❌ Not quite. Review the concept and try again.';
+            var feedback = {
+                what: isCorrect 
+                    ? 'You selected the correct answer.'
+                    : 'Your answer was not correct.',
+                why: _explanation || '',           // 用 lesson JSON 里的 explanation
+                how: _whyItMatters || (isCorrect 
+                    ? 'Keep going.' 
+                    : 'Review the section above, then try again.')
+            };
             _updateAttempt({
                 status: 'evaluated',
                 validity: 'VALID',
