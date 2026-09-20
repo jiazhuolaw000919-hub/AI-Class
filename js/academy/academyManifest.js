@@ -156,6 +156,104 @@
             },
 
             // ==========================================================
+            // ═══ Season 5 Part 5: Authority 层 ═══
+            // ==========================================================
+            {
+                id: 'notesAuthority',
+                path: '/js/notes/NotesAuthority.js',
+                description: 'Notes Authority (S5)',
+                required: false
+            },
+            {
+                id: 'calendarAuthority',
+                path: '/js/calendar/CalendarAuthority.js',
+                description: 'Calendar Authority (S5)',
+                required: false
+            },
+            {
+                id: 'settingsAuthority',
+                path: '/js/settings/SettingsAuthority.js',
+                description: 'Settings Authority (S5)',
+                required: false
+            },
+            {
+                id: 'curriculumAuthority',
+                path: '/js/curriculum/CurriculumAuthority.js',
+                description: 'Curriculum Authority (S5)',
+                required: false
+            },
+            {
+                id: 'schoolViewModel',
+                path: '/js/school/SchoolViewModel.js',
+                description: 'School ViewModel (S5)',
+                required: false
+            },
+
+            // ==========================================================
+            // ═══ Season 5 Part 4: Experience 层 ═══
+            // ==========================================================
+            {
+                id: 'experienceContract',
+                path: '/js/experience/experienceContract.js',
+                description: 'Experience Contract (S5)',
+                required: false
+            },
+            {
+                id: 'activityRegistry',
+                path: '/js/experience/activityRegistry.js',
+                description: 'Activity Registry (S5)',
+                required: false
+            },
+            {
+                id: 'experienceRuntime',
+                path: '/js/experience/experienceRuntime.js',
+                description: 'Experience Runtime (S5)',
+                required: false
+            },
+            {
+                id: 'practiceEvidenceContract',
+                path: '/js/experience/practiceEvidenceContract.js',
+                description: 'Practice Evidence Contract (S5)',
+                required: false
+            },
+            {
+                id: 'videoEvidenceContract',
+                path: '/js/experience/videoEvidenceContract.js',
+                description: 'Video Evidence Contract (S5)',
+                required: false
+            },
+            {
+                id: 'readingRenderer',
+                path: '/js/experience/renderers/readingRenderer.js',
+                description: 'Reading Renderer (S5)',
+                required: false
+            },
+            {
+                id: 'practiceRenderer',
+                path: '/js/experience/renderers/practiceRenderer.js',
+                description: 'Practice Renderer (S5)',
+                required: false
+            },
+            {
+                id: 'videoRenderer',
+                path: '/js/experience/renderers/videoRenderer.js',
+                description: 'Video Renderer (S5)',
+                required: false
+            },
+            {
+                id: 'practiceFitnessCheck',
+                path: '/js/experience/practiceFitnessCheck.js',
+                description: 'Practice Fitness Check (S5)',
+                required: false
+            },
+            {
+                id: 'activityFitnessCheck',
+                path: '/js/experience/activityFitnessCheck.js',
+                description: 'Activity Fitness Check (S5)',
+                required: false
+            },
+
+            // ==========================================================
             // 4. Learning Journey Layer
             // ==========================================================
             {
@@ -595,7 +693,7 @@
                 'agencySupport'
             ],
 
-        // ── Part 66: Cross-Surface Integration & Authority Validation ──
+            // ── Part 66: Cross-Surface Integration & Authority Validation ──
             surfaceIntegration: [
                 'experienceContract',
                 'journeyOrchestrator',
@@ -603,6 +701,23 @@
                 'courseRegistry',
                 'lessonEngine'
             ],
+
+            // ── Season 5 Part 4-5: Experience & Authority 依赖 ──
+            notesAuthority: ['storageEngine'],
+            calendarAuthority: ['storageEngine'],
+            settingsAuthority: ['storageEngine'],
+            curriculumAuthority: ['courseRegistry', 'subjectRegistry'],
+            schoolViewModel: ['curriculumAuthority'],
+    
+            activityRegistry: ['experienceContract'],
+            experienceRuntime: ['activityRegistry'],
+            practiceEvidenceContract: ['experienceContract'],
+            videoEvidenceContract: ['experienceContract'],
+            readingRenderer: ['activityRegistry'],
+            practiceRenderer: ['activityRegistry', 'practiceEvidenceContract', 'practiceEngine'],
+            videoRenderer: ['activityRegistry', 'videoEvidenceContract'],
+            practiceFitnessCheck: ['practiceRenderer'],
+            activityFitnessCheck: ['activityRegistry'],
 
         // ============================================================
         // 3. LEGACY — Core Dependencies (Preserved)
@@ -842,7 +957,20 @@
             // ==========================================================
             'LawAIApp.ContentLoader',
             'LawAIApp.ContentRegistry',
-            'LawAIApp.ContentAdapter'
+            'LawAIApp.ContentAdapter',
+            // ==========================================================
+            // ═══ Season 5 Part 4-9 新增健康检查 ═══
+            // ==========================================================
+            'LawAIApp.NotesAuthority',
+            'LawAIApp.CalendarAuthority',
+            'LawAIApp.SettingsAuthority',
+            'LawAIApp.CurriculumAuthority',
+            'LawAIApp.Experience.ActivityRegistry',
+            'LawAIApp.Experience.Runtime',
+            'LawAIApp.Experience.PracticeEvidenceContract',
+            'LawAIApp.Experience.Renderers.PracticeRenderer',
+            'LawAIApp.Experience.Renderers.VideoRenderer',
+            'LawAIApp.VideoRenderer'
         ],
 
         // ============================================================
