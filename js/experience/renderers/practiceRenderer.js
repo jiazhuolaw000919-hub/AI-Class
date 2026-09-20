@@ -1314,6 +1314,8 @@ function _createSetRenderer(activity, container) {
                     };
                 }
                 _render();
+            });
+        }
                 
         var backBtn = _container.querySelector('#practice-set-back-btn');
         if (backBtn) {
