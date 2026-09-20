@@ -1073,6 +1073,88 @@ LawAIApp.Dashboard = {
     return 0;
   },
 
+  // ============================================================
+  // 🔥 Season 5 Part 9: Practice 真实进度
+  // Bible Part 54: Dashboard 只显示，不拥有数据
+  // ============================================================
+  _getPracticeStats: function() {
+    var result = {
+      hasData: false,
+      totalAttempts: 0,
+      totalCorrect: 0,
+      accuracy: 0,
+      completedLessons: 0,
+      totalLessons: 0
+    };
+
+    try {
+      var pp = window.LawAIApp && window.LawAIApp.PracticeProgress;
+      if (pp && typeof pp.getStats === 'function') {
+        var stats = pp.getStats();
+        if (stats && stats.totalAttempts > 0) {
+          result.hasData = true;
+          result.totalAttempts = stats.totalAttempts;
+          result.totalCorrect = stats.totalCorrect;
+          result.accuracy = stats.overallAccuracy || 0;
+          result.completedLessons = stats.completedLessons || 0;
+          result.totalLessons = stats.totalLessons || 0;
+        }
+      }
+    } catch (e) {
+      console.warn('[Dashboard] _getPracticeStats failed:', e);
+    }
+
+    return result;
+  },
+
+  // ============================================================
+  // 🔥 Season 5 Part 9: Flashcard 统计（来自 Phase 7）
+  // ============================================================
+  _getFlashcardStats: function() {
+    var result = {
+      hasData: false,
+      totalReviews: 0,
+      knownCount: 0,
+      reviewCount: 0,
+      knownPercent: 0
+    };
+
+    try {
+      var aem = window.LawAIApp && window.LawAIApp.AcademyExperienceManager;
+      if (aem && typeof aem.getFlashcardStats === 'function') {
+        var stats = aem.getFlashcardStats();
+        if (stats && stats.total > 0) {
+          result.hasData = true;
+          result.totalReviews = stats.total;
+        }
+      }
+
+      // 更精确的 known/review 计数
+      if (aem && typeof aem.getNotes === 'function') {
+        var notes = aem.getNotes({});
+        var reviews = notes.filter(function(n) {
+          return n.type === 'FLASHCARD_REVIEW';
+        });
+        if (reviews.length > 0) {
+          result.hasData = true;
+          result.totalReviews = reviews.length;
+          for (var i = 0; i < reviews.length; i++) {
+            var r = reviews[i].metadata && reviews[i].metadata.result;
+            if (r === 'known') result.knownCount++;
+            else if (r === 'review') result.reviewCount++;
+          }
+          result.knownPercent = reviews.length > 0
+            ? Math.round((result.knownCount / reviews.length) * 100)
+            : 0;
+        }
+      }
+    } catch (e) {
+      console.warn('[Dashboard] _getFlashcardStats failed:', e);
+    }
+
+    return result;
+  },
+
   _hasNotes: function() {
     return this._getNoteCount() > 0;
   },
@@ -2067,6 +2149,9 @@ LawAIApp.Dashboard = {
         </div>
       </section>
 
+      <!-- 📊 LEARNING PULSE (Season 5 Part 9) -->
+      ${this._renderLearningPulse()}
+
       <!-- 📖 RECOMMENDATIONS (Part 82: Adaptive) -->
       <section id="dashboard-recommendations" data-section="recommendations" role="region" aria-label="Recommended for you" style="
         background: ${CARD_BG};
@@ -2442,6 +2527,61 @@ LawAIApp.Dashboard = {
       }
 
       return parts.join(' · ') || 'Your learning journey continues.';
+  },
+
+  // ============================================================
+  // 🔥 Season 5 Part 9: Learning Pulse — inline 展示
+  // Bible Part 74: 优先 inline
+  // Bible Part 65: 没数据就不显示
+  // ============================================================
+  _renderLearningPulse: function() {
+    var practice = this._getPracticeStats();
+    var flashcards = this._getFlashcardStats();
+
+    if (!practice.hasData && !flashcards.hasData) {
+      return '';  // 没数据 → 不显示
+    }
+
+    var items = [];
+
+    if (practice.hasData) {
+      items.push(`
+        <div style="flex:1;min-width:110px;">
+          <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">✏️ Practice</div>
+          <div style="font-size:18px;font-weight:600;color:#e2e8f0;margin-top:2px;">${practice.accuracy}%</div>
+          <div style="font-size:10px;color:#94a3b8;margin-top:2px;">${practice.completedLessons} lesson(s) · ${practice.totalAttempts} attempt(s)</div>
+        </div>
+      `);
+    }
+
+    if (flashcards.hasData) {
+      items.push(`
+        <div style="flex:1;min-width:110px;">
+          <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">🃏 Flashcards</div>
+          <div style="font-size:18px;font-weight:600;color:#e2e8f0;margin-top:2px;">${flashcards.knownCount} / ${flashcards.totalReviews}</div>
+          <div style="font-size:10px;color:#94a3b8;margin-top:2px;">${flashcards.knownPercent}% known</div>
+        </div>
+      `);
+    }
+
+    return `
+      <section data-section="learning-pulse" role="region" aria-label="Your learning pulse" style="
+        background: rgba(74,158,255,0.03);
+        border: 1px solid rgba(74,158,255,0.08);
+        border-radius: 16px;
+        padding: 14px 20px;
+        margin-bottom: 16px;
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        align-items: center;
+      ">
+        <div style="font-size:11px;color:#4a9eff;font-weight:500;letter-spacing:0.5px;">
+          📊 YOUR PULSE
+        </div>
+        ${items.join('')}
+      </section>
+    `;
   },
 
   // ============================================================
@@ -3965,5 +4105,44 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     }
   }, 500);
 }
+
+// ============================================================
+// 🔥 Season 5 Part 9: 监听学习事件 → 刷新 Dashboard
+// 注意：不直接改数据，只刷新显示
+// ============================================================
+(function attachDashboardRefreshListeners() {
+  if (window.__dashboardRefreshListenersAttached) return;
+  window.__dashboardRefreshListenersAttached = true;
+
+  function refreshDashboard() {
+    try {
+      if (window.LawAIApp && window.LawAIApp.Dashboard && window.LawAIApp.Dashboard.forceRender) {
+        // 只在 Dashboard 正在显示时刷新
+        var app = document.getElementById('app') || document.getElementById('law-runtime-root');
+        if (app && app.querySelector('#dashboard-root')) {
+          window.LawAIApp.Dashboard.forceRender();
+        }
+      }
+    } catch (e) {}
+  }
+
+  // Practice 完成 → 刷新
+  document.addEventListener('PracticeCompleted', function() {
+    // 延迟 500ms，让 PracticeProgress 先落库
+    setTimeout(refreshDashboard, 500);
+  });
+
+  // Flashcard review → 刷新
+  document.addEventListener('FLASHCARD_REVIEWED', function() {
+    setTimeout(refreshDashboard, 500);
+  });
+
+  // 笔记创建 → 刷新（Reflection / 其他）
+  document.addEventListener('NOTE_CREATED', function() {
+    setTimeout(refreshDashboard, 500);
+  });
+
+  console.log('[Dashboard] ✅ Refresh listeners attached');
+})()
 
 console.log('📊 Dashboard V4.4 ready (Part 72 - Learner Dialogue & Calibration)');
