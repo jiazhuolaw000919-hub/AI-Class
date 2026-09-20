@@ -323,10 +323,11 @@ LawAIApp.Views.LessonView = {
             completeBtnHtml = '<div style="text-align:center;padding:12px;background:rgba(34,197,94,0.06);border-radius:12px;border:1px solid rgba(34,197,94,0.08);display:flex;align-items:center;justify-content:center;gap:8px;"><span style="font-size:18px;">🎉</span><span style="font-size:14px;color:#22c55e;font-weight:500;">Lesson completed!</span>' + (memoryStrength !== null ? '<span style="font-size:11px;color:#64748b;">🧠 ' + Math.round(memoryStrength) + '%</span>' : '') + '</div>';
         }
 
-        // 视频
+        // 🔥 Season 5 Part 6: Video 交给 VideoRenderer 渲染
         var videoHtml = '';
         if (lesson.video && lesson.video.url) {
-            videoHtml = this._renderVideoBlock(lesson.video);
+            // 只留一个空容器，实际渲染在 innerHTML 设完后
+            videoHtml = '<div id="lesson-video-container" data-video-mount></div>';
         }
 
         // 闪卡
@@ -438,6 +439,9 @@ LawAIApp.Views.LessonView = {
         `;
 
         this._container.innerHTML = html;
+
+        // 🔥 Season 5 Part 6: 挂载 VideoRenderer
+        self._mountVideoRenderer(lesson);
 
         // 滚动到顶部
         if (this._container.scrollTop !== undefined) {
@@ -564,6 +568,64 @@ LawAIApp.Views.LessonView = {
     },
 
     // ============================================================
+    // 🔥 Season 5 Part 6: Video 挂载
+    // ============================================================
+    _mountVideoRenderer: function(lesson) {
+        var container = document.getElementById('lesson-video-container');
+        if (!container) return;
+
+        if (!lesson.video || !lesson.video.url) return;
+
+        var videoRenderer = window.LawAIApp && window.LawAIApp.VideoRenderer;
+        if (!videoRenderer || typeof videoRenderer.render !== 'function') {
+            // Fallback: 用旧方法直接渲染
+            console.warn('[LessonView] VideoRenderer not available, using fallback');
+            container.innerHTML = this._renderVideoBlock(lesson.video);
+            return;
+        }
+
+        // 🔥 构建 activity 格式，符合 VideoRenderer 预期
+        var activity = {
+            id: 'video_' + (lesson.lessonId || 'unknown'),
+            type: 'VIDEO',
+            title: lesson.video.title || lesson.title || 'Video',
+            description: lesson.video.notes || lesson.video.relevance || '',
+            video: {
+                id: 'video_' + (lesson.lessonId || 'unknown'),
+                url: this._resolveEmbedUrl(lesson.video.url),
+                type: lesson.video.provider === 'youtube' ? 'embed' : 'html5',
+                title: lesson.video.title || lesson.title || 'Video',
+                duration: (lesson.video.durationMinutes || 0) * 60
+            },
+            metadata: {
+                lessonId: lesson.lessonId,
+                provider: lesson.video.provider,
+                channel: lesson.video.channel,
+                isOfficial: lesson.video.isOfficial,
+                relevance: lesson.video.relevance
+            }
+        };
+
+        try {
+            videoRenderer.render(container, activity, { lessonId: lesson.lessonId });
+            console.log('[LessonView] ✅ VideoRenderer mounted');
+        } catch (e) {
+            console.error('[LessonView] VideoRenderer error:', e);
+            container.innerHTML = this._renderVideoBlock(lesson.video);
+        }
+    },
+
+    // 🔥 辅助：把 youtube watch URL 转成 embed URL
+    _resolveEmbedUrl: function(url) {
+        if (!url) return url;
+        var watchMatch = url.match(/youtube\.com\/watch\?v=([^&]+)/);
+        if (watchMatch) return 'https://www.youtube.com/embed/' + watchMatch[1];
+        var shortMatch = url.match(/youtu\.be\/([^?]+)/);
+        if (shortMatch) return 'https://www.youtube.com/embed/' + shortMatch[1];
+        return url;
+    },
+
+    // ============================================================
     // Part 179: 通过 Experience Runtime 渲染 Practice
     // 复用 Part 129/130/131/132/173 的 PracticeRenderer
     // ============================================================
@@ -676,9 +738,9 @@ LawAIApp.Views.LessonView = {
         }
     },
 
-    // ============================================================
-    // 子模块渲染
-    // ============================================================
+    // ⚠️ DEPRECATED — Season 5 Part 6
+    // 保留作为 fallback。主路径已改用 VideoRenderer.render()
+    // 若 2 周内无调用，可安全删除。
     _renderVideoBlock: function(v) {
         var embedUrl = v.url;
         var watchMatch = v.url.match(/youtube\.com\/watch\?v=([^&]+)/);
