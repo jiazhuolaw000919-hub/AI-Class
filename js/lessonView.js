@@ -1254,8 +1254,8 @@ LawAIApp.Views.LessonView = {
 
         var overlayHtml = ''
             + '<div id="review-scheduler-overlay" '
-            +      'style="position:fixed;inset:0;background:rgba(0,0,0,0.7);'
-            +             'z-index:9999;display:flex;align-items:center;justify-content:center;'
+            +      'style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);'
+            +             'z-index:2147483647;display:flex !important;align-items:center;justify-content:center;'
             +             'padding:20px;backdrop-filter:blur(4px);">'
             +   '<div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);'
             +               'border-radius:14px;padding:20px 24px;max-width:420px;width:100%;'
