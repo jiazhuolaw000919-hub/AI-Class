@@ -1134,6 +1134,91 @@ LawAIApp.Dashboard = {
     return result;
   },
 
+    // ============================================================
+  // 🔥 Bible Part 50: Learning Hours（学习时长）
+  // ============================================================
+  _getLearningHours: function() {
+    try {
+      var storage = LawAIApp.StorageEngine;
+      if (!storage) return 0;
+      var practice = storage.get('practice_progress', {});
+      var minutes = 0;
+      for (var lid in practice) {
+        if (practice[lid] && practice[lid].attempted) {
+          minutes += practice[lid].attempted * 2;
+        }
+      }
+      var flashReviews = storage.get('user_notes', []).filter(function(n) {
+        return n && n.type === 'FLASHCARD_REVIEW';
+      });
+      minutes += flashReviews.length * 1;
+      return Math.round(minutes / 60);
+    } catch (e) { return 0; }
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 50: Mastery 摘要
+  // ============================================================
+  _getMasterySummary: function() {
+    try {
+      var m = LawAIApp.MasteryEngine;
+      if (m && typeof m.getStatus === 'function') {
+        var status = m.getStatus();
+        var d = status.distribution || {};
+        var mastered = d.MASTERED || 0;
+        var learning = d.LEARNING || 0;
+        if (mastered === 0 && learning === 0) return 'No data yet';
+        return mastered + ' mastered · ' + learning + ' learning';
+      }
+    } catch (e) {}
+    return 'No data yet';
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 50: Skills 聚合
+  // ============================================================
+  _getSkills: function() {
+    try {
+      var storage = LawAIApp.StorageEngine;
+      if (!storage) return [];
+      var skillSet = {};
+      var notes = storage.get('user_notes', []);
+      notes.forEach(function(n) {
+        if (n && n.tags) n.tags.forEach(function(t) { skillSet[t] = true; });
+      });
+      var lessons = this._getAllLessons();
+      lessons.forEach(function(l) {
+        if (l && l.tags) l.tags.forEach(function(t) { skillSet[t] = true; });
+      });
+      return Object.keys(skillSet);
+    } catch (e) { return []; }
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 50: Skills 条 HTML
+  // ============================================================
+  _renderSkills: function() {
+    var skills = this._getSkills();
+    if (!skills || skills.length === 0) return '';
+
+    return `
+      <section data-section="skills" style="
+        background:rgba(34,197,94,0.03);
+        border:1px solid rgba(34,197,94,0.08);
+        border-radius:16px;
+        padding:14px 20px;
+        margin-bottom:16px;
+      ">
+        <div style="font-size:11px;color:#22c55e;font-weight:500;letter-spacing:0.5px;margin-bottom:8px;">🎯 SKILLS</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${skills.slice(0, 10).map(function(s) {
+            return '<span style="font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.04);padding:3px 10px;border-radius:100px;">' + s + '</span>';
+          }).join('')}
+        </div>
+      </section>
+    `;
+  },
+
   // ============================================================
   // 🔥 Season 5 Part 9: Flashcard 统计（来自 Phase 7）
   // ============================================================
@@ -2052,13 +2137,21 @@ LawAIApp.Dashboard = {
         "></div>
 
         <div style="position:relative;z-index:1;max-width:520px;">
-          <p style="
-            margin: 0 0 4px;
-            font-size: 14px;
-            color: #64748b;
-            letter-spacing: 0.4px;
-            font-weight: 400;
-          " aria-label="${greeting}, ${userName}">${greeting}, ${userName}</p>
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px;">
+            <div style="
+              width:32px;height:32px;border-radius:50%;
+              background:linear-gradient(135deg,#4a9eff,#7c3aed);
+              display:flex;align-items:center;justify-content:center;
+              font-weight:700;font-size:14px;color:white;
+            " aria-hidden="true">${userName.charAt(0).toUpperCase()}</div>
+            <p style="
+              margin: 0;
+              font-size: 14px;
+              color: #64748b;
+              letter-spacing: 0.4px;
+              font-weight: 400;
+            " aria-label="${greeting}, ${userName}">${greeting}, ${userName}</p>
+          </div>
 
           <h1 style="
             margin: 0 0 8px;
@@ -2127,6 +2220,7 @@ LawAIApp.Dashboard = {
             <span style="background: rgba(255,255,255,0.04); padding: 3px 14px; border-radius: 100px;">${levelDisplay}</span>
             <span style="background: rgba(255,255,255,0.04); padding: 3px 14px; border-radius: 100px;">${xpDisplay}</span>
             <span style="background: rgba(255,255,255,0.04); padding: 3px 14px; border-radius: 100px;">${streakDisplay}</span>
+            <span style="background: rgba(255,255,255,0.04); padding: 3px 14px; border-radius: 100px;">⏱️ ${this._getLearningHours()}h</span>
           </div>
         </div>
       </section>
@@ -2175,6 +2269,12 @@ LawAIApp.Dashboard = {
         <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:10px;color:#475569;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.03);">
           <span>Academy Journey</span>
           <span>${percent}%</span>
+        </div>
+
+        <!-- D: Mastery -->
+        <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:10px;color:#475569;margin-top:4px;">
+          <span>Mastery</span>
+          <span>${this._getMasterySummary()}</span>
         </div>
       </section>
 
@@ -2246,6 +2346,9 @@ LawAIApp.Dashboard = {
 
       <!-- 📓 NOTES PREVIEW (Part 178: 替代 Continuity) -->
       ${this._buildNotesPreview()}
+
+      <!-- 🎯 SKILLS (Bible Part 50) -->
+      ${this._renderSkills()}
 
       <!-- 🔒 Authority Status -->
       ${authorityHTML}
@@ -2760,6 +2863,50 @@ LawAIApp.Dashboard = {
         </div>
       </section>
     `;
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 50: Skills 条
+  // ============================================================
+  _renderSkills: function() {
+    var skills = this._getSkills();
+    if (!skills || skills.length === 0) return '';
+
+    return `
+      <section data-section="skills" style="
+        background:rgba(34,197,94,0.03);
+        border:1px solid rgba(34,197,94,0.08);
+        border-radius:16px;
+        padding:14px 20px;
+        margin-bottom:16px;
+      ">
+        <div style="font-size:11px;color:#22c55e;font-weight:500;letter-spacing:0.5px;margin-bottom:8px;">🎯 SKILLS</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${skills.slice(0, 10).map(function(s) {
+            return '<span style="font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.04);padding:3px 10px;border-radius:100px;">' + s + '</span>';
+          }).join('')}
+        </div>
+      </section>
+    `;
+  },
+
+  _getSkills: function() {
+    try {
+      var storage = LawAIApp.StorageEngine;
+      if (!storage) return [];
+      var skillSet = {};
+      // 从 notes 的 tags 提取
+      var notes = storage.get('user_notes', []);
+      notes.forEach(function(n) {
+        if (n && n.tags) n.tags.forEach(function(t) { skillSet[t] = true; });
+      });
+      // 从 lesson 的 tags
+      var lessons = this._getAllLessons();
+      lessons.forEach(function(l) {
+        if (l && l.tags) l.tags.forEach(function(t) { skillSet[t] = true; });
+      });
+      return Object.keys(skillSet);
+    } catch (e) { return []; }
   },
 
   // ============================================================
