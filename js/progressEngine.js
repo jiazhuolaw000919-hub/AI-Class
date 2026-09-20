@@ -94,6 +94,7 @@ LawAIApp.ProgressEngine = {
     defaultProgress: function() {
         return {
             completedLessons: [],
+            completedAt: {},                    // 🔥 Season 5 Part 8: lessonId → ISO timestamp
             currentLesson: 1,
             completionPercent: 0,
             currentStage: 'Foundation',
