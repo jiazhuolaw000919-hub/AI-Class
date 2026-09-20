@@ -205,6 +205,40 @@ var STAGES = {
         "academy/notes.js",
         "academy/secondBrain.js",
     ],
+    // ============================================================
+    // 🔥 Season 5 — Authority + Experience 层
+    // 依赖：StorageEngine / EventBus / academy/practiceEngine
+    // 在 critical 之后加载，因为要用 StorageEngine
+    // ============================================================
+    s5: [
+        // ─── Authority 层（无依赖，最先加载） ───
+        "notes/NotesAuthority.js",
+        "calendar/CalendarAuthority.js",
+        "settings/SettingsAuthority.js",
+        "curriculum/CurriculumAuthority.js",
+
+        // ─── Experience Contract（无依赖） ───
+        "experience/experienceContract.js",
+        "experience/practiceEvidenceContract.js",
+        "experience/videoEvidenceContract.js",
+
+        // ─── Registry & Runtime（依赖 Contract） ───
+        "experience/activityRegistry.js",
+        "experience/experienceRuntime.js",
+
+        // ─── Renderers（依赖 Registry） ───
+        "experience/renderers/readingRenderer.js",
+        "experience/renderers/practiceRenderer.js",
+        "experience/renderers/videoRenderer.js",
+
+        // ─── Fitness Check（依赖 Renderer） ───
+        "experience/practiceFitnessCheck.js",
+        "experience/activityFitnessCheck.js",
+
+        // ─── Academy Experience Manager（依赖 Authority + PracticeProgress） ───
+        "academy/practiceProgress.js",
+        "academy/academyExperienceManager.js",
+    ],
     ux: [
         "experienceComposer.js",
         "experienceEngine.js",
@@ -460,6 +494,9 @@ async function boot() {
 
     await loadStage('runtime', STAGES.runtime, 0);
     await loadStage('critical', STAGES.critical, 0);
+
+    // 🔥 Season 5: 等 s5 加载完再继续
+    await loadStage('s5', STAGES.s5, 0);
 
     console.log('[Loader] ✅ Runtime Ready');
 
