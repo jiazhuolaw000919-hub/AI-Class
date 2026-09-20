@@ -20,6 +20,10 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
      * @returns {Object} Renderer 接口 { mount, unmount, update, getStatus }
      */
     create: function(activity, container) {
+        // 🔥 Season 5 Part 4: 多题分派
+        if (activity && activity.type === 'PRACTICE_SET') {
+            return _createSetRenderer(activity, container);
+        }
         var _container = container;
         var _activity = activity;
         var _status = 'idle';
@@ -44,6 +48,7 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
         var _options = activity.metadata?.options || [];
         var _correctAnswer = activity.metadata?.correctAnswer !== undefined ? activity.metadata.correctAnswer : null;
         var _explanation = activity.metadata?.explanation || '';
+        var _whyItMatters = activity.metadata?.whyItMatters || '';
 
         var _hasOptions = _options && _options.length > 0;
         var _isMultipleChoice = _hasOptions && _correctAnswer !== null;
@@ -441,19 +446,42 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                 `;
             }
 
-            // 反馈区域
+            // 反馈区域 — Season 5 Part 4: WHAT / WHY / HOW 三层
             if (_evaluated && _result) {
                 var isCorrect = _result.correct;
                 var feedbackColor = isCorrect ? '#22c55e' : '#ef4444';
                 var icon = isCorrect ? '✅' : '❌';
+
+                var whatText = isCorrect
+                    ? 'You selected the correct answer.'
+                    : 'Your answer was not correct.';
+
+                var whyText = _result.explanation || '';
+                var howText = _whyItMatters || (
+                    isCorrect
+                        ? 'Keep going — try the next question.'
+                        : 'Review the section above, then use Retry.'
+                );
+
                 html += `
                     <div role="alert" aria-live="polite" style="margin-top:12px;padding:12px 16px;border-radius:8px;background:${isCorrect ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)'};border:1px solid ${isCorrect ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)'};">
-                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
                             <span style="font-size:16px;" aria-hidden="true">${icon}</span>
-                            <span style="font-weight:500;color:${feedbackColor};">${isCorrect ? 'Correct' : 'Not quite'}</span>
+                            <span style="font-weight:600;color:${feedbackColor};">${isCorrect ? 'Correct' : 'Not quite'}</span>
                         </div>
-                        <p style="margin:0;font-size:13px;color:#c8d0d8;line-height:1.5;">${_result.feedback || ''}</p>
-                        ${_result.explanation ? `<p style="margin:6px 0 0;font-size:12px;color:#94a3b8;line-height:1.5;">${_result.explanation}</p>` : ''}
+                        <div style="margin-bottom:6px;">
+                            <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">What</div>
+                            <div style="font-size:13px;color:#c8d0d8;line-height:1.5;">${whatText}</div>
+                        </div>
+                        ${whyText ? `
+                        <div style="margin-bottom:6px;">
+                            <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Why</div>
+                            <div style="font-size:13px;color:#c8d0d8;line-height:1.5;">${whyText}</div>
+                        </div>` : ''}
+                        <div>
+                            <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">How</div>
+                            <div style="font-size:13px;color:#c8d0d8;line-height:1.5;">${howText}</div>
+                        </div>
                     </div>
                 `;
             }
@@ -720,6 +748,7 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
                     _options = newData.options || [];
                     _correctAnswer = newData.correctAnswer !== undefined ? newData.correctAnswer : null;
                     _explanation = newData.explanation || '';
+                    _whyItMatters = newData.whyItMatters || '';
                     _hasOptions = _options && _options.length > 0;
                     _isMultipleChoice = _hasOptions && _correctAnswer !== null;
                     _evaluated = false;
@@ -951,6 +980,364 @@ LawAIApp.Experience.Renderers.PracticeRenderer = {
         if (promptEl) promptEl.style.display = 'none';
     }
 };
+
+// ============================================================
+// 🔥 Season 5 Part 4: Multi-Question Practice Set Renderer
+// 一个练习里有多道题时使用。
+// 复用单题的全部逻辑（attempt / evidence / confidence / retry）。
+// 不新建引擎，只新建 UI 层组合。
+// ============================================================
+function _createSetRenderer(activity, container) {
+    var _container = container;
+    var _activity = activity;
+    var _questions = (activity.metadata && activity.metadata.questions) || [];
+    var _lessonId = (activity.metadata && activity.metadata.lessonId) || null;
+
+    var _currentIndex = 0;
+    var _perQuestion = _questions.map(function() {
+        return {
+            status: 'unanswered',   // 'unanswered' | 'evaluated'
+            selectedOption: null,
+            lastResult: null,       // { correct, feedback, explanation, whyItMatters }
+            attempts: 0,
+            firstTryCorrect: null   // 记录首次对错（用于最终评分）
+        };
+    });
+
+    var _isMounted = false;
+    var _isComplete = false;
+    var _childRenderer = null;  // 当前题的单题 renderer
+
+    // ---------- 持久化：写入 PracticeProgress ----------
+    function _persistAttempt(questionId, isCorrect) {
+        try {
+            var pp = window.LawAIApp && window.LawAIApp.PracticeProgress;
+            if (pp && typeof pp.recordAttempt === 'function') {
+                pp.recordAttempt(_lessonId, questionId, isCorrect);
+            }
+        } catch (e) {}
+    }
+
+    function _persistComplete() {
+        try {
+            var pp = window.LawAIApp && window.LawAIApp.PracticeProgress;
+            if (pp && typeof pp.markCompleted === 'function') {
+                pp.markCompleted(_lessonId);
+            }
+        } catch (e) {}
+    }
+
+    // ---------- 发射整组完成事件 ----------
+    function _emitSetCompleted() {
+        var correctCount = 0;
+        for (var i = 0; i < _perQuestion.length; i++) {
+            if (_perQuestion[i].firstTryCorrect) correctCount++;
+        }
+        var total = _perQuestion.length;
+        var score = total > 0 ? correctCount / total : 0;
+
+        var payload = {
+            lessonId: _lessonId,
+            practiceId: _activity.id,
+            score: score,
+            accuracy: score * 100,
+            correct: correctCount,
+            total: total,
+            source: 'practice-set-renderer'
+        };
+
+        try {
+            var eventBus = window.LawAIApp && window.LawAIApp.EventBus;
+            if (eventBus && typeof eventBus.emit === 'function') {
+                eventBus.emit('PracticeCompleted', payload);
+            } else {
+                var ev = new CustomEvent('PracticeCompleted', { detail: payload });
+                document.dispatchEvent(ev);
+                window.dispatchEvent(ev);
+            }
+        } catch (e) {}
+    }
+
+    // ---------- 渲染 HTML ----------
+    function _renderHTML() {
+        var q = _questions[_currentIndex];
+        var state = _perQuestion[_currentIndex];
+        var total = _questions.length;
+        var human = _currentIndex + 1;
+
+        var progressPct = Math.round((human / total) * 100);
+
+        // ─── 顶部进度 ───
+        var headerHtml = ''
+            + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+            +   '<span style="font-size:11px;color:#64748b;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;">✏️ Practice</span>'
+            +   '<span style="font-size:12px;color:#94a3b8;">Question ' + human + ' / ' + total + '</span>'
+            + '</div>'
+            + '<div style="height:4px;background:rgba(255,255,255,0.04);border-radius:100px;overflow:hidden;margin-bottom:16px;">'
+            +   '<div style="height:100%;width:' + progressPct + '%;background:#22c55e;transition:width 0.3s;"></div>'
+            + '</div>';
+
+        // ─── 题目卡片（单题 renderer 会挂载到这里） ───
+        var questionHtml = ''
+            + '<div id="practice-set-current" data-practice-container></div>';
+
+        // ─── 答题后：Retry / Next ───
+        var actionHtml = '';
+        if (state.status === 'evaluated') {
+            var isLast = (_currentIndex === total - 1);
+            actionHtml = ''
+                + '<div style="display:flex;gap:8px;margin-top:12px;">'
+                +   '<button id="practice-set-retry-btn" style="flex:1;padding:8px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#94a3b8;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;">'
+                +     '↻ Retry'
+                +   '</button>'
+                +   '<button id="practice-set-next-btn" style="flex:2;padding:8px 16px;background:#4a9eff;border:none;border-radius:8px;color:white;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;">'
+                +     (isLast ? 'See Results →' : 'Next →')
+                +   '</button>'
+                + '</div>';
+        }
+
+        return ''
+            + '<div class="practice-activity practice-set" style="font-family:\'Inter\',sans-serif;color:#e2e8f0;">'
+            +   headerHtml
+            +   questionHtml
+            +   actionHtml
+            + '</div>';
+    }
+
+    // ---------- 结果页 HTML ----------
+    function _renderResultsHTML() {
+        var total = _questions.length;
+        var correctCount = 0;
+        for (var i = 0; i < _perQuestion.length; i++) {
+            if (_perQuestion[i].firstTryCorrect) correctCount++;
+        }
+        var pct = total > 0 ? Math.round((correctCount / total) * 100) : 0;
+
+        var rowsHtml = '';
+        for (var j = 0; j < _questions.length; j++) {
+            var s = _perQuestion[j];
+            var ok = s.firstTryCorrect;
+            var icon = ok ? '✅' : '❌';
+            var color = ok ? '#22c55e' : '#ef4444';
+            rowsHtml += ''
+                + '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
+                +   '<span style="font-size:13px;color:#c8d0d8;">'
+                +     'Q' + (j + 1) + '. ' + (s.attempts > 1 ? '(' + s.attempts + ' attempts) ' : '')
+                +   '</span>'
+                +   '<span style="font-size:13px;color:' + color + ';">' + icon + '</span>'
+                + '</div>';
+        }
+
+        return ''
+            + '<div class="practice-activity practice-set-result" style="font-family:\'Inter\',sans-serif;color:#e2e8f0;">'
+            +   '<div style="text-align:center;padding:16px 0 20px;">'
+            +     '<div style="font-size:36px;margin-bottom:8px;">' + (pct >= 75 ? '🎉' : pct >= 50 ? '💪' : '📚') + '</div>'
+            +     '<div style="font-size:24px;font-weight:600;color:#e2e8f0;">' + correctCount + ' / ' + total + '</div>'
+            +     '<div style="font-size:13px;color:#94a3b8;margin-top:4px;">' + pct + '% correct</div>'
+            +   '</div>'
+            +   '<div style="background:rgba(255,255,255,0.02);border-radius:10px;padding:12px 16px;margin-bottom:16px;">'
+            +     rowsHtml
+            +   '</div>'
+            +   '<div style="display:flex;gap:8px;">'
+            +     '<button id="practice-set-retake-btn" style="flex:1;padding:10px 16px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.12);border-radius:8px;color:#4a9eff;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;">'
+            +       '↻ Retake All'
+            +     '</button>'
+            +   '</div>'
+            + '</div>';
+    }
+
+    // ---------- 挂载当前题到子容器 ----------
+    function _mountCurrentQuestion() {
+        var childContainer = _container.querySelector('#practice-set-current');
+        if (!childContainer) return;
+
+        // 清理旧 renderer
+        if (_childRenderer && typeof _childRenderer.unmount === 'function') {
+            try { _childRenderer.unmount(); } catch (e) {}
+        }
+
+        var q = _questions[_currentIndex];
+        var singleActivity = {
+            id: 'practice_' + _lessonId + '_' + q.questionId,
+            type: 'PRACTICE',
+            content: q.question,
+            metadata: {
+                lessonId: _lessonId,
+                questionId: q.questionId,
+                question: q.question,
+                options: q.options || [],
+                correctAnswer: q.correctAnswer,
+                explanation: q.explanation || '',
+                whyItMatters: q.whyItMatters || '',
+                hint: q.hint || null
+            }
+        };
+
+        // 用单题 renderer
+        _childRenderer = LawAIApp.Experience.Renderers.PracticeRenderer.create(
+            singleActivity,
+            childContainer
+        );
+        if (_childRenderer && typeof _childRenderer.mount === 'function') {
+            _childRenderer.mount();
+        }
+
+        // 监听单题完成（用 MutationObserver 最简单，因为单题 renderer 没有回调 API）
+        _watchChildCompletion(childContainer, q, _currentIndex);
+    }
+
+    // ---------- 监听单题提交完成 ----------
+    function _watchChildCompletion(childContainer, q, index) {
+        // 每 200ms 检查一次，直到单题 evaluated
+        var ticks = 0;
+        var interval = setInterval(function() {
+            ticks++;
+            if (ticks > 60) { clearInterval(interval); return; }  // 12s 超时
+
+            var status = _childRenderer && typeof _childRenderer.getStatus === 'function'
+                ? _childRenderer.getStatus()
+                : null;
+
+            if (status && status.isEvaluated) {
+                clearInterval(interval);
+                _onQuestionEvaluated(q, index);
+            }
+        }, 200);
+    }
+
+    // ---------- 单题答完后 ----------
+    function _onQuestionEvaluated(q, index) {
+        var state = _perQuestion[index];
+        var result = _childRenderer && typeof _childRenderer.getResult === 'function'
+            ? _childRenderer.getResult()
+            : null;
+
+        if (!result) return;
+
+        state.status = 'evaluated';
+        state.lastResult = result;
+        state.attempts = (_childRenderer && _childRenderer.getAttemptCount)
+            ? _childRenderer.getAttemptCount()
+            : state.attempts + 1;
+
+        // 首次对错（用于最终评分）
+        if (state.firstTryCorrect === null) {
+            state.firstTryCorrect = !!result.correct;
+        }
+
+        // 持久化
+        _persistAttempt(q.questionId, !!result.correct);
+
+        // 重新渲染整个 set（显示 Retry / Next）
+        _render();
+    }
+
+    // ---------- 事件绑定 ----------
+    function _bindEvents() {
+        var retryBtn = _container.querySelector('#practice-set-retry-btn');
+        if (retryBtn) {
+            retryBtn.addEventListener('click', function() {
+                var state = _perQuestion[_currentIndex];
+                state.status = 'unanswered';
+                state.lastResult = null;
+                // 保留 firstTryCorrect 不变
+                _render();
+            });
+        }
+
+        var nextBtn = _container.querySelector('#practice-set-next-btn');
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function() {
+                var isLast = (_currentIndex === _questions.length - 1);
+                if (isLast) {
+                    _isComplete = true;
+                    _persistComplete();
+                    _emitSetCompleted();
+                    _render();
+                } else {
+                    _currentIndex++;
+                    _render();
+                }
+            });
+        }
+
+        var retakeBtn = _container.querySelector('#practice-set-retake-btn');
+        if (retakeBtn) {
+            retakeBtn.addEventListener('click', function() {
+                _currentIndex = 0;
+                _isComplete = false;
+                for (var i = 0; i < _perQuestion.length; i++) {
+                    _perQuestion[i] = {
+                        status: 'unanswered',
+                        selectedOption: null,
+                        lastResult: null,
+                        attempts: 0,
+                        firstTryCorrect: null
+                    };
+                }
+                _render();
+            });
+        }
+    }
+
+    // ---------- 主渲染 ----------
+    function _render() {
+        if (_isComplete) {
+            _container.innerHTML = _renderResultsHTML();
+            _bindEvents();
+            return;
+        }
+
+        _container.innerHTML = _renderHTML();
+        _bindEvents();
+        _mountCurrentQuestion();
+    }
+
+    // ---------- 公共接口 ----------
+    return {
+        mount: function() {
+            if (_isMounted) return;
+            _isMounted = true;
+            _render();
+            console.log('[PracticeSetRenderer] ✅ Mounted:', _activity.id, '| questions:', _questions.length);
+        },
+        unmount: function() {
+            if (!_isMounted) return;
+            if (_childRenderer && typeof _childRenderer.unmount === 'function') {
+                try { _childRenderer.unmount(); } catch (e) {}
+            }
+            _container.innerHTML = '';
+            _isMounted = false;
+        },
+        update: function() { /* 保留接口 */ },
+        getStatus: function() {
+            return {
+                isMounted: _isMounted,
+                isComplete: _isComplete,
+                currentIndex: _currentIndex,
+                total: _questions.length,
+                perQuestion: _perQuestion.map(function(s) {
+                    return {
+                        status: s.status,
+                        attempts: s.attempts,
+                        firstTryCorrect: s.firstTryCorrect
+                    };
+                })
+            };
+        },
+        getResult: function() {
+            var correctCount = 0;
+            for (var i = 0; i < _perQuestion.length; i++) {
+                if (_perQuestion[i].firstTryCorrect) correctCount++;
+            }
+            return {
+                correct: correctCount,
+                total: _questions.length,
+                accuracy: _questions.length > 0 ? correctCount / _questions.length : 0
+            };
+        }
+    };
+}
 
 // 注册到 ActivityRegistry
 (function registerPracticeRenderer() {
