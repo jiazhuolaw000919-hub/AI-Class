@@ -235,38 +235,113 @@ LawAIApp.Views.LessonView = {
     },
 
     // ============================================================
-    // 🔥 Season 5 Part 8: 真实判断是否需要复习
-    // Bible Part 66: 没有证据就说 "not enough evidence"
+    // 🔥 Season 5 Part 8: 复习建议（设计 C — Spaced）
+    // Bible Part 15: Adaptive SUGGEST, Calendar SCHEDULE, Learner CONFIRM
+    // Bible Part 28: Spaced review
+    // Bible Part 82: "This concept may benefit from a review"
+    //
+    // 逻辑：
+    //   1. MemoryEngine 有数据 → strength < 70 提示
+    //   2. 已排 upcoming review → 不重复提示
+    //   3. Lesson 完成超过 24h → 提示（spaced）
+    //   4. 其他 → 不提示
     // ============================================================
     _needsReview: function(lessonId) {
-        // 1. MemoryEngine 有真实数据，用它
+        // ─── 1. MemoryEngine 有真实数据 ───
         try {
             if (LawAIApp.MemoryEngine && typeof LawAIApp.MemoryEngine.getMemoryStrength === 'function') {
                 var strength = LawAIApp.MemoryEngine.getMemoryStrength(lessonId);
                 if (typeof strength === 'number' && !isNaN(strength) && strength > 0) {
-                    return strength < 70;
+                    // 有真实数据 → 按 strength 决定
+                    if (strength < 70) {
+                        // 但如果是刚排过还没到期 → 不重复
+                        if (this._hasUpcomingReview(lessonId)) return false;
+                        return true;
+                    }
+                    return false;
                 }
             }
         } catch (e) {}
 
-        // 2. 已排过 review 且还没到时间 → 不重复提示
+        // ─── 2. 已排 upcoming review → 不重复 ───
+        if (this._hasUpcomingReview(lessonId)) return false;
+
+        // ─── 3. Lesson 完成超过 24h → 建议复习 ───
+        var completedAt = this._getLessonCompletedAt(lessonId);
+        if (completedAt) {
+            var hoursSince = (Date.now() - new Date(completedAt).getTime()) / 3600000;
+            return hoursSince >= 24;
+        }
+
+        // ─── 4. 没有完成时间记录 → 不提示（Bible: 没证据不假装） ───
+        return false;
+    },
+
+    // ============================================================
+    // 🔥 辅助：有没有 upcoming review
+    // ============================================================
+    _hasUpcomingReview: function(lessonId) {
         try {
+            // 1. 看 CalendarAuthority
+            var cal = window.LawAIApp && window.LawAIApp.CalendarAuthority;
+            if (cal && typeof cal.getAllEvents === 'function') {
+                var events = cal.getAllEvents() || [];
+                var now = Date.now();
+                return events.some(function(e) {
+                    return e.metadata && e.metadata.lessonId === lessonId
+                        && e.metadata.reviewReason === 'spaced-review'
+                        && new Date(e.startAt).getTime() > now;
+                });
+            }
+
+            // 2. Fallback: 看 StorageEngine
             var storage = window.LawAIApp && window.LawAIApp.StorageEngine;
             if (storage) {
                 var list = storage.get('review_scheduled', []) || [];
-                var now = Date.now();
-                var hasUpcoming = list.some(function(r) {
+                var now2 = Date.now();
+                return list.some(function(r) {
                     if (r.lessonId !== lessonId) return false;
                     if (!r.scheduledAt) return true;
-                    return new Date(r.scheduledAt).getTime() > now;
+                    return new Date(r.scheduledAt).getTime() > now2;
                 });
-                if (hasUpcoming) return false;   // 已排 → 不提示
+            }
+        } catch (e) {}
+        return false;
+    },
+
+    // ============================================================
+    // 🔥 辅助：获取 lesson 完成时间
+    // ============================================================
+    _getLessonCompletedAt: function(lessonId) {
+        // 1. ProgressEngine.completedAt
+        try {
+            var prog = window.LawAIApp && window.LawAIApp.ProgressEngine;
+            if (prog && typeof prog.getProgress === 'function') {
+                var p = prog.getProgress();
+                if (p && p.completedAt && p.completedAt[lessonId]) {
+                    return p.completedAt[lessonId];
+                }
             }
         } catch (e) {}
 
-        // 3. 已完成的 lesson 且还没排过 review → 允许学习者安排复习
-        // Bible Part 15: Adaptive 可以 SUGGEST，但只有 Calendar 能 SCHEDULE
-        return this._isLessonCompleted(lessonId);
+        // 2. 专用 API
+        try {
+            var prog2 = window.LawAIApp && window.LawAIApp.ProgressEngine;
+            if (prog2 && typeof prog2.getLessonCompletedAt === 'function') {
+                return prog2.getLessonCompletedAt(lessonId);
+            }
+        } catch (e) {}
+
+        // 3. StorageEngine fallback
+        try {
+            var storage = window.LawAIApp && window.LawAIApp.StorageEngine;
+            if (storage) {
+                var map = storage.get('lesson_completed_at', {}) || {};
+                if (map[lessonId]) return map[lessonId];
+            }
+        } catch (e) {}
+
+        return null;
     },
 
     _getMemoryStrength: function(lessonId) {
@@ -990,9 +1065,6 @@ LawAIApp.Views.LessonView = {
             }).join('') + '</ul></div>';
     },
 
-    // ============================================================
-    // 按钮 Actions
-    // ============================================================
     completeLesson: function(lessonId) {
         console.log('[LessonView] completeLesson:', lessonId);
         try {
@@ -1000,6 +1072,10 @@ LawAIApp.Views.LessonView = {
                 var result = LawAIApp.ProgressEngine.completeLesson(lessonId);
                 if (result) {
                     var xpGain = result.xpGain || 20;
+
+                    // 🔥 Season 5 Part 8: 记录完成时间（spaced review 用）
+                    this._recordLessonCompletedAt(lessonId);
+
                     this._showCompletionEffect();
                     if (LawAIApp.Toast?.success) {
                         LawAIApp.Toast.success('✅ Lesson completed! +' + xpGain + ' XP');
@@ -1012,6 +1088,7 @@ LawAIApp.Views.LessonView = {
                 }
             }
             // 没有 ProgressEngine 也标记完成
+            this._recordLessonCompletedAt(lessonId);
             this._showCompletionEffect();
             if (LawAIApp.Toast?.success) {
                 LawAIApp.Toast.success('✅ Lesson completed!');
@@ -1025,6 +1102,36 @@ LawAIApp.Views.LessonView = {
             if (LawAIApp.Toast?.error) {
                 LawAIApp.Toast.error('Failed to complete lesson');
             }
+        }
+    },
+
+    // ============================================================
+    // 🔥 Season 5 Part 8: 记录 lesson 完成时间
+    // 优先写 ProgressEngine；不可用时写 StorageEngine
+    // ============================================================
+    _recordLessonCompletedAt: function(lessonId) {
+        var now = new Date().toISOString();
+
+        // 1. 尝试写 ProgressEngine
+        try {
+            var prog = window.LawAIApp && window.LawAIApp.ProgressEngine;
+            if (prog && typeof prog.setLessonCompletedAt === 'function') {
+                prog.setLessonCompletedAt(lessonId, now);
+                return;
+            }
+        } catch (e) {}
+
+        // 2. Fallback: 写 StorageEngine（合并到主 progress 里）
+        try {
+            var storage = window.LawAIApp && window.LawAIApp.StorageEngine;
+            if (storage) {
+                var map = storage.get('lesson_completed_at', {}) || {};
+                map[lessonId] = now;
+                storage.set('lesson_completed_at', map);
+                console.log('[LessonView] 💾 Recorded completedAt:', lessonId, now);
+            }
+        } catch (e) {
+            console.warn('[LessonView] Failed to record completedAt:', e);
         }
     },
 
