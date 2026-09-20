@@ -215,31 +215,57 @@ LawAIApp.VideoRenderer = {
     },
 
     // ============================================================
-    // Actions (Part 170)
+    // 🔥 Season 5 Part 6: Take Note（统一走 AcademyExperienceManager）
     // ============================================================
-
     _takeNote: function(videoId) {
-        // 🔥 Part 170: 通过 NotesAuthority 创建笔记
-        var notesAuth = window.LawAIApp?.NotesAuthority;
-        if (!notesAuth || !notesAuth.isReady) {
-            if (window.LawAIApp?.Toast?.info) {
-                LawAIApp.Toast.info('📓 Notes loading...');
+        var text = prompt('📓 Take a note from this video:');
+        if (!text || !text.trim()) return;
+
+        var saved = false;
+
+        // 优先：AcademyExperienceManager.saveNote
+        var aem = window.LawAIApp && window.LawAIApp.AcademyExperienceManager;
+        if (aem && typeof aem.saveNote === 'function') {
+            try {
+                var note = aem.saveNote({
+                    type: 'PERSONAL_NOTE',
+                    title: 'Video Note',
+                    content: text.trim(),
+                    tags: ['video', 'note'],
+                    source: { type: 'video-activity', videoId: videoId },
+                    metadata: { videoId: videoId }
+                });
+                if (note) saved = true;
+            } catch (e) {
+                console.warn('[VideoRenderer] saveNote failed:', e);
             }
-            return;
         }
 
-        var note = notesAuth.create({
-            title: 'Video Note',
-            content: 'Note from video ' + videoId,
-            noteType: 'GENERAL',
-            source: 'video-activity',
-            createdBy: 'learner',
-            tags: ['video', 'note'],
-            relatedActivityRef: videoId
-        });
+        // Fallback: NotesAuthority
+        if (!saved) {
+            var notesAuth = window.LawAIApp && window.LawAIApp.NotesAuthority;
+            if (notesAuth && typeof notesAuth.create === 'function') {
+                try {
+                    var result = notesAuth.create({
+                        title: 'Video Note',
+                        content: text.trim(),
+                        noteType: 'GENERAL',
+                        source: 'video-activity',
+                        createdBy: 'learner',
+                        tags: ['video', 'note'],
+                        relatedActivityRef: videoId
+                    });
+                    if (result && result.success !== false) saved = true;
+                } catch (e) {}
+            }
+        }
 
-        if (note.success && window.LawAIApp?.Toast?.success) {
-            LawAIApp.Toast.success('📓 Note created');
+        if (window.LawAIApp?.Toast) {
+            if (saved) {
+                LawAIApp.Toast.success?.('📓 Note saved');
+            } else {
+                LawAIApp.Toast.info?.('Note not saved — storage unavailable');
+            }
         }
     },
 
@@ -256,8 +282,17 @@ LawAIApp.VideoRenderer = {
         var tomorrow = new Date(Date.now() + 86400000);
         tomorrow.setHours(19, 0, 0, 0);
 
+        // 🔥 Season 5 Part 6: 用真实的 video 标题
+        var videoTitle = 'Watch: Video';
+        try {
+            var titleEl = document.querySelector('.practice-activity h2, [data-video-title]');
+            if (titleEl && titleEl.textContent) {
+                videoTitle = 'Watch: ' + titleEl.textContent.replace('🎬', '').trim();
+            }
+        } catch (e) {}
+
         var result = calAuth.create({
-            title: 'Watch: Video',
+            title: videoTitle,
             activityRef: 'video_' + videoId,
             startAt: tomorrow.toISOString(),
             duration: 30,
