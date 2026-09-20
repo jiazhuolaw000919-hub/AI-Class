@@ -1100,10 +1100,14 @@ LawAIApp.Views.LessonView = {
     startReview: function() {
         console.log('[LessonView] startReview');
         var lessonId = this._lessonId;
-        if (!lessonId) return;
-
-        // 弹出复习时间选择器
-        this._showReviewScheduler(lessonId);
+        try {
+            if (LawAIApp.MemoryEngine && typeof LawAIApp.MemoryEngine.recordReview === 'function') {
+                LawAIApp.MemoryEngine.recordReview(lessonId, 0.8);
+                ...
+            }
+        } catch (err) {
+            console.error('Start review error:', err);
+        }
     },
 
     // ============================================================
