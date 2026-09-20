@@ -550,28 +550,44 @@ LawAIApp.Views.LessonView = {
             return;
         }
 
-        var activity = {
-            id: 'practice_' + lesson.lessonId,
-            type: 'PRACTICE_SET',   // 新类型：整组练习
-            content: lesson.title || 'Practice',
-            metadata: {
-                lessonId: lesson.lessonId,
-                // 🔥 关键改动：传整个 questions 数组
-                questions: practiceItems.map(function(q, idx) {
-                    return {
-                        questionId: q.id || (lesson.lessonId + ':q' + (idx + 1)),
-                        question: q.question || q.prompt || 'Practice question',
-                        type: q.type || 'multipleChoice',
-                        options: q.options || [],
-                        correctAnswer: q.answer !== undefined ? q.answer : q.correctAnswer,
-                        explanation: q.explanation || '',
-                        whyItMatters: q.whyItMatters || '',
-                        hint: q.hint || null,
-                        acceptedKeywords: q.acceptedKeywords || []
-                    };
-                })
-            }
-        };
+        // 🔥 Season 5 Part 4: 传全部题目，不再只取第 1 题
+        var normalizedQuestions = practiceItems.map(function(q, idx) {
+            return {
+                questionId: q.id || (lesson.lessonId + ':q' + (idx + 1)),
+                question: q.question || q.prompt || 'Practice question',
+                type: q.type || 'multipleChoice',
+                options: q.options || [],
+                correctAnswer: q.answer !== undefined ? q.answer : q.correctAnswer,
+                explanation: q.explanation || '',
+                whyItMatters: q.whyItMatters || '',
+                hint: q.hint || null,
+                acceptedKeywords: q.acceptedKeywords || []
+            };
+        });
+
+        var activity;
+        if (normalizedQuestions.length === 1) {
+            // 单题：保持旧格式，兼容已注册的 'PRACTICE' renderer
+            var q1 = normalizedQuestions[0];
+            activity = {
+                id: 'practice_' + lesson.lessonId + '_' + (q1.questionId || 'q1'),
+                type: 'PRACTICE',
+                content: q1.question,
+                metadata: Object.assign({ lessonId: lesson.lessonId }, q1)
+            };
+        } else {
+            // 多题：新格式 'PRACTICE_SET'
+            activity = {
+                id: 'practice_' + lesson.lessonId,
+                type: 'PRACTICE_SET',
+                content: lesson.title || 'Practice',
+                metadata: {
+                    lessonId: lesson.lessonId,
+                    lessonTitle: lesson.title || '',
+                    questions: normalizedQuestions
+                }
+            };
+        }
         
         // 如果只有 1 题，退回旧格式（保持兼容）
         if (activity.metadata.questions.length === 1) {
