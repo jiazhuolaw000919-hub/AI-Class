@@ -4287,6 +4287,16 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
   }, 500);
 }
 
+// 🔥 Season 5: 等 S5_READY 后重新渲染，确保 NotesAuthority 等已加载
+document.addEventListener('S5_READY', function() {
+  console.log('[Dashboard] 🎯 S5_READY received, force render');
+  setTimeout(function() {
+    if (LawAIApp.Dashboard && LawAIApp.Dashboard.forceRender) {
+      LawAIApp.Dashboard.forceRender();
+    }
+  }, 100);
+});
+
 // ============================================================
 // 🔥 Season 5 Part 9: 监听学习事件 → 刷新 Dashboard
 // 注意：不直接改数据，只刷新显示
