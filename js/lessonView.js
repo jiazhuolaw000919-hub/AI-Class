@@ -239,32 +239,34 @@ LawAIApp.Views.LessonView = {
     // Bible Part 66: 没有证据就说 "not enough evidence"
     // ============================================================
     _needsReview: function(lessonId) {
-        // 1. 如果 MemoryEngine 有真实数据，用它
+        // 1. MemoryEngine 有真实数据，用它
         try {
             if (LawAIApp.MemoryEngine && typeof LawAIApp.MemoryEngine.getMemoryStrength === 'function') {
                 var strength = LawAIApp.MemoryEngine.getMemoryStrength(lessonId);
-                // strength 必须是有效数字
                 if (typeof strength === 'number' && !isNaN(strength) && strength > 0) {
                     return strength < 70;
                 }
             }
         } catch (e) {}
 
-        // 2. Fallback: 检查是否有过 review 记录
+        // 2. 已排过 review 且还没到时间 → 不重复提示
         try {
             var storage = window.LawAIApp && window.LawAIApp.StorageEngine;
             if (storage) {
-                var list = storage.get('review_scheduled', []);
-                var hasScheduled = list.some(function(r) {
-                    return r.lessonId === lessonId;
+                var list = storage.get('review_scheduled', []) || [];
+                var now = Date.now();
+                var hasUpcoming = list.some(function(r) {
+                    if (r.lessonId !== lessonId) return false;
+                    if (!r.scheduledAt) return true;
+                    return new Date(r.scheduledAt).getTime() > now;
                 });
-                // 没排过复习 + 没 memory 数据 → 不主动提示
-                return hasScheduled;
+                if (hasUpcoming) return false;   // 已排 → 不提示
             }
         } catch (e) {}
 
-        // 3. 默认：无证据 → 不提示
-        return false;
+        // 3. 已完成的 lesson 且还没排过 review → 允许学习者安排复习
+        // Bible Part 15: Adaptive 可以 SUGGEST，但只有 Calendar 能 SCHEDULE
+        return this._isLessonCompleted(lessonId);
     },
 
     _getMemoryStrength: function(lessonId) {
