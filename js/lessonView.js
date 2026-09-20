@@ -234,13 +234,36 @@ LawAIApp.Views.LessonView = {
         return false;
     },
 
+    // ============================================================
+    // 🔥 Season 5 Part 8: 真实判断是否需要复习
+    // Bible Part 66: 没有证据就说 "not enough evidence"
+    // ============================================================
     _needsReview: function(lessonId) {
+        // 1. 如果 MemoryEngine 有真实数据，用它
         try {
             if (LawAIApp.MemoryEngine && typeof LawAIApp.MemoryEngine.getMemoryStrength === 'function') {
                 var strength = LawAIApp.MemoryEngine.getMemoryStrength(lessonId);
-                return strength < 70 && strength > 0;
+                // strength 必须是有效数字
+                if (typeof strength === 'number' && !isNaN(strength) && strength > 0) {
+                    return strength < 70;
+                }
             }
         } catch (e) {}
+
+        // 2. Fallback: 检查是否有过 review 记录
+        try {
+            var storage = window.LawAIApp && window.LawAIApp.StorageEngine;
+            if (storage) {
+                var list = storage.get('review_scheduled', []);
+                var hasScheduled = list.some(function(r) {
+                    return r.lessonId === lessonId;
+                });
+                // 没排过复习 + 没 memory 数据 → 不主动提示
+                return hasScheduled;
+            }
+        } catch (e) {}
+
+        // 3. 默认：无证据 → 不提示
         return false;
     },
 
@@ -414,14 +437,14 @@ LawAIApp.Views.LessonView = {
             <!-- Key Takeaways -->
             ${takeawaysHtml}
 
-            <!-- Review -->
+            <!-- Review — Season 5 Part 8 -->
             ${completed && needsReview ? `
             <div style="background:rgba(245,158,11,0.04);border-radius:12px;padding:10px 16px;margin-bottom:16px;border:1px solid rgba(245,158,11,0.06);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
                 <div>
-                    <span style="font-size:12px;color:#f59e0b;">🔄 Review recommended</span>
-                    <span style="font-size:11px;color:#94a3b8;display:block;">Strengthen your memory.</span>
+                    <span style="font-size:12px;color:#f59e0b;">🔄 This concept may benefit from a review</span>
+                    <span style="font-size:11px;color:#94a3b8;display:block;">Schedule a reminder — you decide when.</span>
                 </div>
-                <button id="review-btn" style="padding:4px 14px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.15);border-radius:6px;color:#f59e0b;font-size:11px;cursor:pointer;font-family:inherit;">Start Review</button>
+                <button id="review-btn" style="padding:4px 14px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.15);border-radius:6px;color:#f59e0b;font-size:11px;cursor:pointer;font-family:inherit;">Schedule Review</button>
                 <div id="review-feedback" style="width:100%;font-size:11px;color:#94a3b8;"></div>
             </div>
             ` : ''}
@@ -1061,24 +1084,212 @@ LawAIApp.Views.LessonView = {
         }
     },
 
+    // ============================================================
+    // 🔥 Season 5 Part 8: Review Scheduler
+    // Bible Part 15: Adaptive 只能 SUGGEST，Calendar 才能 SCHEDULE
+    // Bible Part 28: 必须学习者确认
+    // ============================================================
     startReview: function() {
         console.log('[LessonView] startReview');
         var lessonId = this._lessonId;
-        try {
-            if (LawAIApp.MemoryEngine && typeof LawAIApp.MemoryEngine.recordReview === 'function') {
-                LawAIApp.MemoryEngine.recordReview(lessonId, 0.8);
-                var feedbackEl = document.getElementById('review-feedback');
-                if (feedbackEl) {
-                    feedbackEl.textContent = '✅ Review recorded! Memory strengthened.';
-                    feedbackEl.style.color = '#22c55e';
+        if (!lessonId) return;
+
+        // 弹出复习时间选择器
+        this._showReviewScheduler(lessonId);
+    },
+
+    // ============================================================
+    // 🔥 复习时间选择器（学习者必须确认）
+    // ============================================================
+    _showReviewScheduler: function(lessonId) {
+        var self = this;
+        var lesson = this._lesson || {};
+        var title = lesson.title || lessonId;
+
+        // 移除已有弹窗
+        var old = document.getElementById('review-scheduler-overlay');
+        if (old) old.remove();
+
+        // 预设选项
+        var options = [
+            { label: 'Tomorrow', days: 1, hint: '+1 day' },
+            { label: 'In 3 days', days: 3, hint: '+3 days' },
+            { label: 'In 1 week', days: 7, hint: '+7 days' },
+            { label: 'In 2 weeks', days: 14, hint: '+14 days' },
+            { label: 'In 1 month', days: 30, hint: '+30 days' }
+        ];
+
+        var optionsHtml = '';
+        for (var i = 0; i < options.length; i++) {
+            var o = options[i];
+            optionsHtml += ''
+                + '<button class="review-option-btn" data-days="' + o.days + '" '
+                +        'style="width:100%;padding:10px 14px;background:rgba(74,158,255,0.06);'
+                +               'border:1px solid rgba(74,158,255,0.12);border-radius:8px;'
+                +               'color:#93c5fd;font-size:13px;font-weight:500;cursor:pointer;'
+                +               'font-family:inherit;text-align:left;display:flex;'
+                +               'justify-content:space-between;align-items:center;'
+                +               'transition:all 0.2s;">'
+                +   '<span>' + o.label + '</span>'
+                +   '<span style="font-size:11px;color:#64748b;">' + o.hint + '</span>'
+                + '</button>';
+        }
+
+        var overlayHtml = ''
+            + '<div id="review-scheduler-overlay" '
+            +      'style="position:fixed;inset:0;background:rgba(0,0,0,0.7);'
+            +             'z-index:9999;display:flex;align-items:center;justify-content:center;'
+            +             'padding:20px;backdrop-filter:blur(4px);">'
+            +   '<div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);'
+            +               'border-radius:14px;padding:20px 24px;max-width:420px;width:100%;'
+            +               'box-shadow:0 20px 60px rgba(0,0,0,0.5);">'
+            +     '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">'
+            +       '<div>'
+            +         '<div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">🔄 Review</div>'
+            +         '<h3 style="font-size:17px;font-weight:600;margin:4px 0 0;color:#e2e8f0;">When to review?</h3>'
+            +       '</div>'
+            +       '<button id="review-scheduler-close" '
+            +              'style="background:transparent;border:none;color:#64748b;'
+            +                     'font-size:22px;cursor:pointer;padding:0;line-height:1;'
+            +                     'font-family:inherit;">×</button>'
+            +     '</div>'
+            +     '<p style="font-size:13px;color:#94a3b8;margin:0 0 16px;line-height:1.5;">'
+            +       'Pick a time. You can change this later in Calendar.'
+            +     '</p>'
+            +     '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">'
+            +       optionsHtml
+            +     '</div>'
+            +     '<div style="text-align:center;">'
+            +       '<button id="review-scheduler-cancel" '
+            +              'style="padding:6px 16px;background:transparent;border:none;'
+            +                     'color:#64748b;font-size:12px;cursor:pointer;'
+            +                     'font-family:inherit;text-decoration:underline;">'
+            +         'Not now'
+            +       '</button>'
+            +     '</div>'
+            +   '</div>'
+            + '</div>';
+
+        document.body.insertAdjacentHTML('beforeend', overlayHtml);
+
+        // 绑定
+        document.getElementById('review-scheduler-close').addEventListener('click', function() {
+            self._closeReviewScheduler();
+        });
+        document.getElementById('review-scheduler-cancel').addEventListener('click', function() {
+            self._closeReviewScheduler();
+        });
+
+        var btns = document.querySelectorAll('.review-option-btn');
+        for (var j = 0; j < btns.length; j++) {
+            btns[j].addEventListener('click', function() {
+                var days = parseInt(this.getAttribute('data-days'));
+                self._scheduleReview(lessonId, days);
+                self._closeReviewScheduler();
+            });
+        }
+    },
+
+    _closeReviewScheduler: function() {
+        var el = document.getElementById('review-scheduler-overlay');
+        if (el) el.remove();
+    },
+
+    // ============================================================
+    // 🔥 学习者确认后，通过 CalendarAuthority 排程
+    // Bible Part 28: Calendar 是唯一排程权威
+    // ============================================================
+    _scheduleReview: function(lessonId, days) {
+        var lesson = this._lesson || {};
+        var title = lesson.title || lessonId;
+
+        // 计算时间：days 天后，默认 7 PM
+        var when = new Date();
+        when.setDate(when.getDate() + days);
+        when.setHours(19, 0, 0, 0);
+
+        var calAuth = window.LawAIApp && window.LawAIApp.CalendarAuthority;
+
+        if (!calAuth || typeof calAuth.create !== 'function') {
+            // Fallback: 存到 StorageEngine，Calendar 页面自己读
+            console.warn('[LessonView] CalendarAuthority not available, using fallback storage');
+            try {
+                var storage = window.LawAIApp && window.LawAIApp.StorageEngine;
+                if (storage) {
+                    var key = 'review_scheduled';
+                    var list = storage.get(key, []);
+                    list.push({
+                        lessonId: lessonId,
+                        title: 'Review: ' + title,
+                        scheduledAt: when.toISOString(),
+                        days: days,
+                        createdAt: new Date().toISOString()
+                    });
+                    storage.set(key, list);
                 }
-                if (LawAIApp.Toast?.success) {
-                    LawAIApp.Toast.success('🔄 Review completed!');
+            } catch (e) {}
+            if (window.LawAIApp?.Toast?.success) {
+                window.LawAIApp.Toast.success('🔄 Review scheduled for +' + days + ' days');
+            }
+            this._updateReviewFeedback('✅ Scheduled in ' + days + ' day(s)');
+            this._emitReviewScheduled(lessonId, when, days);
+            return;
+        }
+
+        try {
+            var result = calAuth.create({
+                title: 'Review: ' + title,
+                activityRef: 'review_' + lessonId,
+                startAt: when.toISOString(),
+                duration: 15,
+                source: 'lesson-review',
+                metadata: {
+                    lessonId: lessonId,
+                    reviewReason: 'spaced-review',
+                    days: days
+                }
+            });
+
+            if (result && result.success !== false) {
+                if (window.LawAIApp?.Toast?.success) {
+                    window.LawAIApp.Toast.success('🔄 Review scheduled for +' + days + ' days');
+                }
+                this._updateReviewFeedback('✅ Scheduled in ' + days + ' day(s)');
+                this._emitReviewScheduled(lessonId, when, days);
+            } else {
+                if (window.LawAIApp?.Toast?.info) {
+                    window.LawAIApp.Toast.info('Could not schedule — try again');
                 }
             }
-        } catch (err) {
-            console.error('Start review error:', err);
+        } catch (e) {
+            console.error('[LessonView] CalendarAuthority.create failed:', e);
+            if (window.LawAIApp?.Toast?.info) {
+                window.LawAIApp.Toast.info('Calendar unavailable');
+            }
         }
+    },
+
+    _updateReviewFeedback: function(text) {
+        var feedbackEl = document.getElementById('review-feedback');
+        if (feedbackEl) {
+            feedbackEl.textContent = text;
+            feedbackEl.style.color = '#22c55e';
+        }
+    },
+
+    _emitReviewScheduled: function(lessonId, when, days) {
+        try {
+            var ev = new CustomEvent('REVIEW_SCHEDULED', {
+                detail: {
+                    lessonId: lessonId,
+                    scheduledAt: when.toISOString(),
+                    days: days,
+                    source: 'lesson-view'
+                }
+            });
+            document.dispatchEvent(ev);
+            window.dispatchEvent(ev);
+        } catch (e) {}
     },
 
     // ============================================================
