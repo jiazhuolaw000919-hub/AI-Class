@@ -550,22 +550,34 @@ LawAIApp.Views.LessonView = {
             return;
         }
 
-        var question = practiceItems[0];  // 暂时只取第一题
-
         var activity = {
-            id: 'practice_' + lesson.lessonId + '_' + (question.id || 'q1'),
-            type: 'PRACTICE',
-            content: question.question || question.prompt || '',
+            id: 'practice_' + lesson.lessonId,
+            type: 'PRACTICE_SET',   // 新类型：整组练习
+            content: lesson.title || 'Practice',
             metadata: {
                 lessonId: lesson.lessonId,
-                questionId: question.id || (lesson.lessonId + ':q1'),
-                question: question.question || question.prompt || 'Practice question',
-                options: question.options || [],
-                correctAnswer: question.answer !== undefined ? question.answer : question.correctAnswer,
-                explanation: question.explanation || '',
-                hint: question.hint || null
+                // 🔥 关键改动：传整个 questions 数组
+                questions: practiceItems.map(function(q, idx) {
+                    return {
+                        questionId: q.id || (lesson.lessonId + ':q' + (idx + 1)),
+                        question: q.question || q.prompt || 'Practice question',
+                        type: q.type || 'multipleChoice',
+                        options: q.options || [],
+                        correctAnswer: q.answer !== undefined ? q.answer : q.correctAnswer,
+                        explanation: q.explanation || '',
+                        whyItMatters: q.whyItMatters || '',
+                        hint: q.hint || null,
+                        acceptedKeywords: q.acceptedKeywords || []
+                    };
+                })
             }
         };
+        
+        // 如果只有 1 题，退回旧格式（保持兼容）
+        if (activity.metadata.questions.length === 1) {
+            activity.type = 'PRACTICE';
+            activity.metadata = Object.assign({}, activity.metadata, activity.metadata.questions[0]);
+        }
 
         // 4. 直接调用 PracticeRenderer.create + mount
         try {
