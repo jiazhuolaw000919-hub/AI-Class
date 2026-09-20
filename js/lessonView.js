@@ -493,6 +493,14 @@ LawAIApp.Views.LessonView = {
             });
         }
 
+        // 🔥 Season 5 修复: 绑定 Complete Lesson
+        var completeBtn = document.getElementById('lesson-complete-btn');
+        if (completeBtn) {
+            completeBtn.addEventListener('click', function() {
+                self.completeLesson(lesson.lessonId);
+            });
+        }
+
         // Part 179: 移除简化版 practice 绑定，改由 ExperienceRuntime 接管
 
         var reflectionSaveBtn = document.getElementById('reflection-save-btn');
