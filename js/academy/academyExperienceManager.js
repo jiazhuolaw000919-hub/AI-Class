@@ -3357,6 +3357,59 @@
                 self.refresh();
             });
 
+            // 🔥 Season 5 Part 5: Practice 完成 → 记录进度 + 通知系统
+            document.addEventListener('PracticeCompleted', function(e) {
+                var payload = (e && e.detail) || {};
+                console.log('[AcademyExperienceManager] 🎯 PracticeCompleted:', payload);
+
+                // 1. 通知 ProgressEngine
+                try {
+                    var prog = window.LawAIApp && window.LawAIApp.ProgressEngine;
+                    if (prog) {
+                        if (typeof prog.recordPracticeCompleted === 'function') {
+                            prog.recordPracticeCompleted(payload.lessonId, {
+                                correct: payload.correct,
+                                total: payload.total,
+                                accuracy: payload.accuracy,
+                                source: payload.source || 'practice-set'
+                            });
+                        } else if (typeof prog.recordActivity === 'function') {
+                            prog.recordActivity(payload.lessonId, {
+                                type: 'practice',
+                                correct: payload.correct,
+                                total: payload.total
+                            });
+                        }
+                    }
+                } catch (err) {
+                    console.warn('[AcademyExperienceManager] ProgressEngine record failed:', err);
+                }
+
+                // 2. 通知系统刷新（Dashboard / Progress 显示会更新）
+                self._emit('LEARNING_STATE_UPDATED', {
+                    source: 'PracticeCompleted',
+                    lessonId: payload.lessonId,
+                    payload: payload
+                });
+
+                // 3. 提示学习者
+                if (window.LawAIApp && window.LawAIApp.Toast && window.LawAIApp.Toast.success && payload.total) {
+                    window.LawAIApp.Toast.success(
+                        '✏️ Practice: ' + payload.correct + ' / ' + payload.total
+                    );
+                }
+            });
+
+            // 🔥 Season 5 Part 5: Reflection 保存 → 刷新
+            document.addEventListener('REFLECTION_SAVED', function(e) {
+                var payload = (e && e.detail) || {};
+                console.log('[AcademyExperienceManager] 💭 Reflection saved:', payload);
+                self._emit('LEARNING_STATE_UPDATED', {
+                    source: 'ReflectionSaved',
+                    lessonId: payload.lessonId
+                });
+            });
+
             console.log('[AcademyExperienceManager] ✅ Events bound');
         },
 
