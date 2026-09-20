@@ -156,17 +156,39 @@ LawAIApp.ProgressEngine = {
         var stored = this._safeGet(this._storageKey, null);
         if (!stored) return;
 
+        var needsSave = false;
+
         // 检查是否有 _schemaVersion 字段
         if (!stored._schemaVersion) {
             console.log('🔄 ProgressEngine: Migrating progress data to schema v2.0.0');
             stored._schemaVersion = '2.0.0';
-            // 确保所有必需字段存在
-            var defaults = this.defaultProgress();
-            for (var key in defaults) {
-                if (!(key in stored)) {
-                    stored[key] = defaults[key];
+            needsSave = true;
+        }
+
+        // 🔥 Season 5 Part 8: 确保 completedAt 存在
+        if (!stored.completedAt) {
+            stored.completedAt = {};
+            // 对已完成的 lesson，用 createdAt 兜底（不精确但比没有强）
+            if (stored.completedLessons && stored.completedLessons.length > 0) {
+                var fallbackTime = stored.createdAt || new Date().toISOString();
+                for (var i = 0; i < stored.completedLessons.length; i++) {
+                    stored.completedAt[stored.completedLessons[i]] = fallbackTime;
                 }
+                console.log('🔄 ProgressEngine: Migrated completedAt for', stored.completedLessons.length, 'lessons');
             }
+            needsSave = true;
+        }
+
+        // 确保所有必需字段存在
+        var defaults = this.defaultProgress();
+        for (var key in defaults) {
+            if (!(key in stored)) {
+                stored[key] = defaults[key];
+                needsSave = true;
+            }
+        }
+
+        if (needsSave) {
             this._safeSet(this._storageKey, stored);
             console.log('✅ ProgressEngine: Migration complete');
         }
@@ -265,6 +287,17 @@ LawAIApp.ProgressEngine = {
     },
 
     // ============================================================
+    // 🔥 Season 5 Part 8: 获取 lesson 完成时间
+    // ============================================================
+    getLessonCompletedAt: function(lessonId) {
+        var prog = this.getProgress();
+        if (prog.completedAt && prog.completedAt[lessonId]) {
+            return prog.completedAt[lessonId];
+        }
+        return null;
+    },
+
+    // ============================================================
     // 更新方法
     // ============================================================
     setXP: function(totalXP) {
@@ -288,6 +321,10 @@ LawAIApp.ProgressEngine = {
             prog.completedLessons.push(lessonId);
             var total = prog.totalLessons || 365;
             prog.completionPercent = Math.min(100, Math.round((prog.completedLessons.length / total) * 100));
+
+            // 🔥 Season 5 Part 8: 记录完成时间（spaced review 用）
+            if (!prog.completedAt) prog.completedAt = {};
+            prog.completedAt[lessonId] = new Date().toISOString();
 
             // 2. 更新 Day
             prog.day = Math.min(total, prog.completedLessons.length + 1);
