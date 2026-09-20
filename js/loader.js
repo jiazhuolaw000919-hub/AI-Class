@@ -39,7 +39,6 @@ window.LawAIApp = window.LawAIApp || {};
 // ============================================================
 var STAGES = {
     runtime: [
-        // ... 保持不变（所有 runtime core 文件）...
         "core/runtimeObservationManifest.js",
         "core/runtimeObservationCollector.js",
         "core/runtimeObservationValidator.js",
@@ -190,7 +189,6 @@ var STAGES = {
         "themeEngine.js",
         "systemComposer.js",
         "app.js",
-        // 🔥 Calendar 相关（按依赖顺序）
         "calendarEngine.js",
         "calendarPlanner.js",
         "calendarTimeline.js",
@@ -200,44 +198,38 @@ var STAGES = {
         "calendar/CalendarEventAdapter.js",
         "calendar/CalendarRenderer.js",
         "calendar.js",
-        "themeEngine.js",
         "academy/knowledgeCapture.js",
         "academy/notes.js",
-        "academy/secondBrain.js",
+        "academy/secondBrain.js"
     ],
-    // ============================================================
-    // 🔥 Season 5 — Authority + Experience 层
-    // 依赖：StorageEngine / EventBus / academy/practiceEngine
-    // 在 critical 之后加载，因为要用 StorageEngine
-    // ============================================================
     s5: [
-        // ─── Authority 层（无依赖，最先加载） ───
+        // ─── Authority 层 ───
         "notes/NotesAuthority.js",
         "calendar/CalendarAuthority.js",
         "settings/SettingsAuthority.js",
         "curriculum/CurriculumAuthority.js",
 
-        // ─── Experience Contract（无依赖） ───
+        // ─── Experience Contract ───
         "experience/experienceContract.js",
         "experience/practiceEvidenceContract.js",
         "experience/videoEvidenceContract.js",
 
-        // ─── Registry & Runtime（依赖 Contract） ───
+        // ─── Registry & Runtime ───
         "experience/activityRegistry.js",
         "experience/experienceRuntime.js",
 
-        // ─── Renderers（依赖 Registry） ───
+        // ─── Renderers ───
         "experience/renderers/readingRenderer.js",
         "experience/renderers/practiceRenderer.js",
         "experience/renderers/videoRenderer.js",
 
-        // ─── Fitness Check（依赖 Renderer） ───
+        // ─── Fitness Check ───
         "experience/practiceFitnessCheck.js",
         "experience/activityFitnessCheck.js",
 
-        // ─── Academy Experience Manager（依赖 Authority + PracticeProgress） ───
+        // ─── Academy Experience Manager ───
         "academy/practiceProgress.js",
-        "academy/academyExperienceManager.js",
+        "academy/academyExperienceManager.js"
     ],
     ux: [
         "experienceComposer.js",
@@ -298,7 +290,7 @@ function loadModule(src) {
     }
 
     var engineName = src.replace('.js', '').replace(/\//g, '_');
-    
+
     if (LawAIApp.DevTools?.RuntimeProfiler) {
         LawAIApp.DevTools.RuntimeProfiler.registerEngine(engineName);
         var caller = 'Loader';
@@ -319,7 +311,7 @@ function loadModule(src) {
         for (var i = 0; i < paths.length; i++) {
             if (unique.indexOf(paths[i]) === -1) unique.push(paths[i]);
         }
-        
+
         tryLoadModule(unique, 0, resolve, src, engineName);
     });
 
@@ -333,18 +325,18 @@ function tryLoadModule(paths, index, resolve, src, engineName) {
         resolve({ file: src, status: "missing" });
         return;
     }
-    
+
     var fullPath = paths[index];
-    
+
     import(fullPath)
         .then(function(module) {
             _loadCache[src] = true;
             _loadedModules[src] = true;
-            
+
             if (LawAIApp.DevTools?.RuntimeProfiler) {
                 LawAIApp.DevTools.RuntimeProfiler.engineLoaded(engineName);
             }
-            
+
             console.log('✅ Loaded (ESM):', src);
             resolve({ file: src, status: "ok", module: module });
         })
@@ -383,7 +375,7 @@ function loadScript(src) {
     if (src.startsWith('core/')) {
         return loadModule(src);
     }
-    
+
     if (_loadCache[src]) {
         return Promise.resolve({ file: src, status: "ok" });
     }
@@ -457,9 +449,9 @@ function loadStage(name, files, delay) {
             Promise.all(files.map(loadScript)).then(function(results) {
                 var loaded = results.filter(function(r) { return r.status === 'ok'; }).length;
                 var missing = results.filter(function(r) { return r.status === 'missing'; });
-                
+
                 console.log('✅ Stage ' + name + ': ' + loaded + '/' + files.length + ' loaded');
-                
+
                 if (missing.length > 0) {
                     console.warn('⚠️ Stage ' + name + ' missing files:', missing.map(function(r) { return r.file; }));
                 }
@@ -494,8 +486,6 @@ async function boot() {
 
     await loadStage('runtime', STAGES.runtime, 0);
     await loadStage('critical', STAGES.critical, 0);
-
-    // 🔥 Season 5: 等 s5 加载完再继续
     await loadStage('s5', STAGES.s5, 0);
 
     console.log('[Loader] ✅ Runtime Ready');
