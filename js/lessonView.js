@@ -500,6 +500,9 @@ LawAIApp.Views.LessonView = {
             });
         }
 
+        // 🔥 Season 5 Part 7: 绑定 flashcard 事件
+        self._bindFlashcardEvents();
+
         // ═══════════════════════════════════════════════════════════
         // Part 179: 启动 Experience Runtime 渲染 practice
         // ═══════════════════════════════════════════════════════════
@@ -755,15 +758,194 @@ LawAIApp.Views.LessonView = {
             '</div></div>';
     },
 
+    // ============================================================
+    // 🔥 Season 5 Part 7: Flashcards 交互式渲染
+    // - 翻卡（点一下看答案）
+    // - "记住了 / 没记住"按钮
+    // - 落库到 AcademyExperienceManager
+    // ============================================================
     _renderFlashcardsBlock: function(fcs) {
-        return '<div style="margin:16px 0;padding:16px 20px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.06);">' +
-            '<h4 style="font-size:15px;font-weight:600;margin:0 0 12px 0;">🃏 Flashcards (' + fcs.length + ')</h4>' +
-            '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">' +
-            fcs.map(function(fc) {
-                return '<div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:10px 14px;border:1px solid rgba(255,255,255,0.06);">' +
-                    '<div style="font-size:13px;font-weight:500;color:#4a9eff;">Q: ' + fc.front + '</div>' +
-                    '<div style="font-size:13px;color:#94a3b8;margin-top:4px;">A: ' + fc.back + '</div></div>';
-            }).join('') + '</div></div>';
+        if (!fcs || fcs.length === 0) return '';
+
+        var lessonId = this._lessonId || '';
+        var cards = '';
+
+        for (var i = 0; i < fcs.length; i++) {
+            var fc = fcs[i];
+            var cardId = fc.id || ('fc_' + lessonId + '_' + i);
+
+            cards += ''
+                + '<div class="flashcard-item" data-card-id="' + cardId + '" data-flipped="false" '
+                +      'style="background:rgba(255,255,255,0.04);border-radius:10px;padding:14px 16px;'
+                +             'border:1px solid rgba(255,255,255,0.06);cursor:pointer;'
+                +             'transition:all 0.25s;min-height:88px;position:relative;">'
+                +   '<div style="display:flex;justify-content:space-between;align-items:start;gap:8px;">'
+                +     '<div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">'
+                +       (fc.difficulty || 'card') + ' · ' + (fc.tags && fc.tags[0] ? fc.tags[0] : '')
+                +     '</div>'
+                +     '<div style="font-size:11px;color:#64748b;">tap to flip</div>'
+                +   '</div>'
+                +   '<div class="flashcard-front" style="font-size:14px;font-weight:500;color:#e2e8f0;line-height:1.5;margin-top:8px;">'
+                +     (fc.front || '')
+                +   '</div>'
+                +   '<div class="flashcard-back" style="display:none;font-size:13px;color:#94a3b8;line-height:1.5;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);">'
+                +     (fc.back || '')
+                +   '</div>'
+                +   '<div class="flashcard-actions" style="display:none;gap:6px;margin-top:10px;">'
+                +     '<button class="flashcard-btn-known" data-card-id="' + cardId + '" '
+                +             'style="flex:1;padding:6px 12px;background:rgba(34,197,94,0.08);'
+                +                    'border:1px solid rgba(34,197,94,0.15);border-radius:6px;'
+                +                    'color:#22c55e;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;">'
+                +       '✓ I knew it'
+                +     '</button>'
+                +     '<button class="flashcard-btn-review" data-card-id="' + cardId + '" '
+                +             'style="flex:1;padding:6px 12px;background:rgba(245,158,11,0.08);'
+                +                    'border:1px solid rgba(245,158,11,0.15);border-radius:6px;'
+                +                    'color:#f59e0b;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;">'
+                +       '↻ Review again'
+                +     '</button>'
+                +   '</div>'
+                + '</div>';
+        }
+
+        return ''
+            + '<div id="lesson-flashcards-block" style="margin:16px 0;padding:16px 20px;'
+            +        'background:rgba(255,255,255,0.03);border-radius:10px;'
+            +        'border:1px solid rgba(255,255,255,0.06);">'
+            +   '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">'
+            +     '<h4 style="font-size:15px;font-weight:600;margin:0;">🃏 Flashcards (' + fcs.length + ')</h4>'
+            +     '<span id="flashcard-progress" style="font-size:11px;color:#64748b;">0 / ' + fcs.length + '</span>'
+            +   '</div>'
+            +   '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;">'
+            +     cards
+            +   '</div>'
+            + '</div>';
+    },
+
+    // ============================================================
+    // 🔥 Season 5 Part 7: 绑定 flashcard 事件
+    // ============================================================
+    _bindFlashcardEvents: function() {
+        var self = this;
+        var block = document.getElementById('lesson-flashcards-block');
+        if (!block) return;
+
+        // 翻卡
+        var items = block.querySelectorAll('.flashcard-item');
+        for (var i = 0; i < items.length; i++) {
+            items[i].addEventListener('click', function(e) {
+                // 忽略按钮点击（按钮自己处理）
+                if (e.target.classList.contains('flashcard-btn-known') ||
+                    e.target.classList.contains('flashcard-btn-review')) {
+                    return;
+                }
+                var flipped = this.getAttribute('data-flipped') === 'true';
+                var front = this.querySelector('.flashcard-front');
+                var back = this.querySelector('.flashcard-back');
+                var actions = this.querySelector('.flashcard-actions');
+
+                if (!flipped) {
+                    this.setAttribute('data-flipped', 'true');
+                    if (front) front.style.display = 'none';
+                    if (back) back.style.display = 'block';
+                    if (actions) actions.style.display = 'flex';
+                } else {
+                    this.setAttribute('data-flipped', 'false');
+                    if (front) front.style.display = 'block';
+                    if (back) back.style.display = 'none';
+                    if (actions) actions.style.display = 'none';
+                }
+            });
+        }
+
+        // "I knew it"
+        var knownBtns = block.querySelectorAll('.flashcard-btn-known');
+        for (var j = 0; j < knownBtns.length; j++) {
+            knownBtns[j].addEventListener('click', function(e) {
+                e.stopPropagation();
+                var cardId = this.getAttribute('data-card-id');
+                self._recordFlashcardResult(cardId, 'known');
+                self._markFlashcardDone(cardId);
+            });
+        }
+
+        // "Review again"
+        var reviewBtns = block.querySelectorAll('.flashcard-btn-review');
+        for (var k = 0; k < reviewBtns.length; k++) {
+            reviewBtns[k].addEventListener('click', function(e) {
+                e.stopPropagation();
+                var cardId = this.getAttribute('data-card-id');
+                self._recordFlashcardResult(cardId, 'review');
+                self._markFlashcardDone(cardId);
+            });
+        }
+    },
+
+    _markFlashcardDone: function(cardId) {
+        var card = document.querySelector('.flashcard-item[data-card-id="' + cardId + '"]');
+        if (card) {
+            card.style.opacity = '0.4';
+            card.style.pointerEvents = 'none';
+        }
+        // 更新进度
+        var block = document.getElementById('lesson-flashcards-block');
+        if (block) {
+            var done = block.querySelectorAll('.flashcard-item[style*="opacity: 0.4"]').length;
+            var total = block.querySelectorAll('.flashcard-item').length;
+            var progressEl = document.getElementById('flashcard-progress');
+            if (progressEl) progressEl.textContent = done + ' / ' + total;
+        }
+    },
+
+    // ============================================================
+    // 🔥 Season 5 Part 7: 记录 flashcard 结果
+    // ============================================================
+    _recordFlashcardResult: function(cardId, result) {
+        var lessonId = this._lessonId;
+        var lesson = this._lesson || {};
+
+        // 通过 AcademyExperienceManager 保存
+        var aem = window.LawAIApp && window.LawAIApp.AcademyExperienceManager;
+        if (aem && typeof aem.saveNote === 'function') {
+            try {
+                // 用 note 记录 flashcard review（不改 flashcard 本身）
+                aem.saveNote({
+                    type: 'FLASHCARD_REVIEW',
+                    title: 'Flashcard: ' + result,
+                    content: cardId + ' → ' + result,
+                    lessonId: lessonId,
+                    courseId: lesson.courseId || null,
+                    subjectId: lesson.subjectId || null,
+                    tags: ['flashcard', result],
+                    source: { type: 'flashcard-review', cardId: cardId },
+                    metadata: { cardId: cardId, result: result }
+                });
+            } catch (e) {
+                console.warn('[LessonView] flashcard saveNote failed:', e);
+            }
+        }
+
+        // 发射事件
+        try {
+            var ev = new CustomEvent('FLASHCARD_REVIEWED', {
+                detail: {
+                    lessonId: lessonId,
+                    cardId: cardId,
+                    result: result,
+                    timestamp: new Date().toISOString()
+                }
+            });
+            document.dispatchEvent(ev);
+            window.dispatchEvent(ev);
+        } catch (e) {}
+
+        if (window.LawAIApp?.Toast) {
+            if (result === 'known') {
+                window.LawAIApp.Toast.success?.('✓ Marked as known');
+            } else {
+                window.LawAIApp.Toast.info?.('↻ Will review again');
+            }
+        }
     },
 
     _renderKeyTakeawaysBlock: function(items) {
