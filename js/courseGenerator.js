@@ -47,19 +47,22 @@ LawAIApp.CourseGenerator = {
 
         var course = {
             id: courseId,
-            type: 'GENERATED',                        // Bible Part 37
-            title: domain + ' – ' + difficulty.charAt(0).toUpperCase() + difficulty.slice(1),
+            type: 'GENERATED',
+            title: domain + ' – ' + difficulty.charAt(0).toUpperCase() + difficulty.slice(1) + ' Course',
             description: 'AI-generated ' + domain + ' course tailored for ' + difficulty + ' level.',
             difficulty_level: difficulty,
             domain: domain,
-            goal: form.goal || '',
-            timePerDay: parseInt(form.time) || 30,
-            depth: form.depth || 'practical',
-            practicePreference: form.practice || 'balanced',
-            generatedBy: form.ai || 'auto',
+            level: difficulty,
+            goal: (typeof userProfile === 'object' && userProfile.goal) || '',
+            timePerDay: (typeof userProfile === 'object' && parseInt(userProfile.time)) || 30,
+            depth: (typeof userProfile === 'object' && userProfile.depth) || 'practical',
+            practicePreference: (typeof userProfile === 'object' && userProfile.practice) || 'balanced',
             created_by_ai: true,
-            isPreview: true,                          // Bible Part 26
+            isPreview: true,                    // 🔥 Bible Part 26
             modules: modules,
+            subjects: modules,                  // 🔥 兼容 UI（modules = subjects）
+            generatedAt: new Date().toISOString(),
+            generatedBy: 'auto',
             createdAt: new Date().toISOString()
         };
 
@@ -72,43 +75,41 @@ LawAIApp.CourseGenerator = {
         return course;
     },
 
-    _generateModules: function(domain, difficulty, form) {
+    _generateModules: async function(domain, difficulty, form) {
         form = form || {};
-        var modules = [];
         var depth = form.depth || 'practical';
-
-        // 按 depth 决定模块数
-        var moduleCount;
-        if (depth === 'overview') moduleCount = 2;
-        else if (depth === 'deep') moduleCount = 5;
-        else moduleCount = 3;
-
+        var moduleCount = depth === 'overview' ? 2 : (depth === 'deep' ? 5 : 3);
+        var modules = [];
+    
         for (var i = 0; i < moduleCount; i++) {
-            var lessons = [];
-            var lessonCount = depth === 'overview' ? 2 : (depth === 'deep' ? 5 : 3);
-
-            for (var j = 0; j < lessonCount; j++) {
-                lessons.push({
-                    id: 'gen_lesson_' + Date.now() + '_' + i + '_' + j,
-                    title: domain + ' – Module ' + (i + 1) + ' Lesson ' + (j + 1),
-                    content: {
-                        explanation: 'This lesson covers core concepts of ' + domain + '. (AI generation pending)',
-                        examples: ['Example for ' + domain],
-                        practice: 'Practice: Apply ' + domain + ' concepts'
-                    },
-                    order: j + 1,
-                    estimatedTime: parseInt(form.time) || 20
-                });
-            }
-
+            var moduleTitle = await this._generateModuleTitle(domain, i + 1, difficulty);
+            var lessons = await this._generateLessonsForModule(domain, moduleTitle, i, depth, form);
             modules.push({
                 id: 'gen_module_' + Date.now() + '_' + i,
-                name: 'Module ' + (i + 1) + ': ' + domain + ' Fundamentals',
+                name: moduleTitle,
                 lessons: lessons
             });
         }
-
+    
         return modules;
+    },
+    
+    _generateModuleTitle: async function(domain, num, difficulty) {
+        var ai = LawAIApp.AILayer;
+        if (ai && typeof ai.request === 'function' && ai.isAvailable && ai.isAvailable()) {
+            try {
+                var result = await ai.request(
+                    'Generate a short module title (max 6 words) for module ' + num + ' of a ' + difficulty + ' course on ' + domain + '. Return only the title.',
+                    { type: 'title' }
+                );
+                if (result && typeof result === 'string') return result.trim();
+                if (result && result.text) return result.text.trim();
+            } catch (e) {
+                console.warn('[CourseGenerator] AI title generation failed:', e);
+            }
+        }
+        // Fallback
+        return 'Module ' + num + ': ' + domain + ' Concepts';
     },
 
     // ============================================================
@@ -118,6 +119,31 @@ LawAIApp.CourseGenerator = {
         if (!course) return false;
         try {
             // 移除 preview 标记
+            course.isPreview = false;
+            course.acceptedAt = new Date().toISOString();
+
+            var courses = this.getGeneratedCourses();
+            courses.push(course);
+
+            if (LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.set === 'function') {
+                LawAIApp.StorageEngine.set('generated_courses', courses);
+            }
+
+            LawAIApp.EventBus?.emit?.('CourseAccepted', { courseId: course.id, course: course });
+            console.log('✅ Course accepted:', course.id);
+            return true;
+        } catch (e) {
+            console.error('[CourseGenerator] accept failed:', e);
+            return false;
+        }
+    },
+
+    // ============================================================
+    // 🔥 Bible Part 29: Accept course（由 UI 层调用）
+    // ============================================================
+    acceptGeneratedCourse: function(course) {
+        if (!course) return false;
+        try {
             course.isPreview = false;
             course.acceptedAt = new Date().toISOString();
 
