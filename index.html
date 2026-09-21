@@ -411,37 +411,54 @@
       return;
     }
   
-    // 只注册 Google（免费）
-    ai.registerProvider('google', {
-      name: 'Google Gemini',
-      isReal: true,
-      call: async function(prompt, options) {
-        var res = await fetch('/api/ai/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            provider: 'google',
-            prompt: prompt,
-            model: (options && options.model) || 'gemini-1.5-flash',
-            options: options || {}
-          })
-        });
+    function makeProvider(id, name, defaultModel) {
+      return {
+        id: id,
+        name: name,
+        defaultModel: defaultModel,
   
-        if (!res.ok) {
-          var err = await res.json().catch(function() { return {}; });
-          throw new Error(err.error || 'AI request failed');
+        // 🔥 关键：用 execute，不是 call
+        execute: async function(task, prompt, context) {
+          var res = await fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              provider: id,
+              prompt: prompt,
+              model: (context && context.model) || defaultModel,
+              options: context || {}
+            })
+          });
+  
+          if (!res.ok) {
+            var errData = null;
+            try { errData = await res.json(); } catch (e) {}
+            throw new Error((errData && errData.error) || (name + ' request failed (' + res.status + ')'));
+          }
+  
+          var data = await res.json();
+          return data;  // { text, provider, model, usage }
         }
+      };
+    }
   
-        return await res.json();
-      }
-    });
+    // 免费：Google Gemini
+    ai.registerProvider('google', makeProvider('google', 'Google Gemini', 'gemini-1.5-flash'));
   
-    // 切默认到 google（不再用 mock）
+    // 免费额度：Groq
+    ai.registerProvider('groq', makeProvider('groq', 'Groq', 'llama-3.1-70b-versatile'));
+  
+    // 付费（如果配了 key）
+    ai.registerProvider('openai', makeProvider('openai', 'OpenAI', 'gpt-4o-mini'));
+    ai.registerProvider('anthropic', makeProvider('anthropic', 'Anthropic', 'claude-3-5-haiku-20241022'));
+    ai.registerProvider('deepseek', makeProvider('deepseek', 'DeepSeek', 'deepseek-chat'));
+  
+    // 默认改成 google（免费）
     if (typeof ai.setDefaultProvider === 'function') {
       ai.setDefaultProvider('google');
     }
   
-    console.log('✅ Real Google provider registered');
+    console.log('✅ Real providers registered: google, groq, openai, anthropic, deepseek');
   })();
   </script>
 </body>
