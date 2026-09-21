@@ -5015,38 +5015,155 @@ _renderRecommendationCard: function(rec) {
     }
   },
 
-  // ============================================================
-  // 🔥 Bible Part 29: Accept & Publish
-  // ============================================================
   _acceptGeneratedCourse: function(course) {
     try {
-      var gen = LawAIApp.CourseGenerator;
-      if (gen && typeof gen.acceptGeneratedCourse === 'function') {
-        gen.acceptGeneratedCourse(course);
-      } else {
-        // Fallback：手动写入
-        var storage = LawAIApp.StorageEngine;
-        if (storage) {
-          course.isPreview = false;
-          course.acceptedAt = new Date().toISOString();
-          var existing = storage.get('generated_courses', []) || [];
-          existing.push(course);
-          storage.set('generated_courses', existing);
+        var gen = LawAIApp.CourseGenerator;
+        if (gen && typeof gen.acceptGeneratedCourse === 'function') {
+            gen.acceptGeneratedCourse(course);
         }
-      }
 
-      if (LawAIApp.Toast?.success) {
-        LawAIApp.Toast.success('✅ Course added to your learning space');
-      }
-      setTimeout(function() {
-        LawAIApp.Dashboard._lastRenderAt = 0;
-        LawAIApp.Dashboard.forceRender();
-      }, 800);
+        // 🔥 Part 29: 注册到 CourseRegistry
+        this._registerGeneratedCourse(course);
+
+        if (LawAIApp.Toast?.success) {
+            LawAIApp.Toast.success('✅ Course added — find it in My Generated Courses');
+        }
+
+        setTimeout(function() {
+            LawAIApp.Dashboard._lastRenderAt = 0;
+            LawAIApp.Dashboard.forceRender();
+        }, 800);
     } catch (e) {
-      console.error('[CourseGenerator] Accept failed:', e);
-      if (LawAIApp.Toast?.error) LawAIApp.Toast.error('Failed to save course');
+        console.error('[CourseGenerator] Accept failed:', e);
+        if (LawAIApp.Toast?.error) LawAIApp.Toast.error('Failed to save course');
     }
-  },
+},
+
+// ============================================================
+// 🔥 Part 29: 把生成的课程注册到 Academy 结构
+// ============================================================
+_registerGeneratedCourse: function(course) {
+    try {
+        // 1. 确保 "My Generated Courses" school 存在
+        var schoolRegistry = LawAIApp.SchoolRegistry;
+        if (!schoolRegistry) {
+            console.warn('[Part 29] SchoolRegistry not available');
+            return;
+        }
+
+        var MY_SCHOOL_ID = 'school-my-generated';
+        var mySchool = schoolRegistry.getSchool ? schoolRegistry.getSchool(MY_SCHOOL_ID) : null;
+
+        if (!mySchool) {
+            // 建 School
+            var newSchool = {
+                id: MY_SCHOOL_ID,
+                name: 'My Generated Courses',
+                displayName: 'My Generated Courses',
+                icon: '🎨',
+                description: 'AI-generated courses you created',
+                isGenerated: true,
+                programs: [],
+                courses: []
+            };
+
+            if (typeof schoolRegistry.registerSchool === 'function') {
+                schoolRegistry.registerSchool(newSchool);
+            } else if (typeof schoolRegistry.addSchool === 'function') {
+                schoolRegistry.addSchool(newSchool);
+            } else if (schoolRegistry.schools && Array.isArray(schoolRegistry.schools)) {
+                schoolRegistry.schools.push(newSchool);
+            } else {
+                console.warn('[Part 29] Cannot register school — no method available');
+                return;
+            }
+            console.log('[Part 29] ✅ School created:', MY_SCHOOL_ID);
+        }
+
+        // 2. 注册 Course 到 CourseRegistry
+        var courseRegistry = LawAIApp.CourseRegistry;
+        if (!courseRegistry) {
+            console.warn('[Part 29] CourseRegistry not available');
+            return;
+        }
+
+        // 转换 course 结构 → registry 期望的格式
+        var registryCourse = {
+            id: course.id,
+            title: course.title,
+            name: course.title,
+            description: course.description,
+            schoolId: MY_SCHOOL_ID,
+            programId: null,
+            level: course.level,
+            difficulty: course.level,
+            isGenerated: true,
+            generatedAt: course.generatedAt,
+            createdAt: course.createdAt
+        };
+
+        if (typeof courseRegistry.registerCourse === 'function') {
+            courseRegistry.registerCourse(registryCourse);
+        } else if (typeof courseRegistry.addCourse === 'function') {
+            courseRegistry.addCourse(registryCourse);
+        } else if (courseRegistry.courses && Array.isArray(courseRegistry.courses)) {
+            courseRegistry.courses.push(registryCourse);
+        } else {
+            console.warn('[Part 29] Cannot register course — no method available');
+            return;
+        }
+        console.log('[Part 29] ✅ Course registered:', course.id);
+
+        // 3. 注册 Subjects 到 SubjectRegistry
+        var subjectRegistry = LawAIApp.SubjectRegistry;
+        if (subjectRegistry && course.subjects) {
+            course.subjects.forEach(function(subj) {
+                var registrySubject = {
+                    id: subj.id,
+                    title: subj.title,
+                    name: subj.title,
+                    description: subj.description || '',
+                    courseId: course.id,
+                    schoolId: MY_SCHOOL_ID,
+                    isGenerated: true,
+                    lessons: (subj.lessons || []).map(function(l) {
+                        return {
+                            id: l.id,
+                            lessonId: l.id,
+                            title: l.title,
+                            name: l.title,
+                            estimatedMinutes: l.estimatedMinutes || 30,
+                            isGenerated: true,
+                            content: l.content,
+                            sections: l.sections
+                        };
+                    })
+                };
+
+                if (typeof subjectRegistry.registerSubject === 'function') {
+                    subjectRegistry.registerSubject(registrySubject);
+                } else if (typeof subjectRegistry.addSubject === 'function') {
+                    subjectRegistry.addSubject(registrySubject);
+                } else if (subjectRegistry.subjects && Array.isArray(subjectRegistry.subjects)) {
+                    subjectRegistry.subjects.push(registrySubject);
+                }
+            });
+            console.log('[Part 29] ✅ Subjects registered:', course.subjects.length);
+        }
+
+        // 4. 发事件，让 Academy 刷新
+        try {
+            var ev = new CustomEvent('COURSE_REGISTERED', {
+                detail: { courseId: course.id, isGenerated: true, schoolId: MY_SCHOOL_ID }
+            });
+            document.dispatchEvent(ev);
+            window.dispatchEvent(ev);
+        } catch (e) {}
+
+    } catch (e) {
+        console.error('[Part 29] _registerGeneratedCourse failed:', e);
+    }
+},
 
   // ============================================================
   // 🔥 Bible Part 31: Route Mode Selector (AUTO / MANUAL / COMPARE / SPECIALIST)
