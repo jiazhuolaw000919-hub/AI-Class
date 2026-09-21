@@ -186,6 +186,7 @@ var STAGES = {
     critical: [
         "storageEngine.js",
         "eventBus.js",
+        "avatarEngine.js",
         "themeEngine.js",
         "systemComposer.js",
         "app.js",
