@@ -2164,6 +2164,7 @@ LawAIApp.Dashboard = {
       ${[
         { icon: '📚', label: 'Academy', url: '/pages/academy.html' },
         { icon: '🃏', label: 'Flashcards', action: 'flashcards' },
+        { icon: '🤖', label: 'AI Tools', action: 'aitools' },
         { icon: '🕸️', label: 'Knowledge', action: 'knowledge' },
         { icon: '🔍', label: 'Search', action: 'search' },
         { icon: '📅', label: 'Calendar', action: 'calendar' },
@@ -2175,6 +2176,8 @@ LawAIApp.Dashboard = {
           onClick = "window.location.href='" + btn.url + "'";
         } else if (btn.action === 'flashcards') {
           onClick = "LawAIApp.Dashboard._renderFlashcardView()";
+        } else if (btn.action === 'aitools') {
+          onClick = "LawAIApp.Dashboard._renderAIToolsView()";
         } else if (btn.action === 'knowledge') {
           onClick = "LawAIApp.Dashboard._renderKnowledgeGraphView()";
         } else if (btn.action === 'search') {
@@ -4529,6 +4532,313 @@ _renderRecommendationCard: function(rec) {
             + '</div>'
           : '<h3 style="margin:0 0 12px;font-size:14px;color:#94a3b8;">By Lesson</h3>' + lessonRows)
       + '</div>';
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 30-33: AI Tools Page
+  // 复用 ProviderRegistry / ProviderRouter，只做 UI
+  // ============================================================
+  _renderAIToolsView: function() {
+    var container = document.getElementById('app') || document.getElementById('law-runtime-root');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',-apple-system,sans-serif;">
+        <button onclick="LawAIApp.Dashboard._lastRenderAt=0;LawAIApp.Dashboard.forceRender();" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back</button>
+
+        <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">🤖 AI Tools</h2>
+        <p style="color:#94a3b8;margin:0 0 24px;">Choose the right AI for your task. You decide.</p>
+
+        ${this._renderRouteModeSelector()}
+
+        ${this._renderProviderList()}
+
+        ${this._renderAIToolRecommendation()}
+
+        ${this._renderComparisonDemo()}
+      </div>
+    `;
+
+    // 🔥 绑定事件
+    this._bindAIToolsEvents();
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 31: Route Mode Selector (AUTO / MANUAL / COMPARE / SPECIALIST)
+  // ============================================================
+  _renderRouteModeSelector: function() {
+    var modes = [
+      { id: 'AUTO', icon: '🎯', title: 'Auto', desc: 'System picks the best model for your task' },
+      { id: 'MANUAL', icon: '🎛️', title: 'Manual', desc: 'You choose the provider and model' },
+      { id: 'COMPARE', icon: '⚖️', title: 'Compare', desc: 'Same task, multiple models side-by-side' },
+      { id: 'SPECIALIST', icon: '🎓', title: 'Specialist', desc: 'Task-type based selection' }
+    ];
+
+    var current = 'AUTO';
+    try {
+      var storage = LawAIApp.StorageEngine;
+      if (storage) current = storage.get('ai_route_mode', 'AUTO');
+    } catch (e) {}
+
+    return `
+      <h3 style="font-size:14px;color:#94a3b8;margin:0 0 12px;">Route Mode</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:24px;">
+        ${modes.map(function(m) {
+          var isActive = current === m.id;
+          return '<button data-mode="' + m.id + '" class="ai-route-mode-btn" style="text-align:left;padding:14px 16px;background:' + (isActive ? 'rgba(74,158,255,0.08)' : 'rgba(255,255,255,0.02)') + ';border:1px solid ' + (isActive ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.04)') + ';border-radius:12px;cursor:pointer;font-family:inherit;color:inherit;transition:all 0.2s;">' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:20px;">' + m.icon + '</span><span style="font-size:14px;font-weight:600;color:' + (isActive ? '#4a9eff' : '#e2e8f0') + ';">' + m.title + '</span></div>' +
+            '<div style="font-size:11px;color:#94a3b8;line-height:1.5;">' + m.desc + '</div>' +
+          '</button>';
+        }).join('')}
+      </div>
+    `;
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 30: Provider List
+  // ============================================================
+  _renderProviderList: function() {
+    var providers = this._getProviders();
+    if (providers.length === 0) {
+      return '<p style="color:#64748b;font-size:12px;text-align:center;padding:20px;">No providers available.</p>';
+    }
+
+    var currentProvider = '';
+    try {
+      var storage = LawAIApp.StorageEngine;
+      if (storage) currentProvider = storage.get('ai_selected_provider', '');
+    } catch (e) {}
+
+    return `
+      <h3 style="font-size:14px;color:#94a3b8;margin:0 0 12px;">Available Providers (${providers.length})</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:24px;">
+        ${providers.map(function(p) {
+          var id = p.id || p.name;
+          var isActive = currentProvider === id;
+          return '<button data-provider="' + id + '" class="ai-provider-btn" style="text-align:left;padding:14px 16px;background:' + (isActive ? 'rgba(74,158,255,0.08)' : 'rgba(255,255,255,0.02)') + ';border:1px solid ' + (isActive ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.04)') + ';border-radius:12px;cursor:pointer;font-family:inherit;color:inherit;transition:all 0.2s;">' +
+            '<div style="font-size:14px;font-weight:600;color:' + (isActive ? '#4a9eff' : '#e2e8f0') + ';margin-bottom:4px;">' + (p.displayName || p.name || id) + '</div>' +
+            '<div style="font-size:11px;color:#94a3b8;line-height:1.5;">' + (p.description || p.role || 'AI provider') + '</div>' +
+            (p.models ? '<div style="font-size:10px;color:#64748b;margin-top:6px;">' + p.models.length + ' model(s)</div>' : '') +
+          '</button>';
+        }).join('')}
+      </div>
+    `;
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 33: AI Tool Recommendation
+  // ============================================================
+  _renderAIToolRecommendation: function() {
+    return `
+      <h3 style="font-size:14px;color:#94a3b8;margin:0 0 12px;">What do you want to do?</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:16px;">
+        ${[
+          { task: 'explain', icon: '💡', label: 'Explain a concept' },
+          { task: 'write', icon: '✍️', label: 'Write something' },
+          { task: 'code', icon: '💻', label: 'Write code' },
+          { task: 'research', icon: '🔍', label: 'Research a topic' },
+          { task: 'analyze', icon: '📊', label: 'Analyze data' },
+          { task: 'brainstorm', icon: '🧠', label: 'Brainstorm ideas' }
+        ].map(function(t) {
+          return '<button data-task="' + t.task + '" class="ai-task-btn" style="padding:12px 14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:10px;cursor:pointer;font-family:inherit;color:#94a3b8;font-size:12px;text-align:left;transition:all 0.2s;">' +
+            '<span style="font-size:16px;margin-right:6px;">' + t.icon + '</span>' + t.label +
+          '</button>';
+        }).join('')}
+      </div>
+      <div id="ai-recommendation-result" style="min-height:80px;margin-bottom:24px;"></div>
+    `;
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 32: Comparison (不造假精度)
+  // ============================================================
+  _renderComparisonDemo: function() {
+    return `
+      <h3 style="font-size:14px;color:#94a3b8;margin:0 0 12px;">Compare Models</h3>
+      <p style="font-size:11px;color:#64748b;margin:0 0 12px;line-height:1.5;">
+        Send the same prompt to multiple models. Compare responses across meaningful dimensions — not fake percentages.
+      </p>
+      <button id="ai-compare-trigger" style="padding:10px 24px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.15);border-radius:100px;color:#8b5cf6;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;">
+        ⚖️ Compare 2 Models on Same Prompt
+      </button>
+      <div id="ai-compare-result" style="margin-top:16px;"></div>
+    `;
+  },
+
+  // ============================================================
+  // 🔥 事件绑定
+  // ============================================================
+  _bindAIToolsEvents: function() {
+    var self = this;
+    var container = document.getElementById('app') || document.getElementById('law-runtime-root');
+    if (!container) return;
+
+    // Route mode 按钮
+    container.querySelectorAll('.ai-route-mode-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var mode = this.getAttribute('data-mode');
+        try {
+          LawAIApp.StorageEngine.set('ai_route_mode', mode);
+          if (LawAIApp.Toast?.success) LawAIApp.Toast.success('🎯 Route mode: ' + mode);
+          self._renderAIToolsView();
+        } catch (e) {}
+      });
+    });
+
+    // Provider 按钮
+    container.querySelectorAll('.ai-provider-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var provider = this.getAttribute('data-provider');
+        try {
+          LawAIApp.StorageEngine.set('ai_selected_provider', provider);
+          if (LawAIApp.Toast?.success) LawAIApp.Toast.success('✅ Selected: ' + provider);
+          self._renderAIToolsView();
+        } catch (e) {}
+      });
+    });
+
+    // Task 按钮
+    container.querySelectorAll('.ai-task-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var task = this.getAttribute('data-task');
+        self._showAIRecommendation(task);
+      });
+    });
+
+    // Compare 按钮
+    var compareBtn = container.querySelector('#ai-compare-trigger');
+    if (compareBtn) {
+      compareBtn.addEventListener('click', function() {
+        self._showAComparison();
+      });
+    }
+  },
+
+  // ============================================================
+  // 🔥 数据：从 ProviderRegistry 读
+  // ============================================================
+  _getProviders: function() {
+    try {
+      var reg = LawAIApp.ProviderRegistry;
+      if (!reg) return [];
+
+      // 尝试多种方法名
+      if (typeof reg.getAllProviders === 'function') return reg.getAllProviders();
+      if (typeof reg.getAll === 'function') return reg.getAll();
+      if (typeof reg.getProviders === 'function') return reg.getProviders();
+      if (Array.isArray(reg.providers)) return reg.providers;
+
+      return [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  // ============================================================
+  // 🔥 推荐：TASK → TOOL → WHY → ALTERNATIVES → TRY
+  // ============================================================
+  _showAIRecommendation: function(task) {
+    var el = document.getElementById('ai-recommendation-result');
+    if (!el) return;
+
+    // Bible Part 33 硬规则：推荐必须解释 WHY
+    var recs = {
+      explain: {
+        primary: 'Claude',
+        why: 'Strong at detailed explanations and long-form reasoning',
+        alternatives: ['ChatGPT', 'Gemini'],
+        tryAction: 'Try Claude for explanations'
+      },
+      write: {
+        primary: 'Claude',
+        why: 'Excellent at writing quality and tone',
+        alternatives: ['ChatGPT', 'Mistral'],
+        tryAction: 'Try Claude for writing'
+      },
+      code: {
+        primary: 'Claude / GPT-4',
+        why: 'Both strong at code generation and debugging',
+        alternatives: ['DeepSeek Coder', 'Qwen Coder'],
+        tryAction: 'Try Claude or GPT-4 for code'
+      },
+      research: {
+        primary: 'GPT-4 / Gemini',
+        why: 'Strong at synthesis with tool access',
+        alternatives: ['Claude', 'Perplexity'],
+        tryAction: 'Try GPT-4 or Gemini for research'
+      },
+      analyze: {
+        primary: 'GPT-4',
+        why: 'Strong at structured analysis',
+        alternatives: ['Claude', 'Gemini'],
+        tryAction: 'Try GPT-4 for analysis'
+      },
+      brainstorm: {
+        primary: 'Claude / GPT-4',
+        why: 'Both strong at creative divergence',
+        alternatives: ['Gemini', 'Mistral'],
+        tryAction: 'Try Claude or GPT-4 for brainstorming'
+      }
+    };
+
+    var rec = recs[task] || recs.explain;
+
+    el.innerHTML = `
+      <div style="background:rgba(74,158,255,0.04);border:1px solid rgba(74,158,255,0.1);border-radius:12px;padding:16px 20px;">
+        <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Recommended</div>
+        <div style="font-size:18px;font-weight:600;color:#e2e8f0;margin-bottom:8px;">${rec.primary}</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:12px;line-height:1.5;">💡 ${rec.why}</div>
+
+        ${rec.alternatives.length > 0 ? `
+        <div style="font-size:11px;color:#64748b;margin-bottom:6px;">Alternatives:</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          ${rec.alternatives.map(function(a) {
+            return '<span style="font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.04);padding:3px 10px;border-radius:100px;">' + a + '</span>';
+          }).join('')}
+        </div>
+        ` : ''}
+
+        <div style="font-size:10px;color:#64748b;opacity:0.7;">⚠️ Recommendations are guidance, not rules. You can always choose another model.</div>
+      </div>
+    `;
+  },
+
+  // ============================================================
+  // 🔥 Comparison：不造假精度
+  // ============================================================
+  _showAComparison: function() {
+    var el = document.getElementById('ai-compare-result');
+    if (!el) return;
+
+    // Bible Part 32：不造假精度，不给虚假百分比
+    // 只展示"评估维度"，不做假排名
+    var dimensions = [
+      { name: 'Correctness', desc: 'Is the answer factually right?' },
+      { name: 'Reasoning quality', desc: 'Is the reasoning sound?' },
+      { name: 'Completeness', desc: 'Does it cover the topic?' },
+      { name: 'Clarity', desc: 'Is it easy to understand?' },
+      { name: 'Instruction following', desc: 'Did it follow the prompt?' },
+      { name: 'Usefulness', desc: 'Is it actionable?' }
+    ];
+
+    el.innerHTML = `
+      <div style="background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.1);border-radius:12px;padding:16px 20px;">
+        <div style="font-size:12px;color:#94a3b8;line-height:1.5;margin-bottom:12px;">
+          When comparing models, evaluate them across these dimensions. Don't just trust one number.
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">
+          ${dimensions.map(function(d) {
+            return '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:8px;padding:10px 14px;">' +
+              '<div style="font-size:12px;font-weight:500;color:#e2e8f0;margin-bottom:4px;">' + d.name + '</div>' +
+              '<div style="font-size:11px;color:#94a3b8;line-height:1.5;">' + d.desc + '</div>' +
+            '</div>';
+          }).join('')}
+        </div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.04);line-height:1.5;">
+          ⚠️ The Academy does NOT provide universal model rankings. Any ranking depends on task, context, and your goals.
+        </div>
+      </div>
+    `;
   },
 
   // ============================================================
