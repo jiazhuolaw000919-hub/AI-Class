@@ -4828,12 +4828,13 @@ _renderRecommendationCard: function(rec) {
       results.structure.pass = false;
       results.structure.issues.push('No subjects');
     } else {
-      course.subjects.forEach(function(s, idx) {
+      var subjects = Array.isArray(course.subjects) ? course.subjects : [];
+      subjects.forEach(function(s, idx) {
         if (!s.title) {
           results.structure.issues.push('Subject ' + (idx + 1) + ' missing title');
           results.structure.pass = false;
         }
-        if (!s.lessons || s.lessons.length === 0) {
+        if (!s.lessons || !Array.isArray(s.lessons) || s.lessons.length === 0) {
           results.structure.issues.push('Subject ' + (idx + 1) + ' missing lessons');
           results.structure.pass = false;
         }
@@ -4958,7 +4959,7 @@ _renderRecommendationCard: function(rec) {
         <!-- Course Structure -->
         <div style="margin-bottom:20px;">
           <div style="font-size:11px;color:#64748b;letter-spacing:0.5px;margin-bottom:10px;">COURSE STRUCTURE</div>
-          ${course.subjects.map(function(s, si) {
+          ${(Array.isArray(course.subjects) ? course.subjects : []).map(function(s, si) {
             return '<div style="background:rgba(255,255,255,0.02);border-radius:8px;padding:10px 14px;margin-bottom:6px;">' +
               '<div style="font-size:12px;color:#e2e8f0;font-weight:500;">📚 ' + (si + 1) + '. ' + s.title + '</div>' +
               '<div style="font-size:11px;color:#94a3b8;margin-top:4px;padding-left:16px;">' + s.lessons.length + ' lesson(s)</div>' +
