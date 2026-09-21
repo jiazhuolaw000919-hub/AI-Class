@@ -187,6 +187,7 @@ var STAGES = {
         "storageEngine.js",
         "eventBus.js",
         "avatarEngine.js",
+        "achievementEngine.js",
         "themeEngine.js",
         "systemComposer.js",
         "app.js",
