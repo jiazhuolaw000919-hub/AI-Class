@@ -57,55 +57,105 @@ async function callGoogle(prompt, model, options) {
   var key = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
   if (!key) throw new Error('GOOGLE_API_KEY not configured');
 
-  var m = model || 'gemini-2.5-flash';
-  var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent?key=' + key;
+  // 🎯 降级顺序：最新 → 次新 → 稳定
+  var modelChain = [
+    model,              // 如果前端指定了，优先用
+    'gemini-3.8-flash', // 最新
+    'gemini-3.7-flash',
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-2.5-flash'  // 最后兜底
+  ].filter(function(m) { return !!m; });
 
-  var maxRetries = 3;
-  var delay = 1000; // 初始等待 1 秒
+  // 去重
+  var tried = {};
+  modelChain = modelChain.filter(function(m) {
+    if (tried[m]) return false;
+    tried[m] = true;
+    return true;
+  });
 
-  for (var attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      var r = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: (options && options.temperature) || 0.7,
-            maxOutputTokens: (options && options.max_tokens) || 2048
+  var lastError = null;
+
+  for (var i = 0; i < modelChain.length; i++) {
+    var m = modelChain[i];
+    var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent?key=' + key;
+
+    // 每个模型最多重试 2 次（针对 503/429）
+    var maxRetriesPerModel = 2;
+    var delay = 1000;
+
+    for (var attempt = 1; attempt <= maxRetriesPerModel; attempt++) {
+      try {
+        console.log('[Google] Trying model: ' + m + ' (attempt ' + attempt + '/' + maxRetriesPerModel + ')');
+
+        var r = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: (options && options.temperature) || 0.7,
+              maxOutputTokens: (options && options.max_tokens) || 2048
+            }
+          })
+        });
+
+        // ✅ 成功
+        if (r.ok) {
+          var data = await r.json();
+          console.log('[Google] ✅ Success with model: ' + m);
+          return {
+            text: (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) || '',
+            provider: 'google',
+            model: m,
+            usage: data.usageMetadata || null
+          };
+        }
+
+        var errText = await r.text();
+
+        // 503/429：当前模型繁忙，重试或降级
+        if (r.status === 503 || r.status === 429) {
+          if (attempt < maxRetriesPerModel) {
+            console.warn('[Google] ' + m + ' returned ' + r.status + ', retrying in ' + delay + 'ms...');
+            await new Promise(function(resolve) { setTimeout(resolve, delay); });
+            delay *= 2; // 指数退避
+            continue;
+          } else {
+            console.warn('[Google] ' + m + ' exhausted retries, downgrading...');
+            lastError = new Error('Google ' + r.status + ': ' + errText.slice(0, 200));
+            break; // 跳出重试循环，降级到下一个模型
           }
-        })
-      });
+        }
 
-      if (r.ok) {
-        var data = await r.json();
-        return {
-          text: (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text) || '',
-          provider: 'google',
-          model: m,
-          usage: data.usageMetadata || null
-        };
+        // 404：模型不存在或已下线，直接降级
+        if (r.status === 404) {
+          console.warn('[Google] ' + m + ' not found (404), downgrading...');
+          lastError = new Error('Google 404: model ' + m + ' not found');
+          break;
+        }
+
+        // 其他错误（如 400 语法错误）：直接抛出，不降级
+        throw new Error('Google ' + r.status + ': ' + errText.slice(0, 300));
+
+      } catch (err) {
+        // 网络错误等：记录，降级
+        if (attempt < maxRetriesPerModel && err.message.indexOf('Google ') === -1) {
+          console.warn('[Google] Fetch error with ' + m + ', retrying...', err.message);
+          await new Promise(function(resolve) { setTimeout(resolve, delay); });
+          delay *= 2;
+          continue;
+        }
+        lastError = err;
+        break;
       }
-
-      // 只对 503 和 429 这类临时错误重试
-      if ((r.status === 503 || r.status === 429) && attempt < maxRetries) {
-        console.warn('[Google] Retryable error ' + r.status + ', attempt ' + attempt + '/' + maxRetries + ', waiting ' + delay + 'ms');
-        await new Promise(function(resolve) { setTimeout(resolve, delay); });
-        delay *= 2; // 指数退避：1s, 2s, 4s...
-        continue;
-      }
-
-      // 其他错误直接抛出
-      var errText = await r.text();
-      throw new Error('Google Gemini ' + r.status + ': ' + errText.slice(0, 300));
-
-    } catch (err) {
-      if (attempt >= maxRetries) throw err;
-      console.warn('[Google] Fetch error, retrying...', err.message);
-      await new Promise(function(resolve) { setTimeout(resolve, delay); });
-      delay *= 2;
     }
   }
+
+  // 所有模型都失败了
+  throw lastError || new Error('All Gemini models failed');
 }
 
 async function callGroq(prompt, model, options) {
