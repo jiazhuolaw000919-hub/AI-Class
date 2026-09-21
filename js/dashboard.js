@@ -4724,43 +4724,56 @@ _renderRecommendationCard: function(rec) {
       </div>
     `;
 
-    // 🔥 调用 Generator
+    // 🔥 调用 Generator（异步）
     var self = this;
-    setTimeout(function() {
+    setTimeout(async function() {
       try {
-        var course = self._generateCourseStub(form);
+        var course = await self._generateCourseStub(form);
+        if (!course) throw new Error('Generator returned no course');
         var validation = self._validateGeneratedCourse(course);
         self._renderGeneratedCoursePreview(course, validation, form);
       } catch (e) {
         console.error('[CourseGenerator] Failed:', e);
-        previewArea.innerHTML = '<div style="padding:20px;color:#ef4444;">Failed to generate: ' + e.message + '</div>';
+        previewArea.innerHTML = '<div style="padding:20px;color:#ef4444;font-size:13px;">Failed to generate: ' + e.message + '</div>';
       }
     }, 800);
-  },
 
-  // ============================================================
-  // 🔥 Bible Part 36: Generate Stub（等 AI 接上后替换）
-  // ⚠️ 这是 stub，不是真 AI 生成
-  // 正式版应该调用 ProviderRouter / AILayer
-  // ============================================================
-  _generateCourseStub: function(form) {
+    _generateCourseStub: async function(form) {
     // 🔥 优先用真实 CourseGenerator
     try {
       var gen = LawAIApp.CourseGenerator;
       if (gen && typeof gen.generate === 'function') {
-        var result = gen.generate(form);
+        // 你的 generate 是 async，等它返回
+        var result = await gen.generate(form.topic, form.level, form);
         if (result) {
           console.log('[CourseGenerator] Using real generator');
           return result;
         }
       }
     } catch (e) {
-      console.warn('[CourseGenerator] Real generator failed, using stub:', e);
+      console.warn('[CourseGenerator] Real generator failed, using fallback:', e);
     }
 
-    // Fallback: 我上一轮给的 stub
+    // Fallback: 本地 stub
+    console.log('[CourseGenerator] Using local fallback stub');
     var topic = form.topic;
-    // ... 保留原 stub
+    var subjects = this._generateSubjectsStub(topic, form);
+
+    return {
+      id: 'generated_' + Date.now(),
+      type: 'GENERATED',
+      title: topic,
+      description: 'AI-generated course on ' + topic,
+      goal: form.goal,
+      level: form.level,
+      timePerDay: parseInt(form.time),
+      depth: form.depth,
+      practicePreference: form.practice,
+      generatedAt: new Date().toISOString(),
+      generatedBy: form.ai || 'auto',
+      isPreview: true,
+      subjects: subjects
+    };
   },
 
   _generateSubjectsStub: function(topic, form) {
