@@ -4682,6 +4682,47 @@ _renderRecommendationCard: function(rec) {
   },
 
   // ============================================================
+  // 🔥 Bible Part 52: Avatar 编辑区
+  // ============================================================
+  _renderAvatarEditor: function() {
+    try {
+      var av = (LawAIApp.AvatarEngine && LawAIApp.AvatarEngine.getAvatar) ? LawAIApp.AvatarEngine.getAvatar() : {};
+      var unlockedIds = (LawAIApp.AchievementEngine && LawAIApp.AchievementEngine.getUnlocked) ? LawAIApp.AchievementEngine.getUnlocked() : [];
+      var unlockedBorders = [];
+      if (unlockedIds.indexOf('streak_7') !== -1) unlockedBorders.push('streak_7');
+      if (unlockedIds.indexOf('streak_30') !== -1) unlockedBorders.push('streak_30');
+      if (av.border && unlockedBorders.indexOf(av.border) === -1) unlockedBorders.push(av.border);
+
+      if (unlockedBorders.length === 0 && !av.border) return '';
+
+      var btns = unlockedBorders.map(function(b) {
+        var isActive = av.border === b;
+        var emoji = b === 'streak_7' ? '🔥' : b === 'streak_30' ? '⚡' : b === 'bronze' ? '🥉' : b === 'silver' ? '🥈' : b === 'gold' ? '🥇' : '⬜';
+        return '<button data-border="' + b + '" class="avatar-border-btn" style="padding:6px 14px;background:' + (isActive ? 'rgba(74,158,255,0.12)' : 'rgba(255,255,255,0.03)') + ';border:1px solid ' + (isActive ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.06)') + ';border-radius:100px;color:' + (isActive ? '#4a9eff' : '#94a3b8') + ';font-size:11px;cursor:pointer;font-family:inherit;">' + emoji + ' ' + b + '</button>';
+      }).join('');
+
+      var noneActive = !av.border;
+      btns += '<button data-border="" class="avatar-border-btn" style="padding:6px 14px;background:' + (noneActive ? 'rgba(74,158,255,0.12)' : 'rgba(255,255,255,0.03)') + ';border:1px solid ' + (noneActive ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.06)') + ';border-radius:100px;color:' + (noneActive ? '#4a9eff' : '#94a3b8') + ';font-size:11px;cursor:pointer;font-family:inherit;">⬜ None</button>';
+
+      return `
+        <h2 style="font-size:14px;color:#94a3b8;margin:24px 0 12px;">🎨 Avatar</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">${btns}</div>
+      `;
+    } catch (e) { return ''; }
+  },
+
+  _setAvatarBorder: function(border) {
+    try {
+      var av = LawAIApp.AvatarEngine;
+      if (!av || typeof av.updateAvatar !== 'function') return;
+      av.updateAvatar('border', border);
+      this._lastRenderAt = 0;
+      this._renderProfilePanel();
+      if (LawAIApp.Toast?.success) LawAIApp.Toast.success('🎨 Avatar updated');
+    } catch (e) {}
+  },
+
+  // ============================================================
   // 🔥 Bible Part 50: Profile Panel（点击 Avatar 打开）
   // ============================================================
   _renderProfilePanel: function() {
@@ -4785,6 +4826,14 @@ _renderRecommendationCard: function(rec) {
         ${this._renderAvatarEditor ? this._renderAvatarEditor() : ''}
       </div>
     `;
+
+    // Avatar border 按钮绑定
+    container.querySelectorAll('.avatar-border-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var b = this.getAttribute('data-border');
+        LawAIApp.Dashboard._setAvatarBorder(b || null);
+      });
+    });
   },
 
   // ============================================================
