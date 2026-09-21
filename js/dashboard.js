@@ -2472,6 +2472,9 @@ LawAIApp.Dashboard = {
       <!-- 📰 AI NEWS (Bible Part 40) -->
       ${this._renderNews()}
 
+      <!-- 🎨 MY GENERATED COURSES (Part 29) -->
+      ${this._renderMyCourses()}
+
       <!-- 📓 NOTES PREVIEW (Part 178: 替代 Continuity) -->
       ${this._buildNotesPreview()}
 
@@ -4538,6 +4541,129 @@ _renderRecommendationCard: function(rec) {
   },
 
   // ============================================================
+  // 🔥 Part 29: My Generated Courses 入口
+  // ============================================================
+  _renderMyCourses: function() {
+    try {
+      var gen = LawAIApp.CourseGenerator;
+      if (!gen || typeof gen.getGeneratedCourses !== 'function') return '';
+
+      var courses = gen.getGeneratedCourses();
+      if (!courses || courses.length === 0) return '';
+
+      return `
+        <section data-section="my-courses" style="
+          background: rgba(139,92,246,0.03);
+          border: 1px solid rgba(139,92,246,0.08);
+          border-radius: 16px;
+          padding: 14px 20px;
+          margin-bottom: 16px;
+        ">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:11px;color:#8b5cf6;font-weight:500;letter-spacing:0.5px;">🎨 MY GENERATED COURSES</span>
+            <span style="font-size:11px;color:#64748b;">${courses.length} course(s)</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${courses.slice(0, 3).map(function(c) {
+              var subjectCount = (c.subjects || []).length;
+              var lessonCount = 0;
+              (c.subjects || []).forEach(function(s) {
+                lessonCount += (s.lessons || []).length;
+              });
+              return '<div style="background:rgba(255,255,255,0.02);border-radius:10px;padding:12px 16px;border:1px solid rgba(255,255,255,0.04);display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
+                '<div style="min-width:0;flex:1;">' +
+                  '<div style="font-size:13px;color:#e2e8f0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📘 ' + (c.title || 'Untitled') + '</div>' +
+                  '<div style="font-size:11px;color:#64748b;margin-top:2px;">' + subjectCount + ' subjects · ' + lessonCount + ' lessons</div>' +
+                '</div>' +
+                '<button onclick="LawAIApp.Dashboard._openGeneratedCourse(\'' + c.id + '\')" style="padding:4px 14px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.12);border-radius:100px;color:#8b5cf6;font-size:11px;cursor:pointer;font-family:inherit;">Open →</button>' +
+              '</div>';
+            }).join('')}
+            ${courses.length > 3 ? '<div style="font-size:11px;color:#64748b;text-align:center;padding-top:4px;">+' + (courses.length - 3) + ' more</div>' : ''}
+          </div>
+        </section>
+      `;
+    } catch (e) { return ''; }
+  },
+
+  _openGeneratedCourse: function(courseId) {
+    try {
+      var gen = LawAIApp.CourseGenerator;
+      var course = gen && gen.getCourse ? gen.getCourse(courseId) : null;
+      if (!course) {
+        if (LawAIApp.Toast?.info) LawAIApp.Toast.info('Course not found');
+        return;
+      }
+      this._renderGeneratedCourseView(course);
+    } catch (e) {
+      console.error('[Part 29] _openGeneratedCourse failed:', e);
+    }
+  },
+
+  _renderGeneratedCourseView: function(course) {
+    var container = document.getElementById('app') || document.getElementById('law-runtime-root');
+    if (!container) return;
+
+    var totalLessons = 0;
+    (course.subjects || []).forEach(function(s) {
+      totalLessons += (s.lessons || []).length;
+    });
+
+    var html = '<div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:\'Inter\',-apple-system,sans-serif;">';
+    html += '<button onclick="LawAIApp.Dashboard._lastRenderAt=0;LawAIApp.Dashboard.forceRender();" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>';
+
+    html += '<div style="font-size:11px;color:#8b5cf6;font-weight:500;letter-spacing:0.5px;margin-bottom:6px;">🎨 AI-GENERATED COURSE</div>';
+    html += '<h1 style="font-size:24px;font-weight:700;margin:0 0 8px;">' + (course.title || 'Untitled') + '</h1>';
+    html += '<p style="color:#94a3b8;font-size:13px;margin:0 0 8px;line-height:1.5;">' + (course.description || '') + '</p>';
+
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px;">';
+    html += '<span style="font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.04);padding:3px 10px;border-radius:100px;">' + (course.level || 'beginner') + '</span>';
+    html += '<span style="font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.04);padding:3px 10px;border-radius:100px;">' + (course.subjects || []).length + ' subjects</span>';
+    html += '<span style="font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.04);padding:3px 10px;border-radius:100px;">' + totalLessons + ' lessons</span>';
+    html += '</div>';
+
+    (course.subjects || []).forEach(function(subj, si) {
+      html += '<div style="margin-bottom:20px;">';
+      html += '<div style="font-size:14px;font-weight:600;color:#e2e8f0;margin-bottom:8px;">📚 ' + (si + 1) + '. ' + subj.title + '</div>';
+      (subj.lessons || []).forEach(function(l, li) {
+        html += '<div style="background:rgba(255,255,255,0.02);border-radius:8px;padding:12px 16px;margin-bottom:6px;cursor:pointer;border:1px solid rgba(255,255,255,0.04);transition:all 0.2s;" ' +
+          'onclick="LawAIApp.Dashboard._openGeneratedLesson(\'' + course.id + '\', ' + si + ', ' + li + ')" ' +
+          'onmouseover="this.style.background=\'rgba(255,255,255,0.04)\'" ' +
+          'onmouseout="this.style.background=\'rgba(255,255,255,0.02)\'">';
+        html += '<div style="font-size:13px;color:#c8d0d8;">📖 ' + l.title + '</div>';
+        html += '<div style="font-size:11px;color:#64748b;margin-top:2px;">' + (l.estimatedMinutes || 30) + ' min</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+  },
+
+  _openGeneratedLesson: function(courseId, subjectIdx, lessonIdx) {
+    try {
+      var course = LawAIApp.CourseGenerator.getCourse(courseId);
+      if (!course || !course.subjects[subjectIdx]) return;
+      var lesson = course.subjects[subjectIdx].lessons[lessonIdx];
+      if (!lesson) return;
+
+      var container = document.getElementById('app') || document.getElementById('law-runtime-root');
+      if (!container) return;
+
+      var html = '<div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:\'Inter\',-apple-system,sans-serif;">';
+      html += '<button onclick="LawAIApp.Dashboard._openGeneratedCourse(LawAIApp.CourseGenerator.getCourse(\'' + courseId + '\'))" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Course</button>';
+      html += '<div style="font-size:11px;color:#8b5cf6;font-weight:500;letter-spacing:0.5px;margin-bottom:6px;">📖 LESSON · ' + (lesson.estimatedMinutes || 30) + ' min</div>';
+      html += '<h1 style="font-size:22px;font-weight:700;margin:0 0 16px;">' + lesson.title + '</h1>';
+      html += '<div style="font-size:14px;color:#c8d0d8;line-height:1.7;white-space:pre-wrap;">' + (lesson.content || '') + '</div>';
+      html += '</div>';
+
+      container.innerHTML = html;
+    } catch (e) {
+      console.error('[Part 29] _openGeneratedLesson failed:', e);
+    }
+  },
+
+  // ============================================================
   // 🔥 Bible Part 30-33: AI Tools Page
   // 复用 ProviderRegistry / ProviderRouter，只做 UI
   // ============================================================
@@ -5015,29 +5141,31 @@ _renderRecommendationCard: function(rec) {
     }
   },
 
+  // ============================================================
+  // 🔥 Part 29: Accept Generated Course
+  // Bible Part 37: Generated 不污染 curated Academy
+  // 存在 storage + Dashboard 独立入口
+  // ============================================================
   _acceptGeneratedCourse: function(course) {
     try {
-        var gen = LawAIApp.CourseGenerator;
-        if (gen && typeof gen.acceptGeneratedCourse === 'function') {
-            gen.acceptGeneratedCourse(course);
-        }
+      var gen = LawAIApp.CourseGenerator;
+      if (gen && typeof gen.acceptGeneratedCourse === 'function') {
+        gen.acceptGeneratedCourse(course);
+      }
 
-        // 🔥 Part 29: 注册到 CourseRegistry
-        this._registerGeneratedCourse(course);
+      if (LawAIApp.Toast?.success) {
+        LawAIApp.Toast.success('✅ Course added — find it on your Dashboard');
+      }
 
-        if (LawAIApp.Toast?.success) {
-            LawAIApp.Toast.success('✅ Course added — find it in My Generated Courses');
-        }
-
-        setTimeout(function() {
-            LawAIApp.Dashboard._lastRenderAt = 0;
-            LawAIApp.Dashboard.forceRender();
-        }, 800);
+      setTimeout(function() {
+        LawAIApp.Dashboard._lastRenderAt = 0;
+        LawAIApp.Dashboard.forceRender();
+      }, 800);
     } catch (e) {
-        console.error('[CourseGenerator] Accept failed:', e);
-        if (LawAIApp.Toast?.error) LawAIApp.Toast.error('Failed to save course');
+      console.error('[CourseGenerator] Accept failed:', e);
+      if (LawAIApp.Toast?.error) LawAIApp.Toast.error('Failed to save course');
     }
-},
+  },
 
 // ============================================================
 // 🔥 Part 29: 把生成的课程注册到 Academy 结构
