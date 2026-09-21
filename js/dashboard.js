@@ -2138,12 +2138,20 @@ LawAIApp.Dashboard = {
 
         <div style="position:relative;z-index:1;max-width:520px;">
           <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px;">
-            <div style="
-              width:32px;height:32px;border-radius:50%;
+              <div onclick="LawAIApp.Dashboard._renderProfilePanel()"
+                 role="button"
+                 tabindex="0"
+                 aria-label="Open profile"
+                 style="
+              width:36px;height:36px;border-radius:50%;
               background:linear-gradient(135deg,#4a9eff,#7c3aed);
               display:flex;align-items:center;justify-content:center;
               font-weight:700;font-size:14px;color:white;
-            " aria-hidden="true">${userName.charAt(0).toUpperCase()}</div>
+              cursor:pointer;
+              transition:transform 0.2s;
+            "
+            onmouseover="this.style.transform='scale(1.1)'"
+            onmouseout="this.style.transform='scale(1)'">${userName.charAt(0).toUpperCase()}</div>
             <p style="
               margin: 0;
               font-size: 14px;
@@ -2203,9 +2211,13 @@ LawAIApp.Dashboard = {
           </a>
 
           ${todayLesson ? `
-            <div style="margin-top:12px;font-size:12px;color:#64748b;">
-              🎯 Today: <span style="color:#4a9eff;">${todayLesson.title || todayLesson.name || 'Next lesson'}</span>
-            </div>
+            <button type="button"
+                    onclick="if(window.LawAIApp&&window.LawAIApp.AcademyExperienceManager){window.LawAIApp.AcademyExperienceManager.selectLesson('${todayLesson.id || todayLesson.lessonId || ''}')}"
+                    style="margin-top:12px;padding:8px 20px;background:rgba(74,158,255,0.06);border:1px solid rgba(74,158,255,0.12);border-radius:100px;color:#4a9eff;font-size:12px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;"
+                    onmouseover="this.style.background='rgba(74,158,255,0.12)'"
+                    onmouseout="this.style.background='rgba(74,158,255,0.06)'">
+              🎯 Today: ${todayLesson.title || todayLesson.name || 'Next lesson'} →
+            </button>
           ` : ''}
 
           <div style="
@@ -2224,6 +2236,9 @@ LawAIApp.Dashboard = {
           </div>
         </div>
       </section>
+
+      <!-- 📅 7-DAY STREAK (Bible Part 50) -->
+      ${this._renderStreakCalendar()}
 
       <!-- 📊 PROGRESS (Part 178: 多维度) -->
       <section role="region" aria-label="Progress" style="
@@ -2279,29 +2294,31 @@ LawAIApp.Dashboard = {
       </section>
 
       <!-- 🏆 ACHIEVEMENTS (Season 5 Part 51) -->
-      ${achievements && achievements.length > 0 ? `
-        <section data-section="achievements" role="region" aria-label="Achievements" style="
-          background: rgba(245,158,11,0.03);
-          border: 1px solid rgba(245,158,11,0.08);
-          border-radius: 16px;
-          padding: 10px 18px;
-          margin-bottom: 16px;
-          display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
-          align-items: center;
-        ">
-          <span style="font-size:11px;color:#f59e0b;font-weight:500;letter-spacing:0.5px;">🏆 ACHIEVEMENTS</span>
-          ${achievements.slice(0, 5).map(function(a) {
-            var title = (a.title || a.name || 'Achievement').replace(/"/g, '&quot;');
-            return '<span title="' + title + '" style="font-size:16px;cursor:help;" aria-label="' + title + '">' + (a.icon || '🏆') + '</span>';
-          }).join('')}
-          ${achievements.length > 5 ? '<span style="font-size:11px;color:#64748b;">+' + (achievements.length - 5) + ' more</span>' : ''}
-        </section>
-      ` : ''}
+      <section data-section="achievements" role="region" aria-label="Achievements" style="
+        background: rgba(245,158,11,0.03);
+        border: 1px solid rgba(245,158,11,0.08);
+        border-radius: 16px;
+        padding: 10px 18px;
+        margin-bottom: 16px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      ">
+        <span style="font-size:11px;color:#f59e0b;font-weight:500;letter-spacing:0.5px;">🏆 ACHIEVEMENTS</span>
+        ${achievements && achievements.length > 0
+          ? achievements.slice(0, 5).map(function(a) {
+              var title = (a.title || a.name || 'Achievement').replace(/"/g, '&quot;');
+              return '<span title="' + title + '" style="font-size:16px;cursor:help;" aria-label="' + title + '">' + (a.icon || '🏆') + '</span>';
+            }).join('') + (achievements.length > 5 ? '<span style="font-size:11px;color:#64748b;">+' + (achievements.length - 5) + ' more</span>' : '')
+          : '<span style="font-size:11px;color:#64748b;">Your first achievement is waiting</span>'}
+      </section>
 
       <!-- 📊 LEARNING PULSE (Season 5 Part 9) -->
       ${this._renderLearningPulse()}
+
+      <!-- 🎉 RECENT ACHIEVEMENT (Bible Part 52) -->
+      ${this._renderRecentAchievement()}
 
       <!-- 🔥 NEW: Recent Activity / Continuity -->
       ${this._renderContinuity()}
@@ -2883,7 +2900,7 @@ LawAIApp.Dashboard = {
         <div style="font-size:11px;color:#22c55e;font-weight:500;letter-spacing:0.5px;margin-bottom:8px;">🎯 SKILLS</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;">
           ${skills.slice(0, 10).map(function(s) {
-            return '<span style="font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.04);padding:3px 10px;border-radius:100px;">' + s + '</span>';
+            return '<span style="display:inline-block;font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.04);padding:3px 10px;border-radius:100px;margin-right:6px;margin-bottom:6px;">' + s + '</span>';
           }).join('')}
         </div>
       </section>
@@ -4409,6 +4426,173 @@ _renderRecommendationCard: function(rec) {
       + '</div>';
   },
 
+  // ============================================================
+  // 🔥 Bible Part 50: Profile Panel（点击 Avatar 打开）
+  // ============================================================
+  _renderProfilePanel: function() {
+    var container = document.getElementById('app') || document.getElementById('law-runtime-root');
+    if (!container) return;
+
+    var userName = this._getUserName();
+    var level = this._getLevelInfo();
+    var streak = this._getStreakData();
+    var progress = this._getProgress();
+    var practice = this._getPracticeStats();
+    var flashcards = this._getFlashcardStats();
+    var achievements = this._getAchievements();
+    var hours = this._getLearningHours();
+    var skills = this._getSkills();
+
+    container.innerHTML = `
+      <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',-apple-system,sans-serif;">
+        <button onclick="LawAIApp.Dashboard._lastRenderAt=0;LawAIApp.Dashboard.forceRender();" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
+
+        <div style="display:flex;align-items:center;gap:20px;margin-bottom:24px;padding:24px;background:linear-gradient(135deg,rgba(74,158,255,0.08),rgba(124,58,237,0.05));border-radius:16px;border:1px solid rgba(74,158,255,0.12);">
+          <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#4a9eff,#7c3aed);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:32px;color:white;">${userName.charAt(0).toUpperCase()}</div>
+          <div style="flex:1;">
+            <h1 style="margin:0 0 4px;font-size:24px;font-weight:700;">${userName}</h1>
+            <div style="font-size:13px;color:#94a3b8;">Level ${level.level || 1} · ${progress.xp || 0} XP · 🔥 ${streak.currentStreak || 0}d streak</div>
+            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+              <span style="font-size:11px;color:#4a9eff;background:rgba(74,158,255,0.08);padding:3px 10px;border-radius:100px;">⏱️ ${hours}h learned</span>
+              <span style="font-size:11px;color:#22c55e;background:rgba(34,197,94,0.08);padding:3px 10px;border-radius:100px;">🎯 ${skills.length} skills</span>
+              <span style="font-size:11px;color:#f59e0b;background:rgba(245,158,11,0.08);padding:3px 10px;border-radius:100px;">🏆 ${achievements.length} achievements</span>
+            </div>
+          </div>
+        </div>
+
+        <h2 style="font-size:14px;color:#94a3b8;margin:0 0 12px;">📊 Your Learning Stats</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:24px;">
+          <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+            <div style="font-size:11px;color:#64748b;text-transform:uppercase;">Practice</div>
+            <div style="font-size:24px;font-weight:700;color:#e2e8f0;margin-top:4px;">${practice.accuracy}%</div>
+            <div style="font-size:10px;color:#64748b;margin-top:2px;">${practice.totalAttempts} attempts</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+            <div style="font-size:11px;color:#64748b;text-transform:uppercase;">Flashcards</div>
+            <div style="font-size:24px;font-weight:700;color:#e2e8f0;margin-top:4px;">${flashcards.knownCount}</div>
+            <div style="font-size:10px;color:#64748b;margin-top:2px;">of ${flashcards.totalReviews} reviewed</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+            <div style="font-size:11px;color:#64748b;text-transform:uppercase;">Lessons</div>
+            <div style="font-size:24px;font-weight:700;color:#e2e8f0;margin-top:4px;">${(progress.completedLessons || []).length}</div>
+            <div style="font-size:10px;color:#64748b;margin-top:2px;">completed</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
+            <div style="font-size:11px;color:#64748b;text-transform:uppercase;">Streak</div>
+            <div style="font-size:24px;font-weight:700;color:#e2e8f0;margin-top:4px;">${streak.currentStreak || 0}d</div>
+            <div style="font-size:10px;color:#64748b;margin-top:2px;">longest ${streak.longestStreak || 0}d</div>
+          </div>
+        </div>
+
+        ${skills.length > 0 ? `
+        <h2 style="font-size:14px;color:#94a3b8;margin:0 0 12px;">🎯 Skills</h2>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px;">
+          ${skills.map(function(s) {
+            return '<span style="display:inline-block;font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.04);padding:4px 12px;border-radius:100px;margin-right:6px;margin-bottom:6px;">' + s + '</span>';
+          }).join('')}
+        </div>
+        ` : ''}
+
+        ${achievements.length > 0 ? `
+        <h2 style="font-size:14px;color:#94a3b8;margin:0 0 12px;">🏆 Achievements</h2>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          ${achievements.map(function(a) {
+            return '<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.12);border-radius:100px;"><span style="font-size:18px;">' + (a.icon || '🏆') + '</span><span style="font-size:12px;color:#e2e8f0;">' + (a.title || a.name || 'Achievement') + '</span></div>';
+          }).join('')}
+        </div>
+        ` : '<p style="color:#64748b;font-size:13px;text-align:center;padding:20px;">Your first achievement is waiting. Start learning to earn one.</p>'}
+      </div>
+    `;
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 50: 7-Day Streak Calendar
+  // ============================================================
+  _renderStreakCalendar: function() {
+    try {
+      var storage = LawAIApp.StorageEngine;
+      if (!storage) return '';
+
+      var activity = storage.get('learning_daily', {});
+      var days = [];
+      var today = new Date();
+      var todayKey = today.toISOString().slice(0, 10);
+
+      for (var i = 6; i >= 0; i--) {
+        var d = new Date(today);
+        d.setDate(d.getDate() - i);
+        var key = d.toISOString().slice(0, 10);
+        days.push({
+          key: key,
+          label: d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 1),
+          hasActivity: !!activity[key],
+          isToday: key === todayKey
+        });
+      }
+
+      // 如果 7 天都无数据 → 只显示 empty state（不占用空间）
+      var totalActivity = days.filter(function(d) { return d.hasActivity; }).length;
+      if (totalActivity === 0) return '';
+
+      return `
+        <section data-section="streak-calendar" role="region" aria-label="7-day activity" style="
+          background: rgba(255,255,255,0.02);
+          border: 1px solid rgba(255,255,255,0.04);
+          border-radius: 16px;
+          padding: 12px 18px;
+          margin-bottom: 16px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        ">
+          <span style="font-size:11px;color:#64748b;font-weight:500;letter-spacing:0.5px;">📅 THIS WEEK</span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            ${days.map(function(d) {
+              var bg = d.hasActivity ? 'linear-gradient(135deg,#22c55e,#16a34a)' : 'rgba(255,255,255,0.04)';
+              var border = d.isToday ? '2px solid #4a9eff' : '1px solid rgba(255,255,255,0.06)';
+              return '<div title="' + d.key + '" style="width:28px;height:28px;border-radius:8px;background:' + bg + ';border:' + border + ';display:flex;align-items:center;justify-content:center;font-size:10px;color:#e2e8f0;font-weight:500;">' + d.label + '</div>';
+            }).join('')}
+          </div>
+          <span style="font-size:11px;color:#64748b;margin-left:auto;">${totalActivity}/7 days</span>
+        </section>
+      `;
+    } catch (e) { return ''; }
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 52: 最近成就 celebrate（24 小时内）
+  // ============================================================
+  _renderRecentAchievement: function() {
+    try {
+      var storage = LawAIApp.StorageEngine;
+      if (!storage) return '';
+
+      var recent = storage.get('recent_achievement', null);
+      if (!recent || !recent.earnedAt) return '';
+
+      var hoursSince = (Date.now() - new Date(recent.earnedAt).getTime()) / 3600000;
+      if (hoursSince > 24) return '';
+
+      return `
+        <section data-section="recent-achievement" style="
+          background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.03));
+          border: 1px solid rgba(245,158,11,0.15);
+          border-radius: 16px;
+          padding: 14px 20px;
+          margin-bottom: 16px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        ">
+          <span style="font-size:28px;animation:pulse 2s ease-in-out infinite;">🎉</span>
+          <div>
+            <div style="font-size:11px;color:#f59e0b;font-weight:500;letter-spacing:0.5px;">NEW ACHIEVEMENT</div>
+            <div style="font-size:14px;color:#e2e8f0;margin-top:2px;">${recent.title || 'Achievement unlocked'}</div>
+          </div>
+        </section>
+      `;
+    } catch (e) { return ''; }
+  },
 
   refresh: function() {
     if (!this._rendered) {
