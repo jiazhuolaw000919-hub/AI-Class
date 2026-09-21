@@ -1,6 +1,7 @@
 // ===========================================
 // courseGenerator.js
-// 实时自适应课程生成器（Phase 64 升级版）
+// Season 5 Part 25-29 — AI Course Generator
+// Structure: Course → Subjects → Lessons
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
@@ -11,135 +12,206 @@ LawAIApp.CourseGenerator = {
     init: function() {
         if (this._initialized) return;
         this._initialized = true;
-        console.log('📚 CourseGenerator initialized');
+        console.log('📚 CourseGenerator V3.0 initialized (Subject-based)');
     },
 
     // ============================================================
-    // 🔥 Bible Part 25: 接受 form，不直接 publish
-    // 返回 preview course，不写入 storage
+    // 🔥 Bible Part 25: 生成 Course（返回 preview，不 publish）
     // ============================================================
-    generate: async function(formOrDomain, difficultyParam, userProfileParam) {
-        var form;
-        // 兼容旧签名
-        if (typeof formOrDomain === 'string') {
-            form = {
-                topic: formOrDomain,
-                level: difficultyParam || 'beginner',
-                goal: '',
-                time: '30',
-                depth: 'practical',
-                practice: 'balanced',
-                ai: ''
-            };
-        } else {
-            form = formOrDomain || {};
-        }
+    generate: async function(form) {
+        form = form || {};
+        var topic = form.topic || 'AI Fundamentals';
+        var level = form.level || 'beginner';
+        var depth = form.depth || 'practical';
+        var time = parseInt(form.time) || 30;
+        var goal = form.goal || '';
+        var ai = form.ai || 'auto';
 
-        var domain = form.topic || 'AI Fundamentals';
-        var difficulty = form.level || 'beginner';
-
-        console.log('📚 CourseGenerator.generate (preview):', domain, difficulty);
+        console.log('📚 CourseGenerator.generate:', topic, level, depth);
 
         var courseId = 'gen_course_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
 
-        // 生成模块
-        var modules = this._generateModules(domain, difficulty, form);
+        // 生成 subjects（异步，可能调 AI）
+        var subjects = await this._generateSubjects(topic, level, depth, time, goal, ai);
 
         var course = {
             id: courseId,
-            type: 'GENERATED',
-            title: domain + ' – ' + difficulty.charAt(0).toUpperCase() + difficulty.slice(1) + ' Course',
-            description: 'AI-generated ' + domain + ' course tailored for ' + difficulty + ' level.',
-            difficulty_level: difficulty,
-            domain: domain,
-            level: difficulty,
-            goal: (typeof userProfile === 'object' && userProfile.goal) || '',
-            timePerDay: (typeof userProfile === 'object' && parseInt(userProfile.time)) || 30,
-            depth: (typeof userProfile === 'object' && userProfile.depth) || 'practical',
-            practicePreference: (typeof userProfile === 'object' && userProfile.practice) || 'balanced',
+            type: 'GENERATED',                       // Bible Part 37
+            title: topic,
+            description: 'AI-generated ' + topic + ' course for ' + level + ' level.',
+            domain: topic,
+            level: level,
+            difficulty_level: level,
+            goal: goal,
+            timePerDay: time,
+            depth: depth,
+            practicePreference: form.practice || 'balanced',
+            generatedBy: ai,
             created_by_ai: true,
-            isPreview: true,                    // 🔥 Bible Part 26
-            modules: modules,
-            subjects: modules,                  // 🔥 兼容 UI（modules = subjects）
-            generatedAt: new Date().toISOString(),
-            generatedBy: 'auto',
-            createdAt: new Date().toISOString()
+            isPreview: true,                          // Bible Part 26
+            subjects: subjects,                       // 🔥 用 subjects，不是 modules
+            createdAt: new Date().toISOString(),
+            generatedAt: new Date().toISOString()
         };
 
-        // 🔥 Bible Part 36: 不直接写入 storage
-        // 由 UI 层的 Accept 步骤写入
+        // 🔥 Bible Part 36: 不在 generate 里写入 storage
         // 只发事件
         LawAIApp.EventBus?.emit?.('CoursePreviewGenerated', { courseId: courseId, course: course });
-        console.log('✅ Course preview generated:', courseId);
+        console.log('✅ Course preview generated:', courseId, '| subjects:', subjects.length);
 
         return course;
     },
 
-    _generateModules: async function(domain, difficulty, form) {
-        form = form || {};
-        var depth = form.depth || 'practical';
-        var moduleCount = depth === 'overview' ? 2 : (depth === 'deep' ? 5 : 3);
-        var modules = [];
-    
-        for (var i = 0; i < moduleCount; i++) {
-            var moduleTitle = await this._generateModuleTitle(domain, i + 1, difficulty);
-            var lessons = await this._generateLessonsForModule(domain, moduleTitle, i, depth, form);
-            modules.push({
-                id: 'gen_module_' + Date.now() + '_' + i,
-                name: moduleTitle,
+    // ============================================================
+    // 🔥 生成 Subjects（Course 的直接子层）
+    // ============================================================
+    _generateSubjects: async function(topic, level, depth, time, goal, ai) {
+        // 按 depth 决定 subject 数量
+        var subjectCount;
+        if (depth === 'overview') subjectCount = 2;
+        else if (depth === 'deep') subjectCount = 5;
+        else subjectCount = 3;
+
+        // 尝试用 AI 生成 subject 标题
+        var ai = this._isAIAvailable() ? LawAIApp.AILayer : null;
+        var subjectTitles = [];
+
+        if (ai) {
+            try {
+                var prompt = 'Generate ' + subjectCount + ' concise subject titles (each 2-6 words, one per line, no numbering) for a ' + level + ' course on "' + topic + '". Depth: ' + depth + '.' + (goal ? ' Learner goal: ' + goal + '.' : '');
+                var result = await ai.request(prompt, { type: 'course-structure' });
+                var text = this._extractText(result);
+                if (text) {
+                    subjectTitles = text.split('\n')
+                        .map(function(l) { return l.replace(/^[\d\.\-\*\s]+/, '').trim(); })
+                        .filter(function(l) { return l.length > 0 && l.length < 80; })
+                        .slice(0, subjectCount);
+                }
+            } catch (e) {
+                console.warn('[CourseGenerator] AI subject titles failed:', e);
+            }
+        }
+
+        // Fallback titles
+        while (subjectTitles.length < subjectCount) {
+            var i = subjectTitles.length + 1;
+            subjectTitles.push('Module ' + i + ': ' + topic + ' Fundamentals');
+        }
+
+        // 生成每个 subject 的 lessons
+        var subjects = [];
+        for (var i = 0; i < subjectCount; i++) {
+            var title = subjectTitles[i];
+            var lessons = await this._generateLessons(topic, title, level, depth, time, ai);
+            subjects.push({
+                id: 'gen_subject_' + Date.now() + '_' + i,
+                title: title,
+                description: 'Subject ' + (i + 1) + ' of the ' + topic + ' course',
+                order: i + 1,
                 lessons: lessons
             });
         }
-    
-        return modules;
+
+        return subjects;
     },
-    
-    _generateModuleTitle: async function(domain, num, difficulty) {
-        var ai = LawAIApp.AILayer;
-        if (ai && typeof ai.request === 'function' && ai.isAvailable && ai.isAvailable()) {
+
+    // ============================================================
+    // 🔥 生成 Lessons（Subject 的子层）
+    // ============================================================
+    _generateLessons: async function(topic, subjectTitle, level, depth, time, ai) {
+        var lessonCount = depth === 'overview' ? 2 : (depth === 'deep' ? 5 : 3);
+        var lessons = [];
+
+        for (var i = 0; i < lessonCount; i++) {
+            var lessonTitle = await this._generateLessonTitle(topic, subjectTitle, i + 1, level, ai);
+            var lessonContent = await this._generateLessonContent(topic, lessonTitle, level, depth, ai);
+
+            lessons.push({
+                id: 'gen_lesson_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                title: lessonTitle,
+                content: lessonContent,
+                order: i + 1,
+                estimatedMinutes: time,
+                objectives: [],
+                sections: [
+                    {
+                        id: 'section_1',
+                        title: 'Introduction',
+                        type: 'foundation',
+                        content: [
+                            {
+                                type: 'paragraph',
+                                content: lessonContent
+                            }
+                        ]
+                    }
+                ],
+                practice: {
+                    enabled: false,
+                    items: []
+                }
+            });
+        }
+
+        return lessons;
+    },
+
+    // ============================================================
+    // 🔥 AI 调用辅助
+    // ============================================================
+    _isAIAvailable: function() {
+        try {
+            var ai = LawAIApp.AILayer;
+            return ai && typeof ai.isAvailable === 'function' && ai.isAvailable();
+        } catch (e) {
+            return false;
+        }
+    },
+
+    _extractText: function(result) {
+        if (!result) return '';
+        if (typeof result === 'string') return result;
+        if (result.text) return result.text;
+        if (result.content) return result.content;
+        if (result.response) return result.response;
+        if (result.message) return result.message;
+        return '';
+    },
+
+    _generateLessonTitle: async function(topic, subjectTitle, num, level, ai) {
+        if (ai) {
             try {
-                var result = await ai.request(
-                    'Generate a short module title (max 6 words) for module ' + num + ' of a ' + difficulty + ' course on ' + domain + '. Return only the title.',
-                    { type: 'title' }
-                );
-                if (result && typeof result === 'string') return result.trim();
-                if (result && result.text) return result.text.trim();
+                var prompt = 'Generate a concise lesson title (max 8 words, one line, no numbering) for lesson ' + num + ' in the subject "' + subjectTitle + '" from a ' + level + ' course on "' + topic + '".';
+                var result = await ai.request(prompt, { type: 'lesson-title' });
+                var text = this._extractText(result);
+                if (text) {
+                    var title = text.split('\n')[0].replace(/^[\d\.\-\*\s]+/, '').trim();
+                    if (title.length > 0 && title.length < 100) return title;
+                }
             } catch (e) {
-                console.warn('[CourseGenerator] AI title generation failed:', e);
+                console.warn('[CourseGenerator] AI lesson title failed:', e);
+            }
+        }
+        return subjectTitle + ' — Lesson ' + num;
+    },
+
+    _generateLessonContent: async function(topic, lessonTitle, level, depth, ai) {
+        if (ai) {
+            try {
+                var prompt = 'Write a concise lesson introduction (2-3 paragraphs) for a ' + level + ' learner on "' + topic + '", specifically about "' + lessonTitle + '". Depth: ' + depth + '. No markdown headers, just plain explanatory text.';
+                var result = await ai.request(prompt, { type: 'lesson-content' });
+                var text = this._extractText(result);
+                if (text && text.length > 50) return text;
+            } catch (e) {
+                console.warn('[CourseGenerator] AI lesson content failed:', e);
             }
         }
         // Fallback
-        return 'Module ' + num + ': ' + domain + ' Concepts';
+        return 'This lesson covers "' + lessonTitle + '" as part of learning ' + topic + ' at ' + level + ' level. (AI content generation unavailable — placeholder text.)';
     },
 
     // ============================================================
-    // 🔥 Bible Part 29: Accept course（由 UI 层调用）
-    // ============================================================
-    acceptGeneratedCourse: function(course) {
-        if (!course) return false;
-        try {
-            // 移除 preview 标记
-            course.isPreview = false;
-            course.acceptedAt = new Date().toISOString();
-
-            var courses = this.getGeneratedCourses();
-            courses.push(course);
-
-            if (LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.set === 'function') {
-                LawAIApp.StorageEngine.set('generated_courses', courses);
-            }
-
-            LawAIApp.EventBus?.emit?.('CourseAccepted', { courseId: course.id, course: course });
-            console.log('✅ Course accepted:', course.id);
-            return true;
-        } catch (e) {
-            console.error('[CourseGenerator] accept failed:', e);
-            return false;
-        }
-    },
-
-    // ============================================================
-    // 🔥 Bible Part 29: Accept course（由 UI 层调用）
+    // 🔥 Bible Part 29: Accept（由 UI 层调用）
     // ============================================================
     acceptGeneratedCourse: function(course) {
         if (!course) return false;
@@ -163,6 +235,9 @@ LawAIApp.CourseGenerator = {
         }
     },
 
+    // ============================================================
+    // 读取
+    // ============================================================
     getGeneratedCourses: function() {
         try {
             if (LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.get === 'function') {
@@ -202,4 +277,4 @@ setTimeout(function() {
     }
 }, 400);
 
-console.log('📚 CourseGenerator V2.0 ready');
+console.log('📚 CourseGenerator V3.0 ready (Subject-based + AI)');
