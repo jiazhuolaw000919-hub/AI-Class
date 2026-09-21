@@ -79,7 +79,10 @@ LawAIApp.CourseGenerator = {
         if (ai) {
             try {
                 var prompt = 'Generate ' + subjectCount + ' concise subject titles (each 2-6 words, one per line, no numbering) for a ' + level + ' course on "' + topic + '". Depth: ' + depth + '.' + (goal ? ' Learner goal: ' + goal + '.' : '');
-                var result = await ai.request(prompt, { type: 'course-structure' });
+                var result = await ai.request('course-structure', {
+                  prompt: prompt,       // 🔥 关键：显式传 prompt
+                  type: 'course-structure'
+                });
                 var text = this._extractText(result);
                 if (text) {
                     subjectTitles = text.split('\n')
@@ -192,7 +195,10 @@ LawAIApp.CourseGenerator = {
         try {
           var ai = LawAIApp.AILayer;
           if (!ai || typeof ai.request !== 'function') return false;
-          var result = await ai.request('Reply with the single word: OK', { type: 'ping' });
+          var result = await ai.request('ping', {
+              prompt: 'Reply with the single word: OK',
+              type: 'ping'
+            });
           var text = this._extractText(result);
           return text.length > 0;
         } catch (e) {
@@ -204,7 +210,10 @@ LawAIApp.CourseGenerator = {
         if (ai) {
             try {
                 var prompt = 'Generate a concise lesson title (max 8 words, one line, no numbering) for lesson ' + num + ' in the subject "' + subjectTitle + '" from a ' + level + ' course on "' + topic + '".';
-                var result = await ai.request(prompt, { type: 'lesson-title' });
+                var result = await ai.request('lesson-title', {
+                  prompt: prompt,
+                  type: 'lesson-title'
+                });
                 var text = this._extractText(result);
                 if (text) {
                     var title = text.split('\n')[0].replace(/^[\d\.\-\*\s]+/, '').trim();
@@ -221,7 +230,10 @@ LawAIApp.CourseGenerator = {
         if (ai) {
             try {
                 var prompt = 'Write a concise lesson introduction (2-3 paragraphs) for a ' + level + ' learner on "' + topic + '", specifically about "' + lessonTitle + '". Depth: ' + depth + '. No markdown headers, just plain explanatory text.';
-                var result = await ai.request(prompt, { type: 'lesson-content' });
+                var result = await ai.request('lesson-content', {
+                  prompt: prompt,
+                  type: 'lesson-content'
+                });
                 var text = this._extractText(result);
                 if (text && text.length > 50) return text;
             } catch (e) {
