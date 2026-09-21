@@ -4651,7 +4651,7 @@ _renderRecommendationCard: function(rec) {
       if (!container) return;
 
       var html = '<div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:\'Inter\',-apple-system,sans-serif;">';
-      html += '<button onclick="LawAIApp.Dashboard._openGeneratedCourse(LawAIApp.CourseGenerator.getCourse(\'' + courseId + '\'))" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Course</button>';
+      html += '<button onclick="LawAIApp.Dashboard._openGeneratedCourse(\'' + courseId + '\')" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Course</button>';
       html += '<div style="font-size:11px;color:#8b5cf6;font-weight:500;letter-spacing:0.5px;margin-bottom:6px;">📖 LESSON · ' + (lesson.estimatedMinutes || 30) + ' min</div>';
       html += '<h1 style="font-size:22px;font-weight:700;margin:0 0 16px;">' + lesson.title + '</h1>';
       html += '<div style="font-size:14px;color:#c8d0d8;line-height:1.7;white-space:pre-wrap;">' + (lesson.content || '') + '</div>';
@@ -6197,6 +6197,29 @@ document.addEventListener('S5_READY', function() {
     }
   }, 100);
 });
+
+// 🔥 等 CourseGenerator 就绪后重新渲染
+(function waitForCourseGenerator() {
+  var tries = 0;
+  var maxTries = 20;
+  var interval = setInterval(function() {
+    tries++;
+    var gen = window.LawAIApp && window.LawAIApp.CourseGenerator;
+    if (gen && typeof gen.getGeneratedCourses === 'function') {
+      clearInterval(interval);
+      var courses = gen.getGeneratedCourses();
+      if (courses && courses.length > 0) {
+        console.log('[Dashboard] 🎨 CourseGenerator ready, re-rendering with', courses.length, 'courses');
+        LawAIApp.Dashboard._lastRenderAt = 0;
+        LawAIApp.Dashboard.forceRender();
+      }
+      return;
+    }
+    if (tries >= maxTries) {
+      clearInterval(interval);
+    }
+  }, 500);
+})();
 
 // ============================================================
 // 🔥 Season 5 Part 9: 监听学习事件 → 刷新 Dashboard
