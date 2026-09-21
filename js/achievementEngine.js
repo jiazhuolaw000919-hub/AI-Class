@@ -29,15 +29,28 @@ LawAIApp.AchievementEngine = {
           name: def ? def.name : id,
           timestamp: Date.now()
         });
-      } catch (e) {}
+        console.log('[AchievementEngine] 🎉 Unlocked + emitted:', id);
+      } catch (e) {
+        console.warn('[AchievementEngine] Emit failed:', e);
+      }
 
-      // 记录最近的成就（用于 Dashboard celebrate）
+      // 🔥 记录最近成就（Dashboard celebrate 用）
       try {
         var def2 = this.achievements.find(function(a) { return a.id === id; });
+        var ICON_MAP = {
+          first_lesson: '📖',
+          streak_7: '🔥',
+          streak_30: '⚡',
+          lessons_100: '💯',
+          lessons_365: '🏆',
+          prompt_master: '✏️',
+          coding_master: '💻',
+          api_master: '🔌'
+        };
         LawAIApp.StorageEngine.set('recent_achievement', {
           id: id,
           title: def2 ? def2.name : id,
-          icon: this._getIcon(id),
+          icon: ICON_MAP[id] || '🏆',
           earnedAt: new Date().toISOString()
         });
       } catch (e) {}
