@@ -1010,6 +1010,93 @@ LawAIApp.Dashboard = {
     return [];
   },
 
+  // ============================================================
+  // 🔥 Bible Part 51: Achievement 检查
+  // 从现有数据推导，不新建权威
+  // ============================================================
+  _ACHIEVEMENTS_DEF: [
+    { id: 'first_practice', icon: '✏️', title: 'First Practice', desc: 'Complete your first practice session', check: function(d) { return d.practiceAttempts >= 1; } },
+    { id: 'first_lesson', icon: '📖', title: 'First Lesson', desc: 'Complete your first lesson', check: function(d) { return d.completedLessons >= 1; } },
+    { id: 'streak_3', icon: '🔥', title: '3-Day Streak', desc: 'Learn 3 days in a row', check: function(d) { return d.streak >= 3; } },
+    { id: 'streak_7', icon: '🔥', title: '7-Day Streak', desc: 'Learn 7 days in a row', check: function(d) { return d.streak >= 7; } },
+    { id: 'practice_10', icon: '💪', title: '10 Practice Questions', desc: 'Answer 10 practice questions', check: function(d) { return d.practiceAttempts >= 10; } },
+    { id: 'practice_100', icon: '🏋️', title: '100 Practice Questions', desc: 'Answer 100 practice questions', check: function(d) { return d.practiceAttempts >= 100; } },
+    { id: 'flashcard_10', icon: '🃏', title: '10 Flashcards', desc: 'Review 10 flashcards', check: function(d) { return d.flashcardReviews >= 10; } },
+    { id: 'flashcard_100', icon: '🎴', title: '100 Flashcards', desc: 'Review 100 flashcards', check: function(d) { return d.flashcardReviews >= 100; } },
+    { id: 'explorer_3', icon: '🧭', title: 'Explorer', desc: 'Practice across 3 different lessons', check: function(d) { return d.uniquePracticeLessons >= 3; } },
+    { id: 'perfect_practice', icon: '🎯', title: 'Perfect Practice', desc: 'Get a perfect score in practice', check: function(d) { return d.perfectPractices >= 1; } }
+  ],
+
+  _checkAchievements: function() {
+    try {
+      var storage = LawAIApp.StorageEngine;
+      if (!storage) return [];
+
+      // 收集数据
+      var practiceStore = storage.get('practice_progress', {});
+      var practiceAttempts = 0;
+      var uniquePracticeLessons = 0;
+      var perfectPractices = 0;
+      var lessonIds = [];
+
+      for (var lid in practiceStore) {
+        if (!practiceStore.hasOwnProperty(lid)) continue;
+        var p = practiceStore[lid];
+        if (!p) continue;
+        practiceAttempts += p.attempted || 0;
+        uniquePracticeLessons++;
+        lessonIds.push(lid);
+        // 全对
+        if (p.attempted > 0 && p.attempted === p.correct) perfectPractices++;
+      }
+
+      var notes = storage.get('user_notes', []);
+      var flashcardReviews = notes.filter(function(n) { return n && n.type === 'FLASHCARD_REVIEW'; }).length;
+
+      var streakData = this._getStreakData();
+      var progress = this._getProgress();
+      var completedLessons = (progress.completedLessons || []).length;
+
+      var data = {
+        practiceAttempts: practiceAttempts,
+        flashcardReviews: flashcardReviews,
+        streak: streakData.currentStreak || 0,
+        completedLessons: completedLessons,
+        uniquePracticeLessons: uniquePracticeLessons,
+        perfectPractices: perfectPractices
+      };
+
+      // 检查每个成就
+      var unlocked = storage.get('unlocked_achievements', {});
+      var newUnlocks = [];
+
+      this._ACHIEVEMENTS_DEF.forEach(function(def) {
+        if (!unlocked[def.id] && def.check(data)) {
+          unlocked[def.id] = {
+            id: def.id,
+            icon: def.icon,
+            title: def.title,
+            desc: def.desc,
+            earnedAt: new Date().toISOString()
+          };
+          newUnlocks.push(unlocked[def.id]);
+        }
+      });
+
+      if (newUnlocks.length > 0) {
+        storage.set('unlocked_achievements', unlocked);
+        // 最近一个 → recent_achievement
+        storage.set('recent_achievement', newUnlocks[0]);
+        console.log('[Achievements] 🏆 New unlocks:', newUnlocks.map(function(a) { return a.title; }));
+      }
+
+      return Object.keys(unlocked).map(function(k) { return unlocked[k]; });
+    } catch (e) {
+      console.warn('[Dashboard] _checkAchievements failed:', e);
+      return [];
+    }
+  },
+
   _getAllLessons: function() {
     try {
       if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getAllLessons === 'function') {
@@ -1172,51 +1259,6 @@ LawAIApp.Dashboard = {
       }
     } catch (e) {}
     return 'No data yet';
-  },
-
-  // ============================================================
-  // 🔥 Bible Part 50: Skills 聚合
-  // ============================================================
-  _getSkills: function() {
-    try {
-      var storage = LawAIApp.StorageEngine;
-      if (!storage) return [];
-      var skillSet = {};
-      var notes = storage.get('user_notes', []);
-      notes.forEach(function(n) {
-        if (n && n.tags) n.tags.forEach(function(t) { skillSet[t] = true; });
-      });
-      var lessons = this._getAllLessons();
-      lessons.forEach(function(l) {
-        if (l && l.tags) l.tags.forEach(function(t) { skillSet[t] = true; });
-      });
-      return Object.keys(skillSet);
-    } catch (e) { return []; }
-  },
-
-  // ============================================================
-  // 🔥 Bible Part 50: Skills 条 HTML
-  // ============================================================
-  _renderSkills: function() {
-    var skills = this._getSkills();
-    if (!skills || skills.length === 0) return '';
-
-    return `
-      <section data-section="skills" style="
-        background:rgba(34,197,94,0.03);
-        border:1px solid rgba(34,197,94,0.08);
-        border-radius:16px;
-        padding:14px 20px;
-        margin-bottom:16px;
-      ">
-        <div style="font-size:11px;color:#22c55e;font-weight:500;letter-spacing:0.5px;margin-bottom:8px;">🎯 SKILLS</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;">
-          ${skills.slice(0, 10).map(function(s) {
-            return '<span style="font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.04);padding:3px 10px;border-radius:100px;">' + s + '</span>';
-          }).join('')}
-        </div>
-      </section>
-    `;
   },
 
   // ============================================================
@@ -2071,6 +2113,8 @@ LawAIApp.Dashboard = {
       ${[
         { icon: '📚', label: 'Academy', url: '/pages/academy.html' },
         { icon: '🃏', label: 'Flashcards', action: 'flashcards' },
+        { icon: '🕸️', label: 'Knowledge', action: 'knowledge' },
+        { icon: '🔍', label: 'Search', action: 'search' },
         { icon: '📅', label: 'Calendar', action: 'calendar' },
         { icon: '📓', label: 'Notes', action: 'notes' },
         { icon: '⚙️', label: 'Settings', action: 'settings' }
@@ -2080,6 +2124,10 @@ LawAIApp.Dashboard = {
           onClick = "window.location.href='" + btn.url + "'";
         } else if (btn.action === 'flashcards') {
           onClick = "LawAIApp.Dashboard._renderFlashcardView()";
+        } else if (btn.action === 'knowledge') {
+          onClick = "LawAIApp.Dashboard._renderKnowledgeGraphView()";
+        } else if (btn.action === 'search') {
+          onClick = "LawAIApp.Dashboard._renderSearchView()";
         } else if (btn.action === 'calendar') {
           onClick = "LawAIApp.Dashboard._renderCalendarView()";
         } else if (btn.action === 'settings') {
@@ -2193,6 +2241,8 @@ LawAIApp.Dashboard = {
               </div>
             </div>
           ` : ''}
+
+          ${this._renderResumePrompt()}
 
           <a href="${completedCount > 0 ? '/pages/lesson.html?day=' + (completedCount + 1) : '/pages/academy.html'}" style="
             display: inline-block;
@@ -2360,6 +2410,9 @@ LawAIApp.Dashboard = {
 
       <!-- 🔄 LEARNING LOOP (Part 74 + Part 178: 折叠) -->
       ${this._renderLearningLoopCollapsed()}
+
+      !-- 📰 AI NEWS (Bible Part 40) -->
+      ${this._renderNews()}
 
       <!-- 📓 NOTES PREVIEW (Part 178: 替代 Continuity) -->
       ${this._buildNotesPreview()}
@@ -4427,6 +4480,165 @@ _renderRecommendationCard: function(rec) {
   },
 
   // ============================================================
+  // 🔥 Bible Part 48: Global Search
+  // ============================================================
+  _renderSearchView: function() {
+    var container = document.getElementById('app') || document.getElementById('law-runtime-root');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',-apple-system,sans-serif;">
+        <button onclick="LawAIApp.Dashboard._lastRenderAt=0;LawAIApp.Dashboard.forceRender();" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back</button>
+
+        <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">🔍 Search</h2>
+        <p style="color:#94a3b8;margin:0 0 20px;">Search across lessons, notes, concepts, skills</p>
+
+        <div style="position:relative;margin-bottom:20px;">
+          <input
+            id="dashboard-search-input"
+            type="text"
+            placeholder="Search lessons, notes, concepts..."
+            autofocus
+            style="width:100%;padding:14px 20px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;color:#e2e8f0;font-size:14px;font-family:inherit;box-sizing:border-box;"
+            oninput="LawAIApp.Dashboard._performSearch(this.value)"
+          />
+        </div>
+
+        <div id="dashboard-search-results" style="min-height:200px;">
+          <p style="color:#64748b;text-align:center;padding:40px;font-size:13px;">
+            Type to search across your learning ecosystem
+          </p>
+        </div>
+      </div>
+    `;
+  },
+
+  _performSearch: function(query) {
+    var resultsEl = document.getElementById('dashboard-search-results');
+    if (!resultsEl) return;
+
+    query = (query || '').trim().toLowerCase();
+    if (query.length < 2) {
+      resultsEl.innerHTML = '<p style="color:#64748b;text-align:center;padding:40px;font-size:13px;">Type at least 2 characters to search</p>';
+      return;
+    }
+
+    var results = [];
+    var storage = LawAIApp.StorageEngine;
+
+    // 1. 搜 Lessons
+    try {
+      var lessons = this._getAllLessons();
+      lessons.forEach(function(l) {
+        var title = (l.title || '').toLowerCase();
+        var desc = (l.description || l.summary || '').toLowerCase();
+        if (title.indexOf(query) !== -1 || desc.indexOf(query) !== -1) {
+          results.push({
+            type: 'Lesson',
+            icon: '📖',
+            title: l.title || 'Untitled',
+            desc: l.description || l.summary || '',
+            action: "LawAIApp.AcademyExperienceManager.selectLesson('" + (l.id || l.lessonId) + "')"
+          });
+        }
+      });
+    } catch (e) {}
+
+    // 2. 搜 Notes
+    try {
+      var notes = storage ? storage.get('user_notes', []) : [];
+      notes.forEach(function(n) {
+        var title = (n.title || '').toLowerCase();
+        var content = (n.content || '').toLowerCase();
+        if (title.indexOf(query) !== -1 || content.indexOf(query) !== -1) {
+          results.push({
+            type: 'Note',
+            icon: '📓',
+            title: n.title || 'Untitled note',
+            desc: (n.content || '').substring(0, 100),
+            action: null
+          });
+        }
+      });
+    } catch (e) {}
+
+    // 3. 搜 Skills
+    try {
+      var skills = this._getSkills();
+      skills.forEach(function(s) {
+        if (s.toLowerCase().indexOf(query) !== -1) {
+          results.push({
+            type: 'Skill',
+            icon: '🎯',
+            title: s,
+            desc: 'Learner skill',
+            action: null
+          });
+        }
+      });
+    } catch (e) {}
+
+    if (results.length === 0) {
+      resultsEl.innerHTML = '<p style="color:#64748b;text-align:center;padding:40px;font-size:13px;">No results for "' + query + '"</p>';
+      return;
+    }
+
+    resultsEl.innerHTML = '<div style="font-size:12px;color:#64748b;margin-bottom:12px;">' + results.length + ' result(s)</div>' +
+      results.slice(0, 20).map(function(r) {
+        var clickable = r.action ? 'onclick="' + r.action + '" style="cursor:pointer;"' : '';
+        return '<div ' + clickable + ' style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:10px;padding:12px 16px;margin-bottom:8px;">' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+            '<span style="font-size:16px;">' + r.icon + '</span>' +
+            '<span style="font-size:11px;color:#4a9eff;background:rgba(74,158,255,0.08);padding:2px 8px;border-radius:100px;">' + r.type + '</span>' +
+            '<span style="font-size:13px;font-weight:500;color:#e2e8f0;">' + r.title + '</span>' +
+          '</div>' +
+          (r.desc ? '<div style="font-size:11px;color:#94a3b8;margin-left:24px;">' + r.desc.substring(0, 120) + '</div>' : '') +
+        '</div>';
+      }).join('');
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 77: Interrupted Journey — Resume Prompt
+  // ============================================================
+  _renderResumePrompt: function() {
+    try {
+      var storage = LawAIApp.StorageEngine;
+      if (!storage) return '';
+
+      var resume = storage.get('resume_lesson', null);
+      if (!resume || !resume.lessonId) return '';
+
+      // 只显示 7 天内的
+      var daysSince = (Date.now() - new Date(resume.savedAt).getTime()) / 86400000;
+      if (daysSince > 7) return '';
+
+      return `
+        <div style="
+          margin-top: 16px;
+          padding: 12px 20px;
+          background: rgba(245,158,11,0.06);
+          border: 1px solid rgba(245,158,11,0.12);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          max-width: 400px;
+          margin-left: auto;
+          margin-right: auto;
+          text-align: left;
+        ">
+          <span style="font-size: 24px;">⏸️</span>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 11px; color: #f59e0b; font-weight: 500; letter-spacing: 0.5px;">PICK UP WHERE YOU LEFT OFF</div>
+            <div style="font-size: 13px; color: #e2e8f0; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${resume.title || resume.lessonId}</div>
+          </div>
+          <button onclick="LawAIApp.AcademyExperienceManager.selectLesson('${resume.lessonId}')" style="padding:6px 14px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:100px;color:#f59e0b;font-size:11px;cursor:pointer;font-family:inherit;">Resume →</button>
+        </div>
+      `;
+    } catch (e) { return ''; }
+  },
+
+  // ============================================================
   // 🔥 Bible Part 50: Profile Panel（点击 Avatar 打开）
   // ============================================================
   _renderProfilePanel: function() {
@@ -4456,6 +4668,14 @@ _renderRecommendationCard: function(rec) {
               <span style="font-size:11px;color:#4a9eff;background:rgba(74,158,255,0.08);padding:3px 10px;border-radius:100px;">⏱️ ${hours}h learned</span>
               <span style="font-size:11px;color:#22c55e;background:rgba(34,197,94,0.08);padding:3px 10px;border-radius:100px;">🎯 ${skills.length} skills</span>
               <span style="font-size:11px;color:#f59e0b;background:rgba(245,158,11,0.08);padding:3px 10px;border-radius:100px;">🏆 ${achievements.length} achievements</span>
+                      ${this._getRewards().length > 0 ? `
+                      <h2 style="font-size:14px;color:#94a3b8;margin:24px 0 12px;">🎁 Rewards</h2>
+                      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                        ${this._getRewards().map(function(r) {
+                          return '<div title="' + r.desc + '" style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.12);border-radius:100px;"><span style="font-size:14px;">' + (r.type === 'avatar_frame' ? '🖼️' : r.type === 'theme' ? '🎨' : '🏅') + '</span><span style="font-size:12px;color:#e2e8f0;">' + r.title + '</span></div>';
+                        }).join('')}
+                      </div>
+                      ` : ''}
             </div>
           </div>
         </div>
@@ -4592,6 +4812,124 @@ _renderRecommendationCard: function(rec) {
         </section>
       `;
     } catch (e) { return ''; }
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 52: Avatar frame (from rewards)
+  // ============================================================
+  _getAvatarFrameStyle: function() {
+    try {
+      var rewards = this._getRewards();
+      var frames = rewards.filter(function(r) { return r.type === 'avatar_frame'; });
+      if (frames.length === 0) return '';
+
+      // 最高优先 streak_30 > streak_7
+      var has30 = frames.some(function(f) { return f.id === 'streak_30'; });
+      var has7 = frames.some(function(f) { return f.id === 'streak_7'; });
+
+      if (has30) return 'box-shadow:0 0 0 3px #f59e0b, 0 0 12px rgba(245,158,11,0.4);';
+      if (has7) return 'box-shadow:0 0 0 3px #ef4444, 0 0 12px rgba(239,68,68,0.4);';
+      return '';
+    } catch (e) { return ''; }
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 40: News Intelligence
+  // 从 StorageEngine 读，不新建权威
+  // 数据来源：外部预填 / 手动添加 / 未来接入 RSS
+  // ============================================================
+  _getNews: function() {
+    try {
+      var storage = LawAIApp.StorageEngine;
+      if (!storage) return [];
+
+      var news = storage.get('ai_news', []);
+      if (!Array.isArray(news)) return [];
+
+      // 按日期排序（新到旧），最多返回 5 条
+      news.sort(function(a, b) {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+
+      // 只保留 30 天内的
+      var cutoff = Date.now() - 30 * 86400000;
+      news = news.filter(function(n) {
+        return new Date(n.date).getTime() > cutoff;
+      });
+
+      return news.slice(0, 5);
+    } catch (e) { return []; }
+  },
+
+  _renderNews: function() {
+    var news = this._getNews();
+    if (!news || news.length === 0) return '';
+
+    return `
+      <section data-section="news" role="region" aria-label="AI News" style="
+        background: rgba(236,72,153,0.03);
+        border: 1px solid rgba(236,72,153,0.08);
+        border-radius: 16px;
+        padding: 14px 20px;
+        margin-bottom: 16px;
+      ">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-size:11px;color:#ec4899;font-weight:500;letter-spacing:0.5px;">📰 AI NEWS</span>
+          <button onclick="LawAIApp.Dashboard._refreshNews()" style="
+            padding:2px 10px;
+            background:transparent;
+            border:1px solid rgba(255,255,255,0.06);
+            border-radius:100px;
+            color:#64748b;
+            font-size:10px;
+            cursor:pointer;
+            font-family:inherit;
+          ">🔄</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${news.map(function(n) {
+            return '<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03);">' +
+              '<a href="' + (n.url || '#') + '" target="_blank" rel="noopener" style="font-size:13px;font-weight:500;color:#e2e8f0;text-decoration:none;line-height:1.4;">' + (n.title || 'Untitled') + '</a>' +
+              '<div style="font-size:10px;color:#64748b;margin-top:4px;">' +
+                (n.source ? '<span style="color:#ec4899;">' + n.source + '</span> · ' : '') +
+                (n.date ? new Date(n.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '') +
+              '</div>' +
+              (n.whyItMatters ? '<div style="font-size:11px;color:#94a3b8;margin-top:4px;line-height:1.5;">💡 ' + n.whyItMatters + '</div>' : '') +
+              (n.relatedLessonId ? '<div style="margin-top:6px;"><button onclick="LawAIApp.AcademyExperienceManager.selectLesson(\'' + n.relatedLessonId + '\')" style="padding:3px 12px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.12);border-radius:100px;color:#4a9eff;font-size:10px;cursor:pointer;font-family:inherit;">📖 Learn this →</button></div>' : '') +
+            '</div>';
+          }).join('')}
+        </div>
+      </section>
+    `;
+  },
+
+  _refreshNews: function() {
+    // 未来接入 RSS
+    // 目前：从预填数据刷新
+    var storage = LawAIApp.StorageEngine;
+    if (!storage) return;
+
+    // 检查是否有预填数据
+    var news = storage.get('ai_news', []);
+    if (news.length === 0) {
+      // 预填一些示例（真实来源）
+      var seedNews = [
+        {
+          id: 'news_1',
+          title: 'OpenAI releases new reasoning model',
+          source: 'OpenAI Blog',
+          url: 'https://openai.com/blog',
+          date: new Date(Date.now() - 2 * 86400000).toISOString(),
+          whyItMatters: 'Understanding new reasoning capabilities helps you use AI more effectively.',
+          relatedLessonId: 'lesson-ai-fundamentals-001'
+        }
+      ];
+      storage.set('ai_news', seedNews);
+      if (LawAIApp.Toast?.success) LawAIApp.Toast.success('📰 News refreshed');
+      LawAIApp.Dashboard.forceRender();
+    } else {
+      if (LawAIApp.Toast?.info) LawAIApp.Toast.info('No new updates');
+    }
   },
 
   refresh: function() {
