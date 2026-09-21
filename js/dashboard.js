@@ -2122,6 +2122,14 @@ LawAIApp.Dashboard = {
       `;
     }
 
+    // 🔥 Avatar frame style（提前算）
+    var heroAvatarStyle = '';
+    try {
+      if (typeof this._getAvatarFrameStyle === 'function') {
+        heroAvatarStyle = this._getAvatarFrameStyle() || '';
+      }
+    } catch (e) {}
+
     const CARD_RADIUS = '16px';
     const CARD_BG = 'rgba(255,255,255,0.025)';
     const CARD_BORDER = '1px solid rgba(255,255,255,0.04)';
@@ -2240,6 +2248,7 @@ LawAIApp.Dashboard = {
               font-weight:700;font-size:14px;color:white;
               cursor:pointer;
               transition:transform 0.2s;
+              ${heroAvatarStyle}
             "
             onmouseover="this.style.transform='scale(1.1)'"
             onmouseout="this.style.transform='scale(1)'">${userName.charAt(0).toUpperCase()}</div>
@@ -4739,6 +4748,13 @@ _renderRecommendationCard: function(rec) {
     var hours = this._getLearningHours();
     var skills = this._getSkills();
 
+    var avatarBorderStyle = '';
+    try {
+      if (LawAIApp.AvatarEngine && typeof LawAIApp.AvatarEngine.getBorderStyle === 'function') {
+        avatarBorderStyle = LawAIApp.AvatarEngine.getBorderStyle() || '';
+      }
+    } catch (e) {}
+
     container.innerHTML = `
       <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',-apple-system,sans-serif;">
         <button onclick="LawAIApp.Dashboard._lastRenderAt=0;LawAIApp.Dashboard.forceRender();" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
@@ -4750,7 +4766,7 @@ _renderRecommendationCard: function(rec) {
               background:linear-gradient(135deg,#4a9eff,#7c3aed);
               display:flex;align-items:center;justify-content:center;
               font-weight:700;font-size:32px;color:white;
-              ${(LawAIApp.AvatarEngine && LawAIApp.AvatarEngine.getBorderStyle) ? LawAIApp.AvatarEngine.getBorderStyle() : ''}
+              ${avatarBorderStyle}
             ">${userName.charAt(0).toUpperCase()}</div>
           </div>
           <div style="flex:1;">
