@@ -57,7 +57,7 @@ async function callGoogle(prompt, model, options) {
   var key = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
   if (!key) throw new Error('GOOGLE_API_KEY not configured');
 
-  var m = model || 'gemini-1.5-flash';
+  var m = model || 'gemini-2.5-flash';
   var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent?key=' + key;
 
   var r = await fetch(url, {
