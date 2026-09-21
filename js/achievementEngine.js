@@ -20,7 +20,42 @@ LawAIApp.AchievementEngine = {
     if (!unlocked.includes(id)) {
       unlocked.push(id);
       LawAIApp.StorageEngine.set('unlockedAchievements', unlocked);
+
+      // 🔥 Bible Part 52: 发事件 → AvatarEngine 自动装备
+      try {
+        var def = this.achievements.find(function(a) { return a.id === id; });
+        LawAIApp.EventBus.emit('AvatarUnlocked', {
+          id: id,
+          name: def ? def.name : id,
+          timestamp: Date.now()
+        });
+      } catch (e) {}
+
+      // 记录最近的成就（用于 Dashboard celebrate）
+      try {
+        var def2 = this.achievements.find(function(a) { return a.id === id; });
+        LawAIApp.StorageEngine.set('recent_achievement', {
+          id: id,
+          title: def2 ? def2.name : id,
+          icon: this._getIcon(id),
+          earnedAt: new Date().toISOString()
+        });
+      } catch (e) {}
     }
+  },
+
+  _getIcon(id) {
+    var ICON_MAP = {
+      first_lesson: '📖',
+      streak_7: '🔥',
+      streak_30: '⚡',
+      lessons_100: '💯',
+      lessons_365: '🏆',
+      prompt_master: '✏️',
+      coding_master: '💻',
+      api_master: '🔌'
+    };
+    return ICON_MAP[id] || '🏆';
   },
 
   // 在完成课程后调用，检查所有成就条件
