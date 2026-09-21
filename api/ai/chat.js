@@ -1,16 +1,13 @@
 // api/ai/chat.js
-// Vercel Serverless Function — Multi-Provider AI Proxy
+// Vercel Serverless Function — AI Proxy
 // 免费优先：Google Gemini (1500 req/day free)
 
 export default async function handler(req, res) {
-  // CORS（如果需要）
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -25,14 +22,12 @@ export default async function handler(req, res) {
   try {
     let result;
 
-    // 免费 provider 优先
     switch (provider) {
       case 'google':
       case 'gemini':
         result = await callGoogle(prompt, model, options);
         break;
 
-      // 如果以后配了 key，这些也能用
       case 'groq':
         result = await callGroq(prompt, model, options);
         break;
@@ -50,7 +45,6 @@ export default async function handler(req, res) {
         break;
 
       default:
-        // 默认走 Google（免费）
         result = await callGoogle(prompt, model, options);
     }
 
@@ -62,9 +56,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('[API /ai/chat]', err);
-    return res.status(500).json({
-      error: err.message || 'AI request failed'
-    });
+    return res.status(500).json({ error: err.message || 'AI request failed' });
   }
 }
 
@@ -73,7 +65,7 @@ export default async function handler(req, res) {
 // ============================================================
 async function callGoogle(prompt, model, options) {
   const key = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-  if (!key) throw new Error('GOOGLE_API_KEY not configured on server');
+  if (!key) throw new Error('GOOGLE_API_KEY not configured');
 
   const m = model || 'gemini-1.5-flash';
   const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent?key=' + key;
@@ -105,7 +97,7 @@ async function callGoogle(prompt, model, options) {
 }
 
 // ============================================================
-// Groq (免费额度)
+// Groq（免费额度）
 // ============================================================
 async function callGroq(prompt, model, options) {
   const key = process.env.GROQ_API_KEY;
@@ -138,7 +130,7 @@ async function callGroq(prompt, model, options) {
 }
 
 // ============================================================
-// 付费 provider（可选，配了 key 就能用）
+// 付费 provider（可选）
 // ============================================================
 async function callOpenAI(prompt, model, options) {
   const key = process.env.OPENAI_API_KEY;
