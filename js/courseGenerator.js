@@ -72,38 +72,6 @@ LawAIApp.CourseGenerator = {
         return course;
     },
 
-        console.log('📚 Generating course:', domain, difficulty);
-
-        var courseId = 'gen_course_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
-
-        // 生成模块
-        var modules = this._generateModules(domain, difficulty);
-
-        var course = {
-            id: courseId,
-            title: domain + ' – ' + difficulty.charAt(0).toUpperCase() + difficulty.slice(1) + ' Course',
-            description: 'AI-generated ' + domain + ' course tailored for ' + difficulty + ' level.',
-            difficulty_level: difficulty,
-            domain: domain,
-            created_by_ai: true,
-            modules: modules,
-            createdAt: new Date().toISOString()
-        };
-
-        // 存储课程
-        try {
-            if (LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.set === 'function') {
-                var courses = LawAIApp.StorageEngine.get('generated_courses', []);
-                courses.push(course);
-                LawAIApp.StorageEngine.set('generated_courses', courses);
-            }
-        } catch (e) {}
-
-        LawAIApp.EventBus?.emit?.('CourseGenerated', { courseId: courseId, course: course });
-        console.log('✅ Course generated:', courseId);
-        return course;
-    },
-
     _generateModules: function(domain, difficulty, form) {
         form = form || {};
         var modules = [];
