@@ -4785,8 +4785,6 @@ _renderRecommendationCard: function(rec) {
         ${this._renderAvatarEditor ? this._renderAvatarEditor() : ''}
       </div>
     `;
-      </div>
-    `;
   },
 
   // ============================================================
