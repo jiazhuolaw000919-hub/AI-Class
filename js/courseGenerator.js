@@ -1,24 +1,23 @@
 // ===========================================
 // courseGenerator.js
 // Season 5 Part 25-29 — AI Course Generator
-// 1-shot generation (avoid Vercel 10s timeout)
+// V5.0 — 1-shot with verbose logging
 // ===========================================
 
 window.LawAIApp = window.LawAIApp || {};
 
 LawAIApp.CourseGenerator = {
+    version: '5.0.0',
     _initialized: false,
 
     init: function() {
         if (this._initialized) return;
         this._initialized = true;
-        console.log('📚 CourseGenerator V4.0 initialized (1-shot)');
+        console.log('📚 CourseGenerator V5.0 initialized (1-shot)');
     },
 
-    // ============================================================
-    // 🔥 1-shot generation：只调一次 AI
-    // ============================================================
     generate: async function(form) {
+        console.log('🔵 [Step 1] generate() called');
         form = form || {};
         var topic = form.topic || 'AI Fundamentals';
         var level = form.level || 'beginner';
@@ -27,45 +26,53 @@ LawAIApp.CourseGenerator = {
         var goal = form.goal || '';
         var ai = form.ai || 'auto';
 
-        console.log('📚 CourseGenerator.generate (1-shot):', topic, level, depth);
+        console.log('🔵 [Step 2] Parsed form:', { topic: topic, level: level, depth: depth, time: time });
 
         var courseId = 'gen_course_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
 
-        // 决定 subject 和 lesson 数量
         var subjectCount = depth === 'overview' ? 2 : (depth === 'deep' ? 5 : 3);
         var lessonCount = depth === 'overview' ? 2 : (depth === 'deep' ? 5 : 3);
 
-        // 🔥 1 次 AI 调用
+        console.log('🔵 [Step 3] Will generate:', subjectCount, 'subjects ×', lessonCount, 'lessons');
+
         var aiLayer = LawAIApp.AILayer;
         if (!aiLayer || typeof aiLayer.request !== 'function') {
             throw new Error('AI layer not available');
         }
 
         var prompt = this._buildCoursePrompt(topic, level, depth, subjectCount, lessonCount, goal);
-        console.log('📤 Sending 1-shot prompt, length:', prompt.length);
+        console.log('🔵 [Step 4] Prompt length:', prompt.length);
+        console.log('🔵 [Step 4a] Prompt preview:', prompt.slice(0, 200) + '...');
 
         var t0 = Date.now();
         var result;
         try {
+            console.log('🔵 [Step 5] Calling AILayer.request...');
             result = await aiLayer.request('course-generation', { prompt: prompt });
+            console.log('🔵 [Step 6] AILayer.request returned');
         } catch (e) {
+            console.error('🔴 [Step 5] AI request failed:', e);
             throw new Error('AI request failed: ' + e.message);
         }
 
-        console.log('📥 AI response received in', (Date.now() - t0) / 1000, 's');
+        var elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+        console.log('🔵 [Step 7] AI response in', elapsed, 's');
+        console.log('🔵 [Step 7a] Raw response:', result);
 
         var text = this._extractText(result);
+        console.log('🔵 [Step 8] Extracted text length:', text.length);
         if (!text) {
             throw new Error('AI returned empty response (mock or blocked)');
         }
+        console.log('🔵 [Step 8a] Text preview:', text.slice(0, 300));
 
-        // 解析 JSON
         var parsed = this._parseCourseJSON(text);
+        console.log('🔵 [Step 9] Parsed JSON:', parsed ? ('subjects: ' + (parsed.subjects ? parsed.subjects.length : 0)) : 'FAILED');
+
         if (!parsed || !parsed.subjects || parsed.subjects.length === 0) {
             throw new Error('AI returned invalid course JSON');
         }
 
-        // 构建标准 course 对象
         var subjects = parsed.subjects.map(function(s, si) {
             return {
                 id: 'gen_subject_' + Date.now() + '_' + si,
@@ -116,14 +123,11 @@ LawAIApp.CourseGenerator = {
         };
 
         LawAIApp.EventBus?.emit?.('CoursePreviewGenerated', { courseId: courseId, course: course });
-        console.log('✅ Course preview generated:', courseId, '| subjects:', subjects.length);
+        console.log('✅ [Step 10] Course preview generated:', courseId, '| subjects:', subjects.length);
 
         return course;
     },
 
-    // ============================================================
-    // 🔥 Prompt 构建
-    // ============================================================
     _buildCoursePrompt: function(topic, level, depth, subjectCount, lessonCount, goal) {
         return 'You are a curriculum designer. Generate a complete ' + depth + ' course on "' + topic + '" for a ' + level + ' learner.' +
             (goal ? ' The learner\'s goal is: ' + goal + '.' : '') +
@@ -136,35 +140,23 @@ LawAIApp.CourseGenerator = {
             '\n{"title":"...","description":"...","subjects":[{"title":"...","description":"...","lessons":[{"title":"...","content":"..."}]}]}';
     },
 
-    // ============================================================
-    // 🔥 解析 AI 返回的 JSON
-    // ============================================================
     _parseCourseJSON: function(text) {
         if (!text) return null;
-
-        // 去掉 markdown code fence
         var cleaned = text.trim();
         cleaned = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '');
-
-        // 找第一个 { 到最后一个 }
         var start = cleaned.indexOf('{');
         var end = cleaned.lastIndexOf('}');
         if (start === -1 || end === -1 || end <= start) return null;
-
         var jsonStr = cleaned.slice(start, end + 1);
-
         try {
             return JSON.parse(jsonStr);
         } catch (e) {
             console.error('[CourseGenerator] JSON parse failed:', e.message);
-            console.error('[CourseGenerator] Raw text (first 500):', jsonStr.slice(0, 500));
+            console.error('[CourseGenerator] Raw (first 1000):', jsonStr.slice(0, 1000));
             return null;
         }
     },
 
-    // ============================================================
-    // 🔥 提取 AI 文本
-    // ============================================================
     _extractText: function(result) {
         if (!result) return '';
         var text = '';
@@ -174,7 +166,6 @@ LawAIApp.CourseGenerator = {
         else if (result.response) text = result.response;
         else if (result.message) text = result.message;
 
-        // 检测 mock
         if (text && (
             text.indexOf('AI response generated successfully') !== -1 ||
             text.indexOf('placeholder') !== -1 ||
@@ -185,9 +176,6 @@ LawAIApp.CourseGenerator = {
         return text;
     },
 
-    // ============================================================
-    // Accept
-    // ============================================================
     acceptGeneratedCourse: function(course) {
         if (!course) return false;
         try {
@@ -244,4 +232,4 @@ setTimeout(function() {
     }
 }, 400);
 
-console.log('📚 CourseGenerator V4.0 ready (1-shot + JSON parse)');
+console.log('📚 CourseGenerator V5.0 ready');
