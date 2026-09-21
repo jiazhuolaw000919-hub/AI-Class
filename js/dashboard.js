@@ -4737,8 +4737,9 @@ _renderRecommendationCard: function(rec) {
         previewArea.innerHTML = '<div style="padding:20px;color:#ef4444;font-size:13px;">Failed to generate: ' + e.message + '</div>';
       }
     }, 800);
+  },
 
-    _generateCourseStub: async function(form) {
+  _generateCourseStub: async function(form) {
     // 🔥 优先用真实 CourseGenerator
     try {
       var gen = LawAIApp.CourseGenerator;
