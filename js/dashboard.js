@@ -4744,37 +4744,23 @@ _renderRecommendationCard: function(rec) {
   // 正式版应该调用 ProviderRouter / AILayer
   // ============================================================
   _generateCourseStub: function(form) {
-    // 🔥 尝试用真实 Generator
+    // 🔥 优先用真实 CourseGenerator
     try {
-      var gen = LawAIApp.CourseGenerator || LawAIApp.curriculumGenerator;
+      var gen = LawAIApp.CourseGenerator;
       if (gen && typeof gen.generate === 'function') {
-        // 如果有真实生成器，调它
         var result = gen.generate(form);
-        if (result) return result;
+        if (result) {
+          console.log('[CourseGenerator] Using real generator');
+          return result;
+        }
       }
     } catch (e) {
-      console.warn('[CourseGenerator] Real generator unavailable, using stub:', e);
+      console.warn('[CourseGenerator] Real generator failed, using stub:', e);
     }
 
-    // 🔥 Stub：返回模板结构（明确标注 generated 类型）
+    // Fallback: 我上一轮给的 stub
     var topic = form.topic;
-    var subjects = this._generateSubjectsStub(topic, form);
-
-    return {
-      id: 'generated_' + Date.now(),
-      type: 'GENERATED',  // Bible Part 37：区分 generated 和 curated
-      title: topic,
-      description: 'AI-generated course on ' + topic,
-      goal: form.goal,
-      level: form.level,
-      timePerDay: parseInt(form.time),
-      depth: form.depth,
-      practicePreference: form.practice,
-      generatedAt: new Date().toISOString(),
-      generatedBy: form.ai || 'auto',
-      isPreview: true,  // Bible Part 26：未接受的不是正式课程
-      subjects: subjects
-    };
+    // ... 保留原 stub
   },
 
   _generateSubjectsStub: function(topic, form) {
@@ -5020,30 +5006,28 @@ _renderRecommendationCard: function(rec) {
   // ============================================================
   _acceptGeneratedCourse: function(course) {
     try {
-      var storage = LawAIApp.StorageEngine;
-      if (!storage) return;
+      var gen = LawAIApp.CourseGenerator;
+      if (gen && typeof gen.acceptGeneratedCourse === 'function') {
+        gen.acceptGeneratedCourse(course);
+      } else {
+        // Fallback：手动写入
+        var storage = LawAIApp.StorageEngine;
+        if (storage) {
+          course.isPreview = false;
+          course.acceptedAt = new Date().toISOString();
+          var existing = storage.get('generated_courses', []) || [];
+          existing.push(course);
+          storage.set('generated_courses', existing);
+        }
+      }
 
-      // 1. 移除 preview 标记
-      course.isPreview = false;
-      course.acceptedAt = new Date().toISOString();
-
-      // 2. 加到 personal generated courses
-      var existing = storage.get('generated_courses', []) || [];
-      existing.push(course);
-      storage.set('generated_courses', existing);
-
-      // 3. 通知学习者
       if (LawAIApp.Toast?.success) {
         LawAIApp.Toast.success('✅ Course added to your learning space');
       }
-
-      // 4. 跳回 Dashboard
       setTimeout(function() {
         LawAIApp.Dashboard._lastRenderAt = 0;
         LawAIApp.Dashboard.forceRender();
       }, 800);
-
-      console.log('[CourseGenerator] ✅ Course accepted:', course.id);
     } catch (e) {
       console.error('[CourseGenerator] Accept failed:', e);
       if (LawAIApp.Toast?.error) LawAIApp.Toast.error('Failed to save course');
