@@ -404,45 +404,45 @@
     </div>
   </noscript>
   <script>
-(function registerRealProviders() {
-  var ai = window.LawAIApp && window.LawAIApp.AILayer;
-  if (!ai || typeof ai.registerProvider !== 'function') {
-    setTimeout(registerRealProviders, 300);
-    return;
-  }
-
-  // 只注册 Google（免费）
-  ai.registerProvider('google', {
-    name: 'Google Gemini',
-    isReal: true,
-    call: async function(prompt, options) {
-      var res = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          provider: 'google',
-          prompt: prompt,
-          model: (options && options.model) || 'gemini-1.5-flash',
-          options: options || {}
-        })
-      });
-
-      if (!res.ok) {
-        var err = await res.json().catch(function() { return {}; });
-        throw new Error(err.error || 'AI request failed');
-      }
-
-      return await res.json();
+  (function registerRealProviders() {
+    var ai = window.LawAIApp && window.LawAIApp.AILayer;
+    if (!ai || typeof ai.registerProvider !== 'function') {
+      setTimeout(registerRealProviders, 300);
+      return;
     }
-  });
-
-  // 切默认到 google（不再用 mock）
-  if (typeof ai.setDefaultProvider === 'function') {
-    ai.setDefaultProvider('google');
-  }
-
-  console.log('✅ Real Google provider registered');
-})();
-</script>
+  
+    // 只注册 Google（免费）
+    ai.registerProvider('google', {
+      name: 'Google Gemini',
+      isReal: true,
+      call: async function(prompt, options) {
+        var res = await fetch('/api/ai/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            provider: 'google',
+            prompt: prompt,
+            model: (options && options.model) || 'gemini-1.5-flash',
+            options: options || {}
+          })
+        });
+  
+        if (!res.ok) {
+          var err = await res.json().catch(function() { return {}; });
+          throw new Error(err.error || 'AI request failed');
+        }
+  
+        return await res.json();
+      }
+    });
+  
+    // 切默认到 google（不再用 mock）
+    if (typeof ai.setDefaultProvider === 'function') {
+      ai.setDefaultProvider('google');
+    }
+  
+    console.log('✅ Real Google provider registered');
+  })();
+  </script>
 </body>
 </html>
