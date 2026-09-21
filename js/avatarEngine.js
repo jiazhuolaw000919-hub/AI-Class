@@ -17,10 +17,24 @@ LawAIApp.AvatarEngine = (function() {
     LawAIApp.EventBus.emit('AvatarUpdated', avatar);
   }
 
-  // 监听解锁事件自动装备边框
   LawAIApp.EventBus.on('AvatarUnlocked', (data) => {
-    if (data.id === 'avatar_bronze_border') updateAvatar('border', 'bronze');
-    else if (data.id === 'avatar_silver_border') updateAvatar('border', 'silver');
+    if (!data || !data.id) return;
+
+    // 成就 → 边框映射
+    var BORDER_MAP = {
+      'avatar_bronze_border': 'bronze',
+      'avatar_silver_border': 'silver',
+      'streak_7': 'streak_7',
+      'streak_30': 'streak_30',
+      'lessons_100': 'gold',
+      'lessons_365': 'gold'
+    };
+
+    var border = BORDER_MAP[data.id];
+    if (border) {
+      updateAvatar('border', border);
+      console.log('[AvatarEngine] 🎨 Border equipped:', border, 'from', data.id);
+    }
   });
 
   // ============================================================
