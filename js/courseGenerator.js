@@ -14,10 +14,63 @@ LawAIApp.CourseGenerator = {
         console.log('📚 CourseGenerator initialized');
     },
 
-    generate: async function(domain, difficulty, userProfile) {
-        domain = domain || 'AI Fundamentals';
-        difficulty = difficulty || 'beginner';
-        userProfile = userProfile || {};
+    // ============================================================
+    // 🔥 Bible Part 25: 接受 form，不直接 publish
+    // 返回 preview course，不写入 storage
+    // ============================================================
+    generate: async function(formOrDomain, difficultyParam, userProfileParam) {
+        var form;
+        // 兼容旧签名
+        if (typeof formOrDomain === 'string') {
+            form = {
+                topic: formOrDomain,
+                level: difficultyParam || 'beginner',
+                goal: '',
+                time: '30',
+                depth: 'practical',
+                practice: 'balanced',
+                ai: ''
+            };
+        } else {
+            form = formOrDomain || {};
+        }
+
+        var domain = form.topic || 'AI Fundamentals';
+        var difficulty = form.level || 'beginner';
+
+        console.log('📚 CourseGenerator.generate (preview):', domain, difficulty);
+
+        var courseId = 'gen_course_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+
+        // 生成模块
+        var modules = this._generateModules(domain, difficulty, form);
+
+        var course = {
+            id: courseId,
+            type: 'GENERATED',                        // Bible Part 37
+            title: domain + ' – ' + difficulty.charAt(0).toUpperCase() + difficulty.slice(1),
+            description: 'AI-generated ' + domain + ' course tailored for ' + difficulty + ' level.',
+            difficulty_level: difficulty,
+            domain: domain,
+            goal: form.goal || '',
+            timePerDay: parseInt(form.time) || 30,
+            depth: form.depth || 'practical',
+            practicePreference: form.practice || 'balanced',
+            generatedBy: form.ai || 'auto',
+            created_by_ai: true,
+            isPreview: true,                          // Bible Part 26
+            modules: modules,
+            createdAt: new Date().toISOString()
+        };
+
+        // 🔥 Bible Part 36: 不直接写入 storage
+        // 由 UI 层的 Accept 步骤写入
+        // 只发事件
+        LawAIApp.EventBus?.emit?.('CoursePreviewGenerated', { courseId: courseId, course: course });
+        console.log('✅ Course preview generated:', courseId);
+
+        return course;
+    },
 
         console.log('📚 Generating course:', domain, difficulty);
 
@@ -51,34 +104,69 @@ LawAIApp.CourseGenerator = {
         return course;
     },
 
-    _generateModules: function(domain, difficulty) {
+    _generateModules: function(domain, difficulty, form) {
+        form = form || {};
         var modules = [];
-        var moduleCount = difficulty === 'beginner' ? 3 : (difficulty === 'intermediate' ? 4 : 5);
+        var depth = form.depth || 'practical';
+
+        // 按 depth 决定模块数
+        var moduleCount;
+        if (depth === 'overview') moduleCount = 2;
+        else if (depth === 'deep') moduleCount = 5;
+        else moduleCount = 3;
 
         for (var i = 0; i < moduleCount; i++) {
             var lessons = [];
-            var lessonCount = 2 + Math.floor(Math.random() * 3);
+            var lessonCount = depth === 'overview' ? 2 : (depth === 'deep' ? 5 : 3);
 
             for (var j = 0; j < lessonCount; j++) {
                 lessons.push({
+                    id: 'gen_lesson_' + Date.now() + '_' + i + '_' + j,
                     title: domain + ' – Module ' + (i + 1) + ' Lesson ' + (j + 1),
                     content: {
-                        explanation: 'This is an auto-generated lesson about ' + domain + '.',
-                        examples: ['Example 1 for ' + domain],
-                        practice: 'Practice task for ' + domain
+                        explanation: 'This lesson covers core concepts of ' + domain + '. (AI generation pending)',
+                        examples: ['Example for ' + domain],
+                        practice: 'Practice: Apply ' + domain + ' concepts'
                     },
                     order: j + 1,
-                    estimatedTime: 10 + Math.floor(Math.random() * 10)
+                    estimatedTime: parseInt(form.time) || 20
                 });
             }
 
             modules.push({
-                name: 'Module ' + (i + 1) + ': ' + domain + ' Concepts',
+                id: 'gen_module_' + Date.now() + '_' + i,
+                name: 'Module ' + (i + 1) + ': ' + domain + ' Fundamentals',
                 lessons: lessons
             });
         }
 
         return modules;
+    },
+
+    // ============================================================
+    // 🔥 Bible Part 29: Accept course（由 UI 层调用）
+    // ============================================================
+    acceptGeneratedCourse: function(course) {
+        if (!course) return false;
+        try {
+            // 移除 preview 标记
+            course.isPreview = false;
+            course.acceptedAt = new Date().toISOString();
+
+            var courses = this.getGeneratedCourses();
+            courses.push(course);
+
+            if (LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.set === 'function') {
+                LawAIApp.StorageEngine.set('generated_courses', courses);
+            }
+
+            LawAIApp.EventBus?.emit?.('CourseAccepted', { courseId: course.id, course: course });
+            console.log('✅ Course accepted:', course.id);
+            return true;
+        } catch (e) {
+            console.error('[CourseGenerator] accept failed:', e);
+            return false;
+        }
     },
 
     getGeneratedCourses: function() {
