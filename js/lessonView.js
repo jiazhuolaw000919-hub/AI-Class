@@ -39,6 +39,20 @@ LawAIApp.Views.LessonView = {
         var lesson = await this._loadLessonAsync(lessonId, this._context);
         if (lesson) {
             this._lesson = lesson;
+
+            // 🔥 Season 5 Part 77: 记录 resume 状态
+            try {
+                var storage = window.LawAIApp && window.LawAIApp.StorageEngine;
+                if (storage && typeof storage.set === 'function') {
+                    storage.set('resume_lesson', {
+                        lessonId: lessonId,
+                        title: lesson.title || lessonId,
+                        savedAt: new Date().toISOString()
+                    });
+                    console.log('[LessonView] 📌 resume_lesson saved:', lessonId);
+                }
+            } catch (e) {}
+
             this._renderContent(lesson);
         } else {
             this._renderNotFound(lessonId);
@@ -164,28 +178,7 @@ LawAIApp.Views.LessonView = {
                 var lesson = LawAIApp.LessonEngine.getLessonByDay(day);
                 if (lesson) return lesson;
             }
-        } catch (e) {}
-
-         if (lesson) {
-            this._lesson = lesson;
-            
-            // 🔥 Season 5 Part 77: 记录 resume 状态
-            try {
-                var storage = window.LawAIApp && window.LawAIApp.StorageEngine;
-                if (storage && typeof storage.set === 'function') {
-                    storage.set('resume_lesson', {
-                        lessonId: lessonId,
-                        title: lesson.title || lessonId,
-                        savedAt: new Date().toISOString()
-                    });
-                }
-            } catch (e) {}
-            
-            this._renderContent(lesson);
-        } else {
-            this._renderNotFound(lessonId);
-        }
-    
+        } catch (e) {}  
         return null;
     },
 
