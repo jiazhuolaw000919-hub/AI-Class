@@ -170,12 +170,34 @@ LawAIApp.CourseGenerator = {
 
     _extractText: function(result) {
         if (!result) return '';
-        if (typeof result === 'string') return result;
-        if (result.text) return result.text;
-        if (result.content) return result.content;
-        if (result.response) return result.response;
-        if (result.message) return result.message;
-        return '';
+        var text = '';
+        if (typeof result === 'string') text = result;
+        else if (result.text) text = result.text;
+        else if (result.content) text = result.content;
+        else if (result.response) text = result.response;
+        else if (result.message) text = result.message;
+    
+        // 🔥 检测 mock
+        if (text && (
+            text.indexOf('AI response generated successfully') !== -1 ||
+            text.indexOf('placeholder') !== -1 ||
+            text.length < 10
+        )) {
+            return '';
+        }
+        return text;
+    },
+    
+    _isRealAIAvailable: async function() {
+        try {
+          var ai = LawAIApp.AILayer;
+          if (!ai || typeof ai.request !== 'function') return false;
+          var result = await ai.request('Reply with the single word: OK', { type: 'ping' });
+          var text = this._extractText(result);
+          return text.length > 0;
+        } catch (e) {
+          return false;
+        }
     },
 
     _generateLessonTitle: async function(topic, subjectTitle, num, level, ai) {
