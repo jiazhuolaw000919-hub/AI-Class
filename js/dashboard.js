@@ -4771,13 +4771,6 @@ _renderRecommendationCard: function(rec) {
             return '<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.12);border-radius:100px;"><span style="font-size:18px;">' + (a.icon || '🏆') + '</span><span style="font-size:12px;color:#e2e8f0;">' + (a.title || a.name || 'Achievement') + '</span></div>';
           }).join('')}
         </div>
-        ` : '        ${achievements.length > 0 ? `
-        <h2 style="font-size:14px;color:#94a3b8;margin:0 0 12px;">🏆 Achievements</h2>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;">
-          ${achievements.map(function(a) {
-            return '<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.12);border-radius:100px;"><span style="font-size:18px;">' + (a.icon || '🏆') + '</span><span style="font-size:12px;color:#e2e8f0;">' + (a.title || a.name || 'Achievement') + '</span></div>';
-          }).join('')}
-        </div>
         ` : '<p style="color:#64748b;font-size:13px;text-align:center;padding:20px;">Your first achievement is waiting. Start learning to earn one.</p>'}
 
         ${this._getRewards().length > 0 ? `
