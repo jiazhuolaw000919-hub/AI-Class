@@ -1001,13 +1001,56 @@ LawAIApp.Dashboard = {
     return { level: 1, currentLevelXP: 0, nextLevelXP: 100 };
   },
 
+  // ============================================================
+  // 🔥 Bible Part 51: 从 AchievementEngine 读 id，翻译成 UI 对象
+  // AchievementEngine 是权威，Dashboard 只显示
+  // ============================================================
   _getAchievements: function() {
     try {
-      if (LawAIApp.AchievementEngine && typeof LawAIApp.AchievementEngine.getUnlocked === 'function') {
-        return LawAIApp.AchievementEngine.getUnlocked();
+      var engine = LawAIApp.AchievementEngine;
+      if (!engine) return [];
+
+      // 1. 触发检查（让引擎更新解锁状态）
+      if (typeof engine.checkAll === 'function') {
+        try { engine.checkAll(); } catch (e) {}
       }
-    } catch (e) {}
-    return [];
+
+      // 2. 拿解锁的 id 列表
+      var unlockedIds = [];
+      if (typeof engine.getUnlocked === 'function') {
+        unlockedIds = engine.getUnlocked() || [];
+      }
+
+      // 3. 从 engine.achievements 里找到定义，翻译成 UI 对象
+      var defs = engine.achievements || [];
+      var defMap = {};
+      defs.forEach(function(d) { defMap[d.id] = d; });
+
+      var ICON_MAP = {
+        first_lesson: '📖',
+        streak_7: '🔥',
+        streak_30: '⚡',
+        lessons_100: '💯',
+        lessons_365: '🏆',
+        prompt_master: '✏️',
+        coding_master: '💻',
+        api_master: '🔌'
+      };
+
+      return unlockedIds.map(function(id) {
+        var def = defMap[id] || { id: id, name: id, desc: '' };
+        return {
+          id: id,
+          icon: ICON_MAP[id] || '🏆',
+          title: def.name || id,
+          desc: def.desc || '',
+          earnedAt: null  // engine 不存时间，可扩展
+        };
+      });
+    } catch (e) {
+      console.warn('[Dashboard] _getAchievements failed:', e);
+      return [];
+    }
   },
 
   // ============================================================
@@ -4660,7 +4703,15 @@ _renderRecommendationCard: function(rec) {
         <button onclick="LawAIApp.Dashboard._lastRenderAt=0;LawAIApp.Dashboard.forceRender();" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>
 
         <div style="display:flex;align-items:center;gap:20px;margin-bottom:24px;padding:24px;background:linear-gradient(135deg,rgba(74,158,255,0.08),rgba(124,58,237,0.05));border-radius:16px;border:1px solid rgba(74,158,255,0.12);">
-          <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#4a9eff,#7c3aed);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:32px;color:white;">${userName.charAt(0).toUpperCase()}</div>
+          <div style="flex-shrink:0;">
+            <div style="
+              width:80px;height:80px;border-radius:50%;
+              background:linear-gradient(135deg,#4a9eff,#7c3aed);
+              display:flex;align-items:center;justify-content:center;
+              font-weight:700;font-size:32px;color:white;
+              ${(LawAIApp.AvatarEngine && LawAIApp.AvatarEngine.getBorderStyle) ? LawAIApp.AvatarEngine.getBorderStyle() : ''}
+            ">${userName.charAt(0).toUpperCase()}</div>
+          </div>
           <div style="flex:1;">
             <h1 style="margin:0 0 4px;font-size:24px;font-weight:700;">${userName}</h1>
             <div style="font-size:13px;color:#94a3b8;">Level ${level.level || 1} · ${progress.xp || 0} XP · 🔥 ${streak.currentStreak || 0}d streak</div>
@@ -4720,7 +4771,27 @@ _renderRecommendationCard: function(rec) {
             return '<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.12);border-radius:100px;"><span style="font-size:18px;">' + (a.icon || '🏆') + '</span><span style="font-size:12px;color:#e2e8f0;">' + (a.title || a.name || 'Achievement') + '</span></div>';
           }).join('')}
         </div>
+        ` : '        ${achievements.length > 0 ? `
+        <h2 style="font-size:14px;color:#94a3b8;margin:0 0 12px;">🏆 Achievements</h2>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          ${achievements.map(function(a) {
+            return '<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.12);border-radius:100px;"><span style="font-size:18px;">' + (a.icon || '🏆') + '</span><span style="font-size:12px;color:#e2e8f0;">' + (a.title || a.name || 'Achievement') + '</span></div>';
+          }).join('')}
+        </div>
         ` : '<p style="color:#64748b;font-size:13px;text-align:center;padding:20px;">Your first achievement is waiting. Start learning to earn one.</p>'}
+
+        ${this._getRewards().length > 0 ? `
+        <h2 style="font-size:14px;color:#94a3b8;margin:24px 0 12px;">🎁 Rewards</h2>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          ${this._getRewards().map(function(r) {
+            return '<div title="' + r.desc + '" style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.12);border-radius:100px;"><span style="font-size:14px;">' + (r.type === 'avatar_frame' ? '🖼️' : r.type === 'theme' ? '🎨' : '🏅') + '</span><span style="font-size:12px;color:#e2e8f0;">' + r.title + '</span></div>';
+          }).join('')}
+        </div>
+        ` : ''}
+
+        ${this._renderAvatarEditor ? this._renderAvatarEditor() : ''}
+      </div>
+    `;
       </div>
     `;
   },
@@ -4815,15 +4886,22 @@ _renderRecommendationCard: function(rec) {
   },
 
   // ============================================================
-  // 🔥 Bible Part 52: Avatar frame (from rewards)
+  // 🔥 Bible Part 52: Avatar frame — 优先用 AvatarEngine
   // ============================================================
   _getAvatarFrameStyle: function() {
     try {
+      // 优先：AvatarEngine 的 border
+      var av = LawAIApp.AvatarEngine;
+      if (av && typeof av.getBorderStyle === 'function') {
+        var style = av.getBorderStyle();
+        if (style) return style;
+      }
+
+      // Fallback: 从 rewards 推导
       var rewards = this._getRewards();
       var frames = rewards.filter(function(r) { return r.type === 'avatar_frame'; });
       if (frames.length === 0) return '';
 
-      // 最高优先 streak_30 > streak_7
       var has30 = frames.some(function(f) { return f.id === 'streak_30'; });
       var has7 = frames.some(function(f) { return f.id === 'streak_7'; });
 
@@ -4932,6 +5010,64 @@ _renderRecommendationCard: function(rec) {
     }
   },
 
+  // ============================================================
+  // 🔥 Bible Part 52: Rewards 从成就推导
+  // ============================================================
+  _REWARDS_DEF: {
+    'first_lesson': { type: 'badge', id: 'starter', title: '🎯 Starter', desc: 'First lesson badge' },
+    'lessons_100': { type: 'theme', id: 'century', title: '💯 Century Theme', desc: 'Dashboard theme for 100 lessons' },
+    'prompt_master': { type: 'badge', id: 'prompt_master', title: '✏️ Prompt Master', desc: 'Prompt Engineering master badge' },
+    'coding_master': { type: 'badge', id: 'coding_master', title: '💻 Coding Master', desc: 'Coding master badge' },
+    'api_master': { type: 'badge', id: 'api_master', title: '🔌 API Master', desc: 'API master badge' }
+  },
+
+  _getRewards: function() {
+    try {
+      var engine = LawAIApp.AchievementEngine;
+      if (!engine || typeof engine.getUnlocked !== 'function') return [];
+
+      var unlockedIds = engine.getUnlocked() || [];
+      var rewards = [];
+
+      unlockedIds.forEach(function(id) {
+        if (this._REWARDS_DEF[id]) {
+          rewards.push(Object.assign({}, this._REWARDS_DEF[id], { unlockedBy: id }));
+        }
+      }.bind(this));
+
+      return rewards;
+    } catch (e) { return []; }
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 52: Avatar frame (from rewards)
+  // ============================================================
+  _getAvatarFrameStyle: function() {
+    try {
+      var rewards = this._getRewards();
+      var frames = rewards.filter(function(r) { return r.type === 'avatar_frame'; });
+      if (frames.length === 0) return '';
+
+      var has30 = frames.some(function(f) { return f.id === 'streak_30'; });
+      var has7 = frames.some(function(f) { return f.id === 'streak_7'; });
+
+      if (has30) return 'box-shadow:0 0 0 3px #f59e0b, 0 0 12px rgba(245,158,11,0.4);';
+      if (has7) return 'box-shadow:0 0 0 3px #ef4444, 0 0 12px rgba(239,68,68,0.4);';
+      return '';
+    } catch (e) { return ''; }
+  },
+
+  _setAvatarBorder: function(border) {
+    try {
+      var av = LawAIApp.AvatarEngine;
+      if (!av || typeof av.updateAvatar !== 'function') return;
+      av.updateAvatar('border', border);
+      this._lastRenderAt = 0;
+      this._renderProfilePanel();  // 重绘 Profile
+      if (LawAIApp.Toast?.success) LawAIApp.Toast.success('🎨 Avatar updated');
+    } catch (e) {}
+  },
+
   refresh: function() {
     if (!this._rendered) {
       this.render();
@@ -5000,6 +5136,25 @@ document.addEventListener('S5_READY', function() {
   // 笔记创建 → 刷新（Reflection / 其他）
   document.addEventListener('NOTE_CREATED', function() {
     setTimeout(refreshDashboard, 500);
+  });
+
+  // 🔥 Bible Part 51: Lesson 完成 → 触发成就检查
+  document.addEventListener('LESSON_COMPLETED', function() {
+    try {
+      if (window.LawAIApp && window.LawAIApp.AchievementEngine && typeof window.LawAIApp.AchievementEngine.checkAll === 'function') {
+        window.LawAIApp.AchievementEngine.checkAll();
+      }
+    } catch (e) {}
+    setTimeout(refreshDashboard, 500);
+  });
+
+  // 🔥 Bible Part 51: Practice 完成 → 也触发
+  document.addEventListener('PracticeCompleted', function() {
+    try {
+      if (window.LawAIApp && window.LawAIApp.AchievementEngine && typeof window.LawAIApp.AchievementEngine.checkAll === 'function') {
+        window.LawAIApp.AchievementEngine.checkAll();
+      }
+    } catch (e) {}
   });
 
   console.log('[Dashboard] ✅ Refresh listeners attached');
