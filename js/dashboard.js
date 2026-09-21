@@ -2169,6 +2169,7 @@ LawAIApp.Dashboard = {
         { icon: '🔍', label: 'Search', action: 'search' },
         { icon: '📅', label: 'Calendar', action: 'calendar' },
         { icon: '📓', label: 'Notes', action: 'notes' },
+        { icon: '✨', label: 'Add More', action: 'generate' },
         { icon: '⚙️', label: 'Settings', action: 'settings' }
       ].map(function(btn) {
         var onClick;
@@ -2178,6 +2179,8 @@ LawAIApp.Dashboard = {
           onClick = "LawAIApp.Dashboard._renderFlashcardView()";
         } else if (btn.action === 'aitools') {
           onClick = "LawAIApp.Dashboard._renderAIToolsView()";
+        } else if (btn.action === 'generate') {
+          onClick = "LawAIApp.Dashboard._renderCourseGeneratorView()";
         } else if (btn.action === 'knowledge') {
           onClick = "LawAIApp.Dashboard._renderKnowledgeGraphView()";
         } else if (btn.action === 'search') {
@@ -4561,6 +4564,490 @@ _renderRecommendationCard: function(rec) {
 
     // 🔥 绑定事件
     this._bindAIToolsEvents();
+  },
+
+    // ============================================================
+  // 🔥 Bible Part 25-29: AI Course Generator
+  // 5 步 Pipeline: GENERATE → VALIDATE → PREVIEW → ACCEPT → PUBLISH
+  // ============================================================
+  _renderCourseGeneratorView: function() {
+    var container = document.getElementById('app') || document.getElementById('law-runtime-root');
+    if (!container) return;
+
+    // 恢复上次填的表单
+    var form = {};
+    try {
+      form = LawAIApp.StorageEngine.get('course_gen_form', {}) || {};
+    } catch (e) {}
+
+    container.innerHTML = `
+      <div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:'Inter',-apple-system,sans-serif;">
+        <button onclick="LawAIApp.Dashboard._lastRenderAt=0;LawAIApp.Dashboard.forceRender();" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back</button>
+
+        <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">✨ Create a Course</h2>
+        <p style="color:#94a3b8;margin:0 0 24px;">Tell the Academy what you want to learn. It will generate a course for you to review before accepting.</p>
+
+        <div style="background:rgba(74,158,255,0.03);border:1px solid rgba(74,158,255,0.08);border-radius:12px;padding:20px;margin-bottom:24px;">
+
+          <label style="display:block;margin-bottom:16px;">
+            <span style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px;">Topic *</span>
+            <input id="gen-topic" type="text" value="${form.topic || ''}" placeholder="e.g., Python for Data Science" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;font-size:14px;font-family:inherit;box-sizing:border-box;">
+          </label>
+
+          <label style="display:block;margin-bottom:16px;">
+            <span style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px;">Your Goal</span>
+            <textarea id="gen-goal" placeholder="e.g., I want to be able to analyze datasets with pandas and visualize insights" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;font-size:13px;font-family:inherit;box-sizing:border-box;min-height:60px;resize:vertical;">${form.goal || ''}</textarea>
+          </label>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+            <label>
+              <span style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px;">Current Level</span>
+              <select id="gen-level" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;font-size:13px;font-family:inherit;box-sizing:border-box;">
+                <option value="beginner" ${form.level === 'beginner' ? 'selected' : ''}>Beginner</option>
+                <option value="intermediate" ${form.level === 'intermediate' ? 'selected' : ''}>Intermediate</option>
+                <option value="advanced" ${form.level === 'advanced' ? 'selected' : ''}>Advanced</option>
+              </select>
+            </label>
+
+            <label>
+              <span style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px;">Time per Day</span>
+              <select id="gen-time" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;font-size:13px;font-family:inherit;box-sizing:border-box;">
+                <option value="15" ${form.time === '15' ? 'selected' : ''}>15 min</option>
+                <option value="30" ${form.time === '30' || !form.time ? 'selected' : ''}>30 min</option>
+                <option value="60" ${form.time === '60' ? 'selected' : ''}>60 min</option>
+                <option value="90" ${form.time === '90' ? 'selected' : ''}>90 min</option>
+              </select>
+            </label>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+            <label>
+              <span style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px;">Desired Depth</span>
+              <select id="gen-depth" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;font-size:13px;font-family:inherit;box-sizing:border-box;">
+                <option value="overview" ${form.depth === 'overview' ? 'selected' : ''}>Overview</option>
+                <option value="practical" ${form.depth === 'practical' || !form.depth ? 'selected' : ''}>Practical</option>
+                <option value="deep" ${form.depth === 'deep' ? 'selected' : ''}>Deep dive</option>
+              </select>
+            </label>
+
+            <label>
+              <span style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px;">Practice Preference</span>
+              <select id="gen-practice" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;font-size:13px;font-family:inherit;box-sizing:border-box;">
+                <option value="light" ${form.practice === 'light' ? 'selected' : ''}>Light</option>
+                <option value="balanced" ${form.practice === 'balanced' || !form.practice ? 'selected' : ''}>Balanced</option>
+                <option value="intensive" ${form.practice === 'intensive' ? 'selected' : ''}>Intensive</option>
+              </select>
+            </label>
+          </div>
+
+          <label style="display:block;margin-bottom:16px;">
+            <span style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px;">Preferred AI (optional)</span>
+            <select id="gen-ai" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;color:#e2e8f0;font-size:13px;font-family:inherit;box-sizing:border-box;">
+              <option value="">Auto</option>
+              <option value="claude">Claude</option>
+              <option value="gpt-4">GPT-4</option>
+              <option value="gemini">Gemini</option>
+            </select>
+          </label>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button id="gen-generate-btn" style="padding:12px 28px;background:linear-gradient(135deg,#4a9eff,#6366f1);border:none;border-radius:100px;color:white;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">
+              ✨ Generate Course
+            </button>
+            <button id="gen-cancel-btn" style="padding:12px 24px;background:transparent;border:1px solid rgba(255,255,255,0.08);border-radius:100px;color:#94a3b8;font-size:13px;cursor:pointer;font-family:inherit;">
+              Cancel
+            </button>
+          </div>
+        </div>
+
+        <div id="gen-preview-area"></div>
+      </div>
+    `;
+
+    this._bindCourseGeneratorEvents();
+  },
+
+  // ============================================================
+  // 🔥 事件绑定
+  // ============================================================
+  _bindCourseGeneratorEvents: function() {
+    var self = this;
+
+    var genBtn = document.getElementById('gen-generate-btn');
+    if (genBtn) {
+      genBtn.addEventListener('click', function() {
+        self._handleGenerateCourse();
+      });
+    }
+
+    var cancelBtn = document.getElementById('gen-cancel-btn');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', function() {
+        LawAIApp.Dashboard._lastRenderAt = 0;
+        LawAIApp.Dashboard.forceRender();
+      });
+    }
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 25-29: 生成 + Validation Pipeline
+  // ============================================================
+  _handleGenerateCourse: function() {
+    var topic = (document.getElementById('gen-topic')?.value || '').trim();
+    if (!topic) {
+      if (LawAIApp.Toast?.info) LawAIApp.Toast.info('Please enter a topic');
+      return;
+    }
+
+    var form = {
+      topic: topic,
+      goal: (document.getElementById('gen-goal')?.value || '').trim(),
+      level: document.getElementById('gen-level')?.value || 'beginner',
+      time: document.getElementById('gen-time')?.value || '30',
+      depth: document.getElementById('gen-depth')?.value || 'practical',
+      practice: document.getElementById('gen-practice')?.value || 'balanced',
+      ai: document.getElementById('gen-ai')?.value || ''
+    };
+
+    // 保存表单（Bible Part 24：不存临时 intent 为长期偏好，但存表单草稿可以）
+    try { LawAIApp.StorageEngine.set('course_gen_form', form); } catch (e) {}
+
+    var previewArea = document.getElementById('gen-preview-area');
+    if (!previewArea) return;
+
+    // 显示 loading
+    previewArea.innerHTML = `
+      <div style="text-align:center;padding:40px;color:#94a3b8;">
+        <div style="font-size:32px;margin-bottom:12px;">⏳</div>
+        <div style="font-size:14px;">Generating course structure...</div>
+        <div style="font-size:11px;margin-top:8px;opacity:0.7;">This may take a moment</div>
+      </div>
+    `;
+
+    // 🔥 调用 Generator
+    var self = this;
+    setTimeout(function() {
+      try {
+        var course = self._generateCourseStub(form);
+        var validation = self._validateGeneratedCourse(course);
+        self._renderGeneratedCoursePreview(course, validation, form);
+      } catch (e) {
+        console.error('[CourseGenerator] Failed:', e);
+        previewArea.innerHTML = '<div style="padding:20px;color:#ef4444;">Failed to generate: ' + e.message + '</div>';
+      }
+    }, 800);
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 36: Generate Stub（等 AI 接上后替换）
+  // ⚠️ 这是 stub，不是真 AI 生成
+  // 正式版应该调用 ProviderRouter / AILayer
+  // ============================================================
+  _generateCourseStub: function(form) {
+    // 🔥 尝试用真实 Generator
+    try {
+      var gen = LawAIApp.CourseGenerator || LawAIApp.curriculumGenerator;
+      if (gen && typeof gen.generate === 'function') {
+        // 如果有真实生成器，调它
+        var result = gen.generate(form);
+        if (result) return result;
+      }
+    } catch (e) {
+      console.warn('[CourseGenerator] Real generator unavailable, using stub:', e);
+    }
+
+    // 🔥 Stub：返回模板结构（明确标注 generated 类型）
+    var topic = form.topic;
+    var subjects = this._generateSubjectsStub(topic, form);
+
+    return {
+      id: 'generated_' + Date.now(),
+      type: 'GENERATED',  // Bible Part 37：区分 generated 和 curated
+      title: topic,
+      description: 'AI-generated course on ' + topic,
+      goal: form.goal,
+      level: form.level,
+      timePerDay: parseInt(form.time),
+      depth: form.depth,
+      practicePreference: form.practice,
+      generatedAt: new Date().toISOString(),
+      generatedBy: form.ai || 'auto',
+      isPreview: true,  // Bible Part 26：未接受的不是正式课程
+      subjects: subjects
+    };
+  },
+
+  _generateSubjectsStub: function(topic, form) {
+    // 按 depth 生成不同的 subject 数量
+    var subjectCount = form.depth === 'overview' ? 2 : (form.depth === 'deep' ? 5 : 3);
+    var subjects = [];
+    for (var i = 0; i < subjectCount; i++) {
+      subjects.push({
+        id: 'subject_' + Date.now() + '_' + i,
+        title: topic + ' - Part ' + (i + 1),
+        description: 'Generated subject for ' + topic,
+        lessons: this._generateLessonsStub(topic, i, form)
+      });
+    }
+    return subjects;
+  },
+
+  _generateLessonsStub: function(topic, subjectIdx, form) {
+    var lessonCount = form.depth === 'overview' ? 2 : (form.depth === 'deep' ? 5 : 3);
+    var lessons = [];
+    for (var i = 0; i < lessonCount; i++) {
+      lessons.push({
+        id: 'lesson_' + Date.now() + '_' + subjectIdx + '_' + i,
+        title: topic + ' - Lesson ' + (i + 1),
+        content: '(Content to be generated by AI)',
+        estimatedMinutes: parseInt(form.time) || 30
+      });
+    }
+    return lessons;
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 27: Validation Pipeline
+  // STRUCTURE → CONTENT → DUPLICATE → SAFETY
+  // ============================================================
+  _validateGeneratedCourse: function(course) {
+    var results = {
+      structure: { pass: true, issues: [] },
+      content: { pass: true, issues: [] },
+      duplicate: { pass: true, issues: [] },
+      safety: { pass: true, issues: [] },
+      allPass: true
+    };
+
+    // 1. Structure Check
+    if (!course.title || course.title.length < 3) {
+      results.structure.pass = false;
+      results.structure.issues.push('Title too short');
+    }
+    if (!course.subjects || course.subjects.length === 0) {
+      results.structure.pass = false;
+      results.structure.issues.push('No subjects');
+    } else {
+      course.subjects.forEach(function(s, idx) {
+        if (!s.title) {
+          results.structure.issues.push('Subject ' + (idx + 1) + ' missing title');
+          results.structure.pass = false;
+        }
+        if (!s.lessons || s.lessons.length === 0) {
+          results.structure.issues.push('Subject ' + (idx + 1) + ' missing lessons');
+          results.structure.pass = false;
+        }
+      });
+    }
+
+    // 2. Content Check
+    if (course.description && course.description.length < 10) {
+      results.content.pass = false;
+      results.content.issues.push('Description too short');
+    }
+    // 检查每课内容长度
+    if (course.subjects) {
+      course.subjects.forEach(function(s) {
+        if (s.lessons) {
+          s.lessons.forEach(function(l) {
+            if (!l.content || l.content.length < 20) {
+              results.content.issues.push('Lesson "' + l.title + '" has minimal content');
+              // 不标 fail，只是 warn
+            }
+          });
+        }
+      });
+    }
+
+    // 3. Duplicate Check
+    try {
+      var existing = [];
+      var storage = LawAIApp.StorageEngine;
+      if (storage) existing = storage.get('generated_courses', []) || [];
+      existing.forEach(function(existingCourse) {
+        if (existingCourse.title && existingCourse.title.toLowerCase() === course.title.toLowerCase()) {
+          results.duplicate.pass = false;
+          results.duplicate.issues.push('Course with same title already exists');
+        }
+      });
+    } catch (e) {}
+
+    // 4. Safety Check（Bible Part 27 提到 safety，但我们不做道德判断）
+    // 只检查是否包含危险信号
+    var dangerWords = ['hack', 'exploit', 'illegal', 'bypass security', 'steal'];
+    var courseText = JSON.stringify(course).toLowerCase();
+    dangerWords.forEach(function(w) {
+      if (courseText.indexOf(w) !== -1) {
+        results.safety.pass = false;
+        results.safety.issues.push('Contains potential unsafe content: "' + w + '"');
+      }
+    });
+
+    // 综合
+    results.allPass = results.structure.pass && results.content.pass && results.duplicate.pass && results.safety.pass;
+
+    return results;
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 26: Preview
+  // ============================================================
+  _renderGeneratedCoursePreview: function(course, validation, form) {
+    var previewArea = document.getElementById('gen-preview-area');
+    if (!previewArea) return;
+
+    var statusColor = validation.allPass ? '#22c55e' : '#f59e0b';
+    var statusIcon = validation.allPass ? '✅' : '⚠️';
+    var statusText = validation.allPass ? 'Ready to accept' : 'Needs review';
+
+    previewArea.innerHTML = `
+      <div style="background:rgba(139,92,246,0.03);border:1px solid rgba(139,92,246,0.1);border-radius:12px;padding:20px;margin-top:20px;">
+
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-size:11px;color:#8b5cf6;font-weight:500;letter-spacing:0.5px;margin-bottom:4px;">AI-GENERATED · PREVIEW</div>
+            <h3 style="margin:0;font-size:20px;font-weight:600;">${course.title}</h3>
+          </div>
+          <div style="padding:6px 14px;background:${validation.allPass ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)'};border:1px solid ${validation.allPass ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.15)'};border-radius:100px;font-size:11px;color:${statusColor};">
+            ${statusIcon} ${statusText}
+          </div>
+        </div>
+
+        <p style="font-size:13px;color:#94a3b8;margin:0 0 20px;line-height:1.5;">${course.description}</p>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:20px;">
+          <div style="background:rgba(255,255,255,0.02);border-radius:8px;padding:10px 12px;">
+            <div style="font-size:10px;color:#64748b;">Level</div>
+            <div style="font-size:14px;color:#e2e8f0;font-weight:500;margin-top:2px;">${course.level}</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.02);border-radius:8px;padding:10px 12px;">
+            <div style="font-size:10px;color:#64748b;">Time/Day</div>
+            <div style="font-size:14px;color:#e2e8f0;font-weight:500;margin-top:2px;">${course.timePerDay} min</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.02);border-radius:8px;padding:10px 12px;">
+            <div style="font-size:10px;color:#64748b;">Subjects</div>
+            <div style="font-size:14px;color:#e2e8f0;font-weight:500;margin-top:2px;">${course.subjects.length}</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.02);border-radius:8px;padding:10px 12px;">
+            <div style="font-size:10px;color:#64748b;">Lessons</div>
+            <div style="font-size:14px;color:#e2e8f0;font-weight:500;margin-top:2px;">${this._countLessons(course)}</div>
+          </div>
+        </div>
+
+        <!-- Validation Results -->
+        <div style="background:rgba(255,255,255,0.02);border-radius:10px;padding:14px 16px;margin-bottom:20px;">
+          <div style="font-size:11px;color:#64748b;letter-spacing:0.5px;margin-bottom:10px;">VALIDATION</div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+            <div style="display:flex;align-items:center;gap:8px;color:${validation.structure.pass ? '#22c55e' : '#f59e0b'};">
+              ${validation.structure.pass ? '✅' : '⚠️'} Structure
+              ${validation.structure.issues.length > 0 ? '<span style="color:#94a3b8;font-size:11px;">— ' + validation.structure.issues.join(', ') + '</span>' : ''}
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;color:${validation.content.pass ? '#22c55e' : '#f59e0b'};">
+              ${validation.content.pass ? '✅' : '⚠️'} Content
+              ${validation.content.issues.length > 0 ? '<span style="color:#94a3b8;font-size:11px;">— ' + validation.content.issues.slice(0, 2).join(', ') + '</span>' : ''}
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;color:${validation.duplicate.pass ? '#22c55e' : '#ef4444'};">
+              ${validation.duplicate.pass ? '✅' : '❌'} Duplicate check
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;color:${validation.safety.pass ? '#22c55e' : '#ef4444'};">
+              ${validation.safety.pass ? '✅' : '❌'} Safety check
+            </div>
+          </div>
+        </div>
+
+        <!-- Course Structure -->
+        <div style="margin-bottom:20px;">
+          <div style="font-size:11px;color:#64748b;letter-spacing:0.5px;margin-bottom:10px;">COURSE STRUCTURE</div>
+          ${course.subjects.map(function(s, si) {
+            return '<div style="background:rgba(255,255,255,0.02);border-radius:8px;padding:10px 14px;margin-bottom:6px;">' +
+              '<div style="font-size:12px;color:#e2e8f0;font-weight:500;">📚 ' + (si + 1) + '. ' + s.title + '</div>' +
+              '<div style="font-size:11px;color:#94a3b8;margin-top:4px;padding-left:16px;">' + s.lessons.length + ' lesson(s)</div>' +
+            '</div>';
+          }).join('')}
+        </div>
+
+        <div style="font-size:11px;color:#64748b;line-height:1.5;padding:12px;background:rgba(245,158,11,0.04);border-radius:8px;border-left:2px solid rgba(245,158,11,0.3);margin-bottom:16px;">
+          ⚠️ This is an AI-generated course. It will be added to your personal learning space, not to the official Academy curriculum.
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button id="gen-accept-btn" style="padding:10px 24px;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;border-radius:100px;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;" ${validation.allPass ? '' : 'disabled style="opacity:0.5;cursor:not-allowed;"'}>
+            ✅ Accept & Add to My Learning
+          </button>
+          <button id="gen-reject-btn" style="padding:10px 24px;background:transparent;border:1px solid rgba(255,255,255,0.08);border-radius:100px;color:#94a3b8;font-size:13px;cursor:pointer;font-family:inherit;">
+            ✕ Reject
+          </button>
+        </div>
+      </div>
+    `;
+
+    this._bindCoursePreviewEvents(course, validation);
+  },
+
+  _countLessons: function(course) {
+    var count = 0;
+    if (course.subjects) {
+      course.subjects.forEach(function(s) {
+        count += (s.lessons || []).length;
+      });
+    }
+    return count;
+  },
+
+  _bindCoursePreviewEvents: function(course, validation) {
+    var self = this;
+
+    var acceptBtn = document.getElementById('gen-accept-btn');
+    if (acceptBtn) {
+      acceptBtn.addEventListener('click', function() {
+        if (!validation.allPass) return;
+        self._acceptGeneratedCourse(course);
+      });
+    }
+
+    var rejectBtn = document.getElementById('gen-reject-btn');
+    if (rejectBtn) {
+      rejectBtn.addEventListener('click', function() {
+        if (LawAIApp.Toast?.info) LawAIApp.Toast.info('Course rejected');
+        var previewArea = document.getElementById('gen-preview-area');
+        if (previewArea) previewArea.innerHTML = '';
+      });
+    }
+  },
+
+  // ============================================================
+  // 🔥 Bible Part 29: Accept & Publish
+  // ============================================================
+  _acceptGeneratedCourse: function(course) {
+    try {
+      var storage = LawAIApp.StorageEngine;
+      if (!storage) return;
+
+      // 1. 移除 preview 标记
+      course.isPreview = false;
+      course.acceptedAt = new Date().toISOString();
+
+      // 2. 加到 personal generated courses
+      var existing = storage.get('generated_courses', []) || [];
+      existing.push(course);
+      storage.set('generated_courses', existing);
+
+      // 3. 通知学习者
+      if (LawAIApp.Toast?.success) {
+        LawAIApp.Toast.success('✅ Course added to your learning space');
+      }
+
+      // 4. 跳回 Dashboard
+      setTimeout(function() {
+        LawAIApp.Dashboard._lastRenderAt = 0;
+        LawAIApp.Dashboard.forceRender();
+      }, 800);
+
+      console.log('[CourseGenerator] ✅ Course accepted:', course.id);
+    } catch (e) {
+      console.error('[CourseGenerator] Accept failed:', e);
+      if (LawAIApp.Toast?.error) LawAIApp.Toast.error('Failed to save course');
+    }
   },
 
   // ============================================================
