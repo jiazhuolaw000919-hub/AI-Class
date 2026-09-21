@@ -10,7 +10,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + key;
+    var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key;
 
     var r = await fetch(url, {
       method: 'POST',
