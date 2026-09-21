@@ -2454,7 +2454,7 @@ LawAIApp.Dashboard = {
       <!-- 🔄 LEARNING LOOP (Part 74 + Part 178: 折叠) -->
       ${this._renderLearningLoopCollapsed()}
 
-      !-- 📰 AI NEWS (Bible Part 40) -->
+      <!-- 📰 AI NEWS (Bible Part 40) -->
       ${this._renderNews()}
 
       <!-- 📓 NOTES PREVIEW (Part 178: 替代 Continuity) -->
