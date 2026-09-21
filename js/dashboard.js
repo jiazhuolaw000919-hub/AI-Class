@@ -4744,8 +4744,7 @@ _renderRecommendationCard: function(rec) {
     try {
       var gen = LawAIApp.CourseGenerator;
       if (gen && typeof gen.generate === 'function') {
-        // 你的 generate 是 async，等它返回
-        var result = await gen.generate(form.topic, form.level, form);
+        var result = await gen.generate(form);   // 🔥 传整个 form，不拆参数
         if (result) {
           console.log('[CourseGenerator] Using real generator');
           return result;
