@@ -108,7 +108,8 @@
         RESOURCE: 'RESOURCE',
         COURSE: 'COURSE',
         PROJECT: 'PROJECT',
-        ASSESSMENT: 'ASSESSMENT'
+        ASSESSMENT: 'ASSESSMENT',
+        SCHOOL: 'SCHOOL'
     };
 
     // ============================================================
@@ -895,15 +896,25 @@
                         id: 'course:' + course.id,
                         type: this.NODE_TYPES.COURSE,
                         label: course.title || course.name || course.id,
-                        sourceType: 'course',
-                        sourceId: course.id,
-                        provenance: {
-                            sourceSystem: 'academy',
-                            sourceType: 'course',
-                            sourceId: course.id
-                        }
+                        ...
                     });
                     report.entitiesCreated++;
+                
+                    // 🔥 新增：School → PART_OF → Course
+                    var schoolRel = this._upsertRelationship({
+                        from: 'school:' + school.id,
+                        to: 'course:' + course.id,
+                        type: this.RELATION_TYPES.PART_OF,
+                        weight: 1,
+                        confidence: 1.0,
+                        source: 'academy',
+                        provenance: {
+                            sourceSystem: 'academy',
+                            sourceType: 'hierarchy',
+                            sourceId: school.id + '→' + course.id
+                        }
+                    });
+                    if (schoolRel) report.relationshipsCreated++;
 
                     // 🔥 Course → Subject（跳过 Module 层）
                     var subjects = this._getSubjectsByModule(course.id);
