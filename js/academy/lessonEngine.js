@@ -106,57 +106,66 @@ LawAIApp.LessonEngine = {
      * @returns {Array} Array of lesson objects
      */
     getAllLessons: function() {
-        // 1. 优先从 ContentRegistry 读
-        try {
-            var contentRegistry = LawAIApp.ContentRegistry;
-            if (contentRegistry) {
-                var realLessons = null;
-                if (typeof contentRegistry.getAllLessons === 'function') {
-                    realLessons = contentRegistry.getAllLessons();
-                } else if (contentRegistry.lessons && Array.isArray(contentRegistry.lessons)) {
-                    realLessons = contentRegistry.lessons;
+      // 1. 优先从 SubjectRegistry 读
+      try {
+        var sr = LawAIApp.SubjectRegistry;
+        if (sr && typeof sr.getAllSubjects === 'function') {
+          var subjects = sr.getAllSubjects() || [];
+          var collected = [];
+          subjects.forEach(function(subj) {
+            // 🔥 从这个 subject 的 title 生成 skill tags
+            var subjectTags = [];
+            if (subj.title) {
+              // title 拆词 + 小写
+              var titleLower = String(subj.title).toLowerCase();
+              subjectTags.push(titleLower);
+    
+              // 也加 subject id 的最后一段
+              var idParts = String(subj.id).split('-');
+              if (idParts.length > 2) {
+                var lastPart = idParts.slice(2).join(' ');
+                if (lastPart) subjectTags.push(lastPart);
+              }
+    
+              // 也加 title 拆词（>2 字符）
+              String(subj.title).split(/\s+/).forEach(function(w) {
+                var wLower = w.toLowerCase();
+                if (wLower.length > 2 && subjectTags.indexOf(wLower) === -1) {
+                  subjectTags.push(wLower);
                 }
-                if (realLessons && realLessons.length > 0) {
-                    return realLessons;
-                }
+              });
             }
-        } catch (e) {
-            console.warn('[LessonEngine] ContentRegistry read failed:', e);
-        }
-
-        // 2. 从 SubjectRegistry 收集 lessons
-        try {
-            var subjectRegistry = LawAIApp.SubjectRegistry;
-            if (subjectRegistry && typeof subjectRegistry.getAllSubjects === 'function') {
-                var subjects = subjectRegistry.getAllSubjects() || [];
-                var collected = [];
-                subjects.forEach(function(subj) {
-                    (subj.lessons || []).forEach(function(l) {
-                        if (typeof l === 'string') {
-                            collected.push({ lessonId: l, id: l, title: l });
-                        } else if (l) {
-                            collected.push({
-                                lessonId: l.id || l.lessonId,
-                                id: l.id || l.lessonId,
-                                title: l.title || l.name || 'Untitled',
-                                tags: l.tags || [],
-                                subjectId: subj.id,
-                                courseId: subj.courseId
-                            });
-                        }
-                    });
+    
+            (subj.lessons || []).forEach(function(l) {
+              if (typeof l === 'string') {
+                collected.push({
+                  lessonId: l,
+                  id: l,
+                  title: l,
+                  tags: subjectTags.slice(),  // 🔥 从 subject 继承 tags
+                  subjectId: subj.id,
+                  subjectTitle: subj.title,
+                  courseId: subj.courseId
                 });
-                if (collected.length > 0) {
-                    return collected;
-                }
-            }
-        } catch (e) {
-            console.warn('[LessonEngine] SubjectRegistry read failed:', e);
+              } else if (l) {
+                collected.push({
+                  lessonId: l.id || l.lessonId,
+                  id: l.id || l.lessonId,
+                  title: l.title || l.name || 'Untitled',
+                  tags: (l.tags && l.tags.length > 0) ? l.tags : subjectTags.slice(),
+                  subjectId: subj.id,
+                  subjectTitle: subj.title,
+                  courseId: subj.courseId,
+                  difficulty: l.difficulty
+                });
+              }
+            });
+          });
+          if (collected.length > 0) return collected;
         }
-
-        // 3. Fallback: 旧的 generateAllLessons()
-        console.warn('[LessonEngine] No real lessons found, using fallback generator');
-        return this.generateAllLessons();
+      } catch (e) {}
+    
+      return this.generateAllLessons();
     },
     
     getLessonByDay: function(day) {
