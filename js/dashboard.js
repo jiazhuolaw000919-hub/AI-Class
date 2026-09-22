@@ -2951,10 +2951,16 @@ LawAIApp.Dashboard = {
   // ============================================================
   _renderContinuity: function() {
     var ctx = this._getContinuityContext();
-    <section>
-      <div>🧭 YOUR JOURNEY</div>
-      <div style="color:#64748b;">Your learning story will appear here as you begin.</div>
-    </section>
+
+    // 🔥 空态也显示
+    if (!ctx.hasRecentLearning && !ctx.hasReflection) {
+      return `
+        <section data-section="continuity" style="background:rgba(139,92,246,0.03);border:1px solid rgba(139,92,246,0.08);border-radius:16px;padding:14px 20px;margin-bottom:16px;">
+          <div style="font-size:11px;color:#8b5cf6;font-weight:500;letter-spacing:0.5px;margin-bottom:8px;">🧭 YOUR JOURNEY</div>
+          <div style="font-size:12px;color:#64748b;padding:4px 0;">Your learning story will appear here as you begin.</div>
+        </section>
+      `;
+    }
 
     var html = '<section data-section="continuity" style="background:rgba(139,92,246,0.03);border:1px solid rgba(139,92,246,0.08);border-radius:16px;padding:14px 20px;margin-bottom:16px;">';
     html += '<div style="font-size:11px;color:#8b5cf6;font-weight:500;letter-spacing:0.5px;margin-bottom:8px;">🧭 YOUR JOURNEY</div>';
@@ -2967,7 +2973,7 @@ LawAIApp.Dashboard = {
     if (ctx.hasReflection) {
       var r = ctx.recentReflections[0];
       var preview = (r.content || '').substring(0, 100);
-      html += '<div style="font-size:12px;color:#94a3b8;font-style:italic;padding:8px 12px;background:rgba(255,255,255,0.02);border-left:2px solid #8b5cf6;border-radius:6px;">“' + preview + '”</div>';
+      html += '<div style="font-size:12px;color:#94a3b8;font-style:italic;padding:8px 12px;background:rgba(255,255,255,0.02);border-left:2px solid #8b5cf6;border-radius:6px;">"' + preview + '"</div>';
     }
 
     html += '</section>';
@@ -2979,10 +2985,16 @@ LawAIApp.Dashboard = {
   // ============================================================
   _renderUpcoming: function() {
     var upcoming = this._getUpcomingSchedule();
-    <section>
-      <div>📅 UPCOMING</div>
-      <div style="color:#64748b;">Nothing scheduled yet.</div>
-    </section>
+
+    // 🔥 空态也显示
+    if (!upcoming || upcoming.length === 0) {
+      return `
+        <section data-section="upcoming" style="background:rgba(74,158,255,0.03);border:1px solid rgba(74,158,255,0.08);border-radius:16px;padding:14px 20px;margin-bottom:16px;">
+          <div style="font-size:11px;color:#4a9eff;font-weight:500;letter-spacing:0.5px;margin-bottom:8px;">📅 UPCOMING</div>
+          <div style="font-size:12px;color:#64748b;padding:4px 0;">Nothing scheduled yet.</div>
+        </section>
+      `;
+    }
 
     var html = '<section data-section="upcoming" style="background:rgba(74,158,255,0.03);border:1px solid rgba(74,158,255,0.08);border-radius:16px;padding:14px 20px;margin-bottom:16px;">';
     html += '<div style="font-size:11px;color:#4a9eff;font-weight:500;letter-spacing:0.5px;margin-bottom:8px;">📅 UPCOMING</div>';
