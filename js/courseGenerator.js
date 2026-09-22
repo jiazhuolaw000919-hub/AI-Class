@@ -193,18 +193,52 @@ LawAIApp.CourseGenerator = {
 
     _parseCourseJSON: function(text) {
         if (!text) return null;
+
         var cleaned = text.trim();
         cleaned = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '');
+
         var start = cleaned.indexOf('{');
         var end = cleaned.lastIndexOf('}');
-        if (start === -1 || end === -1 || end <= start) return null;
-        var jsonStr = cleaned.slice(start, end + 1);
+
+        if (start === -1) return null;
+
+        var jsonStr = (end > start) ? cleaned.slice(start, end + 1) : cleaned.slice(start);
+
+        // 🔥 尝试解析
         try {
             return JSON.parse(jsonStr);
         } catch (e) {
-            console.error('[CourseGenerator] JSON parse failed:', e.message);
-            console.error('[CourseGenerator] Raw (first 1000):', jsonStr.slice(0, 1000));
-            return null;
+            console.warn('[CourseGenerator] First parse failed:', e.message);
+            console.warn('[CourseGenerator] Attempting repair...');
+
+            // 🔥 修复 1: 如果被截断，尝试补全 JSON
+            var repaired = jsonStr;
+
+            // 数开闭括号
+            var openBraces = (repaired.match(/\{/g) || []).length;
+            var closeBraces = (repaired.match(/\}/g) || []).length;
+            var openBrackets = (repaired.match(/\[/g) || []).length;
+            var closeBrackets = (repaired.match(/\]/g) || []).length;
+
+            // 补全括号
+            while (closeBrackets < openBrackets) {
+                repaired += ']';
+                closeBrackets++;
+            }
+            while (closeBraces < openBraces) {
+                repaired += '}';
+                closeBraces++;
+            }
+
+            try {
+                var parsed = JSON.parse(repaired);
+                console.log('[CourseGenerator] ✅ Repaired JSON parsed successfully');
+                return parsed;
+            } catch (e2) {
+                console.error('[CourseGenerator] Repair also failed:', e2.message);
+                console.error('[CourseGenerator] Raw (first 2000):', jsonStr.slice(0, 2000));
+                return null;
+            }
         }
     },
 
