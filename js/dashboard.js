@@ -5654,22 +5654,27 @@ _registerGeneratedCourse: function(course) {
   // ============================================================
   _getProviders: function() {
     try {
+      // 优先读 AILayer（实际使用的）
+      var ai = LawAIApp.AILayer;
+      if (ai && ai._providers) {
+        var list = [];
+        for (var id in ai._providers) {
+          var p = ai._providers[id];
+          list.push({
+            id: id,
+            name: p.name || id,
+            description: p.description || '',
+            enabled: p.enabled !== false,
+            models: p.models || null
+          });
+        }
+        if (list.length > 0) return list;
+      }
+
+      // Fallback: ProviderRegistry
       var reg = LawAIApp.ProviderRegistry;
-      if (!reg) return [];
-
-      // 1. 如果注册表有 providers 数组
-      if (Array.isArray(reg.providers)) {
-        return reg.providers;
-      }
-
-      // 2. 如果有 getEnabledProviders
-      if (typeof reg.getEnabledProviders === 'function') {
-        return reg.getEnabledProviders() || [];
-      }
-
-      // 3. 如果有 getProvidersForCapability
-      if (typeof reg.getProvidersForCapability === 'function') {
-        return reg.getProvidersForCapability('chat') || [];
+      if (reg && reg.providers) {
+        return Object.values(reg.providers);
       }
 
       return [];
