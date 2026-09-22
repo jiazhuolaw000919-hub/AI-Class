@@ -1009,22 +1009,31 @@ LawAIApp.Dashboard = {
   // AchievementEngine 是权威，Dashboard 只显示
   // ============================================================
   _getAchievements: function() {
+    // 🔥 优先从 ProgressEngine 读完成数据
+    var completedLessons = [];
+    try {
+      var p = LawAIApp.ProgressEngine && LawAIApp.ProgressEngine.getProgress 
+        ? LawAIApp.ProgressEngine.getProgress() 
+        : null;
+      if (p && p.completedLessons) {
+        completedLessons = p.completedLessons;
+      }
+    } catch (e) {}
+
+    // 现有 AchievementEngine
     try {
       var engine = LawAIApp.AchievementEngine;
       if (!engine) return [];
 
-      // 1. 触发检查（让引擎更新解锁状态）
       if (typeof engine.checkAll === 'function') {
         try { engine.checkAll(); } catch (e) {}
       }
 
-      // 2. 拿解锁的 id 列表
       var unlockedIds = [];
       if (typeof engine.getUnlocked === 'function') {
         unlockedIds = engine.getUnlocked() || [];
       }
 
-      // 3. 从 engine.achievements 里找到定义，翻译成 UI 对象
       var defs = engine.achievements || [];
       var defMap = {};
       defs.forEach(function(d) { defMap[d.id] = d; });
@@ -1040,6 +1049,14 @@ LawAIApp.Dashboard = {
         api_master: '🔌'
       };
 
+      // 🔥 额外检查：如果有 4 个 completedLessons 但 first_lesson 未解锁 → 强制解锁
+      if (completedLessons.length >= 1 && unlockedIds.indexOf('first_lesson') === -1) {
+        if (typeof engine.unlock === 'function') {
+          try { engine.unlock('first_lesson'); } catch (e) {}
+          unlockedIds = engine.getUnlocked() || [];
+        }
+      }
+
       return unlockedIds.map(function(id) {
         var def = defMap[id] || { id: id, name: id, desc: '' };
         return {
@@ -1047,7 +1064,7 @@ LawAIApp.Dashboard = {
           icon: ICON_MAP[id] || '🏆',
           title: def.name || id,
           desc: def.desc || '',
-          earnedAt: null  // engine 不存时间，可扩展
+          earnedAt: null
         };
       });
     } catch (e) {
@@ -3363,38 +3380,56 @@ LawAIApp.Dashboard = {
   // ============================================================
   // Part 82: Adaptive Recommendation Renderer
   // ============================================================
- _renderAdaptiveRecommendations: function() {
-    var viewModel = this._lastViewModel;
-
-    // 优先用 ViewModel
-    if (viewModel && viewModel.recommendation) {
-        return this._renderRecommendationCard(viewModel.recommendation);
+  _renderAdaptiveRecommendations: function() {
+    // 🔥 优先：RecommendationEngine 的真实推荐
+    try {
+      var engine = LawAIApp.RecommendationEngine;
+      if (engine && typeof engine.getRecommendations === 'function') {
+        var recs = engine.getRecommendations(3);
+        if (recs && recs.length > 0) {
+          return recs.slice(0, 3).map(function(rec) {
+            var title = rec.title || rec.reason || 'Recommended';
+            var desc = rec.description || rec.reason || '';
+            var lessonId = rec.lessonId || rec.targetId || rec.id || '';
+            
+            return '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(74,158,255,0.04);border-radius:10px;border:1px solid rgba(74,158,255,0.06);cursor:pointer;" ' +
+              'onclick="if(\'' + lessonId + '\'&&window.LawAIApp.AcademyExperienceManager){LawAIApp.AcademyExperienceManager.selectLesson(\'' + lessonId + '\')}">' +
+              '<span style="font-size:18px;">📌</span>' +
+              '<div style="flex:1;min-width:0;">' +
+                '<div style="font-size:13px;font-weight:500;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + title + '</div>' +
+                (desc ? '<div style="font-size:11px;color:#94a3b8;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + desc + '</div>' : '') +
+              '</div>' +
+              '<span style="font-size:11px;color:#4a9eff;">Go →</span>' +
+            '</div>';
+          }).join('');
+        }
+      }
+    } catch (e) {
+      console.warn('[Dashboard] RecommendationEngine failed:', e);
     }
 
-    // Fallback: 用 DecisionExperience
-    var de = window.LawAIApp?.DecisionExperience;
+    // Fallback: DecisionExperience
+    var de = window.LawAIApp && window.LawAIApp.DecisionExperience;
     if (de && de.initialized && typeof de.getOptions === 'function') {
-        try {
-            var options = de.getOptions({ includeDismissed: false, maxCount: 1 });
-            if (options && options.length > 0) {
-                return this._renderRecommendationCard({
-                    title: options[0].title,
-                    description: options[0].summary || '',
-                    reason: options[0].reason,
-                    id: options[0].id,
-                    targetId: options[0].targetId
-                });
-            }
-        } catch (e) {}
+      try {
+        var options = de.getOptions({ includeDismissed: false, maxCount: 2 });
+        if (options && options.length > 0) {
+          return options.map(function(opt) {
+            return '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(74,158,255,0.04);border-radius:10px;border:1px solid rgba(74,158,255,0.06);">' +
+              '<span style="font-size:18px;">📌</span>' +
+              '<div style="flex:1;min-width:0;">' +
+                '<div style="font-size:13px;font-weight:500;color:#e2e8f0;">' + (opt.title || 'Option') + '</div>' +
+                (opt.summary ? '<div style="font-size:11px;color:#94a3b8;margin-top:2px;">' + opt.summary + '</div>' : '') +
+              '</div>' +
+            '</div>';
+          }).join('');
+        }
+      } catch (e) {}
     }
 
-    // 最后兜底
-    return `
-        <div style="color:#64748b;font-size:12px;text-align:center;padding:8px 0;">
-            Complete more lessons to get personalized recommendations.
-        </div>
-    `;
-},
+    // 兜底
+    return '<div style="color:#64748b;font-size:12px;text-align:center;padding:8px 0;">Complete more lessons to get personalized recommendations.</div>';
+  },
 
 _renderRecommendationCard: function(rec) {
     return `
@@ -5622,14 +5657,24 @@ _registerGeneratedCourse: function(course) {
       var reg = LawAIApp.ProviderRegistry;
       if (!reg) return [];
 
-      // 尝试多种方法名
-      if (typeof reg.getAllProviders === 'function') return reg.getAllProviders();
-      if (typeof reg.getAll === 'function') return reg.getAll();
-      if (typeof reg.getProviders === 'function') return reg.getProviders();
-      if (Array.isArray(reg.providers)) return reg.providers;
+      // 1. 如果注册表有 providers 数组
+      if (Array.isArray(reg.providers)) {
+        return reg.providers;
+      }
+
+      // 2. 如果有 getEnabledProviders
+      if (typeof reg.getEnabledProviders === 'function') {
+        return reg.getEnabledProviders() || [];
+      }
+
+      // 3. 如果有 getProvidersForCapability
+      if (typeof reg.getProvidersForCapability === 'function') {
+        return reg.getProvidersForCapability('chat') || [];
+      }
 
       return [];
     } catch (e) {
+      console.warn('[Dashboard] _getProviders failed:', e);
       return [];
     }
   },
