@@ -755,6 +755,7 @@
                     report.entitiesCreated++;
 
                     var courses = self._getCoursesBySchool(school.id);
+                    report.sourceCounts.courses += courses.length;
                     courses.forEach(function(course) {
                         self._upsertEntity({
                             id: 'course:' + course.id,
@@ -777,6 +778,7 @@
                         if (schoolRel) report.relationshipsCreated++;
 
                         var subjects = self._getSubjectsByModule(course.id);
+                        report.sourceCounts.subjects += subjects.length;
                         subjects.forEach(function(subject) {
                             self._upsertEntity({
                                 id: 'subject:' + subject.id,
@@ -789,6 +791,7 @@
                             report.entitiesCreated++;
 
                             var lessons = self._getLessonsBySubject(subject.id);
+                            report.sourceCounts.lessons += lessons.length;
                             lessons.forEach(function(lesson) {
                                 self._upsertEntity({
                                     id: 'lesson:' + lesson.id,
