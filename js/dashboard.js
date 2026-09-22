@@ -2201,7 +2201,9 @@ LawAIApp.Dashboard = {
         
         return `
         <button onclick="${onClick}" style="
-          padding: 8px 18px;
+          padding: 10px 18px;
+          min-height: 44px;
+          box-sizing: border-box;
           background: transparent;
           border: none;
           border-radius: 100px;
@@ -2211,6 +2213,9 @@ LawAIApp.Dashboard = {
           transition: all 0.2s;
           font-family: inherit;
           white-space: nowrap;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         " onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#e2e8f0'" onmouseout="this.style.background='transparent';this.style.color='#94a3b8'">
           ${btn.icon} ${btn.label}
         </button>
@@ -5889,7 +5894,7 @@ _registerGeneratedCourse: function(course) {
             <div style="font-size: 11px; color: #f59e0b; font-weight: 500; letter-spacing: 0.5px;">PICK UP WHERE YOU LEFT OFF</div>
             <div style="font-size: 13px; color: #e2e8f0; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${resume.title || resume.lessonId}</div>
           </div>
-          <button onclick="LawAIApp.AcademyExperienceManager.selectLesson('${resume.lessonId}')" style="padding:6px 14px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:100px;color:#f59e0b;font-size:11px;cursor:pointer;font-family:inherit;">Resume →</button>
+          <button onclick="LawAIApp.AcademyExperienceManager.selectLesson('${resume.lessonId}')" style="padding:10px 16px;min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:100px;color:#f59e0b;font-size:11px;cursor:pointer;font-family:inherit;">Resume →</button>
         </div>
       `;
     } catch (e) { return ''; }
