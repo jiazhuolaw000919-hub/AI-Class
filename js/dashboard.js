@@ -3029,38 +3029,208 @@ LawAIApp.Dashboard = {
   // 🔥 Bible Part 50: Skills 条
   // ============================================================
   _renderSkills: function() {
-    var skills = this._getSkills();
-    if (!skills || skills.length === 0) return '';
+    try {
+      var reg = LawAIApp.SkillRegistry;
+      if (!reg || typeof reg.getAllSkills !== 'function') return '';
 
-    return `
-      <section data-section="skills" style="
-        background:rgba(34,197,94,0.03);
-        border:1px solid rgba(34,197,94,0.08);
-        border-radius:16px;
-        padding:14px 20px;
-        margin-bottom:16px;
-      ">
-        <div style="font-size:11px;color:#22c55e;font-weight:500;letter-spacing:0.5px;margin-bottom:8px;">🎯 SKILLS</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;">
-          ${skills.slice(0, 10).map(function(s) {
-            return '<span style="display:inline-block;font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.04);padding:3px 10px;border-radius:100px;margin-right:6px;margin-bottom:6px;">' + s + '</span>';
-          }).join('')}
-        </div>
-      </section>
-    `;
+      var skills = reg.getAllSkills();
+      if (!skills || skills.length === 0) return '';
+
+      // 按状态排序
+      skills.sort(function(a, b) {
+        var order = { MASTERED: 5, FAMILIAR: 4, PRACTICING: 3, LEARNING: 2, DISCOVERED: 1 };
+        return (order[b.state] || 0) - (order[a.state] || 0);
+      });
+
+      return `
+        <section data-section="skills" style="
+          background: rgba(34,197,94,0.03);
+          border: 1px solid rgba(34,197,94,0.08);
+          border-radius: 16px;
+          padding: 14px 20px;
+          margin-bottom: 16px;
+        ">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:11px;color:#22c55e;font-weight:500;letter-spacing:0.5px;">🎯 SKILLS</span>
+            <span style="font-size:11px;color:#64748b;">${skills.length} skill(s)</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            ${skills.slice(0, 15).map(function(s) {
+              var state = s.stateInfo || { color: '#64748b', icon: '👁️', label: 'Discovered' };
+              var borderColor = state.color + '33'; // 20% opacity
+              var bgColor = state.color + '11';      // 7% opacity
+              return '<button ' +
+                'onclick="LawAIApp.Dashboard._renderSkillDetail(\'' + s.name.replace(/'/g, "\\'") + '\')" ' +
+                'title="' + state.label + ' — ' + s.progress + '%" ' +
+                'style="' +
+                  'display:inline-flex;align-items:center;gap:5px;' +
+                  'padding:5px 10px;' +
+                  'background:' + bgColor + ';' +
+                  'border:1px solid ' + borderColor + ';' +
+                  'border-radius:100px;' +
+                  'color:' + state.color + ';' +
+                  'font-size:11px;' +
+                  'cursor:pointer;' +
+                  'font-family:inherit;' +
+                  'transition:all 0.2s;' +
+                  'min-height:28px;' +
+                  'margin-right:6px;margin-bottom:6px;' +
+                '"' +
+                'onmouseover="this.style.opacity=\'0.8\'" ' +
+                'onmouseout="this.style.opacity=\'1\'">' +
+                '<span>' + state.icon + '</span>' +
+                '<span>' + s.name + '</span>' +
+                '<span style="opacity:0.7;font-size:10px;">' + s.progress + '%</span>' +
+              '</button>';
+            }).join('')}
+          </div>
+        </section>
+      `;
+    } catch (e) {
+      console.warn('[Dashboard] _renderSkills failed:', e);
+      return '';
+    }
+  },
+
+  // ============================================================
+  // 🔥 Part 43-44: Skill 详情页
+  // ============================================================
+  _renderSkillDetail: function(skillName) {
+    var container = document.getElementById('app') || document.getElementById('law-runtime-root');
+    if (!container) return;
+
+    var reg = LawAIApp.SkillRegistry;
+    if (!reg || typeof reg.getSkill !== 'function') {
+      container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">Skill registry not available</div>';
+      return;
+    }
+
+    var skill = reg.getSkill(skillName);
+    if (!skill) {
+      container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">Skill not found</div>';
+      return;
+    }
+
+    var state = skill.stateInfo;
+    var evidence = skill.evidence;
+    var lessons = reg.getSkillLessons(skillName);
+
+    var html = '<div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:\'Inter\',-apple-system,sans-serif;">';
+
+    // Back
+    html += '<button onclick="LawAIApp.Dashboard._lastRenderAt=0;LawAIApp.Dashboard.forceRender();" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Dashboard</button>';
+
+    // Header
+    html += '<div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding:24px;background:' + state.color + '11;border:1px solid ' + state.color + '33;border-radius:16px;">';
+    html += '<div style="font-size:48px;">' + state.icon + '</div>';
+    html += '<div style="flex:1;">';
+    html += '<div style="font-size:11px;color:' + state.color + ';font-weight:500;letter-spacing:0.5px;text-transform:uppercase;">🎯 Skill</div>';
+    html += '<h1 style="font-size:24px;font-weight:700;margin:4px 0 8px;">' + skill.name + '</h1>';
+    html += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">';
+    html += '<span style="font-size:13px;color:' + state.color + ';font-weight:500;">' + state.label + '</span>';
+    html += '<div style="flex:1;max-width:200px;height:4px;background:rgba(255,255,255,0.06);border-radius:100px;overflow:hidden;">';
+    html += '<div style="width:' + skill.progress + '%;height:100%;background:' + state.color + ';transition:width 0.5s;"></div>';
+    html += '</div>';
+    html += '<span style="font-size:13px;color:#94a3b8;">' + skill.progress + '%</span>';
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    // Evidence
+    html += '<h2 style="font-size:14px;color:#94a3b8;margin:0 0 12px;">📊 Evidence</h2>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:24px;">';
+
+    html += '<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">';
+    html += '<div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">📖 Lessons</div>';
+    html += '<div style="font-size:24px;font-weight:700;color:#e2e8f0;margin-top:4px;">' + evidence.completedLessons + ' / ' + evidence.lessons.length + '</div>';
+    html += '<div style="font-size:10px;color:#64748b;margin-top:2px;">completed</div>';
+    html += '</div>';
+
+    html += '<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">';
+    html += '<div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">✏️ Practice</div>';
+    html += '<div style="font-size:24px;font-weight:700;color:#e2e8f0;margin-top:4px;">' + evidence.practiceCorrect + ' / ' + evidence.practiceAttempts + '</div>';
+    html += '<div style="font-size:10px;color:#64748b;margin-top:2px;">correct</div>';
+    html += '</div>';
+
+    html += '<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">';
+    html += '<div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">🃏 Flashcards</div>';
+    html += '<div style="font-size:24px;font-weight:700;color:#e2e8f0;margin-top:4px;">' + evidence.flashcardReviews + '</div>';
+    html += '<div style="font-size:10px;color:#64748b;margin-top:2px;">reviews</div>';
+    html += '</div>';
+
+    html += '<div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">';
+    html += '<div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">📓 Notes</div>';
+    html += '<div style="font-size:24px;font-weight:700;color:#e2e8f0;margin-top:4px;">' + evidence.noteCount + '</div>';
+    html += '<div style="font-size:10px;color:#64748b;margin-top:2px;">tagged</div>';
+    html += '</div>';
+
+    html += '</div>';
+
+    // Related Lessons
+    if (lessons.length > 0) {
+      html += '<h2 style="font-size:14px;color:#94a3b8;margin:0 0 12px;">📚 Related Lessons (' + lessons.length + ')</h2>';
+      html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">';
+      lessons.forEach(function(lid) {
+        var lessonTitle = lid;
+        try {
+          var lessonView = LawAIApp.LessonView;
+          if (lessonView && lessonView._lesson && lessonView._lesson.lessonId === lid) {
+            lessonTitle = lessonView._lesson.title || lid;
+          }
+        } catch (e) {}
+
+        html += '<div style="background:rgba(255,255,255,0.02);border-radius:10px;padding:12px 16px;border:1px solid rgba(255,255,255,0.04);display:flex;justify-content:space-between;align-items:center;">';
+        html += '<span style="font-size:13px;color:#c8d0d8;">📖 ' + lessonTitle + '</span>';
+        html += '<button onclick="if(window.LawAIApp.AcademyExperienceManager){LawAIApp.AcademyExperienceManager.selectLesson(\'' + lid + '\')}" style="padding:4px 14px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.12);border-radius:100px;color:#4a9eff;font-size:11px;cursor:pointer;font-family:inherit;">Open →</button>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    // Next State Hint
+    var nextState = null;
+    if (skill.state === 'DISCOVERED') nextState = 'Complete 1 lesson to reach Learning';
+    else if (skill.state === 'LEARNING') nextState = 'Complete 1 practice to reach Practicing';
+    else if (skill.state === 'PRACTICING') nextState = 'Complete 2 lessons + 3 practices to reach Familiar';
+    else if (skill.state === 'FAMILIAR') nextState = 'Complete 3+ lessons with 80%+ accuracy + 5+ flashcards to reach Mastered';
+    else if (skill.state === 'MASTERED') nextState = '🎉 Mastered — great work!';
+
+    if (nextState) {
+      html += '<div style="background:rgba(74,158,255,0.04);border-radius:12px;padding:14px 18px;border-left:3px solid #4a9eff;margin-bottom:16px;">';
+      html += '<div style="font-size:11px;color:#4a9eff;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px;">What\'s Next</div>';
+      html += '<div style="font-size:13px;color:#c8d0d8;">' + nextState + '</div>';
+      html += '</div>';
+    }
+
+    // AI-generated notice
+    html += '<div style="font-size:11px;color:#64748b;line-height:1.5;padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;border-left:2px solid rgba(255,255,255,0.1);">';
+    html += '🎯 Skill state is derived from your actual learning evidence — completed lessons, practice attempts, flashcard reviews, and notes. No fabrication.';
+    html += '</div>';
+
+    html += '</div>';
+
+    container.innerHTML = html;
   },
 
   _getSkills: function() {
     try {
+      // 🔥 优先用 SkillRegistry
+      var reg = LawAIApp.SkillRegistry;
+      if (reg && typeof reg.getAllSkills === 'function') {
+        var all = reg.getAllSkills();
+        if (all && all.length > 0) {
+          return all.map(function(s) { return s.name; });
+        }
+      }
+
+      // Fallback: 从 tags 聚合（原逻辑）
       var storage = LawAIApp.StorageEngine;
       if (!storage) return [];
       var skillSet = {};
-      // 从 notes 的 tags 提取
       var notes = storage.get('user_notes', []);
       notes.forEach(function(n) {
         if (n && n.tags) n.tags.forEach(function(t) { skillSet[t] = true; });
       });
-      // 从 lesson 的 tags
       var lessons = this._getAllLessons();
       lessons.forEach(function(l) {
         if (l && l.tags) l.tags.forEach(function(t) { skillSet[t] = true; });
