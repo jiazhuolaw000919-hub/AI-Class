@@ -28,16 +28,38 @@ LawAIApp.Dashboard = {
     'background': 3
   },
 
-    render: function() {
-
-      // 🔥 防止 200ms 内重复渲染
+  render: function() {
     var now = Date.now();
     if (this._lastRenderAt && (now - this._lastRenderAt) < 5000) {
-        console.log('[Dashboard] ⏭️ Skipping duplicate render (within 5000ms)');
-        return;
+      console.log('[Dashboard] ⏭️ Skipping duplicate render (within 5000ms)');
+      return;
     }
     
+    // 🔥 检查关键数据是否到齐
+    var lessonCount = 0;
+    try {
+      lessonCount = (LawAIApp.LessonEngine?.getAllLessons() || []).length;
+    } catch (e) {}
+    
+    // 如果 lesson 还没加载（0 个），延迟 500ms 再试
+    // 但只重试 3 次，避免无限循环
+    if (lessonCount === 0 && !this._retriedRender) {
+      this._retriedRender = 0;
+    }
+    if (lessonCount === 0 && this._retriedRender < 3) {
+      this._retriedRender++;
+      console.log('[Dashboard] ⏳ Lessons not loaded yet, retry #' + this._retriedRender);
+      var self = this;
+      setTimeout(function() {
+        self._lastRenderAt = 0;
+        self.render();
+      }, 500);
+      return;
+    }
+    
+    this._retriedRender = 0;   // 重置
     this._lastRenderAt = now;
+
     const contract = window.LawAIApp?.ExperienceContract;
     const orchestrator = window.LawAIApp?.JourneyOrchestrator;
     const lc = window.LawAIApp?.LearningContext;
@@ -2414,7 +2436,7 @@ LawAIApp.Dashboard = {
         <!-- B: N of M lessons -->
         <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;font-size:11px;">
           <span style="color:#64748b;">Lessons completed</span>
-          <span style="color:#94a3b8;">${completedCount} of ${totalCount}</span>
+          <span style="color:#94a3b8;">${completedCount} of ${totalCount} lesson(s)</span>
         </div>
 
         <!-- C: 全局 365 进度（secondary） -->
@@ -2858,7 +2880,16 @@ LawAIApp.Dashboard = {
     var practice = this._getPracticeStats();
     var flashcards = this._getFlashcardStats();
 
-    if (!practice.hasData && !flashcards.hasData) return '';
+    if (!practice.hasData && !flashcards.hasData) {
+      return `
+        <section data-section="learning-pulse" ...>
+          <div style="font-size:11px;color:#4a9eff;...">📊 YOUR PULSE</div>
+          <div style="font-size:12px;color:#64748b;padding:8px 0;">
+            Complete a practice or flashcard review to see your stats here.
+          </div>
+        </section>
+      `;
+    }
 
     var items = [];
 
@@ -2920,7 +2951,10 @@ LawAIApp.Dashboard = {
   // ============================================================
   _renderContinuity: function() {
     var ctx = this._getContinuityContext();
-    if (!ctx.hasRecentLearning && !ctx.hasReflection) return '';
+    <section>
+      <div>🧭 YOUR JOURNEY</div>
+      <div style="color:#64748b;">Your learning story will appear here as you begin.</div>
+    </section>
 
     var html = '<section data-section="continuity" style="background:rgba(139,92,246,0.03);border:1px solid rgba(139,92,246,0.08);border-radius:16px;padding:14px 20px;margin-bottom:16px;">';
     html += '<div style="font-size:11px;color:#8b5cf6;font-weight:500;letter-spacing:0.5px;margin-bottom:8px;">🧭 YOUR JOURNEY</div>';
@@ -2945,7 +2979,10 @@ LawAIApp.Dashboard = {
   // ============================================================
   _renderUpcoming: function() {
     var upcoming = this._getUpcomingSchedule();
-    if (!upcoming || upcoming.length === 0) return '';
+    <section>
+      <div>📅 UPCOMING</div>
+      <div style="color:#64748b;">Nothing scheduled yet.</div>
+    </section>
 
     var html = '<section data-section="upcoming" style="background:rgba(74,158,255,0.03);border:1px solid rgba(74,158,255,0.08);border-radius:16px;padding:14px 20px;margin-bottom:16px;">';
     html += '<div style="font-size:11px;color:#4a9eff;font-weight:500;letter-spacing:0.5px;margin-bottom:8px;">📅 UPCOMING</div>';
@@ -2966,7 +3003,12 @@ LawAIApp.Dashboard = {
   _buildNotesPreview: function() {
     var auth = window.LawAIApp?.NotesAuthority;
     if (!auth || !auth.isReady) {
-      return '';
+      return `
+        <section>
+          <div>📓 YOUR RECENT NOTE</div>
+          <div style="color:#64748b;">No notes yet. Write one from any lesson.</div>
+        </section>
+      `;
     }
 
     var notes = auth.getAllNotes();
@@ -3031,12 +3073,52 @@ LawAIApp.Dashboard = {
   _renderSkills: function() {
     try {
       var reg = LawAIApp.SkillRegistry;
-      if (!reg || typeof reg.getAllSkills !== 'function') return '';
+
+      // 🔥 情况 1：SkillRegistry 还没加载 → 显示 loading 占位
+      if (!reg || typeof reg.getAllSkills !== 'function') {
+        return `
+          <section data-section="skills" style="
+            background: rgba(34,197,94,0.03);
+            border: 1px solid rgba(34,197,94,0.08);
+            border-radius: 16px;
+            padding: 14px 20px;
+            margin-bottom: 16px;
+          ">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <span style="font-size:11px;color:#22c55e;font-weight:500;letter-spacing:0.5px;">🎯 SKILLS</span>
+              <span style="font-size:11px;color:#64748b;">—</span>
+            </div>
+            <div style="font-size:12px;color:#64748b;padding:4px 0;">
+              Loading skills...
+            </div>
+          </section>
+        `;
+      }
 
       var skills = reg.getAllSkills();
-      if (!skills || skills.length === 0) return '';
 
-      // 按状态排序
+      // 🔥 情况 2：SkillRegistry 在，但没有任何 skill → 空态
+      if (!skills || skills.length === 0) {
+        return `
+          <section data-section="skills" style="
+            background: rgba(34,197,94,0.03);
+            border: 1px solid rgba(34,197,94,0.08);
+            border-radius: 16px;
+            padding: 14px 20px;
+            margin-bottom: 16px;
+          ">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <span style="font-size:11px;color:#22c55e;font-weight:500;letter-spacing:0.5px;">🎯 SKILLS</span>
+              <span style="font-size:11px;color:#64748b;">0 skill(s)</span>
+            </div>
+            <div style="font-size:12px;color:#64748b;padding:4px 0;">
+              Start learning to discover skills.
+            </div>
+          </section>
+        `;
+      }
+
+      // 🔥 情况 3：有 skill → 正常显示（你原来的逻辑）
       skills.sort(function(a, b) {
         var order = { MASTERED: 5, FAMILIAR: 4, PRACTICING: 3, LEARNING: 2, DISCOVERED: 1 };
         return (order[b.state] || 0) - (order[a.state] || 0);
@@ -3057,8 +3139,8 @@ LawAIApp.Dashboard = {
           <div style="display:flex;flex-wrap:wrap;gap:6px;">
             ${skills.slice(0, 15).map(function(s) {
               var state = s.stateInfo || { color: '#64748b', icon: '👁️', label: 'Discovered' };
-              var borderColor = state.color + '33'; // 20% opacity
-              var bgColor = state.color + '11';      // 7% opacity
+              var borderColor = state.color + '33';
+              var bgColor = state.color + '11';
               return '<button ' +
                 'onclick="LawAIApp.Dashboard._renderSkillDetail(\'' + s.name.replace(/'/g, "\\'") + '\')" ' +
                 'title="' + state.label + ' — ' + s.progress + '%" ' +
@@ -4765,8 +4847,10 @@ _renderRecommendationCard: function(rec) {
       var gen = LawAIApp.CourseGenerator;
       if (!gen || typeof gen.getGeneratedCourses !== 'function') return '';
 
-      var courses = gen.getGeneratedCourses();
-      if (!courses || courses.length === 0) return '';
+      <section>
+        <div>🎨 MY GENERATED COURSES</div>
+        <div style="color:#64748b;">You haven't generated any courses yet. Try ✨ Add More.</div>
+      </section>
 
       return `
         <section data-section="my-courses" style="
@@ -6417,10 +6501,9 @@ _registerGeneratedCourse: function(course) {
         });
       }
 
-      // 如果 7 天都无数据 → 只显示 empty state（不占用空间）
       var totalActivity = days.filter(function(d) { return d.hasActivity; }).length;
-      if (totalActivity === 0) return '';
 
+      // 🔥 不再 return ''，空态也显示
       return `
         <section data-section="streak-calendar" role="region" aria-label="7-day activity" style="
           background: rgba(255,255,255,0.02);
@@ -6440,7 +6523,10 @@ _registerGeneratedCourse: function(course) {
               return '<div title="' + d.key + '" style="width:28px;height:28px;border-radius:8px;background:' + bg + ';border:' + border + ';display:flex;align-items:center;justify-content:center;font-size:10px;color:#e2e8f0;font-weight:500;">' + d.label + '</div>';
             }).join('')}
           </div>
-          <span style="font-size:11px;color:#64748b;margin-left:auto;">${totalActivity}/7 days</span>
+          ${totalActivity === 0
+            ? '<span style="font-size:11px;color:#475569;margin-left:auto;">Start learning to fill this</span>'
+            : '<span style="font-size:11px;color:#64748b;margin-left:auto;">' + totalActivity + '/7 days</span>'
+          }
         </section>
       `;
     } catch (e) { return ''; }
@@ -6455,7 +6541,11 @@ _registerGeneratedCourse: function(course) {
       if (!storage) return '';
 
       var recent = storage.get('recent_achievement', null);
-      if (!recent || !recent.earnedAt) return '';
+      <span>🏆</span>
+      <div>
+        <div style="...">NEXT ACHIEVEMENT</div>
+        <div style="...">Complete your first lesson to unlock one</div>
+      </div>
 
       var hoursSince = (Date.now() - new Date(recent.earnedAt).getTime()) / 3600000;
       if (hoursSince > 24) return '';
@@ -6537,7 +6627,10 @@ _registerGeneratedCourse: function(course) {
 
   _renderNews: function() {
     var news = this._getNews();
-    if (!news || news.length === 0) return '';
+    <section>
+      <div>📰 AI NEWS</div>
+      <div style="color:#64748b;">No news yet.</div>
+    </section>
 
     return `
       <section data-section="news" role="region" aria-label="AI News" style="
@@ -6741,31 +6834,21 @@ document.addEventListener('S5_READY', function() {
     } catch (e) {}
   }
 
-  // Practice 完成 → 刷新
-  document.addEventListener('PracticeCompleted', function() {
-    // 延迟 5000ms，让 PracticeProgress 先落库
-    setTimeout(refreshDashboard, 5000);
-  });
-
-  // Flashcard review → 刷新
-  document.addEventListener('FLASHCARD_REVIEWED', function() {
-    setTimeout(refreshDashboard, 5000);
-  });
-
-  // 笔记创建 → 刷新（Reflection / 其他）
-  document.addEventListener('NOTE_CREATED', function() {
-    setTimeout(refreshDashboard, 5000);
-  });
-
-  // 🔥 Bible Part 51: Lesson 完成 → 触发成就检查
-  document.addEventListener('LESSON_COMPLETED', function() {
-    try {
-      if (window.LawAIApp && window.LawAIApp.AchievementEngine && typeof window.LawAIApp.AchievementEngine.checkAll === 'function') {
-        window.LawAIApp.AchievementEngine.checkAll();
-      }
-    } catch (e) {}
-    setTimeout(refreshDashboard, 5000);
-  });
+  // 🔥 统一：所有刷新事件走同一个调度器，避免多次 render
+  function scheduleRefresh(reason) {
+    if (window.__dashboardRefreshTimer) {
+      clearTimeout(window.__dashboardRefreshTimer);
+    }
+    window.__dashboardRefreshTimer = setTimeout(function() {
+      window.__dashboardRefreshTimer = null;
+      refreshDashboard(reason);
+    }, 3000);   // 3 秒合并窗口
+  }
+  
+  document.addEventListener('PracticeCompleted', function() { scheduleRefresh('PracticeCompleted'); });
+  document.addEventListener('FLASHCARD_REVIEWED', function() { scheduleRefresh('FLASHCARD_REVIEWED'); });
+  document.addEventListener('NOTE_CREATED', function() { scheduleRefresh('NOTE_CREATED'); });
+  document.addEventListener('LESSON_COMPLETED', function() { scheduleRefresh('LESSON_COMPLETED'); });
 
   // 🔥 Bible Part 51: Practice 完成 → 也触发
   document.addEventListener('PracticeCompleted', function() {
