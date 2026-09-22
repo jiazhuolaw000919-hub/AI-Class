@@ -938,40 +938,57 @@
                             });
                             report.entitiesCreated++;
     
-                            // Subject → Lesson
-                            var lessons = this._getLessonsBySubject(subject.id);
-                            lessons.forEach(function(lesson) {
-                                var lessonEntity = this._upsertEntity({
-                                    id: 'lesson:' + lesson.id,
-                                    type: this.NODE_TYPES.LESSON,
-                                    label: lesson.title || lesson.name || lesson.id,
-                                    sourceType: 'lesson',
-                                    sourceId: lesson.id,
+                            // 🔥 Course → Subject（跳过 Module）
+                            var subjects = this._getSubjectsByModule(course.id);
+                            subjects.forEach(function(subject) {
+                                var subjectEntity = this._upsertEntity({
+                                    id: 'subject:' + subject.id,
+                                    type: this.NODE_TYPES.KNOWLEDGE,
+                                    label: subject.title || subject.name || subject.id,
+                                    sourceType: 'subject',
+                                    sourceId: subject.id,
                                     provenance: {
                                         sourceSystem: 'academy',
-                                        sourceType: 'lesson',
-                                        sourceId: lesson.id
+                                        sourceType: 'subject',
+                                        sourceId: subject.id
                                     }
                                 });
                                 report.entitiesCreated++;
-
-                                // 创建关系: Subject → CONTAINS → Lesson
-                                var rel = this._upsertRelationship({
-                                    from: 'subject:' + subject.id,
-                                    to: 'lesson:' + lesson.id,
-                                    type: this.RELATION_TYPES.PART_OF,
-                                    weight: 1,
-                                    confidence: 1.0,
-                                    source: 'academy',
-                                    provenance: {
-                                        sourceSystem: 'academy',
-                                        sourceType: 'hierarchy',
-                                        sourceId: subject.id + '→' + lesson.id
-                                    }
-                                });
-                                if (rel) report.relationshipsCreated++;
+        
+                                // Subject → Lesson
+                                var lessons = this._getLessonsBySubject(subject.id);
+                                lessons.forEach(function(lesson) {
+                                    var lessonEntity = this._upsertEntity({
+                                        id: 'lesson:' + lesson.id,
+                                        type: this.NODE_TYPES.LESSON,
+                                        label: lesson.title || lesson.name || lesson.id,
+                                        sourceType: 'lesson',
+                                        sourceId: lesson.id,
+                                        provenance: {
+                                            sourceSystem: 'academy',
+                                            sourceType: 'lesson',
+                                            sourceId: lesson.id
+                                        }
+                                    });
+                                    report.entitiesCreated++;
+        
+                                    // Subject → CONTAINS → Lesson
+                                    var rel = this._upsertRelationship({
+                                        from: 'subject:' + subject.id,
+                                        to: 'lesson:' + lesson.id,
+                                        type: this.RELATION_TYPES.PART_OF,
+                                        weight: 1,
+                                        confidence: 1.0,
+                                        source: 'academy',
+                                        provenance: {
+                                            sourceSystem: 'academy',
+                                            sourceType: 'hierarchy',
+                                            sourceId: subject.id + '→' + lesson.id
+                                        }
+                                    });
+                                    if (rel) report.relationshipsCreated++;
+                                }.bind(this));
                             }.bind(this));
-                        }.bind(this));
                     }.bind(this));
                 }.bind(this));
             }.bind(this));
@@ -1144,28 +1161,23 @@
     },
 
     /**
-     * 获取 Modules by Course
+     * 🔥 无 module 层 → 返回空
      */
     _getModulesByCourse: function(courseId) {
-        try {
-            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
-            if (loader && typeof loader.getModulesByCourse === 'function') {
-                return loader.getModulesByCourse(courseId) || [];
-            }
-        } catch (e) {
-            console.warn('[KnowledgeGraph] Failed to get modules:', e);
-        }    
         return [];
-    },    
+    },
 
     /**
-     * 获取 Subjects by Module
+     * 🔥 无 module 层 → 直接用 courseId 拿 subjects
      */
-    _getSubjectsByModule: function(moduleId) {
+    _getSubjectsByModule: function(courseId) {
         try {
             var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+            if (loader && typeof loader.getSubjectsByCourse === 'function') {
+                return loader.getSubjectsByCourse(courseId) || [];
+            }
             if (loader && typeof loader.getSubjectsByModule === 'function') {
-                return loader.getSubjectsByModule(moduleId) || [];
+                return loader.getSubjectsByModule(courseId) || [];
             }
         } catch (e) {
             console.warn('[KnowledgeGraph] Failed to get subjects:', e);
@@ -1174,14 +1186,14 @@
     },
 
     /**
-     * 获取 Lessons by Subject
+     * 🔥 无 module 层 → 从 subject 拿 lessons
      */
     _getLessonsBySubject: function(subjectId) {
         try {
             var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
             if (loader && typeof loader.getLessonsBySubject === 'function') {
                 return loader.getLessonsBySubject(subjectId) || [];
-            }    
+            }
         } catch (e) {
             console.warn('[KnowledgeGraph] Failed to get lessons:', e);
         }
