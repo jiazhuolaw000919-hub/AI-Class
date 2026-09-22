@@ -4,25 +4,25 @@ LawAIApp.ProviderRegistry = {
     gemini: {
       id: 'gemini',
       name: 'Google Gemini',
-      enabled: false,
+      enabled: true,
       capabilities: ['summary', 'quiz', 'reflection', 'review', 'mentor']
     },
     openai: {
       id: 'openai',
       name: 'OpenAI',
-      enabled: false,
+      enabled: true,
       capabilities: ['summary', 'quiz', 'reflection', 'review', 'mentor', 'code']
     },
     claude: {
       id: 'claude',
       name: 'Anthropic Claude',
-      enabled: false,
+      enabled: true,
       capabilities: ['summary', 'reflection', 'mentor']
     },
     deepseek: {
       id: 'deepseek',
       name: 'DeepSeek',
-      enabled: false,
+      enabled: true,
       capabilities: ['summary', 'code', 'mentor']
     },
     local: {
