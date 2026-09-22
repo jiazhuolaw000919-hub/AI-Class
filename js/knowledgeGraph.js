@@ -2,40 +2,8 @@
 // ENGINE: KnowledgeGraph
 // LAYER: Core Logic Layer
 // DOMAIN: Knowledge Graph & Relationship Management
-// VERSION: 2.0.0 — Part 40 Knowledge Graph Foundation
+// VERSION: 2.0.1 — Part 40 Knowledge Graph Foundation
 // ================================================================
-
-// ============================================================
-// QUERY CONTRACT (Part 122)
-// ============================================================
-// 
-// All query methods follow this contract:
-//
-// Input: Validated before execution
-// Output: { success, results, count, truncated, metadata, error? }
-//
-// Error Codes:
-// - INVALID_ENTITY_ID: Entity ID is empty or invalid
-// - ENTITY_NOT_FOUND: Entity does not exist in graph
-// - INVALID_DIRECTION: Direction is not 'outgoing' | 'incoming' | 'both'
-// - INVALID_DEPTH: Depth is negative or exceeds max (5)
-// - INVALID_MAX_RESULTS: maxResults is invalid
-// - INVALID_RELATION_TYPE: Relation type is not in vocabulary
-// - INVALID_ENTITY_TYPE: Entity type is not in vocabulary
-// - INVALID_QUERY: General query validation failure
-// - GRAPH_UNAVAILABLE: Graph core is not initialized
-//
-// Query Types:
-// - ENTITY: getEntity, getNode
-// - TYPE: getNodesByType, getConcepts
-// - RELATIONSHIP: getRelations, getRelationsByType
-// - NEIGHBOR: getNeighbors, getNeighborsByRelation
-// - CONCEPT: getConceptsForLesson, getNotesForConcept, getLessonsForConcept
-// - TRAVERSAL: traverse
-// - PATH: findPath
-// - CONNECTIVITY: isConnected
-// - PROVENANCE: inspectProvenance
-// ============================================================
 
 (function() {
     'use strict';
@@ -95,12 +63,9 @@
         REFERENCES: 80,
         RELATES_TO: 50,
         DERIVED_FROM: 70,
-        REFLECTS_ON: 60 
+        REFLECTS_ON: 60
     };
 
-    // ============================================================
-    // NODE MODEL
-    // ============================================================
     var NODE_TYPES = {
         KNOWLEDGE: 'KNOWLEDGE',
         SKILL: 'SKILL',
@@ -139,11 +104,7 @@
 
         if (_nodes[node.id]) {
             var existing = _nodes[node.id];
-            _nodes[node.id] = {
-                ...existing,
-                ...node,
-                updatedAt: Date.now()
-            };
+            _nodes[node.id] = Object.assign({}, existing, node, { updatedAt: Date.now() });
             return _nodes[node.id];
         }
 
@@ -170,7 +131,6 @@
         _indexes.byType[newNode.type].push(node.id);
 
         _save();
-
         return newNode;
     }
 
@@ -183,7 +143,7 @@
     }
 
     function getAllNodes() {
-        return Object.values(_nodes);
+        return Object.keys(_nodes).map(function(k) { return _nodes[k]; });
     }
 
     function getNodesByType(type) {
@@ -192,7 +152,7 @@
     }
 
     function getActiveNodes() {
-        return Object.values(_nodes).filter(function(n) {
+        return getAllNodes().filter(function(n) {
             return n.status === 'active' || n.status === 'published';
         });
     }
@@ -232,9 +192,7 @@
         for (var type in _indexes.byType) {
             var idx = _indexes.byType[type];
             var pos = idx.indexOf(id);
-            if (pos !== -1) {
-                idx.splice(pos, 1);
-            }
+            if (pos !== -1) idx.splice(pos, 1);
         }
 
         _save();
@@ -267,7 +225,6 @@
 
         var existing = _findRelation(relation.from, relation.to, relation.type);
         if (existing) {
-            console.warn('[KnowledgeGraph] Duplicate relation exists:', relation.from, '→', relation.to, relation.type);
             return existing;
         }
 
@@ -290,6 +247,7 @@
             confidence: relation.confidence || 0.8,
             source: relation.source || 'SYSTEM',
             metadata: relation.metadata || {},
+            provenance: relation.provenance || null,
             createdAt: Date.now(),
             updatedAt: Date.now(),
             schemaVersion: _schemaVersion
@@ -400,7 +358,7 @@
     }
 
     function getTopologicalOrder() {
-        var nodes = Object.values(_nodes);
+        var nodes = getAllNodes();
         var visited = {};
         var order = [];
 
@@ -466,47 +424,8 @@
 
         for (var relId in _relations) {
             var rel = _relations[relId];
-            if (!_nodes[rel.from]) {
-                errors.push('Missing source node: ' + rel.from);
-            }
-            if (!_nodes[rel.to]) {
-                errors.push('Missing target node: ' + rel.to);
-            }
-        }
-
-
-        // 🔥 PART 120: 概念验证
-        var concepts = this.getConcepts();
-        var conceptIds = concepts.map(function(c) { return c.id; });
-    
-        // 检查概念是否有关系
-        var orphanConcepts = concepts.filter(function(c) {
-            var rels = this.getRelations(c.id);
-            return rels.length === 0;
-        }.bind(this));
-    
-        if (orphanConcepts.length > 0) {
-            warnings.push('Orphan concepts: ' + orphanConcepts.map(function(c) { return c.id; }).join(', '));
-        }
-
-        // 检查语义关系是否指向有效的概念
-        var allRels = [];
-        for (var relId in _relations) {
-            allRels.push(_relations[relId]);
-        }
-    
-        var invalidSemanticRels = allRels.filter(function(rel) {
-            var semanticTypes = ['TEACHES', 'REFERENCES', 'RELATES_TO', 'DERIVED_FROM', 'REFLECTS_ON'];
-            if (semanticTypes.indexOf(rel.type) === -1) return false;
-        
-            // 检查目标是否为概念
-            var target = _nodes[rel.to];
-            if (!target) return true;
-            return target.metadata?.type !== 'concept' && target.type !== 'KNOWLEDGE';
-        });
-    
-        if (invalidSemanticRels.length > 0) {
-            errors.push('Invalid semantic relationships: ' + invalidSemanticRels.map(function(r) { return r.id; }).join(', '));
+            if (!_nodes[rel.from]) errors.push('Missing source node: ' + rel.from);
+            if (!_nodes[rel.to]) errors.push('Missing target node: ' + rel.to);
         }
 
         return {
@@ -515,9 +434,7 @@
             warnings: warnings,
             nodeCount: Object.keys(_nodes).length,
             relationCount: Object.keys(_relations).length,
-            conceptCount: concepts.length,
-            orphanConcepts: orphanConcepts.length,
-            invalidSemanticRelationships: invalidSemanticRels.length
+            orphanCount: orphanNodes.length
         };
     }
 
@@ -529,8 +446,8 @@
         return {
             schemaVersion: _schemaVersion,
             exportedAt: Date.now(),
-            nodes: Object.values(_nodes),
-            relations: Object.values(_relations)
+            nodes: getAllNodes(),
+            relations: Object.keys(_relations).map(function(k) { return _relations[k]; })
         };
     }
 
@@ -543,11 +460,7 @@
         try {
             _nodes = {};
             _relations = {};
-            _indexes = {
-                byNode: {},
-                byType: {},
-                byRelationType: {}
-            };
+            _indexes = { byNode: {}, byType: {}, byRelationType: {} };
 
             if (data.nodes && Array.isArray(data.nodes)) {
                 for (var i = 0; i < data.nodes.length; i++) {
@@ -578,19 +491,13 @@
 
     function _load() {
         try {
-            var stored = LawAIApp.StorageEngine?.get?.(_storageKey);
+            var stored = LawAIApp.StorageEngine && LawAIApp.StorageEngine.get
+                ? LawAIApp.StorageEngine.get(_storageKey)
+                : null;
             if (stored) {
-                if (stored._schemaVersion && stored._schemaVersion !== _schemaVersion) {
-                    console.warn('[KnowledgeGraph] Schema version mismatch, migrating...');
-                    _nodes = stored.nodes || {};
-                    _relations = stored.relations || {};
-                    _rebuildIndexes();
-                    _save();
-                } else {
-                    _nodes = stored.nodes || {};
-                    _relations = stored.relations || {};
-                    _rebuildIndexes();
-                }
+                _nodes = stored.nodes || {};
+                _relations = stored.relations || {};
+                _rebuildIndexes();
                 console.log('[KnowledgeGraph] Loaded from storage, nodes:', Object.keys(_nodes).length);
             }
         } catch (e) {
@@ -606,18 +513,16 @@
                 relations: _relations,
                 updatedAt: Date.now()
             };
-            LawAIApp.StorageEngine?.set?.(_storageKey, data);
+            if (LawAIApp.StorageEngine && LawAIApp.StorageEngine.set) {
+                LawAIApp.StorageEngine.set(_storageKey, data);
+            }
         } catch (e) {
             console.warn('[KnowledgeGraph] Save failed:', e);
         }
     }
 
     function _rebuildIndexes() {
-        _indexes = {
-            byNode: {},
-            byType: {},
-            byRelationType: {}
-        };
+        _indexes = { byNode: {}, byType: {}, byRelationType: {} };
 
         for (var nodeId in _nodes) {
             var node = _nodes[nodeId];
@@ -629,17 +534,11 @@
 
         for (var relId in _relations) {
             var rel = _relations[relId];
-            if (!_indexes.byNode[rel.from]) {
-                _indexes.byNode[rel.from] = [];
-            }
+            if (!_indexes.byNode[rel.from]) _indexes.byNode[rel.from] = [];
             _indexes.byNode[rel.from].push(relId);
-            if (!_indexes.byNode[rel.to]) {
-                _indexes.byNode[rel.to] = [];
-            }
+            if (!_indexes.byNode[rel.to]) _indexes.byNode[rel.to] = [];
             _indexes.byNode[rel.to].push(relId);
-            if (!_indexes.byRelationType[rel.type]) {
-                _indexes.byRelationType[rel.type] = [];
-            }
+            if (!_indexes.byRelationType[rel.type]) _indexes.byRelationType[rel.type] = [];
             _indexes.byRelationType[rel.type].push(relId);
         }
     }
@@ -654,17 +553,32 @@
             return;
         }
 
-        console.log('[KnowledgeGraph] 🚀 Initializing v2.0.0...');
+        console.log('[KnowledgeGraph] 🚀 Initializing v2.0.1...');
 
         try {
             _load();
-
             _initialized = true;
             console.log('[KnowledgeGraph] ✅ Initialized, nodes:', Object.keys(_nodes).length, 'relations:', Object.keys(_relations).length);
         } catch (e) {
             console.error('[KnowledgeGraph] ❌ Init failed:', e);
             _initialized = false;
         }
+    }
+
+    function reset() {
+        _nodes = {};
+        _relations = {};
+        _indexes = { byNode: {}, byType: {}, byRelationType: {} };
+        try {
+            if (LawAIApp.StorageEngine && LawAIApp.StorageEngine.set) {
+                LawAIApp.StorageEngine.set(_storageKey, {
+                    _schemaVersion: _schemaVersion,
+                    nodes: {},
+                    relations: {}
+                });
+            }
+        } catch (e) {}
+        console.log('[KnowledgeGraph] Reset complete');
     }
 
     function getUnmetPrerequisites(nodeId, learnerModel) {
@@ -676,8 +590,9 @@
         var unmet = [];
         for (var i = 0; i < prereqs.length; i++) {
             var prereq = prereqs[i];
-            var knowledgeState = learnerModel.getKnowledgeState ? 
-                learnerModel.getKnowledgeState(prereq.id) : null;
+            var knowledgeState = learnerModel.getKnowledgeState
+                ? learnerModel.getKnowledgeState(prereq.id)
+                : null;
 
             if (!knowledgeState || (knowledgeState.mastery && knowledgeState.mastery.level < 0.6)) {
                 unmet.push({
@@ -692,55 +607,11 @@
     }
 
     // ============================================================
-    // CORE: Status
-    // ============================================================
-
-    function getStatus() {
-        var validation = validateGraph();
-        return {
-            version: '2.0.0',
-            initialized: _initialized,
-            schemaVersion: _schemaVersion,
-            nodeCount: Object.keys(_nodes).length,
-            relationCount: Object.keys(_relations).length,
-            relationTypes: Object.keys(_indexes.byRelationType),
-            nodeTypes: Object.keys(_indexes.byType),
-            valid: validation.valid,
-            errors: validation.errors,
-            warnings: validation.warnings,
-            orphanCount: validation.orphanCount,
-            storageAvailable: !!(LawAIApp.StorageEngine && typeof LawAIApp.StorageEngine.get === 'function')
-        };
-    }
-
-    // ============================================================
-    // CORE: Reset
-    // ============================================================
-
-    function reset() {
-        _nodes = {};
-        _relations = {};
-        _indexes = {
-            byNode: {},
-            byType: {},
-            byRelationType: {}
-        };
-        try {
-            LawAIApp.StorageEngine?.set?.(_storageKey, {
-                _schemaVersion: _schemaVersion,
-                nodes: {},
-                relations: {}
-            });
-        } catch (e) {}
-        console.log('[KnowledgeGraph] Reset complete');
-    }
-
-    // ============================================================
-    // PUBLIC API（包含 PART 118 增强查询）
+    // PUBLIC API
     // ============================================================
     var KnowledgeGraph = {
         _upgraded: true,
-        _version: '2.0.0',
+        _version: '2.0.1',
 
         RELATION_TYPES: RELATION_TYPES,
         NODE_TYPES: NODE_TYPES,
@@ -771,11 +642,25 @@
         getUnmetPrerequisites: getUnmetPrerequisites,
 
         validateGraph: validateGraph,
-
         exportGraph: exportGraph,
         importGraph: importGraph,
 
-        getStatus: getStatus,
+        getStatus: function() {
+            var validation = validateGraph();
+            return {
+                version: '2.0.1',
+                initialized: _initialized,
+                schemaVersion: _schemaVersion,
+                nodeCount: Object.keys(_nodes).length,
+                relationCount: Object.keys(_relations).length,
+                relationTypes: Object.keys(_indexes.byRelationType),
+                nodeTypes: Object.keys(_indexes.byType),
+                valid: validation.valid,
+                errors: validation.errors,
+                warnings: validation.warnings,
+                orphanCount: validation.orphanCount
+            };
+        },
 
         // ============================================================
         // PART 118: 增强查询 API
@@ -789,8 +674,8 @@
                 label: node.title,
                 description: node.description,
                 status: node.status,
-                source: node.metadata?.source || { type: node.type, id: node.id },
-                provenance: node.metadata?.provenance || { createdAt: node.createdAt, updatedAt: node.updatedAt }
+                source: (node.metadata && node.metadata.source) || { type: node.type, id: node.id },
+                provenance: (node.metadata && node.metadata.provenance) || { createdAt: node.createdAt, updatedAt: node.updatedAt }
             };
         },
 
@@ -832,442 +717,332 @@
         getEntityTags: function(entityId) {
             var node = this.getNode(entityId);
             if (!node) return [];
-            var tags = node.metadata?.tags || [];
+            var tags = (node.metadata && node.metadata.tags) || [];
             var rels = this.getRelations(entityId);
+            var self = this;
             rels.forEach(function(rel) {
-                var target = this.getNode(rel.to);
-                if (target && target.metadata?.tags) {
+                var target = self.getNode(rel.to);
+                if (target && target.metadata && target.metadata.tags) {
                     target.metadata.tags.forEach(function(tag) {
                         if (tags.indexOf(tag) === -1) tags.push(tag);
                     });
                 }
-            }.bind(this));
+            });
             return tags;
         },
 
-        getConcepts: function() {
-            var allNodes = this.getAllNodes();
-            return allNodes.filter(function(node) {
-                return node.metadata && node.metadata.type === 'concept';
-            });
-        },
-    
-    // ============================================================
-    // PART 119: 真实数据导入
-    // ============================================================
+        // ============================================================
+        // PART 119: 真实数据导入
+        // ============================================================
+        ingestFromAcademy: function(options) {
+            options = options || {};
+            var report = this._createIngestionReport('academy');
+            var self = this;
 
-    /**
-     * 从 Academy 导入数据到图谱
-     * @param {Object} options - 配置选项
-     * @param {boolean} options.clearExisting - 是否清空现有图谱
-     * @param {boolean} options.dryRun - 是否只预览不实际写入
-     * @returns {Object} 导入报告
-     */
-    ingestFromAcademy: function(options) {
-        options = options || {};
-        var report = this._createIngestionReport('academy');
+            try {
+                var schools = this._getAllSchools();
+                report.sourceCounts.schools = schools.length;
 
-        try {
-            // 1. 获取 Academy 数据
-            var schools = this._getAllSchools();
-            report.sourceCounts.schools = schools.length;
-
-            // 2. 构建图谱
-            schools.forEach(function(school) {
-                // School 节点
-                this._upsertEntity({
-                    id: 'school:' + school.id,
-                    type: this.NODE_TYPES.COURSE,
-                    label: school.title || school.name || school.id,
-                    sourceType: 'school',
-                    sourceId: school.id,
-                    provenance: {
-                        sourceSystem: 'academy',
+                schools.forEach(function(school) {
+                    self._upsertEntity({
+                        id: 'school:' + school.id,
+                        type: self.NODE_TYPES.COURSE,
+                        label: school.title || school.name || school.id,
                         sourceType: 'school',
-                        sourceId: school.id
-                    }
-                });
-                report.entitiesCreated++;
-
-                // School → Courses
-                var courses = this._getCoursesBySchool(school.id);
-                courses.forEach(function(course) {
-                    this._upsertEntity({
-                        id: 'course:' + course.id,
-                        type: this.NODE_TYPES.COURSE,
-                        label: course.title || course.name || course.id,
-                        ...
+                        sourceId: school.id,
+                        provenance: { sourceSystem: 'academy', sourceType: 'school', sourceId: school.id }
                     });
                     report.entitiesCreated++;
-                
-                    // 🔥 新增：School → PART_OF → Course
-                    var schoolRel = this._upsertRelationship({
-                        from: 'school:' + school.id,
-                        to: 'course:' + course.id,
-                        type: this.RELATION_TYPES.PART_OF,
-                        weight: 1,
-                        confidence: 1.0,
-                        source: 'academy',
-                        provenance: {
-                            sourceSystem: 'academy',
-                            sourceType: 'hierarchy',
-                            sourceId: school.id + '→' + course.id
-                        }
-                    });
-                    if (schoolRel) report.relationshipsCreated++;
 
-                    // 🔥 Course → Subject（跳过 Module 层）
-                    var subjects = this._getSubjectsByModule(course.id);
-                    subjects.forEach(function(subject) {
-                        this._upsertEntity({
-                            id: 'subject:' + subject.id,
-                            type: this.NODE_TYPES.KNOWLEDGE,
-                            label: subject.title || subject.name || subject.id,
-                            sourceType: 'subject',
-                            sourceId: subject.id,
-                            provenance: {
-                                sourceSystem: 'academy',
-                                sourceType: 'subject',
-                                sourceId: subject.id
-                            }
+                    var courses = self._getCoursesBySchool(school.id);
+                    courses.forEach(function(course) {
+                        self._upsertEntity({
+                            id: 'course:' + course.id,
+                            type: self.NODE_TYPES.COURSE,
+                            label: course.title || course.name || course.id,
+                            sourceType: 'course',
+                            sourceId: course.id,
+                            provenance: { sourceSystem: 'academy', sourceType: 'course', sourceId: course.id }
                         });
                         report.entitiesCreated++;
 
-                        // Subject → Lessons
-                        var lessons = this._getLessonsBySubject(subject.id);
-                        lessons.forEach(function(lesson) {
-                            this._upsertEntity({
-                                id: 'lesson:' + lesson.id,
-                                type: this.NODE_TYPES.LESSON,
-                                label: lesson.title || lesson.name || lesson.id,
-                                sourceType: 'lesson',
-                                sourceId: lesson.id,
-                                provenance: {
-                                    sourceSystem: 'academy',
-                                    sourceType: 'lesson',
-                                    sourceId: lesson.id
-                                }
+                        var schoolRel = self._upsertRelationship({
+                            from: 'school:' + school.id,
+                            to: 'course:' + course.id,
+                            type: self.RELATION_TYPES.PART_OF,
+                            weight: 1,
+                            confidence: 1.0,
+                            source: 'academy'
+                        });
+                        if (schoolRel) report.relationshipsCreated++;
+
+                        var subjects = self._getSubjectsByModule(course.id);
+                        subjects.forEach(function(subject) {
+                            self._upsertEntity({
+                                id: 'subject:' + subject.id,
+                                type: self.NODE_TYPES.KNOWLEDGE,
+                                label: subject.title || subject.name || subject.id,
+                                sourceType: 'subject',
+                                sourceId: subject.id,
+                                provenance: { sourceSystem: 'academy', sourceType: 'subject', sourceId: subject.id }
                             });
                             report.entitiesCreated++;
 
-                            // Subject → PART_OF → Lesson
-                            var rel = this._upsertRelationship({
-                                from: 'subject:' + subject.id,
-                                to: 'lesson:' + lesson.id,
-                                type: this.RELATION_TYPES.PART_OF,
+                            var lessons = self._getLessonsBySubject(subject.id);
+                            lessons.forEach(function(lesson) {
+                                self._upsertEntity({
+                                    id: 'lesson:' + lesson.id,
+                                    type: self.NODE_TYPES.LESSON,
+                                    label: lesson.title || lesson.name || lesson.id,
+                                    sourceType: 'lesson',
+                                    sourceId: lesson.id,
+                                    provenance: { sourceSystem: 'academy', sourceType: 'lesson', sourceId: lesson.id }
+                                });
+                                report.entitiesCreated++;
+
+                                var rel = self._upsertRelationship({
+                                    from: 'subject:' + subject.id,
+                                    to: 'lesson:' + lesson.id,
+                                    type: self.RELATION_TYPES.PART_OF,
+                                    weight: 1,
+                                    confidence: 1.0,
+                                    source: 'academy'
+                                });
+                                if (rel) report.relationshipsCreated++;
+                            });
+                        });
+                    });
+                });
+
+                report.status = 'completed';
+                report.completedAt = Date.now();
+            } catch (e) {
+                report.status = 'failed';
+                report.error = e.message;
+                console.error('[KnowledgeGraph] Academy ingestion failed:', e);
+            }
+
+            return report;
+        },
+
+        ingestFromNotes: function(options) {
+            options = options || {};
+            var report = this._createIngestionReport('notes');
+            var self = this;
+
+            try {
+                var notes = (window.LawAIApp && window.LawAIApp.KnowledgeCapture && window.LawAIApp.KnowledgeCapture.getNotes)
+                    ? window.LawAIApp.KnowledgeCapture.getNotes()
+                    : [];
+                report.sourceCounts.notes = notes.length;
+
+                notes.forEach(function(note) {
+                    self._upsertEntity({
+                        id: 'note:' + note.id,
+                        type: self.NODE_TYPES.KNOWLEDGE,
+                        label: note.title || 'Untitled Note',
+                        sourceType: 'note',
+                        sourceId: note.id,
+                        metadata: {
+                            type: note.type,
+                            tags: note.tags || [],
+                            hasReflection: !!(note.reflections && note.reflections.length > 0),
+                            reflectionCount: note.reflections ? note.reflections.length : 0
+                        },
+                        provenance: { sourceSystem: 'notes', sourceType: 'note', sourceId: note.id }
+                    });
+                    report.entitiesCreated++;
+
+                    if (note.lessonId) {
+                        var targetId = 'lesson:' + note.lessonId;
+                        if (self.hasNode(targetId)) {
+                            var rel = self._upsertRelationship({
+                                from: 'note:' + note.id,
+                                to: targetId,
+                                type: self.RELATION_TYPES.REFERENCES,
                                 weight: 1,
-                                confidence: 1.0,
-                                source: 'academy',
-                                provenance: {
-                                    sourceSystem: 'academy',
-                                    sourceType: 'hierarchy',
-                                    sourceId: subject.id + '→' + lesson.id
-                                }
+                                confidence: 0.9,
+                                source: 'notes'
                             });
                             if (rel) report.relationshipsCreated++;
-                        }.bind(this));   // ← lessons.forEach 闭合
-                    }.bind(this));       // ← subjects.forEach 闭合
-                }.bind(this));           // ← courses.forEach 闭合
-            }.bind(this));               // ← schools.forEach 闭合
+                        } else {
+                            report.brokenReferences++;
+                        }
+                    }
 
-            report.status = 'completed';
-            report.completedAt = Date.now();
-
-        } catch (e) {
-            report.status = 'failed';
-            report.error = e.message;
-            console.error('[KnowledgeGraph] Academy ingestion failed:', e);
-        }
-
-        return report;
-    },
-
-    /**
-     * 从 Notes 导入数据到图谱
-     * @param {Object} options
-     * @returns {Object} 导入报告
-     */
-    ingestFromNotes: function(options) {
-        options = options || {};
-        var report = this._createIngestionReport('notes');
-
-        try {
-            var notes = window.LawAIApp?.KnowledgeCapture?.getNotes() || [];
-            report.sourceCounts.notes = notes.length;
-    
-            notes.forEach(function(note) {
-                // 创建 Note 实体
-                var noteEntity = this._upsertEntity({
-                    id: 'note:' + note.id,
-                    type: this.NODE_TYPES.KNOWLEDGE,
-                    label: note.title || 'Untitled Note',
-                    sourceType: 'note',
-                    sourceId: note.id,
-                    metadata: {
-                        type: note.type,
-                        tags: note.tags || [],
-                        hasReflection: !!(note.reflections && note.reflections.length > 0),
-                        reflectionCount: note.reflections ? note.reflections.length : 0
-                    },    
-                    provenance: {
-                        sourceSystem: 'notes',
-                        sourceType: 'note',
-                        sourceId: note.id
-                    }    
+                    if (note.courseId) {
+                        var courseTargetId = 'course:' + note.courseId;
+                        if (self.hasNode(courseTargetId)) {
+                            var rel2 = self._upsertRelationship({
+                                from: 'note:' + note.id,
+                                to: courseTargetId,
+                                type: self.RELATION_TYPES.RELATED,
+                                weight: 0.7,
+                                confidence: 0.7,
+                                source: 'notes'
+                            });
+                            if (rel2) report.relationshipsCreated++;
+                        }
+                    }
                 });
-                report.entitiesCreated++;
 
-                // 如果 Note 有 Lesson Context，创建关系
-                if (note.lessonId) {
-                    var targetId = 'lesson:' + note.lessonId;
-                    // 检查目标是否存在
-                    if (this.hasNode(targetId)) {
-                        var rel = this._upsertRelationship({
-                            from: 'note:' + note.id,
-                            to: targetId,
-                            type: this.RELATION_TYPES.REFERENCES,
-                            weight: 1,
-                            confidence: 0.9,
-                            source: 'notes',
-                            provenance: {
-                                sourceSystem: 'notes',
-                                sourceType: 'context',
-                                sourceId: note.id + '→' + note.lessonId
-                            }
-                        });
-                        if (rel) report.relationshipsCreated++;
-                    } else {
-                        report.brokenReferences++;
-                    }
-                }    
+                report.status = 'completed';
+                report.completedAt = Date.now();
+            } catch (e) {
+                report.status = 'failed';
+                report.error = e.message;
+                console.error('[KnowledgeGraph] Notes ingestion failed:', e);
+            }
 
-                // 如果 Note 有 Course Context
-                if (note.courseId) {
-                    var targetId = 'course:' + note.courseId;
-                    if (this.hasNode(targetId)) {
-                        var rel = this._upsertRelationship({
-                            from: 'note:' + note.id,
-                            to: targetId,
-                            type: this.RELATION_TYPES.RELATED,
-                            weight: 0.7,
-                            confidence: 0.7,
-                            source: 'notes',
-                            provenance: {
-                                sourceSystem: 'notes',
-                                sourceType: 'context',
-                                sourceId: note.id + '→' + note.courseId
-                            }
-                        });
-                        if (rel) report.relationshipsCreated++;
-                    }
+            return report;
+        },
+
+        // ============================================================
+        // PART 119: 辅助方法
+        // ============================================================
+        _createIngestionReport: function(sourceType) {
+            return {
+                sourceType: sourceType,
+                status: 'pending',
+                startedAt: Date.now(),
+                completedAt: null,
+                sourceCounts: { schools: 0, courses: 0, modules: 0, subjects: 0, lessons: 0, notes: 0 },
+                entitiesCreated: 0,
+                entitiesUpdated: 0,
+                relationshipsCreated: 0,
+                relationshipsUpdated: 0,
+                duplicatesPrevented: 0,
+                brokenReferences: 0,
+                errors: [],
+                error: null
+            };
+        },
+
+        _getAllSchools: function() {
+            try {
+                var loader = (window.LawAIApp && (window.LawAIApp.S4ContentLoader || window.LawAIApp.ContentLoader));
+                if (loader && typeof loader.getSchools === 'function') {
+                    return loader.getSchools() || [];
                 }
-            }.bind(this));
-
-            report.status = 'completed';
-            report.completedAt = Date.now();
-    
-        } catch (e) {
-            report.status = 'failed';
-            report.error = e.message;
-            console.error('[KnowledgeGraph] Notes ingestion failed:', e);
-        }
-
-        return report;
-    },
-
-    // ============================================================
-    // PART 119: 辅助方法
-    // ============================================================
-
-    /**
-     * 创建导入报告
-     */
-    _createIngestionReport: function(sourceType) {
-        return {
-            sourceType: sourceType,
-            status: 'pending',
-            startedAt: Date.now(),
-            completedAt: null,
-            sourceCounts: {
-                schools: 0,
-                courses: 0,
-                modules: 0,
-                subjects: 0,
-                lessons: 0,
-                notes: 0
-            },
-            entitiesCreated: 0,
-            entitiesUpdated: 0,
-            relationshipsCreated: 0,
-            relationshipsUpdated: 0,
-            duplicatesPrevented: 0,
-            brokenReferences: 0,
-            errors: [],
-            error: null
-        };    
-    },
-
-    /**
-     * 获取所有 Schools
-     */
-    _getAllSchools: function() {
-        try {
-            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
-            if (loader && typeof loader.getSchools === 'function') {
-                return loader.getSchools() || [];
-            }    
-        } catch (e) {
-            console.warn('[KnowledgeGraph] Failed to get schools:', e);
-        }
-        return [];
-    },    
-
-    /**
-     * 获取 Courses by School
-     */    
-    _getCoursesBySchool: function(schoolId) {
-        try {
-            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
-            if (loader && typeof loader.getCoursesBySchool === 'function') {
-                return loader.getCoursesBySchool(schoolId) || [];
-            }    
-        } catch (e) {
-            console.warn('[KnowledgeGraph] Failed to get courses:', e);
-        }    
-        return [];
-    },
-
-    /**
-     * 🔥 无 module 层 → 返回空
-     */
-    _getModulesByCourse: function(courseId) {
-        return [];
-    },
-
-    /**
-     * 🔥 无 module 层 → 直接用 courseId 拿 subjects
-     */
-    _getSubjectsByModule: function(courseId) {
-        try {
-            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
-            if (loader && typeof loader.getSubjectsByCourse === 'function') {
-                return loader.getSubjectsByCourse(courseId) || [];
+            } catch (e) {
+                console.warn('[KnowledgeGraph] Failed to get schools:', e);
             }
-            if (loader && typeof loader.getSubjectsByModule === 'function') {
-                return loader.getSubjectsByModule(courseId) || [];
+            return [];
+        },
+
+        _getCoursesBySchool: function(schoolId) {
+            try {
+                var loader = (window.LawAIApp && (window.LawAIApp.S4ContentLoader || window.LawAIApp.ContentLoader));
+                if (loader && typeof loader.getCoursesBySchool === 'function') {
+                    return loader.getCoursesBySchool(schoolId) || [];
+                }
+            } catch (e) {
+                console.warn('[KnowledgeGraph] Failed to get courses:', e);
             }
-        } catch (e) {
-            console.warn('[KnowledgeGraph] Failed to get subjects:', e);
-        }
-        return [];
-    },
+            return [];
+        },
 
-    /**
-     * 🔥 无 module 层 → 从 subject 拿 lessons
-     */
-    _getLessonsBySubject: function(subjectId) {
-        try {
-            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
-            if (loader && typeof loader.getLessonsBySubject === 'function') {
-                return loader.getLessonsBySubject(subjectId) || [];
+        _getModulesByCourse: function(courseId) {
+            return [];
+        },
+
+        _getSubjectsByModule: function(courseId) {
+            try {
+                var loader = (window.LawAIApp && (window.LawAIApp.S4ContentLoader || window.LawAIApp.ContentLoader));
+                if (loader && typeof loader.getSubjectsByCourse === 'function') {
+                    return loader.getSubjectsByCourse(courseId) || [];
+                }
+                if (loader && typeof loader.getSubjectsByModule === 'function') {
+                    return loader.getSubjectsByModule(courseId) || [];
+                }
+            } catch (e) {
+                console.warn('[KnowledgeGraph] Failed to get subjects:', e);
             }
-        } catch (e) {
-            console.warn('[KnowledgeGraph] Failed to get lessons:', e);
-        }
-        return [];
-    },
+            return [];
+        },
 
-    /**
-     * 更新或创建实体 (idempotent)
-     */
-    _upsertEntity: function(entityData) {
-        // 检查是否已存在
-        if (this.hasNode(entityData.id)) {
-            var existing = this.getNode(entityData.id);
-            // 更新 label 和 metadata
-            existing.label = entityData.label || existing.label;
-            existing.metadata = { ...existing.metadata, ...entityData.metadata };
-            existing.updatedAt = Date.now();
-            return existing;
-        }
-
-        // 创建新实体
-        return this.registerNode({
-            id: entityData.id,
-            type: entityData.type || this.NODE_TYPES.KNOWLEDGE,
-            title: entityData.label,
-            description: '',
-            metadata: entityData.metadata || {},
-            sourceType: entityData.sourceType,
-            sourceId: entityData.sourceId,
-            provenance: entityData.provenance
-        });
-    },
-
-    /**
-     * 更新或创建关系 (idempotent)
-     */
-    _upsertRelationship: function(relData) {
-        // 检查是否已存在
-        if (this.hasRelation(relData.from, relData.to, relData.type)) {
-            return null; // 已存在，不重复创建
-        }
-
-        // 检查节点是否存在
-        if (!this.hasNode(relData.from) || !this.hasNode(relData.to)) {
-            console.warn('[KnowledgeGraph] Cannot create relationship: missing node(s)', relData.from, relData.to);
-            return null;
-        }
-
-        return this.registerRelation({
-            from: relData.from,
-            to: relData.to,
-            type: relData.type || this.RELATION_TYPES.RELATED,
-            weight: relData.weight || 1,
-            confidence: relData.confidence || 0.8,
-            source: relData.source || 'SYSTEM',
-            metadata: relData.provenance || {}
-        });
-    },
-
-    /**
-     * 获取导入报告摘要
-     */
-    getIngestionReport: function() {
-        var status = this.getStatus();
-        return {
-            graphStatus: status,
-            lastIngestion: {
-                academy: this._getLastIngestion('academy'),
-                notes: this._getLastIngestion('notes')
+        _getLessonsBySubject: function(subjectId) {
+            try {
+                var loader = (window.LawAIApp && (window.LawAIApp.S4ContentLoader || window.LawAIApp.ContentLoader));
+                if (loader && typeof loader.getLessonsBySubject === 'function') {
+                    return loader.getLessonsBySubject(subjectId) || [];
+                }
+            } catch (e) {
+                console.warn('[KnowledgeGraph] Failed to get lessons:', e);
             }
-        };
-    },
+            return [];
+        },
 
-    /**
-     * 获取最后一次导入记录
-     */
-    _getLastIngestion: function(sourceType) {
-        try {
-            var key = 'lawai_graph_ingestion_' + sourceType;
-            var stored = localStorage.getItem(key);
-            return stored ? JSON.parse(stored) : null;
-        } catch (e) {
-            return null;
-        }
-    },
+        _upsertEntity: function(entityData) {
+            if (this.hasNode(entityData.id)) {
+                var existing = this.getNode(entityData.id);
+                existing.title = entityData.label || existing.title;
+                existing.metadata = Object.assign({}, existing.metadata, entityData.metadata);
+                existing.updatedAt = Date.now();
+                return existing;
+            }
 
-    /**
-     * 保存导入记录
-     */
-    _saveIngestionReport: function(sourceType, report) {
-        try {
-            var key = 'lawai_graph_ingestion_' + sourceType;
-            localStorage.setItem(key, JSON.stringify(report));
-        } catch (e) {}
-    },
+            return this.registerNode({
+                id: entityData.id,
+                type: entityData.type || this.NODE_TYPES.KNOWLEDGE,
+                title: entityData.label,
+                description: '',
+                metadata: entityData.metadata || {},
+                sourceType: entityData.sourceType,
+                sourceId: entityData.sourceId,
+                provenance: entityData.provenance
+            });
+        },
 
-     ingestAll: function(options) {
+        _upsertRelationship: function(relData) {
+            if (this.hasRelation(relData.from, relData.to, relData.type)) {
+                return null;
+            }
+
+            if (!this.hasNode(relData.from) || !this.hasNode(relData.to)) {
+                return null;
+            }
+
+            return this.registerRelation({
+                from: relData.from,
+                to: relData.to,
+                type: relData.type || this.RELATION_TYPES.RELATED,
+                weight: relData.weight || 1,
+                confidence: relData.confidence || 0.8,
+                source: relData.source || 'SYSTEM',
+                metadata: relData.provenance || {}
+            });
+        },
+
+        getIngestionReport: function() {
+            var status = this.getStatus();
+            return {
+                graphStatus: status,
+                lastIngestion: {
+                    academy: this._getLastIngestion('academy'),
+                    notes: this._getLastIngestion('notes')
+                }
+            };
+        },
+
+        _getLastIngestion: function(sourceType) {
+            try {
+                var key = 'lawai_graph_ingestion_' + sourceType;
+                var stored = localStorage.getItem(key);
+                return stored ? JSON.parse(stored) : null;
+            } catch (e) {
+                return null;
+            }
+        },
+
+        _saveIngestionReport: function(sourceType, report) {
+            try {
+                var key = 'lawai_graph_ingestion_' + sourceType;
+                localStorage.setItem(key, JSON.stringify(report));
+            } catch (e) {}
+        },
+
+        ingestAll: function(options) {
             options = options || {};
             if (options.clearExisting) this.reset();
             var academyReport = this.ingestFromAcademy(options);
@@ -1288,40 +1063,25 @@
         // ============================================================
         // PART 120: 概念层 (Concept Layer)
         // ============================================================
-
-        /**
-         * 注册概念 (Concept)
-         * @param {Object} conceptData - 概念数据
-         * @param {string} conceptData.id - 概念 ID (如 'concept:prompt-engineering')
-         * @param {string} conceptData.label - 概念标签
-         * @param {string} conceptData.definition - 概念定义 (可选)
-         * @param {Array} conceptData.aliases - 别名列表 (可选)
-         * @param {string} conceptData.provenance - 来源 (academy, curated, learner)
-         * @returns {Object} 注册的概念
-         */
         registerConcept: function(conceptData) {
             if (!conceptData || !conceptData.id) {
                 console.warn('[KnowledgeGraph] Concept requires id');
                 return null;
             }
 
-            // 检查是否已存在
             if (this.hasNode(conceptData.id)) {
                 var existing = this.getNode(conceptData.id);
-                // 更新标签和定义
                 existing.title = conceptData.label || existing.title;
                 existing.description = conceptData.definition || existing.description;
-                existing.metadata = {
-                    ...existing.metadata,
-                    aliases: conceptData.aliases || existing.metadata?.aliases || [],
-                    provenance: conceptData.provenance || existing.metadata?.provenance || 'curated',
+                existing.metadata = Object.assign({}, existing.metadata, {
+                    aliases: conceptData.aliases || (existing.metadata && existing.metadata.aliases) || [],
+                    provenance: conceptData.provenance || (existing.metadata && existing.metadata.provenance) || 'curated',
                     type: 'concept'
-                };
+                });
                 existing.updatedAt = Date.now();
                 return existing;
             }
 
-            // 创建新概念节点
             return this.registerNode({
                 id: conceptData.id,
                 type: this.NODE_TYPES.KNOWLEDGE,
@@ -1337,92 +1097,66 @@
             });
         },
 
-        /**
-         * 获取概念
-         * @param {string} conceptId - 概念 ID
-         * @returns {Object} 概念对象
-         */
         getConcept: function(conceptId) {
             return this.getNode(conceptId);
         },
 
-        /**
-         * 获取所有概念
-         * @returns {Array} 概念列表
-         */
+        // 唯一版本 getConcepts（修复重复定义）
         getConcepts: function() {
             var allNodes = this.getAllNodes();
             return allNodes.filter(function(node) {
-                return node.metadata?.type === 'concept' || node.type === this.NODE_TYPES.KNOWLEDGE;
-            }.bind(this));
+                return (node.metadata && node.metadata.type === 'concept') ||
+                       node.type === NODE_TYPES.KNOWLEDGE;
+            });
         },
 
-        /**
-         * 获取某个 Lesson 教授的所有概念
-         * @param {string} lessonId - Lesson ID
-         * @returns {Array} 概念列表
-         */
         getConceptsForLesson: function(lessonId) {
             var kg = this;
             var relations = this.getRelations(lessonId);
             var conceptIds = relations
                 .filter(function(rel) {
-                    return rel.type === this.RELATION_TYPES.TEACHES;
-                }.bind(this))
+                    return rel.type === RELATION_TYPES.TEACHES;
+                })
                 .map(function(rel) {
                     return rel.to;
                 });
-        
+
             return conceptIds
-                .map(function(id) {
-                    return kg.getConcept(id);
-                })
+                .map(function(id) { return kg.getConcept(id); })
                 .filter(function(c) { return c; });
         },
 
-        /**
-         * 获取引用某个概念的所有 Notes
-         * @param {string} conceptId - 概念 ID
-         * @returns {Array} Note 列表
-         */
         getNotesForConcept: function(conceptId) {
-            var kg = this;
             var relations = this.getRelations(conceptId);
             var noteIds = relations
                 .filter(function(rel) {
-                    return rel.type === this.RELATION_TYPES.REFERENCES && rel.to === conceptId;
-                }.bind(this))
+                    return rel.type === RELATION_TYPES.REFERENCES && rel.to === conceptId;
+                })
                 .map(function(rel) {
                     return rel.from;
                 });
-    
-            // 从 KnowledgeCapture 获取实际的 Note 对象
-            var notes = window.LawAIApp?.KnowledgeCapture?.getNotes() || [];
+
+            var notes = (window.LawAIApp && window.LawAIApp.KnowledgeCapture && window.LawAIApp.KnowledgeCapture.getNotes)
+                ? window.LawAIApp.KnowledgeCapture.getNotes()
+                : [];
             return notes.filter(function(note) {
                 return noteIds.indexOf(note.id) !== -1;
             });
         },
 
-        /**
-         * 获取教授某个概念的所有 Lessons
-         * @param {string} conceptId - 概念 ID
-         * @returns {Array} Lesson 列表
-         */
         getLessonsForConcept: function(conceptId) {
-            var kg = this;
             var relations = this.getRelations(conceptId);
             var lessonIds = relations
                 .filter(function(rel) {
-                    return rel.type === this.RELATION_TYPES.TEACHES && rel.to === conceptId;
-                }.bind(this))
+                    return rel.type === RELATION_TYPES.TEACHES && rel.to === conceptId;
+                })
                 .map(function(rel) {
                     return rel.from;
                 });
-    
-            // 从 Academy 获取实际的 Lesson 对象
-            var loader = window.LawAIApp?.S4ContentLoader || window.LawAIApp?.ContentLoader;
+
+            var loader = (window.LawAIApp && (window.LawAIApp.S4ContentLoader || window.LawAIApp.ContentLoader));
             if (!loader) return [];
-    
+
             var lessons = [];
             lessonIds.forEach(function(id) {
                 try {
@@ -1435,28 +1169,22 @@
             return lessons;
         },
 
-        /**
-         * 获取与某个概念相关的所有概念
-         * @param {string} conceptId - 概念 ID
-         * @param {number} maxDepth - 最大深度 (默认 1)
-         * @returns {Array} 相关概念列表
-         */
         getRelatedConcepts: function(conceptId, maxDepth) {
             maxDepth = maxDepth || 1;
             var kg = this;
             var result = [];
             var visited = {};
-    
+
             function traverse(id, depth) {
                 if (depth > maxDepth) return;
                 if (visited[id]) return;
                 visited[id] = true;
-        
+
                 var relations = kg.getRelations(id);
                 relations
                     .filter(function(rel) {
-                        return rel.type === this.RELATION_TYPES.RELATES_TO;
-                    }.bind(this))
+                        return rel.type === RELATION_TYPES.RELATES_TO;
+                    })
                     .forEach(function(rel) {
                         var targetId = rel.from === id ? rel.to : rel.from;
                         var concept = kg.getConcept(targetId);
@@ -1464,9 +1192,9 @@
                             result.push(concept);
                             traverse(targetId, depth + 1);
                         }
-                    }.bind(this));
+                    });
             }
-    
+
             traverse(conceptId, 0);
             return result;
         },
@@ -1474,12 +1202,6 @@
         // ============================================================
         // PART 121: 查询与发现层
         // ============================================================
-
-        /**
-         * 获取实体的出向关系
-         * @param {string} entityId - 实体 ID
-         * @returns {Array} 关系列表
-         */
         getOutgoingRelationships: function(entityId) {
             var allRels = this.getRelations(entityId);
             return allRels.filter(function(rel) {
@@ -1487,11 +1209,6 @@
             });
         },
 
-        /**
-         * 获取实体的入向关系
-         * @param {string} entityId - 实体 ID
-         * @returns {Array} 关系列表
-         */
         getIncomingRelationships: function(entityId) {
             var allRels = this.getRelations(entityId);
             return allRels.filter(function(rel) {
@@ -1499,33 +1216,25 @@
             });
         },
 
-        /**
-         * 获取实体的所有邻居 (直接连接)
-         * @param {string} entityId - 实体 ID
-         * @param {Object} options - 配置选项
-         * @returns {Object} 邻居结果
-         */
         getNeighbors: function(entityId, options) {
-            // 输入验证
             if (!this._validateEntityId(entityId)) {
                 return this._createErrorResponse('INVALID_ENTITY_ID', 'Invalid entity ID: ' + entityId);
             }
-    
+
             options = options || { direction: 'both' };
             if (!this._validateDirection(options.direction)) {
                 return this._createErrorResponse('INVALID_DIRECTION', 'Invalid direction: ' + options.direction);
             }
-    
+
             var kg = this;
             var rels = this.getRelations(entityId);
-    
-            // 按方向过滤
+
             if (options.direction === 'outgoing') {
                 rels = rels.filter(function(r) { return r.from === entityId; });
             } else if (options.direction === 'incoming') {
                 rels = rels.filter(function(r) { return r.to === entityId; });
             }
-    
+
             var neighbors = [];
             rels.forEach(function(rel) {
                 var neighborId = rel.from === entityId ? rel.to : rel.from;
@@ -1538,7 +1247,7 @@
                     });
                 }
             });
-    
+
             return this._createSuccessResponse(neighbors, {
                 queryType: 'NEIGHBOR',
                 entityId: entityId,
@@ -1547,28 +1256,19 @@
             });
         },
 
-        /**
-         * 按关系类型获取邻居
-         * @param {string} entityId - 实体 ID
-         * @param {string} relationType - 关系类型
-         * @param {Object} options - 配置选项
-         * @returns {Array} 邻居列表
-         */
         getNeighborsByRelation: function(entityId, relationType, options) {
             options = options || { direction: 'both' };
             var kg = this;
             var rels = this.getRelations(entityId);
-    
-            // 按关系类型过滤
+
             rels = rels.filter(function(r) { return r.type === relationType; });
-    
-            // 按方向过滤
+
             if (options.direction === 'outgoing') {
                 rels = rels.filter(function(r) { return r.from === entityId; });
             } else if (options.direction === 'incoming') {
                 rels = rels.filter(function(r) { return r.to === entityId; });
             }
-    
+
             var neighbors = [];
             rels.forEach(function(rel) {
                 var neighborId = rel.from === entityId ? rel.to : rel.from;
@@ -1581,24 +1281,10 @@
                     });
                 }
             });
-    
+
             return neighbors;
         },
 
-        /**
-         * 多跳遍历
-         * @param {string} startId - 起始实体 ID
-         * @param {Object} options - 配置选项
-         * @param {number} options.maxDepth - 最大深度 (默认 2)
-         * @param {string} options.direction - 'outgoing' | 'incoming' | 'both'
-         * @param {Array} options.relationTypes - 关系类型过滤
-         * @param {Array} options.entityTypes - 实体类型过滤
-         * @param {boolean} options.includeStart - 是否包含起始节点
-         * @param {boolean} options.includeRelationships - 是否包含关系
-         * @param {boolean} options.includeProvenance - 是否包含溯源
-         * @param {number} options.maxResults - 最大结果数
-         * @returns {Object} 遍历结果
-         */
         traverse: function(startId, options) {
             if (!this._validateEntityId(startId)) {
                 return this._createErrorResponse('INVALID_ENTITY_ID', 'Invalid start entity ID: ' + startId);
@@ -1617,8 +1303,7 @@
             if (!this._validateMaxResults(maxResults)) {
                 return this._createErrorResponse('INVALID_MAX_RESULTS', 'Invalid maxResults: ' + maxResults);
             }
-    
-            // 验证关系类型过滤
+
             if (options.relationTypes && options.relationTypes.length > 0) {
                 for (var i = 0; i < options.relationTypes.length; i++) {
                     if (!this._validateRelationType(options.relationTypes[i])) {
@@ -1626,8 +1311,7 @@
                     }
                 }
             }
-    
-            // 验证实体类型过滤
+
             if (options.entityTypes && options.entityTypes.length > 0) {
                 for (var j = 0; j < options.entityTypes.length; j++) {
                     if (!this._validateEntityType(options.entityTypes[j])) {
@@ -1635,132 +1319,97 @@
                     }
                 }
             }
-    
-            // 检查起始节点是否存在
+
             if (!this.hasNode(startId)) {
                 return this._createErrorResponse('ENTITY_NOT_FOUND', 'Entity not found: ' + startId);
             }
-            
+
             var relationTypes = options.relationTypes || [];
             var entityTypes = options.entityTypes || [];
             var includeStart = options.includeStart !== undefined ? options.includeStart : false;
             var includeRelationships = options.includeRelationships !== undefined ? options.includeRelationships : true;
             var includeProvenance = options.includeProvenance !== undefined ? options.includeProvenance : true;
-            var kg = this;
-        
-            var visited = new Set();
+
+            var visited = {};
             var results = [];
             var queue = [];
-            var depthMap = {};
-    
-            // 检查起始节点是否存在
+
             var startNode = this.getNode(startId);
-            if (!startNode) {
-                return {
-                    success: true,
-                    results: results,
-                    count: results.length,
-                    truncated: false,
-                    metadata: {
-                        queryType: 'TRAVERSAL',
-                        startId: startId,
-                        maxDepth: maxDepth,
-                        direction: direction,
-                        maxResults: maxResults,
-                        visitedCount: visited.size
-                    }
-                };
-            }
-    
-            // 添加起始节点
+
             if (includeStart) {
-                results.push({
-                    entity: startNode,
-                    depth: 0,
-                    path: [startId]
-                });
-                visited.add(startId);
+                results.push({ entity: startNode, depth: 0, path: [startId] });
+                visited[startId] = true;
             }
-    
-            // 初始化队列
+
             queue.push({ id: startId, depth: 0, path: [startId] });
-            depthMap[startId] = 0;
-    
+            visited[startId] = true;
+
             while (queue.length > 0 && results.length < maxResults) {
                 var current = queue.shift();
                 var currentId = current.id;
                 var currentDepth = current.depth;
                 var currentPath = current.path;
-        
+
                 if (currentDepth >= maxDepth) continue;
-        
-                // 获取邻居
+
                 var neighbors = this.getNeighbors(currentId, { direction: direction });
-        
-                for (var i = 0; i < neighbors.length; i++) {
+                var neighborList = neighbors.results || [];
+
+                for (var k = 0; k < neighborList.length; k++) {
                     if (results.length >= maxResults) break;
-            
-                    var neighbor = neighbors[i];
+
+                    var neighbor = neighborList[k];
                     var neighborId = neighbor.entity.id;
-            
-                    // 跳过已访问的
-                    if (visited.has(neighborId)) continue;
-            
-                    // 跳过不是实体类型
+
+                    if (visited[neighborId]) continue;
+
                     if (entityTypes.length > 0) {
-                        var matched = false;
-                        for (var j = 0; j < entityTypes.length; j++) {
-                            if (neighbor.entity.type === entityTypes[j]) {
-                                matched = true;
+                        var matchedType = false;
+                        for (var m = 0; m < entityTypes.length; m++) {
+                            if (neighbor.entity.type === entityTypes[m]) {
+                                matchedType = true;
                                 break;
                             }
                         }
-                        if (!matched) continue;
+                        if (!matchedType) continue;
                     }
-            
-                    // 跳过不是关系类型
+
                     if (relationTypes.length > 0) {
                         var matchedRel = false;
-                        for (var k = 0; k < relationTypes.length; k++) {
-                            if (neighbor.relationship.type === relationTypes[k]) {
+                        for (var n = 0; n < relationTypes.length; n++) {
+                            if (neighbor.relationship.type === relationTypes[n]) {
                                 matchedRel = true;
                                 break;
                             }
                         }
                         if (!matchedRel) continue;
                     }
-            
-                    visited.add(neighborId);
+
+                    visited[neighborId] = true;
                     var newPath = currentPath.concat([neighborId]);
-            
+
                     var resultItem = {
                         entity: neighbor.entity,
                         depth: currentDepth + 1,
                         path: newPath
                     };
-            
+
                     if (includeRelationships) {
                         resultItem.relationship = neighbor.relationship;
                         resultItem.direction = neighbor.direction;
                     }
-            
+
                     if (includeProvenance && neighbor.relationship.provenance) {
                         resultItem.provenance = neighbor.relationship.provenance;
                     }
-            
+
                     results.push(resultItem);
-            
-                    // 添加到队列
-                    queue.push({
-                        id: neighborId,
-                        depth: currentDepth + 1,
-                        path: newPath
-                    });
+                    queue.push({ id: neighborId, depth: currentDepth + 1, path: newPath });
                 }
             }
-    
+
             var truncated = results.length >= maxResults || queue.length > 0;
-    
+
             return {
                 success: true,
                 results: results,
@@ -1771,62 +1420,52 @@
                     startId: startId,
                     maxDepth: maxDepth,
                     direction: direction,
-                    visitedCount: visited.size,
+                    visitedCount: Object.keys(visited).length,
                     maxResults: maxResults
                 }
             };
         },
 
-        /**
-         * 查找路径
-         * @param {string} sourceId - 源实体 ID
-         * @param {string} targetId - 目标实体 ID
-         * @param {Object} options - 配置选项
-         * @param {number} options.maxDepth - 最大深度 (默认 3)
-         * @param {string} options.direction - 'outgoing' | 'incoming' | 'both'
-         * @returns {Object} 路径结果
-         */
         findPath: function(sourceId, targetId, options) {
             options = options || {};
             var maxDepth = options.maxDepth || 3;
             var direction = options.direction || 'outgoing';
             var kg = this;
-    
-            // 检查节点是否存在
+
             if (!this.hasNode(sourceId)) {
                 return { success: false, error: 'Source not found: ' + sourceId, path: null };
             }
             if (!this.hasNode(targetId)) {
                 return { success: false, error: 'Target not found: ' + targetId, path: null };
             }
-    
+
             if (sourceId === targetId) {
                 return { success: true, path: [sourceId], depth: 0 };
             }
-    
-            var visited = new Set();
+
+            var visited = {};
             var queue = [{ id: sourceId, path: [sourceId] }];
-            visited.add(sourceId);
-    
+            visited[sourceId] = true;
+
             while (queue.length > 0) {
                 var current = queue.shift();
                 var currentId = current.id;
                 var currentPath = current.path;
-        
+
                 if (currentPath.length > maxDepth) continue;
-        
+
                 var neighbors = this.getNeighbors(currentId, { direction: direction });
-        
-                for (var i = 0; i < neighbors.length; i++) {
-                    var neighbor = neighbors[i];
+                var neighborList = neighbors.results || [];
+
+                for (var i = 0; i < neighborList.length; i++) {
+                    var neighbor = neighborList[i];
                     var neighborId = neighbor.entity.id;
-            
-                    if (visited.has(neighborId)) continue;
-            
+
+                    if (visited[neighborId]) continue;
+
                     var newPath = currentPath.concat([neighborId]);
-            
+
                     if (neighborId === targetId) {
-                        // 构建路径详情
                         var pathDetails = [];
                         for (var j = 0; j < newPath.length - 1; j++) {
                             var fromId = newPath[j];
@@ -1839,13 +1478,9 @@
                                     break;
                                 }
                             }
-                            pathDetails.push({
-                                from: fromId,
-                                to: toId,
-                                relationship: foundRel
-                            });
+                            pathDetails.push({ from: fromId, to: toId, relationship: foundRel });
                         }
-                
+
                         return {
                             success: true,
                             path: newPath,
@@ -1855,12 +1490,12 @@
                             targetId: targetId
                         };
                     }
-            
-                    visited.add(neighborId);
+
+                    visited[neighborId] = true;
                     queue.push({ id: neighborId, path: newPath });
                 }
             }
-    
+
             return {
                 success: false,
                 error: 'No path found within depth ' + maxDepth,
@@ -1868,14 +1503,6 @@
             };
         },
 
-        /**
-         * 检查两个实体是否连通
-         * @param {string} sourceId - 源实体 ID
-         * @param {string} targetId - 目标实体 ID
-         * @param {Object} options - 配置选项
-         * @param {number} options.maxDepth - 最大深度 (默认 3)
-         * @returns {Object} 连通性结果
-         */
         isConnected: function(sourceId, targetId, options) {
             var result = this.findPath(sourceId, targetId, options);
             return {
@@ -1886,11 +1513,6 @@
             };
         },
 
-        /**
-         * 按标签查找实体 (精确匹配)
-         * @param {string} label - 标签
-         * @returns {Array} 实体列表
-         */
         getEntitiesByLabel: function(label) {
             if (!label) return [];
             var allNodes = this.getAllNodes();
@@ -1900,11 +1522,6 @@
             });
         },
 
-        /**
-         * 按标签模糊查找 (包含匹配)
-         * @param {string} label - 标签
-         * @returns {Array} 实体列表
-         */
         searchEntitiesByLabel: function(label) {
             if (!label) return [];
             var allNodes = this.getAllNodes();
@@ -1914,29 +1531,17 @@
             });
         },
 
-        /**
-         * 检查实体的溯源信息
-         * @param {string} entityId - 实体 ID
-         * @returns {Object} 溯源信息
-         */
         inspectProvenance: function(entityId) {
             var node = this.getNode(entityId);
             if (!node) return null;
-    
+
             var result = {
-                entity: {
-                    id: node.id,
-                    type: node.type,
-                    label: node.title
-                },
-            provenance: node.provenance || null,
-                source: {
-                    sourceType: node.sourceType || null,
-                    sourceId: node.sourceId || null
-                },
+                entity: { id: node.id, type: node.type, label: node.title },
+                provenance: node.provenance || (node.metadata && node.metadata.provenance) || null,
+                source: { sourceType: node.sourceType || null, sourceId: node.sourceId || null },
                 relationships: []
             };
-    
+
             var rels = this.getRelations(entityId);
             rels.forEach(function(rel) {
                 result.relationships.push({
@@ -1948,349 +1553,245 @@
                     confidence: rel.confidence || null
                 });
             });
-    
+
             return result;
         },
 
-    // ============================================================
-    // PART 122: 输入验证工具
-    // ============================================================
+        // ============================================================
+        // PART 122: 输入验证工具
+        // ============================================================
+        _validateEntityId: function(entityId) {
+            if (!entityId || typeof entityId !== 'string') return false;
+            if (entityId.trim() === '') return false;
+            return true;
+        },
 
-    /**
-     * 验证实体 ID
-     * @param {string} entityId - 实体 ID
-     * @returns {boolean} 是否有效
-     */
-    _validateEntityId: function(entityId) {
-        if (!entityId || typeof entityId !== 'string') return false;
-        if (entityId.trim() === '') return false;
-        return true;
-    },
+        _validateDirection: function(direction) {
+            var valid = ['outgoing', 'incoming', 'both'];
+            return valid.indexOf(direction) !== -1;
+        },
 
-    /**
-     * 验证方向
-     * @param {string} direction - 方向
-     * @returns {boolean} 是否有效
-     */
-    _validateDirection: function(direction) {
-        var valid = ['outgoing', 'incoming', 'both'];
-        return valid.indexOf(direction) !== -1;
-    },
+        _validateDepth: function(depth) {
+            if (depth === undefined || depth === null) return true;
+            if (typeof depth !== 'number') return false;
+            if (depth < 0 || depth > 5) return false;
+            return true;
+        },
 
-    /**
-     * 验证深度
-     * @param {number} depth - 深度
-     * @returns {boolean} 是否有效
-     */
-    _validateDepth: function(depth) {
-        if (depth === undefined || depth === null) return true;
-        if (typeof depth !== 'number') return false;
-        if (depth < 0 || depth > 5) return false; // 最大深度 5
-        return true;
-    },
+        _validateMaxResults: function(maxResults) {
+            if (maxResults === undefined || maxResults === null) return true;
+            if (typeof maxResults !== 'number') return false;
+            if (maxResults < 1 || maxResults > 500) return false;
+            return true;
+        },
 
-    /**
-     * 验证结果数量限制
-     * @param {number} maxResults - 最大结果数
-     * @returns {boolean} 是否有效
-     */
-    _validateMaxResults: function(maxResults) {
-        if (maxResults === undefined || maxResults === null) return true;
-        if (typeof maxResults !== 'number') return false;
-        if (maxResults < 1 || maxResults > 500) return false;
-        return true;
-    },    
+        _validateRelationType: function(relationType) {
+            if (!relationType) return false;
+            var validTypes = ['TEACHES', 'REFERENCES', 'CONTAINS', 'RELATES_TO', 'DERIVED_FROM', 'REFLECTS_ON'];
+            return validTypes.indexOf(relationType) !== -1;
+        },
 
-    /**
-     * 验证关系类型
-     * @param {string} relationType - 关系类型
-     * @returns {boolean} 是否有效
-     */
-    _validateRelationType: function(relationType) {
-        if (!relationType) return false;
-        var validTypes = ['TEACHES', 'REFERENCES', 'CONTAINS', 'RELATES_TO', 'DERIVED_FROM', 'REFLECTS_ON'];
-        return validTypes.indexOf(relationType) !== -1;
-    },
+        _validateEntityType: function(entityType) {
+            if (!entityType) return false;
+            var validTypes = ['school', 'course', 'module', 'subject', 'lesson', 'note', 'concept'];
+            return validTypes.indexOf(entityType) !== -1;
+        },
 
-    /**
-     * 验证实体类型
-     * @param {string} entityType - 实体类型
-     * @returns {boolean} 是否有效
-     */
-    _validateEntityType: function(entityType) {
-        if (!entityType) return false;
-        var validTypes = ['school', 'course', 'module', 'subject', 'lesson', 'note', 'concept'];
-        return validTypes.indexOf(entityType) !== -1;
-    },
+        _createErrorResponse: function(errorCode, message, metadata) {
+            return {
+                success: false,
+                error: { code: errorCode, message: message || 'An error occurred', metadata: metadata || {} },
+                results: [],
+                count: 0,
+                truncated: false
+            };
+        },
 
-    /**
-     * 创建标准错误响应
-     * @param {string} errorCode - 错误代码
-     * @param {string} message - 错误消息
-     * @param {Object} metadata - 额外元数据
-     * @returns {Object} 错误响应
-     */
-    _createErrorResponse: function(errorCode, message, metadata) {
-        return {
-            success: false,
-            error: {
-                code: errorCode,
-                message: message || 'An error occurred',
+        _createSuccessResponse: function(results, metadata) {
+            return {
+                success: true,
+                results: results || [],
+                count: (results || []).length,
+                truncated: (metadata && metadata.truncated) || false,
                 metadata: metadata || {}
-            },
-            results: [],
-            count: 0,
-            truncated: false
-        };    
-    },
+            };
+        },
 
-    /**
-     * 创建标准成功响应
-     * @param {Array} results - 结果列表
-     * @param {Object} metadata - 元数据
-     * @returns {Object} 成功响应
-     */
-    _createSuccessResponse: function(results, metadata) {
-        return {
-            success: true,
-            results: results || [],
-            count: (results || []).length,
-            truncated: metadata?.truncated || false,
-            metadata: metadata || {}
-        };
-      },
+        // ============================================================
+        // PART 123: 别名发现
+        // ============================================================
+        getEntityByAlias: function(alias, entityType) {
+            if (!alias) return [];
+            var allNodes = this.getAllNodes();
+            var q = alias.toLowerCase().trim();
+            var results = [];
 
-    // ============================================================
-    // PART 123: 别名发现
-    // ============================================================
-
-    /**
-     * 通过别名查找实体
-     * @param {string} alias - 别名
-     * @param {string} entityType - 可选实体类型过滤
-     * @returns {Array} 匹配的实体列表
-     */
-    getEntityByAlias: function(alias, entityType) {
-        if (!alias) return [];
-        var allNodes = this.getAllNodes();
-        var q = alias.toLowerCase().trim();
-        var results = [];
-    
-        allNodes.forEach(function(node) {
-            // 检查节点的别名列表
-            var aliases = node.metadata?.aliases || [];
-            if (Array.isArray(aliases)) {
-                var matched = aliases.some(function(a) {
-                    return a.toLowerCase().trim() === q;
-                });
-                if (matched) {
-                    results.push(node);
+            allNodes.forEach(function(node) {
+                var aliases = (node.metadata && node.metadata.aliases) || [];
+                if (Array.isArray(aliases)) {
+                    var matched = aliases.some(function(a) {
+                        return a.toLowerCase().trim() === q;
+                    });
+                    if (matched) results.push(node);
                 }
-            }
-        });
-    
-        // 按实体类型过滤
-        if (entityType) {
-            results = results.filter(function(node) {
-                return node.type === entityType || node.metadata?.type === entityType;
             });
-        }
-    
-        return results;
-    },
 
-    /**
-     * 通过标签或别名查找实体 (统一发现)
-     * @param {string} query - 查询字符串
-     * @param {Object} options - 配置选项
-     * @param {string} options.entityType - 实体类型过滤
-     * @param {string} options.relationType - 关系类型过滤
-     * @param {string} options.conceptId - 概念 ID 过滤
-     * @param {boolean} options.includeContext - 是否包含上下文
-     * @param {number} options.maxDepth - 上下文深度 (默认 1)
-     * @param {number} options.maxResults - 最大结果数 (默认 50)
-     * @returns {Object} 发现结果
-     */
-    discover: function(query, options) {
-        options = options || {};
-        var kg = this;
-    
-        // 输入验证
-        if (!query || typeof query !== 'string' || query.trim() === '') {
-            return this._createErrorResponse('INVALID_QUERY', 'Query cannot be empty');
-        }
-    
-        var trimmedQuery = query.trim();
-        var entityType = options.entityType || null;
-        var relationType = options.relationType || null;
-        var conceptId = options.conceptId || null;
-        var includeContext = options.includeContext || false;
-        var maxDepth = options.maxDepth || 1;
-        var maxResults = options.maxResults || 50;
-    
-        // 验证深度
-        if (!this._validateDepth(maxDepth)) {
-            return this._createErrorResponse('INVALID_DEPTH', 'Invalid maxDepth: ' + maxDepth);
-        }
-        if (!this._validateMaxResults(maxResults)) {
-            return this._createErrorResponse('INVALID_MAX_RESULTS', 'Invalid maxResults: ' + maxResults);
-        }
-        if (entityType && !this._validateEntityType(entityType)) {
-            return this._createErrorResponse('INVALID_ENTITY_TYPE', 'Invalid entity type: ' + entityType);
-        }
-        if (relationType && !this._validateRelationType(relationType)) {
-            return this._createErrorResponse('INVALID_RELATION_TYPE', 'Invalid relation type: ' + relationType);
-        }
-    
-        var results = [];
-        var matchTypes = [];
-    
-        // 1. 精确 ID 匹配
-        if (this.hasNode(trimmedQuery)) {
-            var node = this.getNode(trimmedQuery);
-            if (!entityType || node.type === entityType || node.metadata?.type === entityType) {
-                results.push({ entity: node, matchType: 'ID' });
-                matchTypes.push('ID');
-            }
-        }
-    
-        // 2. 精确标签匹配
-        if (results.length === 0) {
-            var labelMatches = this.getEntitiesByLabel(trimmedQuery);
             if (entityType) {
-                labelMatches = labelMatches.filter(function(n) {
-                    return n.type === entityType || n.metadata?.type === entityType;
+                results = results.filter(function(node) {
+                    return node.type === entityType || (node.metadata && node.metadata.type === entityType);
                 });
             }
-            labelMatches.forEach(function(node) {
-                results.push({ entity: node, matchType: 'LABEL' });
-            });
-            if (labelMatches.length > 0) matchTypes.push('LABEL');
-        }
-    
-        // 3. 精确别名匹配
-        if (results.length === 0) {
-            var aliasMatches = this.getEntityByAlias(trimmedQuery, entityType);
-            aliasMatches.forEach(function(node) {
-                results.push({ entity: node, matchType: 'ALIAS' });
-            });
-            if (aliasMatches.length > 0) matchTypes.push('ALIAS');
-        }
-    
-        // 4. 按关系类型过滤 (如果指定)
-        if (relationType && results.length > 0) {
-            var filtered = [];
-            results.forEach(function(result) {
-                var entityId = result.entity.id;
-                var rels = kg.getRelations(entityId);
-                var hasRelation = rels.some(function(rel) {
-                    return rel.type === relationType;
-                });
-                if (hasRelation) {
-                    filtered.push(result);
+
+            return results;
+        },
+
+        discover: function(query, options) {
+            options = options || {};
+            var kg = this;
+
+            if (!query || typeof query !== 'string' || query.trim() === '') {
+                return this._createErrorResponse('INVALID_QUERY', 'Query cannot be empty');
+            }
+
+            var trimmedQuery = query.trim();
+            var entityType = options.entityType || null;
+            var relationType = options.relationType || null;
+            var conceptId = options.conceptId || null;
+            var includeContext = options.includeContext || false;
+            var maxDepth = options.maxDepth || 1;
+            var maxResults = options.maxResults || 50;
+
+            if (!this._validateDepth(maxDepth)) {
+                return this._createErrorResponse('INVALID_DEPTH', 'Invalid maxDepth: ' + maxDepth);
+            }
+            if (!this._validateMaxResults(maxResults)) {
+                return this._createErrorResponse('INVALID_MAX_RESULTS', 'Invalid maxResults: ' + maxResults);
+            }
+            if (entityType && !this._validateEntityType(entityType)) {
+                return this._createErrorResponse('INVALID_ENTITY_TYPE', 'Invalid entity type: ' + entityType);
+            }
+            if (relationType && !this._validateRelationType(relationType)) {
+                return this._createErrorResponse('INVALID_RELATION_TYPE', 'Invalid relation type: ' + relationType);
+            }
+
+            var results = [];
+            var matchTypes = [];
+
+            if (this.hasNode(trimmedQuery)) {
+                var node = this.getNode(trimmedQuery);
+                if (!entityType || node.type === entityType || (node.metadata && node.metadata.type === entityType)) {
+                    results.push({ entity: node, matchType: 'ID' });
+                    matchTypes.push('ID');
                 }
-            });
-            results = filtered;
-        }
-    
-        // 5. 按概念 ID 过滤 (如果指定)
-        if (conceptId && results.length > 0) {
-            var filtered = [];
-            results.forEach(function(result) {
-                var entityId = result.entity.id;
-                var rels = kg.getRelations(entityId);
-                var hasConcept = rels.some(function(rel) {
-                    return rel.to === conceptId || rel.from === conceptId;
-                });
-                if (hasConcept) {
-                    filtered.push(result);
+            }
+
+            if (results.length === 0) {
+                var labelMatches = this.getEntitiesByLabel(trimmedQuery);
+                if (entityType) {
+                    labelMatches = labelMatches.filter(function(n) {
+                        return n.type === entityType || (n.metadata && n.metadata.type === entityType);
+                    });
                 }
-            });
-            results = filtered;
-        }
-    
-        // 6. 限制结果数量
-        var truncated = results.length > maxResults;
-        if (truncated) {
-            results = results.slice(0, maxResults);
-        }
-    
-        // 7. 上下文扩展 (如果请求)
-        var contextResults = results;
-        if (includeContext && results.length > 0) {
-            contextResults = [];
-            results.forEach(function(result) {
-                var entityId = result.entity.id;
-                var neighbors = kg.getNeighbors(entityId, { direction: 'both' });
-                var context = neighbors.slice(0, 20).map(function(n) {
-                    return {
-                        entity: n.entity,
-                        relationship: n.relationship,
-                        direction: n.direction
-                    };
+                labelMatches.forEach(function(node) {
+                    results.push({ entity: node, matchType: 'LABEL' });
                 });
-                contextResults.push({
-                    entity: result.entity,
-                    matchType: result.matchType,
-                    context: context
+                if (labelMatches.length > 0) matchTypes.push('LABEL');
+            }
+
+            if (results.length === 0) {
+                var aliasMatches = this.getEntityByAlias(trimmedQuery, entityType);
+                aliasMatches.forEach(function(node) {
+                    results.push({ entity: node, matchType: 'ALIAS' });
                 });
+                if (aliasMatches.length > 0) matchTypes.push('ALIAS');
+            }
+
+            if (relationType && results.length > 0) {
+                var filteredByRel = [];
+                results.forEach(function(result) {
+                    var entityId = result.entity.id;
+                    var rels = kg.getRelations(entityId);
+                    var hasRelation = rels.some(function(rel) { return rel.type === relationType; });
+                    if (hasRelation) filteredByRel.push(result);
+                });
+                results = filteredByRel;
+            }
+
+            if (conceptId && results.length > 0) {
+                var filteredByConcept = [];
+                results.forEach(function(result) {
+                    var entityId = result.entity.id;
+                    var rels = kg.getRelations(entityId);
+                    var hasConcept = rels.some(function(rel) {
+                        return rel.to === conceptId || rel.from === conceptId;
+                    });
+                    if (hasConcept) filteredByConcept.push(result);
+                });
+                results = filteredByConcept;
+            }
+
+            var truncated = results.length > maxResults;
+            if (truncated) results = results.slice(0, maxResults);
+
+            var contextResults = results;
+            if (includeContext && results.length > 0) {
+                contextResults = [];
+                results.forEach(function(result) {
+                    var entityId = result.entity.id;
+                    var neighbors = kg.getNeighbors(entityId, { direction: 'both' });
+                    var neighborList = neighbors.results || [];
+                    var context = neighborList.slice(0, 20).map(function(n) {
+                        return { entity: n.entity, relationship: n.relationship, direction: n.direction };
+                    });
+                    contextResults.push({
+                        entity: result.entity,
+                        matchType: result.matchType,
+                        context: context
+                    });
+                });
+            }
+
+            return this._createSuccessResponse(contextResults, {
+                queryType: 'DISCOVERY',
+                query: trimmedQuery,
+                entityType: entityType,
+                relationType: relationType,
+                conceptId: conceptId,
+                matchTypes: matchTypes,
+                maxResults: maxResults,
+                truncated: truncated,
+                includeContext: includeContext,
+                maxDepth: maxDepth
             });
+        },
+
+        discoverConcept: function(query, options) {
+            options = options || {};
+            options.entityType = 'concept';
+            return this.discover(query, options);
+        },
+
+        discoverLesson: function(query, options) {
+            options = options || {};
+            options.entityType = 'lesson';
+            return this.discover(query, options);
+        },
+
+        discoverNote: function(query, options) {
+            options = options || {};
+            options.entityType = 'note';
+            return this.discover(query, options);
         }
-    
-        return this._createSuccessResponse(contextResults, {
-            queryType: 'DISCOVERY',
-            query: trimmedQuery,
-            entityType: entityType,
-            relationType: relationType,
-            conceptId: conceptId,
-            matchTypes: matchTypes,
-            maxResults: maxResults,
-            truncated: truncated,
-            includeContext: includeContext,
-            maxDepth: maxDepth
-        });
-    },
-
-    /**
-     * 便捷发现方法: 查找概念
-     * @param {string} query - 查询字符串
-     * @param {Object} options - 配置选项
-     * @returns {Object} 发现结果
-     */
-    discoverConcept: function(query, options) {
-        options = options || {};
-        options.entityType = 'concept';
-        return this.discover(query, options);
-    },
-
-    /**
-     * 便捷发现方法: 查找课程
-     */
-    discoverLesson: function(query, options) {
-        options = options || {};
-        options.entityType = 'lesson';
-        return this.discover(query, options);
-    },
-
-    /**
-     * 便捷发现方法: 查找笔记
-     */
-    discoverNote: function(query, options) {
-        options = options || {};
-        options.entityType = 'note';
-        return this.discover(query, options);
     };
 
     // ============================================================
     // EXPORT
     // ============================================================
-
     window.LawAIApp.KnowledgeGraph = KnowledgeGraph;
 
     // ============================================================
     // AUTO-INIT
     // ============================================================
-
     setTimeout(function() {
         try {
             KnowledgeGraph.init();
@@ -2300,6 +1801,6 @@
         }
     }, 800);
 
-    console.log('[KnowledgeGraph] ✅ Module loaded (v2.0.0)');
+    console.log('[KnowledgeGraph] ✅ Module loaded (v2.0.1)');
 
 })();
