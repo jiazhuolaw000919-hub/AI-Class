@@ -116,51 +116,75 @@ window.LawAIApp = window.LawAIApp || {};
             } catch (e) { /* 静默 */ }
         }, 1200);
     }
-
+    
     // ===========================================
-    // 🔥 Stage 2.5: Bootstrap S4 Content
+    // 🔥 Stage 2.5: Bootstrap S4 Content (加固版)
     // Bible Part 1: 内容加载链必须完整
     // ===========================================
     function bootstrapS4Content() {
+        // 🔒 防重复加载
+        if (bootstrapS4Content._running) {
+            console.log('[Bootstrap-S4] ⏳ Already running, skip');
+            return;
+        }
+        if (bootstrapS4Content._done) {
+            console.log('[Bootstrap-S4] ✅ Already done, skip');
+            return;
+        }
+        bootstrapS4Content._running = true;
+    
         var cl = window.LawAIApp && window.LawAIApp.ContentLoader;
         var sr = window.LawAIApp && window.LawAIApp.SubjectRegistry;
-
+    
         console.log('[Bootstrap-S4] 🚀 Starting...');
         console.log('[Bootstrap-S4] ContentLoader:', typeof cl);
         console.log('[Bootstrap-S4] SubjectRegistry:', typeof sr);
-
-        if (!cl) {
-            console.error('[Bootstrap-S4] ❌ ContentLoader not available');
+    
+        // 🔥 依赖未就绪 → 重试（最多 10 次，每次 200ms）
+        if (!cl || !sr) {
+            var retries = (bootstrapS4Content._retries || 0) + 1;
+            bootstrapS4Content._retries = retries;
+    
+            if (retries <= 10) {
+                console.warn('[Bootstrap-S4] ⏳ Dependencies not ready, retry ' + retries + '/10');
+                bootstrapS4Content._running = false;
+                setTimeout(bootstrapS4Content, 200);
+                return;
+            }
+    
+            if (!cl) console.error('[Bootstrap-S4] ❌ ContentLoader not available after retries');
+            if (!sr) console.error('[Bootstrap-S4] ❌ SubjectRegistry not available after retries');
+            bootstrapS4Content._running = false;
             return;
         }
-        if (!sr) {
-            console.error('[Bootstrap-S4] ❌ SubjectRegistry not available');
-            return;
-        }
-
-        // 如果已经加载过
+    
+        // 🔒 已经加载过 → 直接返回
         if (sr.initialized) {
             try {
                 var existing = typeof sr.getAllSubjects === 'function' ? sr.getAllSubjects() : [];
                 if (existing && existing.length > 0) {
                     console.log('[Bootstrap-S4] ✅ Already loaded:', existing.length, 'subjects');
+                    bootstrapS4Content._done = true;
+                    bootstrapS4Content._running = false;
                     return;
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.warn('[Bootstrap-S4] ⚠️ Check existing failed:', e.message);
+            }
         }
-
+    
         var COURSE_ID = 'course-ai';
         var SUBJECT_IDS = [
             'subject-ai-fundamentals',
             'subject-prompt-engineering',
             'subject-chatgpt'
         ];
-
+    
         console.log('[Bootstrap-S4] 🚀 Loading course:', COURSE_ID);
-
+    
         Promise.resolve(cl.loadCourse(COURSE_ID)).then(function(course) {
             console.log('[Bootstrap-S4] ✅ course loaded:', COURSE_ID);
-
+    
             return Promise.all(SUBJECT_IDS.map(function(sid) {
                 return cl.loadSubject(COURSE_ID, sid).then(function(subj) {
                     if (!subj) {
@@ -168,7 +192,7 @@ window.LawAIApp = window.LawAIApp || {};
                         return null;
                     }
                     console.log('[Bootstrap-S4] ✅ subject loaded:', sid);
-
+    
                     return cl.loadSubjectLessons(COURSE_ID, sid).then(function(lessons) {
                         console.log('[Bootstrap-S4] ✅ lessons loaded:', sid, '→', (lessons || []).length);
                         subj.lessons = lessons || [];
@@ -182,71 +206,100 @@ window.LawAIApp = window.LawAIApp || {};
         }).then(function(subjects) {
             var valid = subjects.filter(function(s) { return s !== null; });
             console.log('[Bootstrap-S4] ✅ Total subjects:', valid.length);
-
-            // 🔥 注册到 SubjectRegistry（支持 Map / Array / Object）
+    
+            // ============================================
+            // 🔥 注册到 SubjectRegistry（兼容 Map / Array / Object）
+            // ============================================
             try {
                 if (typeof sr.registerSubject === 'function') {
                     valid.forEach(function(subj) {
-                        try { sr.registerSubject(subj); } catch (e) {}
+                        try { sr.registerSubject(subj); } catch (e) {
+                            console.warn('[Bootstrap-S4] registerSubject failed:', e.message);
+                        }
                     });
                     console.log('[Bootstrap-S4] ✅ Registered via registerSubject()');
                 } else if (sr._subjects) {
                     if (sr._subjects instanceof Map) {
-                        // 🔥 Map（你的情况）
                         valid.forEach(function(subj) { sr._subjects.set(subj.id, subj); });
                         console.log('[Bootstrap-S4] ✅ Added to _subjects (Map), size:', sr._subjects.size);
                     } else if (Array.isArray(sr._subjects)) {
-                        // 数组
                         valid.forEach(function(subj) { sr._subjects.push(subj); });
                         console.log('[Bootstrap-S4] ✅ Pushed to _subjects (array), length:', sr._subjects.length);
                     } else if (typeof sr._subjects === 'object') {
-                        // 普通对象
                         valid.forEach(function(subj) { sr._subjects[subj.id] = subj; });
                         console.log('[Bootstrap-S4] ✅ Added to _subjects (object), keys:', Object.keys(sr._subjects).length);
                     }
                 } else {
                     console.warn('[Bootstrap-S4] ⚠️ Cannot register subjects - no registerSubject or _subjects');
                 }
-
+    
                 // 🔥 同步 _subjectsByCourse
-                if (sr._subjectsByCourse && typeof sr._subjectsByCourse === 'object' && !(sr._subjectsByCourse instanceof Map)) {
-                    valid.forEach(function(subj) {
-                        var cid = subj.courseId || 'course-ai';
-                        if (!sr._subjectsByCourse[cid]) sr._subjectsByCourse[cid] = [];
-                        sr._subjectsByCourse[cid].push(subj.id);
-                    });
-                } else if (sr._subjectsByCourse instanceof Map) {
-                    valid.forEach(function(subj) {
-                        var cid = subj.courseId || 'course-ai';
-                        if (!sr._subjectsByCourse.has(cid)) sr._subjectsByCourse.set(cid, []);
-                        var arr = sr._subjectsByCourse.get(cid);
-                        arr.push(subj.id);
-                    });
+                if (sr._subjectsByCourse) {
+                    if (sr._subjectsByCourse instanceof Map) {
+                        valid.forEach(function(subj) {
+                            var cid = subj.courseId || 'course-ai';
+                            if (!sr._subjectsByCourse.has(cid)) sr._subjectsByCourse.set(cid, []);
+                            sr._subjectsByCourse.get(cid).push(subj.id);
+                        });
+                    } else if (typeof sr._subjectsByCourse === 'object') {
+                        valid.forEach(function(subj) {
+                            var cid = subj.courseId || 'course-ai';
+                            if (!sr._subjectsByCourse[cid]) sr._subjectsByCourse[cid] = [];
+                            sr._subjectsByCourse[cid].push(subj.id);
+                        });
+                    }
                 }
-
+    
                 sr.initialized = true;
                 console.log('[Bootstrap-S4] ✅ SubjectRegistry initialized');
-                console.log('[Bootstrap-S4]    _subjects size:', sr._subjects instanceof Map ? sr._subjects.size : Object.keys(sr._subjects).length);
+    
+                // 🔥 安全打印 size（兼容 Map / Array / Object）
+                var sizeInfo = 'unknown';
+                if (sr._subjects instanceof Map) {
+                    sizeInfo = sr._subjects.size;
+                } else if (Array.isArray(sr._subjects)) {
+                    sizeInfo = sr._subjects.length;
+                } else if (sr._subjects && typeof sr._subjects === 'object') {
+                    sizeInfo = Object.keys(sr._subjects).length;
+                }
+                console.log('[Bootstrap-S4]    _subjects size:', sizeInfo);
+    
             } catch (e) {
                 console.error('[Bootstrap-S4] ❌ Registration failed:', e);
             }
-
+    
             // 触发 Dashboard 重新渲染
             if (window.LawAIApp && window.LawAIApp.Dashboard) {
-                window.LawAIApp.Dashboard._lastRenderAt = 0;
-                window.LawAIApp.Dashboard.forceRender();
-                console.log('[Bootstrap-S4] ✅ Dashboard re-rendered');
+                try {
+                    window.LawAIApp.Dashboard._lastRenderAt = 0;
+                    if (typeof window.LawAIApp.Dashboard.forceRender === 'function') {
+                        window.LawAIApp.Dashboard.forceRender();
+                        console.log('[Bootstrap-S4] ✅ Dashboard re-rendered');
+                    }
+                } catch (e) {
+                    console.warn('[Bootstrap-S4] Dashboard render failed:', e.message);
+                }
             }
-
+    
             // 发事件
             try {
                 window.dispatchEvent(new CustomEvent('S4_CONTENT_READY', {
                     detail: { subjectsCount: valid.length }
                 }));
             } catch (e) {}
-
+    
+            bootstrapS4Content._done = true;
+            bootstrapS4Content._running = false;
+    
         }).catch(function(e) {
             console.error('[Bootstrap-S4] ❌ Failed:', e);
+            bootstrapS4Content._running = false;
+            // 🔥 失败也允许重试一次
+            if ((bootstrapS4Content._retries || 0) < 3) {
+                bootstrapS4Content._retries = (bootstrapS4Content._retries || 0) + 1;
+                console.warn('[Bootstrap-S4] 🔄 Retry after failure:', bootstrapS4Content._retries);
+                setTimeout(bootstrapS4Content, 500);
+            }
         });
     }
 
