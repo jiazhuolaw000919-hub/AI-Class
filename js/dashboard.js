@@ -2148,6 +2148,7 @@ LawAIApp.Dashboard = {
       padding: 16px 20px 100px;
       color: #e2e8f0;
       font-family: 'Inter', -apple-system, sans-serif;
+      overflow-x: hidden;
     ">
 
     <!-- 🔥 Part 174 + 178: EXPLORE 导航 -->
@@ -2229,6 +2230,7 @@ LawAIApp.Dashboard = {
         margin-bottom: 20px;
         position: relative;
         isolation: isolate;
+        overflow: hidden;
         animation: heroFadeIn 0.6s ease;
       ">
         <div class="dashboard-hero-glow" style="
@@ -2236,8 +2238,8 @@ LawAIApp.Dashboard = {
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          width: 420px;
-          height: 420px;
+          width: min(420px, 100vw);
+          height: min(420px, 100vw);
           background: radial-gradient(circle, rgba(74,158,255,0.05), transparent 70%);
           border-radius: 50%;
           pointer-events: none;
