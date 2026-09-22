@@ -1934,7 +1934,7 @@ LawAIApp.Dashboard = {
     const greeting = this._getGreeting();
     const userName = this._getUserName();
     const completedCount = progress.completedLessons?.length || 0;
-    const totalCount = 365;
+    const totalCount = (allLessons && allLessons.length) || 0;
 
     const heroMessage = heroData.message || 'Explore the Academy and begin your journey.';
     const ctaText = heroData.cta || 'Explore Academy';
