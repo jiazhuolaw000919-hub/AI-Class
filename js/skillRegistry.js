@@ -259,7 +259,7 @@ LawAIApp.SkillRegistry = (function() {
         }
       } catch (e) {}
 
-      // 🔥 排除非 skill 标签
+      // 🔥 排除碎词 + 通用词
       var EXCLUDED = {
         'beginner': true,
         'intermediate': true,
@@ -270,7 +270,15 @@ LawAIApp.SkillRegistry = (function() {
         'known': true,
         'reflection': true,
         'note': true,
-        'review': true
+        'review': true,
+        // 🔥 新增排除碎词
+        'fundamentals': true,
+        'prompt': true,
+        'engineering': true,
+        'basics': true,
+        'advanced': true,
+        'introduction': true,
+        'intro': true
       };
 
       var names = Object.keys(skillSet).filter(function(n) {
@@ -281,6 +289,17 @@ LawAIApp.SkillRegistry = (function() {
         if (/^\d+$/.test(lower)) return false;
         // 排除太短的（< 3 字符）
         if (lower.length < 3) return false;
+        
+        // 🔥 新增：如果一个词是另一个 skill 的子串，排除较短的
+        var otherNames = Object.keys(skillSet).filter(function(o) {
+          return o !== n;
+        });
+        var isSubstringOfAnother = otherNames.some(function(o) {
+          var oLower = String(o).toLowerCase();
+          return oLower.indexOf(lower) !== -1 && oLower !== lower;
+        });
+        if (isSubstringOfAnother) return false;
+        
         return true;
       });
 
