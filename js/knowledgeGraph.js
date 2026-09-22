@@ -870,11 +870,11 @@
             // 1. 获取 Academy 数据
             var schools = this._getAllSchools();
             report.sourceCounts.schools = schools.length;
-    
+
             // 2. 构建图谱
             schools.forEach(function(school) {
-                // School → Course
-                var schoolEntity = this._upsertEntity({
+                // School 节点
+                this._upsertEntity({
                     id: 'school:' + school.id,
                     type: this.NODE_TYPES.COURSE,
                     label: school.title || school.name || school.id,
@@ -888,9 +888,10 @@
                 });
                 report.entitiesCreated++;
 
+                // School → Courses
                 var courses = this._getCoursesBySchool(school.id);
                 courses.forEach(function(course) {
-                    var courseEntity = this._upsertEntity({
+                    this._upsertEntity({
                         id: 'course:' + course.id,
                         type: this.NODE_TYPES.COURSE,
                         label: course.title || course.name || course.id,
@@ -903,95 +904,60 @@
                         }
                     });
                     report.entitiesCreated++;
-    
-                    // Course → Module
-                    var modules = this._getModulesByCourse(course.id);
-                    modules.forEach(function(module) {
-                        var moduleEntity = this._upsertEntity({
-                            id: 'module:' + module.id,
+
+                    // 🔥 Course → Subject（跳过 Module 层）
+                    var subjects = this._getSubjectsByModule(course.id);
+                    subjects.forEach(function(subject) {
+                        this._upsertEntity({
+                            id: 'subject:' + subject.id,
                             type: this.NODE_TYPES.KNOWLEDGE,
-                            label: module.title || module.name || module.id,
-                            sourceType: 'module',
-                            sourceId: module.id,
+                            label: subject.title || subject.name || subject.id,
+                            sourceType: 'subject',
+                            sourceId: subject.id,
                             provenance: {
                                 sourceSystem: 'academy',
-                                sourceType: 'module',
-                                sourceId: module.id
+                                sourceType: 'subject',
+                                sourceId: subject.id
                             }
                         });
                         report.entitiesCreated++;
-    
-                        // Module → Subject
-                        var subjects = this._getSubjectsByModule(module.id);
-                        subjects.forEach(function(subject) {
-                            var subjectEntity = this._upsertEntity({
-                                id: 'subject:' + subject.id,
-                                type: this.NODE_TYPES.KNOWLEDGE,
-                                label: subject.title || subject.name || subject.id,
-                                sourceType: 'subject',
-                                sourceId: subject.id,
+
+                        // Subject → Lessons
+                        var lessons = this._getLessonsBySubject(subject.id);
+                        lessons.forEach(function(lesson) {
+                            this._upsertEntity({
+                                id: 'lesson:' + lesson.id,
+                                type: this.NODE_TYPES.LESSON,
+                                label: lesson.title || lesson.name || lesson.id,
+                                sourceType: 'lesson',
+                                sourceId: lesson.id,
                                 provenance: {
                                     sourceSystem: 'academy',
-                                    sourceType: 'subject',
-                                    sourceId: subject.id
+                                    sourceType: 'lesson',
+                                    sourceId: lesson.id
                                 }
                             });
                             report.entitiesCreated++;
-    
-                            // 🔥 Course → Subject（跳过 Module）
-                            var subjects = this._getSubjectsByModule(course.id);
-                            subjects.forEach(function(subject) {
-                                var subjectEntity = this._upsertEntity({
-                                    id: 'subject:' + subject.id,
-                                    type: this.NODE_TYPES.KNOWLEDGE,
-                                    label: subject.title || subject.name || subject.id,
-                                    sourceType: 'subject',
-                                    sourceId: subject.id,
-                                    provenance: {
-                                        sourceSystem: 'academy',
-                                        sourceType: 'subject',
-                                        sourceId: subject.id
-                                    }
-                                });
-                                report.entitiesCreated++;
-        
-                                // Subject → Lesson
-                                var lessons = this._getLessonsBySubject(subject.id);
-                                lessons.forEach(function(lesson) {
-                                    var lessonEntity = this._upsertEntity({
-                                        id: 'lesson:' + lesson.id,
-                                        type: this.NODE_TYPES.LESSON,
-                                        label: lesson.title || lesson.name || lesson.id,
-                                        sourceType: 'lesson',
-                                        sourceId: lesson.id,
-                                        provenance: {
-                                            sourceSystem: 'academy',
-                                            sourceType: 'lesson',
-                                            sourceId: lesson.id
-                                        }
-                                    });
-                                    report.entitiesCreated++;
-        
-                                    // Subject → CONTAINS → Lesson
-                                    var rel = this._upsertRelationship({
-                                        from: 'subject:' + subject.id,
-                                        to: 'lesson:' + lesson.id,
-                                        type: this.RELATION_TYPES.PART_OF,
-                                        weight: 1,
-                                        confidence: 1.0,
-                                        source: 'academy',
-                                        provenance: {
-                                            sourceSystem: 'academy',
-                                            sourceType: 'hierarchy',
-                                            sourceId: subject.id + '→' + lesson.id
-                                        }
-                                    });
-                                    if (rel) report.relationshipsCreated++;
-                                }.bind(this));
-                            }.bind(this));
-                    }.bind(this));
-                }.bind(this));
-            }.bind(this));
+
+                            // Subject → PART_OF → Lesson
+                            var rel = this._upsertRelationship({
+                                from: 'subject:' + subject.id,
+                                to: 'lesson:' + lesson.id,
+                                type: this.RELATION_TYPES.PART_OF,
+                                weight: 1,
+                                confidence: 1.0,
+                                source: 'academy',
+                                provenance: {
+                                    sourceSystem: 'academy',
+                                    sourceType: 'hierarchy',
+                                    sourceId: subject.id + '→' + lesson.id
+                                }
+                            });
+                            if (rel) report.relationshipsCreated++;
+                        }.bind(this));   // ← lessons.forEach 闭合
+                    }.bind(this));       // ← subjects.forEach 闭合
+                }.bind(this));           // ← courses.forEach 闭合
+            }.bind(this));               // ← schools.forEach 闭合
 
             report.status = 'completed';
             report.completedAt = Date.now();
