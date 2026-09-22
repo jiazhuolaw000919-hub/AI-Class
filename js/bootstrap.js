@@ -48,6 +48,11 @@ window.LawAIApp = window.LawAIApp || {};
             console.log('✅ Stage 2: UX engines loaded');
         }, 100);
 
+        // 🔥 Stage 2.5: S4 Content — 200ms 后加载真实课程内容
+        setTimeout(function() {
+            bootstrapS4Content();
+        }, 200);
+
         // Stage 3: Intelligence — 500ms 后加载 AI 系统
         setTimeout(function() {
             try {
@@ -102,6 +107,87 @@ window.LawAIApp = window.LawAIApp || {};
                 }));
             } catch (e) { /* 静默 */ }
         }, 1200);
+    }
+
+    // ===========================================
+    // 🔥 Stage 2.5: Bootstrap S4 Content → SubjectRegistry
+    // Bible Part 1: 内容加载链必须完整
+    // ===========================================
+    function bootstrapS4Content() {
+        var cl = window.LawAIApp && window.LawAIApp.ContentLoader;
+        var sr = window.LawAIApp && window.LawAIApp.SubjectRegistry;
+
+        if (!cl || !sr) {
+            console.warn('[Bootstrap] ContentLoader or SubjectRegistry not available');
+            return;
+        }
+
+        if (sr.initialized && typeof sr.getAllSubjects === 'function' && sr.getAllSubjects().length > 0) {
+            console.log('[Bootstrap] ✅ S4 content already loaded');
+            return;
+        }
+
+        var COURSE_ID = 'course-ai';
+        var SUBJECT_IDS = [
+            'subject-ai-fundamentals',
+            'subject-prompt-engineering',
+            'subject-chatgpt'
+        ];
+
+        console.log('[Bootstrap] 🚀 Loading S4 content...');
+
+        Promise.resolve(cl.loadCourse(COURSE_ID)).then(function(course) {
+            console.log('[Bootstrap] ✅ course loaded:', COURSE_ID);
+
+            return Promise.all(SUBJECT_IDS.map(function(sid) {
+                return cl.loadSubject(COURSE_ID, sid).then(function(subj) {
+                    if (!subj) return null;
+                    return cl.loadSubjectLessons(COURSE_ID, sid).then(function(lessons) {
+                        subj.lessons = lessons || [];
+                        return subj;
+                    });
+                }).catch(function(e) {
+                    console.warn('[Bootstrap] subject failed:', sid, e.message);
+                    return null;
+                });
+            }));
+        }).then(function(subjects) {
+            var valid = subjects.filter(function(s) { return s !== null; });
+            console.log('[Bootstrap] ✅ subjects loaded:', valid.length);
+
+            // 🔥 注册到 SubjectRegistry
+            if (typeof sr.registerSubject === 'function') {
+                valid.forEach(function(subj) {
+                    try { sr.registerSubject(subj); } catch (e) {
+                        console.warn('[Bootstrap] registerSubject failed:', e);
+                    }
+                });
+            } else if (sr._subjects) {
+                if (Array.isArray(sr._subjects)) {
+                    valid.forEach(function(subj) { sr._subjects.push(subj); });
+                } else if (typeof sr._subjects === 'object') {
+                    valid.forEach(function(subj) { sr._subjects[subj.id] = subj; });
+                }
+            }
+
+            sr.initialized = true;
+            console.log('[Bootstrap] ✅ SubjectRegistry initialized, subjects:', valid.length);
+
+            // 🔥 触发 Dashboard 重新渲染
+            if (window.LawAIApp && window.LawAIApp.Dashboard) {
+                window.LawAIApp.Dashboard._lastRenderAt = 0;
+                window.LawAIApp.Dashboard.forceRender();
+            }
+
+            // 🔥 触发事件，让其他系统知道内容已加载
+            try {
+                window.dispatchEvent(new CustomEvent('S4_CONTENT_READY', {
+                    detail: { subjectsCount: valid.length }
+                }));
+            } catch (e) {}
+        }).catch(function(e) {
+            console.warn('[Bootstrap] S4 content failed:', e);
+        });
     }
 
     // ===========================================
