@@ -4888,10 +4888,120 @@ _renderRecommendationCard: function(rec) {
       if (!container) return;
 
       var html = '<div style="max-width:900px;margin:0 auto;padding:20px;color:#e2e8f0;font-family:\'Inter\',-apple-system,sans-serif;">';
+
+      // Back 按钮
       html += '<button onclick="LawAIApp.Dashboard._openGeneratedCourse(\'' + courseId + '\')" style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.15);color:#4a9eff;padding:8px 16px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:16px;">← Back to Course</button>';
-      html += '<div style="font-size:11px;color:#8b5cf6;font-weight:500;letter-spacing:0.5px;margin-bottom:6px;">📖 LESSON · ' + (lesson.estimatedMinutes || 30) + ' min</div>';
-      html += '<h1 style="font-size:22px;font-weight:700;margin:0 0 16px;">' + lesson.title + '</h1>';
-      html += '<div style="font-size:14px;color:#c8d0d8;line-height:1.7;white-space:pre-wrap;">' + (lesson.content || '') + '</div>';
+
+      // Meta
+      html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:#64748b;margin-bottom:6px;">';
+      html += '<span>📖 Lesson</span>';
+      html += '<span>·</span>';
+      html += '<span>' + (lesson.estimatedMinutes || 30) + ' min</span>';
+      html += '</div>';
+
+      // Title
+      html += '<h1 style="font-size:24px;font-weight:700;margin:0 0 8px;">' + (lesson.title || 'Untitled') + '</h1>';
+
+      // Description
+      if (lesson.description) {
+        html += '<p style="font-size:14px;color:#94a3b8;line-height:1.6;margin:0 0 20px;">' + lesson.description + '</p>';
+      }
+
+      // Opening
+      if (lesson.opening && lesson.opening.hook) {
+        html += '<div style="background:rgba(74,158,255,0.04);border-radius:12px;padding:14px 18px;margin-bottom:16px;border-left:3px solid #4a9eff;">';
+        html += '<div style="font-size:11px;color:#4a9eff;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px;">Opening</div>';
+        html += '<p style="font-size:14px;color:#e2e8f0;line-height:1.6;margin:0;">' + lesson.opening.hook + '</p>';
+        if (lesson.opening.relevance) {
+          html += '<p style="font-size:13px;color:#94a3b8;line-height:1.6;margin:8px 0 0;">' + lesson.opening.relevance + '</p>';
+        }
+        html += '</div>';
+      }
+
+      // Learning Objectives
+      if (lesson.learningObjectives && lesson.learningObjectives.length > 0) {
+        html += '<div style="background:rgba(74,158,255,0.04);border-radius:12px;padding:14px 18px;margin-bottom:16px;border-left:3px solid #4a9eff;">';
+        html += '<div style="font-size:11px;color:#4a9eff;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px;">🎯 Objectives</div>';
+        html += '<ul style="margin:0;padding-left:20px;color:#e2e8f0;font-size:13px;line-height:1.6;">';
+        lesson.learningObjectives.forEach(function(obj) {
+          html += '<li style="margin:4px 0;">' + obj + '</li>';
+        });
+        html += '</ul></div>';
+      }
+
+      // Sections
+      if (lesson.sections && lesson.sections.length > 0) {
+        lesson.sections.forEach(function(sec) {
+          html += '<div style="background:rgba(255,255,255,0.02);border-radius:12px;padding:16px 20px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.04);">';
+          html += '<h3 style="font-size:15px;font-weight:600;color:#e2e8f0;margin:0 0 10px;">' + (sec.title || 'Section') + '</h3>';
+
+          (sec.content || []).forEach(function(block) {
+            var type = block.type || 'paragraph';
+            if (type === 'paragraph') {
+              html += '<p style="font-size:14px;color:#c8d0d8;line-height:1.7;margin:8px 0;">' + (block.content || '') + '</p>';
+            } else if (type === 'definition') {
+              html += '<div style="background:rgba(74,158,255,0.06);border-left:3px solid #4a9eff;padding:10px 14px;border-radius:6px;margin:10px 0;">';
+              html += '<div style="font-size:13px;font-weight:600;color:#4a9eff;margin-bottom:4px;">📘 ' + (block.term || '') + '</div>';
+              html += '<div style="font-size:13px;color:#c8d0d8;line-height:1.6;">' + (block.definition || block.content || '') + '</div>';
+              if (block.example) {
+                html += '<div style="font-size:12px;color:#94a3b8;line-height:1.5;margin-top:6px;font-style:italic;">Example: ' + block.example + '</div>';
+              }
+              html += '</div>';
+            } else if (type === 'important') {
+              html += '<div style="background:rgba(245,158,11,0.06);border-left:3px solid #f59e0b;padding:10px 14px;border-radius:6px;margin:10px 0;">';
+              if (block.title) {
+                html += '<div style="font-size:12px;font-weight:600;color:#f59e0b;margin-bottom:4px;">' + block.title + '</div>';
+              }
+              html += '<div style="font-size:13px;color:#c8d0d8;line-height:1.6;">' + (block.content || '') + '</div>';
+              html += '</div>';
+            } else if (type === 'example') {
+              html += '<div style="background:rgba(139,92,246,0.06);border-left:3px solid #8b5cf6;padding:10px 14px;border-radius:6px;margin:10px 0;">';
+              html += '<div style="font-size:12px;font-weight:600;color:#8b5cf6;margin-bottom:4px;">💡 Example</div>';
+              html += '<div style="font-size:13px;color:#c8d0d8;line-height:1.6;">' + (block.content || '') + '</div>';
+              html += '</div>';
+            } else {
+              html += '<div style="font-size:13px;color:#c8d0d8;line-height:1.6;margin:8px 0;">' + (block.content || '') + '</div>';
+            }
+          });
+
+          html += '</div>';
+        });
+      }
+
+      // Key Takeaways
+      if (lesson.keyTakeaways && lesson.keyTakeaways.length > 0) {
+        html += '<div style="background:rgba(34,197,94,0.04);border-radius:12px;padding:14px 18px;margin:16px 0;border:1px solid rgba(34,197,94,0.1);">';
+        html += '<div style="font-size:11px;color:#22c55e;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">🎯 Key Takeaways</div>';
+        html += '<ul style="margin:0;padding-left:20px;color:#e2e8f0;font-size:13px;line-height:1.6;">';
+        lesson.keyTakeaways.forEach(function(t) {
+          html += '<li style="margin:4px 0;">' + t + '</li>';
+        });
+        html += '</ul></div>';
+      }
+
+      // Reflection
+      if (lesson.reflection && lesson.reflection.prompt) {
+        html += '<div style="background:rgba(255,255,255,0.02);border-radius:12px;padding:14px 18px;margin:16px 0;border:1px solid rgba(255,255,255,0.04);">';
+        html += '<div style="font-size:11px;color:#64748b;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px;">💭 Reflection</div>';
+        html += '<p style="font-size:13px;color:#c8d0d8;line-height:1.6;margin:0 0 6px;">' + lesson.reflection.prompt + '</p>';
+        if (lesson.reflection.hint) {
+          html += '<p style="font-size:12px;color:#64748b;line-height:1.5;margin:0;font-style:italic;">Hint: ' + lesson.reflection.hint + '</p>';
+        }
+        html += '</div>';
+      }
+
+      // Fallback: 如果没有任何内容
+      if (!lesson.learningObjectives?.length && !lesson.sections?.length && !lesson.keyTakeaways?.length) {
+        html += '<div style="background:rgba(245,158,11,0.04);border-radius:12px;padding:14px 18px;border-left:3px solid #f59e0b;">';
+        html += '<div style="font-size:13px;color:#f59e0b;">⚠️ This lesson has no content yet. AI generation may have been incomplete.</div>';
+        html += '</div>';
+      }
+
+      // AI-generated notice
+      html += '<div style="font-size:11px;color:#64748b;line-height:1.5;padding:12px;background:rgba(139,92,246,0.04);border-radius:8px;border-left:2px solid rgba(139,92,246,0.3);margin-top:20px;">';
+      html += '🎨 This is an AI-generated lesson. You can review, edit, or delete it anytime.';
+      html += '</div>';
+
       html += '</div>';
 
       container.innerHTML = html;
