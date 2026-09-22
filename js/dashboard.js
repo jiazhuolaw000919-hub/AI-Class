@@ -2221,6 +2221,8 @@ LawAIApp.Dashboard = {
     <!-- 🔥 HERO + CONTINUE LEARNING (Part 178: 合并) -->
       <section id="dashboard-hero" data-hero="true" role="region" aria-label="Continue Learning" style="
         min-height: 28vh;
+        width: 100%;
+        box-sizing: border-box;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -2325,14 +2327,14 @@ LawAIApp.Dashboard = {
 
           ${todayLesson ? `
             <button type="button"
-                    onclick="if(window.LawAIApp&&window.LawAIApp.AcademyExperienceManager){window.LawAIApp.AcademyExperienceManager.selectLesson('${todayLesson.id || todayLesson.lessonId || ''}')}"
-                    style="margin-top:12px;padding:8px 20px;background:rgba(74,158,255,0.06);border:1px solid rgba(74,158,255,0.12);border-radius:100px;color:#4a9eff;font-size:12px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;"
+                    onclick="..."
+                    style="margin-top:12px;padding:8px 20px;background:rgba(74,158,255,0.06);border:1px solid rgba(74,158,255,0.12);border-radius:100px;color:#4a9eff;font-size:12px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;max-width:100%;box-sizing:border-box;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
                     onmouseover="this.style.background='rgba(74,158,255,0.12)'"
                     onmouseout="this.style.background='rgba(74,158,255,0.06)'">
-              🎯 Today: ${todayLesson.title || todayLesson.name || 'Next lesson'} →
+              🎯 Today: ${(todayLesson.title || todayLesson.name || 'Next lesson').slice(0, 40)} →
             </button>
           ` : ''}
-
+          
           <div style="
             display: flex;
             gap: 16px;
