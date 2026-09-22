@@ -4039,6 +4039,9 @@ _renderRecommendationCard: function(rec) {
                       font-family:inherit;
                   ">🔄 Refresh</button>
               </div>
+              <!-- 🔥 Knowledge Galaxy 可视化 -->
+              <h3 style="margin:16px 0 12px;font-size:16px;font-weight:600;">🌌 Galaxy</h3>
+              <div id="kg-canvas-container"></div>
               <div id="kg-node-list" style="
                   background:rgba(255,255,255,0.02);
                   border-radius:12px;
@@ -4191,6 +4194,14 @@ _renderRecommendationCard: function(rec) {
       `;  
 
       container.innerHTML = html;
+
+    // 🔥 挂载 Galaxy 可视化
+    setTimeout(function() {
+      var galaxy = window.LawAIApp.KnowledgeGalaxy;
+      if (galaxy && typeof galaxy.render === 'function') {
+        galaxy.render('kg-canvas-container');
+      }
+    }, 100);
   },
 
   // ============================================================
