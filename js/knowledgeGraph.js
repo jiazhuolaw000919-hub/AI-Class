@@ -849,8 +849,8 @@
             var allNodes = this.getAllNodes();
             return allNodes.filter(function(node) {
                 return node.metadata && node.metadata.type === 'concept';
-        });
-    },
+            });
+        },
     
     // ============================================================
     // PART 119: 真实数据导入
@@ -1646,7 +1646,6 @@
             var includeStart = options.includeStart !== undefined ? options.includeStart : false;
             var includeRelationships = options.includeRelationships !== undefined ? options.includeRelationships : true;
             var includeProvenance = options.includeProvenance !== undefined ? options.includeProvenance : true;
-            var maxResults = options.maxResults || 100;
             var kg = this;
         
             var visited = new Set();
@@ -1661,7 +1660,7 @@
                     success: true,
                     results: results,
                     count: results.length,
-                    truncated: truncated,
+                    truncated: false,
                     metadata: {
                         queryType: 'TRAVERSAL',
                         startId: startId,
@@ -2280,7 +2279,6 @@
         options = options || {};
         options.entityType = 'note';
         return this.discover(query, options);
-    },
     };
 
     // ============================================================
