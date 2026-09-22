@@ -82,14 +82,10 @@ LawAIApp.LessonEngine = {
     // PUBLIC API
     // ============================================================
 
-    /**
-     * createLesson(day)
-     * 
-     * Generates a single lesson object for the given day.
-     * 
-     * @param {number} day - 1 to 365
-     * @returns {Object} Lesson object with all fields
-     */
+    // ============================================================
+    // 🔥 Fallback: 仅在没有任何真实 lesson 时使用
+    // Bible Part 66: 不造假，所以这里用明确标注的 "template"
+    // ============================================================
     createLesson: function(day) {
         var validDay = typeof day === 'number' && !isNaN(day) ? day : 1;
         var stage = this.stages.find(function(s) {
@@ -99,70 +95,92 @@ LawAIApp.LessonEngine = {
         var difficulties = ['Beginner', 'Intermediate', 'Advanced'];
         var difficulty = difficulties[Math.min(Math.floor(validDay / 122), 2)] || 'Beginner';
         var baseXP = 20 + Math.floor(validDay / 5);
-
-        return {
-            lessonId: 'day-' + validDay,
-            day: validDay,
-            title: 'Day ' + validDay + ': ' + category + ' Fundamentals',
-            subtitle: 'Deep dive into ' + category + ' concepts',
-            category: category,
-            difficulty: difficulty,
-            duration: (Math.floor(Math.random() * 10) + 5) + ' min',
-            estimatedTime: Math.floor(Math.random() * 12) + 5,
-            officialArticle: 'https://example.com/article/day-' + validDay,
-            officialVideo: 'https://example.com/video/day-' + validDay,
-            summary: 'Fake summary for day ' + validDay + '. Learn about ' + category + '.',
-            notes: [],
-            quiz: [
-                {
-                    question: 'What is the core idea of ' + category + '?',
-                    options: ['Option A', 'Option B', 'Option C'],
-                    correct: 0
-                },
-                {
-                    question: 'Which tool is NOT used in ' + category + '?',
-                    options: ['Tool1', 'Tool2', 'Tool3'],
-                    correct: 1
-                },
-                {
-                    question: 'True or False: ' + category + ' is only for experts.',
-                    options: ['True', 'False'],
-                    correct: 1
-                }
-            ],
-            practice: [],
-            completed: false,
-            completedDate: null,
-            reviewLevel: 'Need Review',
-            xpReward: baseXP,
-            tags: [category.toLowerCase(), difficulty.toLowerCase()],
-            futureAIUpdate: {}
-        };
     },
 
     /**
      * getAllLessons()
      * 
-     * Returns all 365 lessons. Generates them if not stored.
+     * 🔥 Season 5: 优先返回真实 S4 lessons，不再生成 365 个假 lesson
+     * Fallback: 如果没有真实 lessons，才用 generateAllLessons()
      * 
-     * @returns {Array} Array of 365 lesson objects
+     * @returns {Array} Array of lesson objects
      */
     getAllLessons: function() {
+        // 1. 优先从 ContentRegistry 读
+        try {
+            var contentRegistry = LawAIApp.ContentRegistry;
+            if (contentRegistry) {
+                var realLessons = null;
+                if (typeof contentRegistry.getAllLessons === 'function') {
+                    realLessons = contentRegistry.getAllLessons();
+                } else if (contentRegistry.lessons && Array.isArray(contentRegistry.lessons)) {
+                    realLessons = contentRegistry.lessons;
+                }
+                if (realLessons && realLessons.length > 0) {
+                    return realLessons;
+                }
+            }
+        } catch (e) {
+            console.warn('[LessonEngine] ContentRegistry read failed:', e);
+        }
+
+        // 2. 从 SubjectRegistry 收集 lessons
+        try {
+            var subjectRegistry = LawAIApp.SubjectRegistry;
+            if (subjectRegistry && typeof subjectRegistry.getAllSubjects === 'function') {
+                var subjects = subjectRegistry.getAllSubjects() || [];
+                var collected = [];
+                subjects.forEach(function(subj) {
+                    (subj.lessons || []).forEach(function(l) {
+                        if (typeof l === 'string') {
+                            collected.push({ lessonId: l, id: l, title: l });
+                        } else if (l) {
+                            collected.push({
+                                lessonId: l.id || l.lessonId,
+                                id: l.id || l.lessonId,
+                                title: l.title || l.name || 'Untitled',
+                                tags: l.tags || [],
+                                subjectId: subj.id,
+                                courseId: subj.courseId
+                            });
+                        }
+                    });
+                });
+                if (collected.length > 0) {
+                    return collected;
+                }
+            }
+        } catch (e) {
+            console.warn('[LessonEngine] SubjectRegistry read failed:', e);
+        }
+
+        // 3. Fallback: 旧的 generateAllLessons()
+        console.warn('[LessonEngine] No real lessons found, using fallback generator');
         return this.generateAllLessons();
     },
-
-    /**
-     * getLessonByDay(day)
-     * 
-     * Retrieves a single lesson by day number.
-     * 
-     * @param {number} day - 1 to 365
-     * @returns {Object|null} Lesson object or null if not found
-     */
+    
     getLessonByDay: function(day) {
         var validDay = typeof day === 'number' && !isNaN(day) ? day : 1;
         var lessons = this.getAllLessons();
-        return lessons.find(function(l) { return l.day === validDay; }) || null;
+        
+        // 1. 按 day 字段找
+        var found = lessons.find(function(l) { return l.day === validDay; });
+        if (found) return found;
+        
+        // 2. 按 lessonId 里含 day 找（如 day-1）
+        var dayKey = 'day-' + validDay;
+        found = lessons.find(function(l) {
+            var id = String(l.id || l.lessonId || '');
+            return id === dayKey || id.indexOf(dayKey) !== -1;
+        });
+        if (found) return found;
+        
+        // 3. 按顺序取第 validDay 个
+        if (validDay > 0 && validDay <= lessons.length) {
+            return lessons[validDay - 1];
+        }
+        
+        return null;
     },
 
     /**
