@@ -133,12 +133,12 @@ window.LawAIApp = window.LawAIApp || {};
         }
         bootstrapS4Content._running = true;
     
-        var cl = window.LawAIApp && window.LawAIApp.ContentLoader;
-        var sr = window.LawAIApp && window.LawAIApp.SubjectRegistry;
+        var cl = window.LawAIApp && window.LawAIApp.contentLoader;
+        var sr = window.LawAIApp && window.LawAIApp.subjectRegistry;
     
         console.log('[Bootstrap-S4] 🚀 Starting...');
-        console.log('[Bootstrap-S4] ContentLoader:', typeof cl);
-        console.log('[Bootstrap-S4] SubjectRegistry:', typeof sr);
+        console.log('[Bootstrap-S4] contentLoader:', typeof cl);
+        console.log('[Bootstrap-S4] subjectRegistry:', typeof sr);
     
         // 🔥 依赖未就绪 → 重试（最多 10 次，每次 200ms）
         if (!cl || !sr) {
