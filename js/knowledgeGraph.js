@@ -742,20 +742,28 @@
             try {
                 var schools = this._getAllSchools();
                 report.sourceCounts.schools = schools.length;
-
                 schools.forEach(function(school) {
+                    // 🔥 先拿 courses
+                    var courses = self._getCoursesBySchool(school.id);
+                    
+                    // 🔥 没有 courses → 跳过 school 节点（避免孤儿）
+                    if (!courses || courses.length === 0) {
+                        console.log('[KnowledgeGraph] Skipping school (no courses):', school.id);
+                        return;
+                    }
+                
+                    // 有 courses → 创建 school 节点
                     self._upsertEntity({
                         id: 'school:' + school.id,
-                        type: self.NODE_TYPES.COURSE,
+                        type: self.NODE_TYPES.KNOWLEDGE,   // 🔥 改成 KNOWLEDGE（不要用 COURSE）
                         label: school.title || school.name || school.id,
                         sourceType: 'school',
                         sourceId: school.id,
                         provenance: { sourceSystem: 'academy', sourceType: 'school', sourceId: school.id }
                     });
                     report.entitiesCreated++;
-
-                    var courses = self._getCoursesBySchool(school.id);
                     report.sourceCounts.courses += courses.length;
+
                     courses.forEach(function(course) {
                         self._upsertEntity({
                             id: 'course:' + course.id,
