@@ -994,6 +994,149 @@
             return schools;
         },
 
+        // ════════════════════════════════════════════════════════════
+        // ═══ Part 26: 同步兼容层（给 KnowledgeGraph 用） ═══
+        // ════════════════════════════════════════════════════════════
+
+        _indexCache: null,
+
+        getSchools: function() {
+            if (this._indexCache && this._indexCache.schools) {
+                return Object.values(this._indexCache.schools);
+            }
+            try {
+                var cached = LawAIApp.StorageEngine?.get('s4_index_cache');
+                if (cached && cached.schools) {
+                    this._indexCache = cached;
+                    return Object.values(cached.schools);
+                }
+            } catch (e) {}
+            var fallback = this._getFallbackIndex();
+            if (fallback && fallback.schools) {
+                return Object.values(fallback.schools);
+            }
+            return [];
+        },
+
+        getCoursesBySchool: function(schoolId) {
+            try {
+                var index = this._indexCache;
+                if (!index) {
+                    index = LawAIApp.StorageEngine?.get('s4_index_cache') || this._getFallbackIndex();
+                    this._indexCache = index;
+                }
+                var school = index?.schools?.[schoolId];
+                if (!school || !school.courses) return [];
+
+                var courses = [];
+                for (var i = 0; i < school.courses.length; i++) {
+                    var cid = school.courses[i];
+                    var cached = LawAIApp.StorageEngine?.get('s4_course_' + cid);
+                    if (cached) {
+                        courses.push(cached);
+                    } else {
+                        courses.push({ id: cid, title: cid });
+                    }
+                }
+                return courses;
+            } catch (e) {
+                console.warn('[ContentLoader] getCoursesBySchool failed:', e);
+                return [];
+            }
+        },
+
+        // 🔥 无 module 层 → 用 courseId 代替
+        getSubjectsByCourse: function(courseId) {
+            try {
+                var allKeys = LawAIApp.StorageEngine?.getAllKeys?.() || [];
+                var subjects = [];
+                for (var i = 0; i < allKeys.length; i++) {
+                    var k = allKeys[i];
+                    if (k.startsWith('s4_subject_')) {
+                        var s = LawAIApp.StorageEngine.get(k);
+                        if (s && s.courseId === courseId) {
+                            subjects.push(s);
+                        }
+                    }
+                }
+                return subjects;
+            } catch (e) {
+                console.warn('[ContentLoader] getSubjectsByCourse failed:', e);
+                return [];
+            }
+        },
+
+        // 保留旧名兼容，转发到 getSubjectsByCourse
+        getSubjectsByModule: function(courseId) {
+            return this.getSubjectsByCourse(courseId);
+        },
+
+        getLessonsBySubject: function(subjectId) {
+            try {
+                var allKeys = LawAIApp.StorageEngine?.getAllKeys?.() || [];
+                var lessons = [];
+                for (var i = 0; i < allKeys.length; i++) {
+                    var k = allKeys[i];
+                    if (k.startsWith('s4_lesson_')) {
+                        var l = LawAIApp.StorageEngine.get(k);
+                        if (l && l.subjectId === subjectId) {
+                            lessons.push(l);
+                        }
+                    }
+                }
+                return lessons;
+            } catch (e) {
+                console.warn('[ContentLoader] getLessonsBySubject failed:', e);
+                return [];
+            }
+        },
+
+        // 🔥 无 module 层 → 永远返回空
+        getModulesByCourse: function(courseId) {
+            return [];
+        },
+
+        preloadIndex: async function() {
+            try {
+                var index = await this.loadCourseIndex();
+                this._indexCache = index;
+                LawAIApp.StorageEngine?.set('s4_index_cache', index);
+
+                if (index && index.schools) {
+                    for (var schoolId in index.schools) {
+                        var school = index.schools[schoolId];
+                        if (school.courses) {
+                            for (var i = 0; i < school.courses.length; i++) {
+                                await this.loadCourse(school.courses[i]);
+                            }
+                        }
+                    }
+                }
+
+                // 预加载 subject / lesson
+                var allKeys = LawAIApp.StorageEngine?.getAllKeys?.() || [];
+                var courseKeys = allKeys.filter(function(k) { return k.startsWith('s4_course_'); });
+                for (var j = 0; j < courseKeys.length; j++) {
+                    var course = LawAIApp.StorageEngine.get(courseKeys[j]);
+                    if (course && course.subjects) {
+                        for (var m = 0; m < course.subjects.length; m++) {
+                            var subj = await this.loadSubject(course.id, course.subjects[m]);
+                            // 如果 subject.json 里有 lessons 列表，预加载
+                            if (subj && subj.lessons) {
+                                for (var n = 0; n < subj.lessons.length; n++) {
+                                    await this.loadLesson(course.id, subj.id, subj.lessons[n]);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                console.log('[ContentLoader] ✅ Index preloaded');
+            } catch (e) {
+                console.warn('[ContentLoader] preloadIndex failed:', e);
+            }
+        },
+
         /**
          * Fallback Index（当 content/index.json 不存在时）
          */
