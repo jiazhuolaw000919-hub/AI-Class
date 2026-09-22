@@ -190,39 +190,37 @@ LawAIApp.SkillRegistry = (function() {
       var skillSet = {};
       var storage = LawAIApp.StorageEngine;
       if (!storage) return [];
-
-      // 从 notes tags
-      var notes = storage.get('user_notes', []);
-      notes.forEach(function(n) {
-        if (n && n.tags) {
-          n.tags.forEach(function(t) { skillSet[t] = true; });
-        }
-      });
-
-      // 从 lesson tags
+    
+      // 🔥 只从 lesson tags 提取（不读 note tags，避免 flashcard/known 污染）
       try {
         var lessons = [];
         if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getAllLessons === 'function') {
           lessons = LawAIApp.LessonEngine.getAllLessons() || [];
         }
         lessons.forEach(function(l) {
-          if (l && l.tags) {
+          if (l && l.tags && Array.isArray(l.tags)) {
             l.tags.forEach(function(t) { skillSet[t] = true; });
           }
         });
       } catch (e) {}
-
-      // 从 storage 里已记录过的 skill evidence（如果有）
-      try {
-        var stored = storage.get('skill_evidence', {});
-        for (var s in stored) {
-          if (stored.hasOwnProperty(s)) skillSet[s] = true;
-        }
-      } catch (e) {}
-
-      var names = Object.keys(skillSet);
-
-      // 推导每个 skill 的状态
+    
+      // 🔥 排除非 skill 标签
+      var EXCLUDED = {
+        'beginner': true,
+        'intermediate': true,
+        'advanced': true,
+        'foundation': true,
+        'core': true,
+        'flashcard': true,
+        'known': true,
+        'reflection': true,
+        'note': true
+      };
+    
+      var names = Object.keys(skillSet).filter(function(n) {
+        return !EXCLUDED[n.toLowerCase()];
+      });
+    
       return names.map(function(name) {
         return this.getSkill(name);
       }.bind(this));
