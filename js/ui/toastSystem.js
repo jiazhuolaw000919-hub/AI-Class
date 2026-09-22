@@ -86,7 +86,8 @@ LawAIApp.Toast = {
     });
     toast.addEventListener('mouseleave', function() {
       toast._paused = false;
-      toast._scheduleRemove(duration);
+      // 🔥 修复: 用模块方法，不是实例方法
+      LawAIApp.Toast._scheduleRemove(toast, duration);
     });
 
     return toast;
