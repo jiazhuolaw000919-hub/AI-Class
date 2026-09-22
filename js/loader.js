@@ -189,6 +189,7 @@ var STAGES = {
         "avatarEngine.js",
         "achievementEngine.js",
         "courseGenerator.js",
+        "skillRegistry.js",
         "themeEngine.js",
         "systemComposer.js",
         "app.js",
