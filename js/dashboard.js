@@ -4857,21 +4857,29 @@ _renderRecommendationCard: function(rec) {
   _renderMyCourses: function() {
     try {
       var gen = LawAIApp.CourseGenerator;
-      if (!gen || typeof gen.getGeneratedCourses !== 'function') return '';
 
-      <section>
-        <div>🎨 MY GENERATED COURSES</div>
-        <div style="color:#64748b;">You haven't generated any courses yet. Try ✨ Add More.</div>
-      </section>
+      // 没有课程 → 返回空态 HTML
+      var courses = [];
+      if (gen && typeof gen.getGeneratedCourses === 'function') {
+        courses = gen.getGeneratedCourses() || [];
+      }
 
+      if (courses.length === 0) {
+        return `
+          <section data-section="my-courses" style="background:rgba(139,92,246,0.03);border:1px solid rgba(139,92,246,0.08);border-radius:16px;padding:14px 20px;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <span style="font-size:11px;color:#8b5cf6;font-weight:500;letter-spacing:0.5px;">🎨 MY GENERATED COURSES</span>
+            </div>
+            <div style="font-size:12px;color:#64748b;padding:4px 0;">
+              You haven't generated any courses yet. Try ✨ Add More.
+            </div>
+          </section>
+        `;
+      }
+
+      // 有课程 → 原来的渲染逻辑（你原来的代码保留）
       return `
-        <section data-section="my-courses" style="
-          background: rgba(139,92,246,0.03);
-          border: 1px solid rgba(139,92,246,0.08);
-          border-radius: 16px;
-          padding: 14px 20px;
-          margin-bottom: 16px;
-        ">
+        <section data-section="my-courses" style="background:rgba(139,92,246,0.03);border:1px solid rgba(139,92,246,0.08);border-radius:16px;padding:14px 20px;margin-bottom:16px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
             <span style="font-size:11px;color:#8b5cf6;font-weight:500;letter-spacing:0.5px;">🎨 MY GENERATED COURSES</span>
             <span style="font-size:11px;color:#64748b;">${courses.length} course(s)</span>
@@ -4890,15 +4898,16 @@ _renderRecommendationCard: function(rec) {
                 '</div>' +
                 '<div style="display:flex;gap:6px;">' +
                 '<button onclick="LawAIApp.Dashboard._openGeneratedCourse(\'' + c.id + '\')" style="padding:4px 14px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.12);border-radius:100px;color:#8b5cf6;font-size:11px;cursor:pointer;font-family:inherit;">Open →</button>' +
-                '<button onclick="event.stopPropagation();LawAIApp.Dashboard._deleteGeneratedCourse(\'' + c.id + '\', \'' + (c.title || 'Untitled').replace(/'/g, "\\'") + '\')" style="padding:4px 10px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.12);border-radius:100px;color:#ef4444;font-size:11px;cursor:pointer;font-family:inherit;" title="Delete course">🗑️</button>' +
               '</div>' +
               '</div>';
             }).join('')}
-            ${courses.length > 3 ? '<div style="font-size:11px;color:#64748b;text-align:center;padding-top:4px;">+' + (courses.length - 3) + ' more</div>' : ''}
           </div>
         </section>
       `;
-    } catch (e) { return ''; }
+    } catch (e) {
+      console.warn('[Dashboard] _renderMyCourses failed:', e);
+      return '';
+    }
   },
 
   _openGeneratedCourse: function(courseId) {
