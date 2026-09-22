@@ -6562,15 +6562,35 @@ _registerGeneratedCourse: function(course) {
       if (!storage) return '';
 
       var recent = storage.get('recent_achievement', null);
-      <span>🏆</span>
-      <div>
-        <div style="...">NEXT ACHIEVEMENT</div>
-        <div style="...">Complete your first lesson to unlock one</div>
-      </div>
 
-      var hoursSince = (Date.now() - new Date(recent.earnedAt).getTime()) / 3600000;
-      if (hoursSince > 24) return '';
+      // 计算距离现在多少小时
+      var hoursSince = (recent && recent.earnedAt)
+        ? (Date.now() - new Date(recent.earnedAt).getTime()) / 3600000
+        : 999;
 
+      // 没有成就 或 超过 24 小时 → 显示空态
+      if (!recent || !recent.earnedAt || hoursSince > 24) {
+        return `
+          <section data-section="recent-achievement" style="
+            background: rgba(245,158,11,0.04);
+            border: 1px solid rgba(245,158,11,0.1);
+            border-radius: 16px;
+            padding: 14px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          ">
+            <span style="font-size:24px;opacity:0.6;">🏆</span>
+            <div>
+              <div style="font-size:11px;color:#f59e0b;font-weight:500;letter-spacing:0.5px;">NEXT ACHIEVEMENT</div>
+              <div style="font-size:13px;color:#64748b;margin-top:2px;">Complete your first lesson to unlock one</div>
+            </div>
+          </section>
+        `;
+      }
+
+      // 有成就 → 显示庆祝
       return `
         <section data-section="recent-achievement" style="
           background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.03));
