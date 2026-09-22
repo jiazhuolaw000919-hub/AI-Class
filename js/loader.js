@@ -211,6 +211,8 @@ var STAGES = {
         "settings/SettingsAuthority.js",
         "curriculum/CurriculumAuthority.js",
         "school/SchoolViewModel.js",
+        "contentLoader.js",
+        "academy/subjectRegistry.js",
         "experience/experienceContract.js",
         "experience/practiceEvidenceContract.js",
         "experience/videoEvidenceContract.js",
