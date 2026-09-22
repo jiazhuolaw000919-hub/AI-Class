@@ -6668,10 +6668,26 @@ _registerGeneratedCourse: function(course) {
 
   _renderNews: function() {
     var news = this._getNews();
-    <section>
-      <div>📰 AI NEWS</div>
-      <div style="color:#64748b;">No news yet.</div>
-    </section>
+
+    // 🔥 空态也显示
+    if (!news || news.length === 0) {
+      return `
+        <section data-section="news" role="region" aria-label="AI News" style="
+          background: rgba(236,72,153,0.03);
+          border: 1px solid rgba(236,72,153,0.08);
+          border-radius: 16px;
+          padding: 14px 20px;
+          margin-bottom: 16px;
+        ">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:11px;color:#ec4899;font-weight:500;letter-spacing:0.5px;">📰 AI NEWS</span>
+          </div>
+          <div style="font-size:12px;color:#64748b;padding:4px 0;">
+            No news yet. Updates will appear here.
+          </div>
+        </section>
+      `;
+    }
 
     return `
       <section data-section="news" role="region" aria-label="AI News" style="
