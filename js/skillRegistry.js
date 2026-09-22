@@ -30,7 +30,14 @@ LawAIApp.SkillRegistry = (function() {
   // 🔥 从 storage 收集证据
   // ============================================================
   function _collectEvidence(skillName) {
-    var evidence = { ... };
+    var evidence = {
+      lessons: [],
+      completedLessons: 0,
+      practiceAttempts: 0,
+      practiceCorrect: 0,
+      flashcardReviews: 0,
+      noteCount: 0
+    };
 
     try {
       var storage = LawAIApp.StorageEngine;
@@ -38,7 +45,7 @@ LawAIApp.SkillRegistry = (function() {
 
       var skillLower = String(skillName || '').toLowerCase();
 
-      // 🔥 新增：从 SubjectRegistry 收集所有 lessons 的 subjectId
+      // 🔥 从 SubjectRegistry 收集所有 lessons 的 subjectId
       var relevantLessonIds = {};
       var subjectRegistry = LawAIApp.SubjectRegistry;
 
@@ -46,18 +53,12 @@ LawAIApp.SkillRegistry = (function() {
         var subjects = subjectRegistry.getAllSubjects() || [];
 
         subjects.forEach(function(subj) {
-          // 🔥 skill 名匹配 subject.title
           var subjTitle = String(subj.title || '').toLowerCase();
           var subjId = String(subj.id || '').toLowerCase();
-
-          // 判断这个 subject 是否匹配当前 skill
           var matches = false;
 
-          // 1. subject title 完全包含 skill（例如 "AI Fundamentals" 包含 "ai"）
           if (subjTitle.indexOf(skillLower) !== -1) matches = true;
-          // 2. subject id 里包含 skill 关键词
           if (!matches && subjId.indexOf(skillLower.replace(/\s+/g, '-')) !== -1) matches = true;
-          // 3. skill 的每个词都在 subject 里出现
           if (!matches) {
             var words = skillLower.split(/\s+/).filter(function(w) { return w.length > 2; });
             if (words.length > 0) {
@@ -70,13 +71,16 @@ LawAIApp.SkillRegistry = (function() {
           if (matches) {
             (subj.lessons || []).forEach(function(l) {
               var lid = (typeof l === 'string') ? l : (l.id || l.lessonId);
-              if (lid) relevantLessonIds[lid] = true;
+              if (lid) {
+                relevantLessonIds[lid] = true;
+                evidence.lessons.push(l);
+              }
             });
           }
         });
       }
 
-      // 🔥 补充：也检查 lesson 的 subjectId
+      // 🔥 补充：检查 LessonEngine 里的 lesson
       try {
         var allLessons = [];
         if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getAllLessons === 'function') {
@@ -86,20 +90,46 @@ LawAIApp.SkillRegistry = (function() {
           if (!l) return;
           var lid = l.id || l.lessonId;
           if (!lid) return;
-          
-          // 如果 lesson 的 subjectId 匹配 skill
           var lSubjId = String(l.subjectId || '').toLowerCase();
           var lSubjTitle = String(l.subjectTitle || '').toLowerCase();
-          
           if (lSubjId.indexOf(skillLower.replace(/\s+/g, '-')) !== -1 ||
               lSubjTitle.indexOf(skillLower) !== -1) {
             relevantLessonIds[lid] = true;
+            if (evidence.lessons.indexOf(l) === -1) evidence.lessons.push(l);
           }
         });
       } catch (e) {}
 
-      // 保留原来的从 lesson tags 匹配逻辑（如果有）
-      // ... 原有代码 ...
+      // 🔥 从 storage 里读完成/练习/闪卡证据
+      var progress = storage.get('lesson_progress', {}) || {};
+      evidence.completedLessons = Object.keys(relevantLessonIds).filter(function(lid) {
+        return progress[lid] && progress[lid].completed;
+      }).length;
+
+      var practice = storage.get('practice_history', []) || [];
+      practice.forEach(function(p) {
+        if (p && relevantLessonIds[p.lessonId]) {
+          evidence.practiceAttempts++;
+          if (p.correct) evidence.practiceCorrect++;
+        }
+      });
+
+      var flashcards = storage.get('flashcard_reviews', []) || [];
+      evidence.flashcardReviews = flashcards.filter(function(f) {
+        return f && relevantLessonIds[f.lessonId];
+      }).length;
+
+      var notes = storage.get('notes', []) || [];
+      evidence.noteCount = notes.filter(function(n) {
+        return n && relevantLessonIds[n.lessonId];
+      }).length;
+
+    } catch (e) {
+      console.warn('[SkillRegistry] _collectEvidence error:', e);
+    }
+
+    return evidence;
+  }  // ← 别忘了这个闭合
 
   // ============================================================
   // 🔥 从证据推导状态（Bible Part 44: 不造假）
