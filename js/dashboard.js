@@ -4575,7 +4575,10 @@ _renderRecommendationCard: function(rec) {
                   '<div style="font-size:13px;color:#e2e8f0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📘 ' + (c.title || 'Untitled') + '</div>' +
                   '<div style="font-size:11px;color:#64748b;margin-top:2px;">' + subjectCount + ' subjects · ' + lessonCount + ' lessons</div>' +
                 '</div>' +
+                '<div style="display:flex;gap:6px;">' +
                 '<button onclick="LawAIApp.Dashboard._openGeneratedCourse(\'' + c.id + '\')" style="padding:4px 14px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.12);border-radius:100px;color:#8b5cf6;font-size:11px;cursor:pointer;font-family:inherit;">Open →</button>' +
+                '<button onclick="event.stopPropagation();LawAIApp.Dashboard._deleteGeneratedCourse(\'' + c.id + '\', \'' + (c.title || 'Untitled').replace(/'/g, "\\'") + '\')" style="padding:4px 10px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.12);border-radius:100px;color:#ef4444;font-size:11px;cursor:pointer;font-family:inherit;" title="Delete course">🗑️</button>' +
+              '</div>' +
               '</div>';
             }).join('')}
             ${courses.length > 3 ? '<div style="font-size:11px;color:#64748b;text-align:center;padding-top:4px;">+' + (courses.length - 3) + ' more</div>' : ''}
@@ -4596,6 +4599,23 @@ _renderRecommendationCard: function(rec) {
       this._renderGeneratedCourseView(course);
     } catch (e) {
       console.error('[Part 29] _openGeneratedCourse failed:', e);
+    }
+  },
+
+  _deleteGeneratedCourse: function(courseId, courseTitle) {
+    if (!confirm('Delete "' + courseTitle + '"? This cannot be undone.')) return;
+    try {
+      var gen = LawAIApp.CourseGenerator;
+      if (gen && typeof gen.deleteCourse === 'function') {
+        gen.deleteCourse(courseId);
+      }
+      if (LawAIApp.Toast?.success) {
+        LawAIApp.Toast.success('🗑️ Course deleted');
+      }
+      this._lastRenderAt = 0;
+      this.forceRender();
+    } catch (e) {
+      console.error('[Part 29] Delete failed:', e);
     }
   },
 
@@ -5147,24 +5167,162 @@ _renderRecommendationCard: function(rec) {
   // 存在 storage + Dashboard 独立入口
   // ============================================================
   _acceptGeneratedCourse: function(course) {
+    if (!course) return;
+    // 🔥 弹 School Picker，让学习者选择加到哪个 school
+    this._showSchoolPicker(course, function(selectedSchoolId) {
+      try {
+        // 记录 schoolId 到 course
+        course.targetSchoolId = selectedSchoolId || 'school-my-generated';
+
+        var gen = LawAIApp.CourseGenerator;
+        if (gen && typeof gen.acceptGeneratedCourse === 'function') {
+          gen.acceptGeneratedCourse(course);
+        }
+
+        if (LawAIApp.Toast?.success) {
+          LawAIApp.Toast.success('✅ Course added');
+        }
+
+        setTimeout(function() {
+          LawAIApp.Dashboard._lastRenderAt = 0;
+          LawAIApp.Dashboard.forceRender();
+        }, 800);
+      } catch (e) {
+        console.error('[CourseGenerator] Accept failed:', e);
+      }
+    });
+  },
+
+  // ============================================================
+  // 🔥 School Picker Modal
+  // ============================================================
+  _showSchoolPicker: function(course, onConfirm) {
+    var self = this;
+
+    // 读现有 schools
+    var schools = [];
     try {
-      var gen = LawAIApp.CourseGenerator;
-      if (gen && typeof gen.acceptGeneratedCourse === 'function') {
-        gen.acceptGeneratedCourse(course);
+      var aem = LawAIApp.AcademyExperienceManager;
+      if (aem && typeof aem._getSchools === 'function') {
+        schools = aem._getSchools() || [];
       }
+    } catch (e) {}
 
-      if (LawAIApp.Toast?.success) {
-        LawAIApp.Toast.success('✅ Course added — find it on your Dashboard');
-      }
-
-      setTimeout(function() {
-        LawAIApp.Dashboard._lastRenderAt = 0;
-        LawAIApp.Dashboard.forceRender();
-      }, 800);
-    } catch (e) {
-      console.error('[CourseGenerator] Accept failed:', e);
-      if (LawAIApp.Toast?.error) LawAIApp.Toast.error('Failed to save course');
+    // 加 "My Generated Courses" 选项
+    var MY_SCHOOL_ID = 'school-my-generated';
+    var hasMySchool = schools.some(function(s) { return s.id === MY_SCHOOL_ID; });
+    if (!hasMySchool) {
+      schools.push({
+        id: MY_SCHOOL_ID,
+        name: 'My Generated Courses',
+        icon: '🎨',
+        description: 'Your personal AI-generated courses',
+        isGenerated: true
+      });
     }
+
+    // 默认选 "My Generated"
+    var defaultSelected = MY_SCHOOL_ID;
+
+    var overlayHtml = `
+      <div id="school-picker-overlay" style="
+        position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;
+        display:flex;align-items:center;justify-content:center;padding:20px;
+        backdrop-filter:blur(4px);
+      ">
+        <div style="
+          background:#0f172a;border:1px solid rgba(255,255,255,0.08);
+          border-radius:14px;padding:24px;max-width:480px;width:100%;
+          box-shadow:0 20px 60px rgba(0,0,0,0.5);
+          font-family:'Inter',-apple-system,sans-serif;color:#e2e8f0;
+        ">
+          <div style="margin-bottom:16px;">
+            <div style="font-size:11px;color:#8b5cf6;font-weight:500;letter-spacing:0.5px;">ADD TO SCHOOL</div>
+            <h3 style="font-size:18px;font-weight:600;margin:4px 0 0;">Where should this course go?</h3>
+            <p style="font-size:12px;color:#94a3b8;margin:6px 0 0;line-height:1.5;">
+              Generated courses are marked as AI-generated. You can change this later.
+            </p>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;max-height:300px;overflow-y:auto;">
+            ${schools.map(function(s) {
+              var selected = s.id === defaultSelected;
+              var isGenerated = s.isGenerated;
+              return `
+                <button type="button" class="school-pick-btn" data-school-id="${s.id}"
+                  style="
+                    display:flex;align-items:center;gap:12px;
+                    padding:12px 16px;
+                    background:${selected ? 'rgba(74,158,255,0.08)' : 'rgba(255,255,255,0.02)'};
+                    border:1px solid ${selected ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.04)'};
+                    border-radius:10px;cursor:pointer;font-family:inherit;color:inherit;
+                    text-align:left;width:100%;transition:all 0.2s;
+                  "
+                  onmouseover="this.style.background='rgba(74,158,255,0.06)'"
+                  onmouseout="this.style.background='${selected ? 'rgba(74,158,255,0.08)' : 'rgba(255,255,255,0.02)'}'"
+                >
+                  <span style="font-size:24px;">${s.icon || '🏛️'}</span>
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-size:14px;font-weight:500;color:#e2e8f0;">${s.name || s.displayName || s.id}</div>
+                    <div style="font-size:11px;color:#94a3b8;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.description || ''}</div>
+                  </div>
+                  ${isGenerated ? '<span style="font-size:10px;color:#8b5cf6;background:rgba(139,92,246,0.1);padding:2px 8px;border-radius:100px;">PERSONAL</span>' : '<span style="font-size:10px;color:#64748b;background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:100px;">OFFICIAL</span>'}
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          <div style="display:flex;gap:10px;">
+            <button type="button" id="school-picker-cancel" style="
+              flex:1;padding:10px;
+              background:transparent;border:1px solid rgba(255,255,255,0.08);
+              border-radius:8px;color:#94a3b8;font-size:13px;cursor:pointer;font-family:inherit;
+            ">Cancel</button>
+            <button type="button" id="school-picker-confirm" style="
+              flex:2;padding:10px;
+              background:linear-gradient(135deg,#4a9eff,#6366f1);
+              border:none;border-radius:8px;color:white;font-size:13px;font-weight:600;
+              cursor:pointer;font-family:inherit;
+            ">Add Course</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', overlayHtml);
+
+    var selectedId = defaultSelected;
+
+    // School 按钮
+    document.querySelectorAll('.school-pick-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        selectedId = this.getAttribute('data-school-id');
+        // 更新视觉
+        document.querySelectorAll('.school-pick-btn').forEach(function(b) {
+          var isSel = b.getAttribute('data-school-id') === selectedId;
+          b.style.background = isSel ? 'rgba(74,158,255,0.08)' : 'rgba(255,255,255,0.02)';
+          b.style.borderColor = isSel ? 'rgba(74,158,255,0.3)' : 'rgba(255,255,255,0.04)';
+        });
+      });
+    });
+
+    // Cancel
+    document.getElementById('school-picker-cancel').addEventListener('click', function() {
+      document.getElementById('school-picker-overlay').remove();
+    });
+
+    // Confirm
+    document.getElementById('school-picker-confirm').addEventListener('click', function() {
+      document.getElementById('school-picker-overlay').remove();
+      onConfirm(selectedId);
+    });
+
+    // 点击遮罩关闭
+    document.getElementById('school-picker-overlay').addEventListener('click', function(e) {
+      if (e.target.id === 'school-picker-overlay') {
+        this.remove();
+      }
+    });
   },
 
 // ============================================================
