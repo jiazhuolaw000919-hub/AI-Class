@@ -30,8 +30,8 @@ LawAIApp.CourseGenerator = {
 
         var courseId = 'gen_course_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
 
-        var subjectCount = depth === 'overview' ? 2 : (depth === 'deep' ? 5 : 3);
-        var lessonCount = depth === 'overview' ? 2 : (depth === 'deep' ? 5 : 3);
+        var subjectCount = depth === 'overview' ? 2 : (depth === 'deep' ? 3 : 2);
+        var lessonCount = depth === 'overview' ? 2 : (depth === 'deep' ? 3 : 2);
 
         console.log('🔵 [Step 3] Will generate:', subjectCount, 'subjects ×', lessonCount, 'lessons');
 
@@ -48,7 +48,10 @@ LawAIApp.CourseGenerator = {
         var result;
         try {
             console.log('🔵 [Step 5] Calling AILayer.request...');
-            result = await aiLayer.request('course-generation', { prompt: prompt });
+             result = await aiLayer.request('course-generation', { 
+                prompt: prompt,
+                max_tokens: 8192
+            });
             console.log('🔵 [Step 6] AILayer.request returned');
         } catch (e) {
             console.error('🔴 [Step 5] AI request failed:', e);
@@ -141,19 +144,14 @@ LawAIApp.CourseGenerator = {
             '\n- Exactly ' + subjectCount + ' subjects' +
             '\n- Each subject has exactly ' + lessonCount + ' lessons' +
             '\n- Content should be accurate, useful, and beginner-friendly' +
-            '\n\nEach lesson MUST include ALL of the following fields:' +
-            '\n1. title: concise lesson title (5-10 words)' +
-            '\n2. description: 1-2 sentence summary' +
-            '\n3. learningObjectives: array of 3-4 specific objectives' +
-            '\n4. opening: { hook: "engaging opening question or statement", relevance: "why this matters" }' +
-            '\n5. sections: array of 2-3 sections, each with:' +
-            '\n   - id: "section-01", "section-02", etc.' +
-            '\n   - type: one of "foundation", "core", "advanced", "practical"' +
-            '\n   - title: section title' +
-            '\n   - content: array of content blocks, each { type: "paragraph"|"definition"|"important"|"example", content: "..." }' +
-            '\n6. keyTakeaways: array of 3-5 key points' +
-            '\n7. reflection: { prompt: "reflection question", hint: "hint for reflection" }' +
-            '\n\nReturn ONLY valid JSON. No markdown. No code fences. No commentary.' +
+            '\n\nEach lesson MUST include:' +
+            '\n1. title: concise (5-8 words)' +
+            '\n2. description: 1 sentence (max 20 words)' +
+            '\n3. learningObjectives: 3 short objectives' +
+            '\n4. sections: 2 sections, each with 1-2 paragraph content blocks' +
+            '\n5. keyTakeaways: 3 short points' +
+            '\n\nKeep ALL text SHORT. No long paragraphs. No examples unless necessary.' +
+            '\n\nReturn ONLY valid JSON. No markdown. No code fences.' +
             '\n\nExact JSON shape:' +
             '\n{' +
             '\n  "title": "...",' +
