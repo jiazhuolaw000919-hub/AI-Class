@@ -80,22 +80,25 @@ LawAIApp.CourseGenerator = {
                 description: s.description || '',
                 order: si + 1,
                 lessons: (s.lessons || []).map(function(l, li) {
-                    var lessonContent = l.content || l.text || '';
+                    // 兼容新旧格式
+                    var sections = l.sections || (l.content ? [{
+                        id: 'section-01',
+                        type: 'foundation',
+                        title: 'Introduction',
+                        content: [{ type: 'paragraph', content: l.content }]
+                    }] : []);
+                
                     return {
                         id: 'gen_lesson_' + Date.now() + '_' + si + '_' + li,
                         title: l.title || ('Lesson ' + (li + 1)),
-                        content: lessonContent,
-                        order: li + 1,
+                        description: l.description || '',
+                        learningObjectives: l.learningObjectives || [],
+                        opening: l.opening || null,
+                        sections: sections,
+                        keyTakeaways: l.keyTakeaways || [],
+                        reflection: l.reflection || null,
                         estimatedMinutes: time,
-                        objectives: l.objectives || [],
-                        sections: [
-                            {
-                                id: 'section_1',
-                                title: 'Introduction',
-                                type: 'foundation',
-                                content: [{ type: 'paragraph', content: lessonContent }]
-                            }
-                        ],
+                        order: li + 1,
                         practice: { enabled: false, items: [] }
                     };
                 })
@@ -128,16 +131,64 @@ LawAIApp.CourseGenerator = {
         return course;
     },
 
+    // ============================================================
+    // 🔥 Part C: Lesson Format 对齐（使用现有 lesson JSON 结构）
+    // ============================================================
     _buildCoursePrompt: function(topic, level, depth, subjectCount, lessonCount, goal) {
-        return 'You are a curriculum designer. Generate a complete ' + depth + ' course on "' + topic + '" for a ' + level + ' learner.' +
+        var prompt = 'You are a curriculum designer. Generate a complete ' + depth + ' course on "' + topic + '" for a ' + level + ' learner.' +
             (goal ? ' The learner\'s goal is: ' + goal + '.' : '') +
-            '\n\nRequirements:' +
+            '\n\nCourse Requirements:' +
             '\n- Exactly ' + subjectCount + ' subjects' +
             '\n- Each subject has exactly ' + lessonCount + ' lessons' +
-            '\n- Each lesson has a concise title and a 2-3 paragraph explanation (150-300 words)' +
-            '\n- Content should be accurate and useful' +
-            '\n\nReturn ONLY valid JSON in this exact shape (no markdown, no code fences, no commentary):' +
-            '\n{"title":"...","description":"...","subjects":[{"title":"...","description":"...","lessons":[{"title":"...","content":"..."}]}]}';
+            '\n- Content should be accurate, useful, and beginner-friendly' +
+            '\n\nEach lesson MUST include ALL of the following fields:' +
+            '\n1. title: concise lesson title (5-10 words)' +
+            '\n2. description: 1-2 sentence summary' +
+            '\n3. learningObjectives: array of 3-4 specific objectives' +
+            '\n4. opening: { hook: "engaging opening question or statement", relevance: "why this matters" }' +
+            '\n5. sections: array of 2-3 sections, each with:' +
+            '\n   - id: "section-01", "section-02", etc.' +
+            '\n   - type: one of "foundation", "core", "advanced", "practical"' +
+            '\n   - title: section title' +
+            '\n   - content: array of content blocks, each { type: "paragraph"|"definition"|"important"|"example", content: "..." }' +
+            '\n6. keyTakeaways: array of 3-5 key points' +
+            '\n7. reflection: { prompt: "reflection question", hint: "hint for reflection" }' +
+            '\n\nReturn ONLY valid JSON. No markdown. No code fences. No commentary.' +
+            '\n\nExact JSON shape:' +
+            '\n{' +
+            '\n  "title": "...",' +
+            '\n  "description": "...",' +
+            '\n  "subjects": [' +
+            '\n    {' +
+            '\n      "title": "...",' +
+            '\n      "description": "...",' +
+            '\n      "lessons": [' +
+            '\n        {' +
+            '\n          "title": "...",' +
+            '\n          "description": "...",' +
+            '\n          "learningObjectives": ["...", "...", "..."],' +
+            '\n          "opening": { "hook": "...", "relevance": "..." },' +
+            '\n          "sections": [' +
+            '\n            {' +
+            '\n              "id": "section-01",' +
+            '\n              "type": "foundation",' +
+            '\n              "title": "...",' +
+            '\n              "content": [' +
+            '\n                { "type": "paragraph", "content": "..." },' +
+            '\n                { "type": "definition", "term": "...", "definition": "...", "example": "..." },' +
+            '\n                { "type": "important", "title": "...", "content": "..." }' +
+            '\n              ]' +
+            '\n            }' +
+            '\n          ],' +
+            '\n          "keyTakeaways": ["...", "...", "..."],' +
+            '\n          "reflection": { "prompt": "...", "hint": "..." }' +
+            '\n        }' +
+            '\n      ]' +
+            '\n    }' +
+            '\n  ]' +
+            '\n}';
+
+        return prompt;
     },
 
     _parseCourseJSON: function(text) {
