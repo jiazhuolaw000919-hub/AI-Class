@@ -95,10 +95,11 @@ async function callGoogle(prompt, model, options) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: (options && options.temperature) || 0.7,
-              maxOutputTokens: (options && options.max_tokens) || 2048
-            }
+                generationConfig: {
+                  temperature: (options && options.temperature) || 0.7,
+                  maxOutputTokens: (options && options.max_tokens) || 8192,
+                  responseMimeType: 'application/json'   // 🔥 强制 JSON 输出
+                }
           })
         });
 
