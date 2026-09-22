@@ -183,7 +183,7 @@ window.LawAIApp = window.LawAIApp || {};
             var valid = subjects.filter(function(s) { return s !== null; });
             console.log('[Bootstrap-S4] ✅ Total subjects:', valid.length);
 
-            // 注册到 SubjectRegistry
+            // 🔥 注册到 SubjectRegistry（支持 Map / Array / Object）
             try {
                 if (typeof sr.registerSubject === 'function') {
                     valid.forEach(function(subj) {
@@ -191,19 +191,42 @@ window.LawAIApp = window.LawAIApp || {};
                     });
                     console.log('[Bootstrap-S4] ✅ Registered via registerSubject()');
                 } else if (sr._subjects) {
-                    if (Array.isArray(sr._subjects)) {
+                    if (sr._subjects instanceof Map) {
+                        // 🔥 Map（你的情况）
+                        valid.forEach(function(subj) { sr._subjects.set(subj.id, subj); });
+                        console.log('[Bootstrap-S4] ✅ Added to _subjects (Map), size:', sr._subjects.size);
+                    } else if (Array.isArray(sr._subjects)) {
+                        // 数组
                         valid.forEach(function(subj) { sr._subjects.push(subj); });
-                        console.log('[Bootstrap-S4] ✅ Pushed to _subjects (array)');
+                        console.log('[Bootstrap-S4] ✅ Pushed to _subjects (array), length:', sr._subjects.length);
                     } else if (typeof sr._subjects === 'object') {
+                        // 普通对象
                         valid.forEach(function(subj) { sr._subjects[subj.id] = subj; });
-                        console.log('[Bootstrap-S4] ✅ Added to _subjects (object)');
+                        console.log('[Bootstrap-S4] ✅ Added to _subjects (object), keys:', Object.keys(sr._subjects).length);
                     }
                 } else {
                     console.warn('[Bootstrap-S4] ⚠️ Cannot register subjects - no registerSubject or _subjects');
                 }
 
+                // 🔥 同步 _subjectsByCourse
+                if (sr._subjectsByCourse && typeof sr._subjectsByCourse === 'object' && !(sr._subjectsByCourse instanceof Map)) {
+                    valid.forEach(function(subj) {
+                        var cid = subj.courseId || 'course-ai';
+                        if (!sr._subjectsByCourse[cid]) sr._subjectsByCourse[cid] = [];
+                        sr._subjectsByCourse[cid].push(subj.id);
+                    });
+                } else if (sr._subjectsByCourse instanceof Map) {
+                    valid.forEach(function(subj) {
+                        var cid = subj.courseId || 'course-ai';
+                        if (!sr._subjectsByCourse.has(cid)) sr._subjectsByCourse.set(cid, []);
+                        var arr = sr._subjectsByCourse.get(cid);
+                        arr.push(subj.id);
+                    });
+                }
+
                 sr.initialized = true;
                 console.log('[Bootstrap-S4] ✅ SubjectRegistry initialized');
+                console.log('[Bootstrap-S4]    _subjects size:', sr._subjects instanceof Map ? sr._subjects.size : Object.keys(sr._subjects).length);
             } catch (e) {
                 console.error('[Bootstrap-S4] ❌ Registration failed:', e);
             }
