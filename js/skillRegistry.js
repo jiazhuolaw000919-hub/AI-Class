@@ -45,25 +45,109 @@ LawAIApp.SkillRegistry = (function() {
 
       var skillLower = String(skillName || '').toLowerCase();
 
-      // 1. 找相关 lessons（tag 匹配）
-      var allLessons = [];
+      // 1. 找相关 lessons（tag 匹配）— 从多个数据源
+      var relevantLessonIds = {};
+
+      // 数据源 1: LessonEngine.getAllLessons()
       try {
+        var engineLessons = [];
         if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getAllLessons === 'function') {
-          allLessons = LawAIApp.LessonEngine.getAllLessons() || [];
+          engineLessons = LawAIApp.LessonEngine.getAllLessons() || [];
+        }
+        engineLessons.forEach(function(l) {
+          if (l && l.tags && Array.isArray(l.tags)) {
+            var match = l.tags.some(function(t) {
+              return String(t).toLowerCase() === skillLower;
+            });
+            if (match) {
+              var lid = l.id || l.lessonId;
+              if (lid) relevantLessonIds[lid] = true;
+            }
+          }
+        });
+      } catch (e) {}
+
+      // 🔥 数据源 2: ContentRegistry / ContentLoader 的 lessons
+      try {
+        var contentRegistry = LawAIApp.ContentRegistry;
+        if (contentRegistry) {
+          var allContentLessons = [];
+          if (typeof contentRegistry.getAllLessons === 'function') {
+            allContentLessons = contentRegistry.getAllLessons() || [];
+          } else if (contentRegistry.lessons && Array.isArray(contentRegistry.lessons)) {
+            allContentLessons = contentRegistry.lessons;
+          }
+          allContentLessons.forEach(function(l) {
+            if (l && l.tags && Array.isArray(l.tags)) {
+              var match = l.tags.some(function(t) {
+                return String(t).toLowerCase() === skillLower;
+              });
+              if (match) {
+                var lid = l.id || l.lessonId;
+                if (lid) relevantLessonIds[lid] = true;
+              }
+            }
+          });
         }
       } catch (e) {}
 
-      var relevantLessonIds = {};
-      allLessons.forEach(function(l) {
-        if (l.tags && Array.isArray(l.tags)) {
-          var match = l.tags.some(function(t) {
-            return String(t).toLowerCase() === skillLower;
+      // 🔥 数据源 3: SubjectRegistry 里的 lesson tags
+      try {
+        var subjectRegistry = LawAIApp.SubjectRegistry;
+        if (subjectRegistry && typeof subjectRegistry.getAllSubjects === 'function') {
+          var subjects = subjectRegistry.getAllSubjects() || [];
+          subjects.forEach(function(subj) {
+            (subj.lessons || []).forEach(function(l) {
+              if (l && l.tags && Array.isArray(l.tags)) {
+                var match = l.tags.some(function(t) {
+                  return String(t).toLowerCase() === skillLower;
+                });
+                if (match) {
+                  var lid = (typeof l === 'string') ? l : (l.id || l.lessonId);
+                  if (lid) relevantLessonIds[lid] = true;
+                }
+              }
+            });
           });
-          if (match) {
-            relevantLessonIds[l.id || l.lessonId] = true;
+        }
+      } catch (e) {}
+
+      // 🔥 数据源 4: practice_progress 里已经做过的 lesson（反推 skill）
+      try {
+        var practiceStore = LawAIApp.StorageEngine.get('practice_progress', {});
+        for (var practiceLessonId in practiceStore) {
+          if (!practiceStore.hasOwnProperty(practiceLessonId)) continue;
+          // 如果这个 lesson ID 已经在 relevantLessonIds 里 → 跳过
+          if (relevantLessonIds[practiceLessonId]) continue;
+          // 否则检查这个 lesson 是否和当前 skill 相关
+          // 从 lesson ID 里的关键词判断（如 "prompt-engineering" 包含 "prompt engineering"）
+          var lidLower = String(practiceLessonId).toLowerCase();
+          var skillWords = skillLower.split(/\s+/);
+          var matchesSkill = skillWords.some(function(w) {
+            return w.length > 2 && lidLower.indexOf(w) !== -1;
+          });
+          if (matchesSkill) {
+            relevantLessonIds[practiceLessonId] = true;
           }
         }
-      });
+      } catch (e) {}
+
+      // 🔥 数据源 5: notes 的 lessonId（反推 skill）
+      try {
+        var allNotes = LawAIApp.StorageEngine.get('user_notes', []);
+        allNotes.forEach(function(n) {
+          if (!n || !n.lessonId) return;
+          if (relevantLessonIds[n.lessonId]) return;
+          var lidLower = String(n.lessonId).toLowerCase();
+          var skillWords = skillLower.split(/\s+/);
+          var matchesSkill = skillWords.some(function(w) {
+            return w.length > 2 && lidLower.indexOf(w) !== -1;
+          });
+          if (matchesSkill) {
+            relevantLessonIds[n.lessonId] = true;
+          }
+        });
+      } catch (e) {}
 
       // 2. 检查完成的 lessons
       var progress = null;
@@ -190,8 +274,8 @@ LawAIApp.SkillRegistry = (function() {
       var skillSet = {};
       var storage = LawAIApp.StorageEngine;
       if (!storage) return [];
-    
-      // 🔥 只从 lesson tags 提取（不读 note tags，避免 flashcard/known 污染）
+
+      // 只从 lesson tags 提取
       try {
         var lessons = [];
         if (LawAIApp.LessonEngine && typeof LawAIApp.LessonEngine.getAllLessons === 'function') {
@@ -203,7 +287,22 @@ LawAIApp.SkillRegistry = (function() {
           }
         });
       } catch (e) {}
-    
+
+      // 从 subjects 里的 lesson tags
+      try {
+        var sr = LawAIApp.SubjectRegistry;
+        if (sr && typeof sr.getAllSubjects === 'function') {
+          var subjects = sr.getAllSubjects() || [];
+          subjects.forEach(function(subj) {
+            (subj.lessons || []).forEach(function(l) {
+              if (l && l.tags && Array.isArray(l.tags)) {
+                l.tags.forEach(function(t) { skillSet[t] = true; });
+              }
+            });
+          });
+        }
+      } catch (e) {}
+
       // 🔥 排除非 skill 标签
       var EXCLUDED = {
         'beginner': true,
@@ -214,13 +313,21 @@ LawAIApp.SkillRegistry = (function() {
         'flashcard': true,
         'known': true,
         'reflection': true,
-        'note': true
+        'note': true,
+        'review': true
       };
-    
+
       var names = Object.keys(skillSet).filter(function(n) {
-        return !EXCLUDED[n.toLowerCase()];
+        var lower = String(n).toLowerCase();
+        // 排除黑名单
+        if (EXCLUDED[lower]) return false;
+        // 排除纯数字
+        if (/^\d+$/.test(lower)) return false;
+        // 排除太短的（< 3 字符）
+        if (lower.length < 3) return false;
+        return true;
       });
-    
+
       return names.map(function(name) {
         return this.getSkill(name);
       }.bind(this));
