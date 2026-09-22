@@ -2226,7 +2226,7 @@ LawAIApp.Dashboard = {
         justify-content: center;
         align-items: center;
         text-align: center;
-        padding: 40px 24px 32px;
+        padding: 40px 18px 32px;
         margin-bottom: 20px;
         position: relative;
         isolation: isolate;
@@ -2246,7 +2246,7 @@ LawAIApp.Dashboard = {
           z-index: 0;
         "></div>
 
-        <div style="position:relative;z-index:1;max-width:520px;">
+        <div style="position:relative;z-index:1;width:100%;max-width:520px;box-sizing:border-box;">
           <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px;">
               <div onclick="LawAIApp.Dashboard._renderProfilePanel()"
                  role="button"
