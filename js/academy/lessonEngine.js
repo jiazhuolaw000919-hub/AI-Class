@@ -126,14 +126,6 @@ LawAIApp.LessonEngine = {
                 var lastPart = idParts.slice(2).join(' ');
                 if (lastPart) subjectTags.push(lastPart);
               }
-    
-              // 也加 title 拆词（>2 字符）
-              String(subj.title).split(/\s+/).forEach(function(w) {
-                var wLower = w.toLowerCase();
-                if (wLower.length > 2 && subjectTags.indexOf(wLower) === -1) {
-                  subjectTags.push(wLower);
-                }
-              });
             }
     
             (subj.lessons || []).forEach(function(l) {
