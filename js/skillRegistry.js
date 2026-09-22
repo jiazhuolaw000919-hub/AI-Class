@@ -100,29 +100,55 @@ LawAIApp.SkillRegistry = (function() {
         });
       } catch (e) {}
 
-      // 🔥 从 storage 里读完成/练习/闪卡证据
-      var progress = storage.get('lesson_progress', {}) || {};
-      evidence.completedLessons = Object.keys(relevantLessonIds).filter(function(lid) {
-        return progress[lid] && progress[lid].completed;
+      // 🔥 修复 1: 统一 evidence.lessons 为字符串 ID 数组
+      var cleanLessonIds = [];
+      var seenIds = {};
+      evidence.lessons.forEach(function(item) {
+        var id = null;
+        if (typeof item === 'string') id = item;
+        else if (item && typeof item === 'object') id = item.id || item.lessonId;
+        if (id && !seenIds[id]) {
+          seenIds[id] = true;
+          cleanLessonIds.push(id);
+        }
+      });
+      evidence.lessons = cleanLessonIds;
+
+      // 🔥 修复 2: 从 ProgressEngine 读 completedLessons
+      var completedList = [];
+      try {
+        var p = LawAIApp.ProgressEngine && LawAIApp.ProgressEngine.getProgress 
+          ? LawAIApp.ProgressEngine.getProgress() 
+          : null;
+        if (p && p.completedLessons) completedList = p.completedLessons;
+      } catch (e) {}
+
+      evidence.completedLessons = evidence.lessons.filter(function(lid) {
+        return completedList.indexOf(lid) !== -1;
       }).length;
 
-      var practice = storage.get('practice_history', []) || [];
-      practice.forEach(function(p) {
-        if (p && relevantLessonIds[p.lessonId]) {
-          evidence.practiceAttempts++;
-          if (p.correct) evidence.practiceCorrect++;
+      // 🔥 修复 3: 从 practice_progress 读 practice
+      var practiceStore = storage.get('practice_progress', {}) || {};
+      evidence.lessons.forEach(function(lid) {
+        var p = practiceStore[lid];
+        if (p) {
+          evidence.practiceAttempts += p.attempted || 0;
+          evidence.practiceCorrect += p.correct || 0;
         }
       });
 
-      var flashcards = storage.get('flashcard_reviews', []) || [];
-      evidence.flashcardReviews = flashcards.filter(function(f) {
-        return f && relevantLessonIds[f.lessonId];
-      }).length;
-
-      var notes = storage.get('notes', []) || [];
-      evidence.noteCount = notes.filter(function(n) {
-        return n && relevantLessonIds[n.lessonId];
-      }).length;
+      // 🔥 修复 4: 从 user_notes 读 flashcard 和 notes
+      var allNotes = storage.get('user_notes', []) || [];
+      evidence.lessons.forEach(function(lid) {
+        var lidLower = String(lid).toLowerCase();
+        allNotes.forEach(function(n) {
+          if (!n) return;
+          if (n.lessonId && n.lessonId === lid) {
+            if (n.type === 'FLASHCARD_REVIEW') evidence.flashcardReviews++;
+            else evidence.noteCount++;
+          }
+        });
+      });
 
     } catch (e) {
       console.warn('[SkillRegistry] _collectEvidence error:', e);
