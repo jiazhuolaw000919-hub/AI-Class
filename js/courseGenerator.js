@@ -138,53 +138,19 @@ LawAIApp.CourseGenerator = {
     // 🔥 Part C: Lesson Format 对齐（使用现有 lesson JSON 结构）
     // ============================================================
     _buildCoursePrompt: function(topic, level, depth, subjectCount, lessonCount, goal) {
-        var prompt = 'You are a curriculum designer. Generate a complete ' + depth + ' course on "' + topic + '" for a ' + level + ' learner.' +
-            (goal ? ' The learner\'s goal is: ' + goal + '.' : '') +
-            '\n\nCourse Requirements:' +
-            '\n- Exactly ' + subjectCount + ' subjects' +
-            '\n- Each subject has exactly ' + lessonCount + ' lessons' +
-            '\n- Content should be accurate, useful, and beginner-friendly' +
-            '\n\nEach lesson MUST include:' +
-            '\n1. title: concise (5-8 words)' +
-            '\n2. description: 1 sentence (max 20 words)' +
-            '\n3. learningObjectives: 3 short objectives' +
-            '\n4. sections: 2 sections, each with 1-2 paragraph content blocks' +
-            '\n5. keyTakeaways: 3 short points' +
-            '\n\nKeep ALL text SHORT. No long paragraphs. No examples unless necessary.' +
-            '\n\nReturn ONLY valid JSON. No markdown. No code fences.' +
-            '\n\nExact JSON shape:' +
-            '\n{' +
-            '\n  "title": "...",' +
-            '\n  "description": "...",' +
-            '\n  "subjects": [' +
-            '\n    {' +
-            '\n      "title": "...",' +
-            '\n      "description": "...",' +
-            '\n      "lessons": [' +
-            '\n        {' +
-            '\n          "title": "...",' +
-            '\n          "description": "...",' +
-            '\n          "learningObjectives": ["...", "...", "..."],' +
-            '\n          "opening": { "hook": "...", "relevance": "..." },' +
-            '\n          "sections": [' +
-            '\n            {' +
-            '\n              "id": "section-01",' +
-            '\n              "type": "foundation",' +
-            '\n              "title": "...",' +
-            '\n              "content": [' +
-            '\n                { "type": "paragraph", "content": "..." },' +
-            '\n                { "type": "definition", "term": "...", "definition": "...", "example": "..." },' +
-            '\n                { "type": "important", "title": "...", "content": "..." }' +
-            '\n              ]' +
-            '\n            }' +
-            '\n          ],' +
-            '\n          "keyTakeaways": ["...", "...", "..."],' +
-            '\n          "reflection": { "prompt": "...", "hint": "..." }' +
-            '\n        }' +
-            '\n      ]' +
-            '\n    }' +
-            '\n  ]' +
-            '\n}';
+        var prompt = 'Generate a JSON course on "' + topic + '" for ' + level + ' learners.' +
+            (goal ? ' Goal: ' + goal + '.' : '') +
+            '\n\nStructure: ' + subjectCount + ' subjects, each with ' + lessonCount + ' lessons.' +
+            '\n\nEach lesson must have:' +
+            '\n- title (5-8 words)' +
+            '\n- description (one sentence, max 15 words)' +
+            '\n- learningObjectives: 3 short strings' +
+            '\n- sections: 1 section with title and 1 paragraph (max 80 words)' +
+            '\n- keyTakeaways: 3 short strings' +
+            '\n\nKeep everything SHORT. Total output must be under 3000 tokens.' +
+            '\nReturn ONLY raw JSON, no markdown, no code fences.' +
+            '\n\nFormat:' +
+            '\n{"title":"...","description":"...","subjects":[{"title":"...","description":"...","lessons":[{"title":"...","description":"...","learningObjectives":["a","b","c"],"sections":[{"id":"section-01","type":"foundation","title":"...","content":[{"type":"paragraph","content":"..."}]}],"keyTakeaways":["a","b","c"]}]}]}';
 
         return prompt;
     },
