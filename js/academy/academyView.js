@@ -1486,6 +1486,75 @@ function __safeCall(pathOrObj) {
         },
 
         // ============================================================
+        // 🔥 Bible Part 42: Course Update Display
+        // Only show real changes
+        // ============================================================
+        _renderCourseUpdates: function(course) {
+            if (!course) return '';
+    
+            // 🔥 Bible Part 42: 没有真实变更就不显示
+            var hasUpdates = course.lastUpdated || (course.updates && course.updates.length > 0);
+            if (!hasUpdates) return '';
+    
+            var html = '';
+    
+            // ============================================================
+            // 1. Last Updated 行
+            // ============================================================
+            if (course.lastUpdated) {
+                var lastDate = '';
+                try {
+                    lastDate = new Date(course.lastUpdated).toLocaleDateString('en-US', {
+                        month: 'short',
+                        year: 'numeric'
+                    });
+                } catch (e) {
+                    lastDate = course.lastUpdated;
+                }
+    
+                html += '<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#64748b;margin-bottom:12px;">';
+                html += '<span>📅 Updated ' + lastDate + '</span>';
+                html += '</div>';
+            }
+    
+            // ============================================================
+            // 2. Recent Updates 列表
+            // ============================================================
+            if (course.updates && course.updates.length > 0) {
+                html += '<div style="background:rgba(34,197,94,0.04);border-radius:12px;padding:12px 16px;margin-bottom:16px;border-left:3px solid #22c55e;">';
+                html += '<div style="font-size:11px;color:#22c55e;font-weight:500;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">What\'s New</div>';
+    
+                course.updates.slice(0, 3).forEach(function(u) {
+                    var dateStr = '';
+                    try {
+                        dateStr = new Date(u.date).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric'
+                        });
+                    } catch (e) {
+                        dateStr = u.date || '';
+                    }
+    
+                    var icon = u.type === 'added' ? '➕' :
+                               u.type === 'updated' ? '✏️' :
+                               u.type === 'removed' ? '➖' : '•';
+    
+                    html += '<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#c8d0d8;margin:4px 0;">';
+                    html += '<span>' + icon + '</span>';
+                    html += '<span>' + (u.description || (u.count + ' ' + u.type)) + '</span>';
+                    if (dateStr) {
+                        html += '<span style="color:#64748b;margin-left:auto;font-size:11px;">' + dateStr + '</span>';
+                    }
+                    html += '</div>';
+                });
+    
+                html += '</div>';
+            }
+    
+            return html;
+        },
+
+        // ============================================================
         // 🔥 Part 59.2: Course Experience Helpers
         // ============================================================
 
