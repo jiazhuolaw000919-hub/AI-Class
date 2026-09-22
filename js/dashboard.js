@@ -4005,6 +4005,10 @@ _renderRecommendationCard: function(rec) {
               <h2 style="margin:0 0 4px;font-size:24px;font-weight:700;">🕸️ Knowledge Graph</h2>
               <p style="color:#94a3b8;margin:0 0 20px;">Your connected knowledge network</p>
 
+              <!-- 🔥 Knowledge Galaxy 可视化 -->
+              <h3 style="margin:0 0 12px;font-size:16px;font-weight:600;">🌌 Galaxy</h3>
+              <div id="kg-canvas-container" style="margin-bottom:24px;"></div>
+
               <!-- 统计信息 -->
               <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
                   <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);">
@@ -4195,13 +4199,19 @@ _renderRecommendationCard: function(rec) {
 
       container.innerHTML = html;
 
-    // 🔥 挂载 Galaxy 可视化
-    setTimeout(function() {
-      var galaxy = window.LawAIApp.KnowledgeGalaxy;
-      if (galaxy && typeof galaxy.render === 'function') {
-        galaxy.render('kg-canvas-container');
-      }
-    }, 100);
+      // 🔥 挂载 Galaxy 可视化
+      setTimeout(function() {
+          var galaxy = window.LawAIApp && window.LawAIApp.KnowledgeGalaxy;
+          if (galaxy && typeof galaxy.render === 'function') {
+              galaxy.render('kg-canvas-container');
+          } else {
+              console.warn('[Dashboard] KnowledgeGalaxy not available');
+              var el = document.getElementById('kg-canvas-container');
+              if (el) {
+                  el.innerHTML = '<div style="padding:40px;text-align:center;color:#64748b;font-size:13px;">Galaxy module not loaded.</div>';
+              }
+          }
+      }, 100);
   },
 
   // ============================================================
