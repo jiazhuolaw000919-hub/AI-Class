@@ -232,15 +232,18 @@ LawAIApp.Dashboard = {
   // 🔥 强制重新渲染（绕过 5 秒防抖）
   // ============================================================
   forceRender: function() {
-    console.log('[Dashboard] 🔥 Force render (bypassing debounce)');
-    this._lastRenderAt = 0;   // 🔥 关键：重置防抖时间戳
-    this._rendered = false;
-    this.render();
-  },
-
-  // 兼容旧调用
-  _forceRender: function() {
-    return this.forceRender();
+      // 🔥 1 秒内只 force 一次（防止多个事件同时触发导致闪）
+      var now = Date.now();
+      if (this._lastForceRenderAt && (now - this._lastForceRenderAt) < 1000) {
+          console.log('[Dashboard] ⏭️ Skipping forceRender (within 1s)');
+          return;
+      }
+      this._lastForceRenderAt = now;
+      
+      console.log('[Dashboard] 🔥 Force render (bypassing debounce)');
+      this._lastRenderAt = 0;
+      this._rendered = false;
+      this.render();
   },
 
   // ============================================================
@@ -6343,7 +6346,7 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
         LawAIApp.Dashboard.render();
       }
     }
-  }, 500);
+  }, 5000);
 }
 
 // 🔥 Season 5: 等 S5_READY 后重新渲染，确保 NotesAuthority 等已加载
@@ -6376,7 +6379,7 @@ document.addEventListener('S5_READY', function() {
     if (tries >= maxTries) {
       clearInterval(interval);
     }
-  }, 500);
+  }, 5000);
 })();
 
 // ============================================================
@@ -6401,18 +6404,18 @@ document.addEventListener('S5_READY', function() {
 
   // Practice 完成 → 刷新
   document.addEventListener('PracticeCompleted', function() {
-    // 延迟 500ms，让 PracticeProgress 先落库
-    setTimeout(refreshDashboard, 500);
+    // 延迟 5000ms，让 PracticeProgress 先落库
+    setTimeout(refreshDashboard, 5000);
   });
 
   // Flashcard review → 刷新
   document.addEventListener('FLASHCARD_REVIEWED', function() {
-    setTimeout(refreshDashboard, 500);
+    setTimeout(refreshDashboard, 5000);
   });
 
   // 笔记创建 → 刷新（Reflection / 其他）
   document.addEventListener('NOTE_CREATED', function() {
-    setTimeout(refreshDashboard, 500);
+    setTimeout(refreshDashboard, 5000);
   });
 
   // 🔥 Bible Part 51: Lesson 完成 → 触发成就检查
@@ -6422,7 +6425,7 @@ document.addEventListener('S5_READY', function() {
         window.LawAIApp.AchievementEngine.checkAll();
       }
     } catch (e) {}
-    setTimeout(refreshDashboard, 500);
+    setTimeout(refreshDashboard, 5000);
   });
 
   // 🔥 Bible Part 51: Practice 完成 → 也触发
